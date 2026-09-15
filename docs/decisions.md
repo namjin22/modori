@@ -157,3 +157,33 @@ NEIS 데이터를 다시 서빙하는 중간 계층이다.
 `hisTimetable`은 계열·학과·강의실 단위로 제공되는데, 마이스터고는 학과별 실습
 블록이 많아 NEIS에 시간표가 비어 있는 경우가 흔하다. 실제 호출로 확인 전까지
 시간표 기능은 착수하지 않는다. 비어 있으면 시간표만 DataGSM으로 폴백한다.
+
+---
+
+### Prisma는 6.x로 고정한다 (7.x·8 RC 대신)
+
+**상황**
+버전을 지정하지 않고 설치했더니 npm의 `latest` 태그가 가리키던 `prisma@8.0.0-rc.15`가
+깔렸고, `@prisma/client`는 7.10.0이라 CLI와 메이저 버전이 어긋났다. 8 RC CLI는 명령
+체계가 달라서 Vercel 배포의 `postinstall`(`prisma generate`)이 `CLI.UNKNOWN_COMMAND`로
+실패했다.
+
+**선택지**
+1. 8 RC 유지
+2. 7.x 안정 버전으로 통일
+3. 6.x 최신 안정 버전으로 통일
+
+**선택**
+3번. CLI와 client를 둘 다 `6.19.3`으로 정확히 고정했다(`^` 범위 없음).
+
+**이유**
+RC는 실서비스 DB 마이그레이션에 쓸 수 없다. 7.x는 드라이버 어댑터와 `prisma.config.ts`
+설정이 추가로 필요하다. 6.x는 이미 작성된 스키마(`prisma-client-js`, datasource 안의
+`url`/`directUrl`)를 그대로 쓸 수 있다. 정확한 버전으로 고정한 것은 CLI와 client가
+다시 어긋나지 않게 하기 위해서다.
+
+**대가**
+7.x 이후 기능은 쓰지 못한다. 나중에 올릴 때는 datasource 수정, `prisma.config.ts` 추가,
+어댑터 의존성 추가를 한꺼번에 하는 별도 작업이 되고, CLI와 client를 같은 버전으로
+함께 올려야 한다. `package-lock.json`은 반드시 같이 커밋한다. Vercel은 `npm ci`로
+lock 파일을 그대로 설치하므로, lock이 안 바뀌면 배포에서 8 RC가 다시 깔린다.
