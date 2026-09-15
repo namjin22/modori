@@ -11,7 +11,7 @@
     "verify": "tsc --noEmit && npm run lint"
   },
   "dependencies": {
-    "@prisma/client": "^7.10.0",
+    "@prisma/client": "6.19.3",
     "next": "16.3.5",
     "react": "19.2.8",
     "react-dom": "19.2.8"
@@ -23,7 +23,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.3.5",
-    "prisma": "^8.0.0-rc.15",
+    "prisma": "6.19.3",
     "tailwindcss": "^4",
     "typescript": "^5"
   }
