@@ -1,0 +1,181 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")   // 풀링 연결 — 앱에서 사용
+  directUrl = env("DIRECT_URL")     // 직접 연결 — 마이그레이션에서 사용
+}
+
+// ========================================
+// 인증 — Auth.js 표준 모델
+// ========================================
+
+model User {
+  // Auth.js가 요구하는 필드
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+
+  // 모도리 고유 필드
+  nickname     String?  // 최초 로그인 후 온보딩에서 입력받는다
+  profileEmoji String   @default("☁️")
+  bio          String?
+  grade        Int?
+  classNum     Int?
+  lastSeenAt   DateTime @default(now()) // 안 읽은 반응 뱃지 기준점
+  createdAt    DateTime @default(now())
+
+  accounts   Account[]
+  sessions   Session[]
+  categories Category[]
+  todos      Todo[]
+  routines   Routine[]
+  following  Follow[]   @relation("follower")
+  followers  Follow[]   @relation("following")
+  reactions  Reaction[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String  // "google" | "datagsm"
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ========================================
+// 소셜
+// ========================================
+
+model Follow {
+  followerId  String
+  followingId String
+  createdAt   DateTime @default(now())
+
+  follower  User @relation("follower", fields: [followerId], references: [id], onDelete: Cascade)
+  following User @relation("following", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@id([followerId, followingId])
+  @@index([followingId])
+}
+
+model Reaction {
+  id        String   @id @default(cuid())
+  userId    String // 반응을 누른 사람
+  todoId    String
+  emoji     String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  todo Todo @relation(fields: [todoId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, todoId, emoji]) // 같은 이모지 중복 방지
+  @@index([todoId])
+}
+
+// ========================================
+// 할 일
+// ========================================
+
+model Category {
+  id         String    @id @default(cuid())
+  userId     String
+  name       String
+  color      String // hex — 캘린더를 채우는 색
+  order      Int
+  isPublic   Boolean   @default(true) // false면 피드에 노출되지 않음
+  archivedAt DateTime? // 삭제 대신 보관 (과거 기록 보존)
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  todos    Todo[]
+  routines Routine[]
+
+  @@index([userId, order])
+}
+
+model Todo {
+  id         String    @id @default(cuid())
+  userId     String
+  categoryId String?
+  content    String
+  date       DateTime  @db.Date // 시각 없음. Asia/Seoul 기준 날짜만
+  done       Boolean   @default(false)
+  doneAt     DateTime?
+  order      Int       @default(0)
+  routineId  String? // 루틴이 생성한 인스턴스면 채워진다
+  createdAt  DateTime  @default(now())
+
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category  Category?  @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  routine   Routine?   @relation(fields: [routineId], references: [id], onDelete: SetNull)
+  reactions Reaction[]
+
+  // 루틴 중복 생성을 DB가 막는다.
+  // routineId가 NULL인 일반 할 일은 Postgres가 NULL을 서로 다르게 취급하므로
+  // 같은 날짜에 여러 개 만들어도 걸리지 않는다.
+  @@unique([routineId, date])
+  @@index([userId, date])
+  @@index([userId, done, doneAt]) // 피드 조회용
+}
+
+enum RoutineFreq {
+  DAILY
+  WEEKLY
+  MONTHLY
+}
+
+model Routine {
+  id         String      @id @default(cuid())
+  userId     String
+  categoryId String?
+  content    String
+  freq       RoutineFreq
+  byWeekday  Int[]       @default([]) // WEEKLY일 때. 0=일 … 6=토
+  byMonthday Int[]       @default([]) // MONTHLY일 때. 1 … 31
+  startDate  DateTime    @db.Date
+  endDate    DateTime?   @db.Date
+  pausedAt   DateTime?
+  order      Int         @default(0)
+  createdAt  DateTime    @default(now())
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  todos    Todo[]
+
+  @@index([userId])
+}
