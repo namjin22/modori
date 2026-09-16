@@ -144,3 +144,11 @@ a:active {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* 키보드로 움직일 때 지금 어디에 있는지 보여야 한다. 브라우저 기본 외곽선은
+   배경색에 따라 안 보이는 경우가 있어 브랜드 색으로 통일한다.
+   :focus가 아니라 :focus-visible이라 마우스로 누를 때는 나오지 않는다. */
+:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 2px;
+}

@@ -230,7 +230,7 @@ function AddTodoForm({
         maxLength={200}
         placeholder="할 일 추가"
         aria-label="할 일 내용"
-        className="h-11 rounded-xl bg-surface-hover px-3 outline-none"
+        className="h-11 rounded-xl bg-surface-hover px-3 outline-none focus:ring-2 focus:ring-brand"
       />
       <div className="flex gap-2">
         <select
