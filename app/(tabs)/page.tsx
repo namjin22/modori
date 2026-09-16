@@ -1,51 +1,158 @@
-import { signOut } from "@/lib/auth";
-import { formatKST, todayKST, weekdayKST } from "@/lib/date";
+import Link from "next/link";
+
+import {
+  addDays,
+  formatKST,
+  isSameKSTDate,
+  parseKSTDate,
+  todayKST,
+  weekdayKST,
+} from "@/lib/date";
+import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
+
+import { TodoRow } from "@/components/todo-row";
+
+import { addTodo } from "./actions";
 
 const WEEKDAY_NAMES = ["일", "월", "화", "수", "목", "금", "토"];
 
-function formatToday(): string {
-  const today = todayKST();
-  const [, month, day] = formatKST(today).split("-");
-  return `${Number(month)}월 ${Number(day)}일 ${WEEKDAY_NAMES[weekdayKST(today)]}요일`;
+function readDate(raw: string | undefined): Date {
+  if (!raw) return todayKST();
+
+  try {
+    return parseKSTDate(raw);
+  } catch (error) {
+    // 주소창을 손으로 고친 경우. 오늘로 돌린다.
+    console.error("[today] 날짜 형식이 잘못됐다.", error);
+    return todayKST();
+  }
 }
 
-export default async function TodayPage() {
+function formatHeading(date: Date): string {
+  const [, month, day] = formatKST(date).split("-");
+  return `${Number(month)}월 ${Number(day)}일 ${WEEKDAY_NAMES[weekdayKST(date)]}요일`;
+}
+
+export default async function TodayPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ date?: string }>;
+}) {
   const user = await requireUser();
+  const { date: dateParam } = await searchParams;
+  const date = readDate(dateParam);
+  const isToday = isSameKSTDate(date, todayKST());
+
+  const [todos, categories] = await Promise.all([
+    prisma.todo.findMany({
+      where: { userId: user.id, date },
+      orderBy: { order: "asc" },
+      include: { category: { select: { name: true, color: true } } },
+    }),
+    prisma.category.findMany({
+      where: { userId: user.id, archivedAt: null },
+      orderBy: { order: "asc" },
+      select: { id: true, name: true, color: true },
+    }),
+  ]);
+
+  const doneCount = todos.filter((todo) => todo.done).length;
 
   return (
-    <div className="flex flex-col gap-6">
-      <header className="flex items-start justify-between">
-        <div>
-          <p className="text-sm text-muted">{formatToday()}</p>
-          <h1 className="mt-1 text-2xl font-bold">오늘</h1>
+    <div className="flex flex-col gap-5">
+      <header className="flex items-center justify-between">
+        <Link
+          href={`/?date=${formatKST(addDays(date, -1))}`}
+          aria-label="이전 날"
+          className="rounded-lg px-2 py-1 text-muted hover:bg-surface-hover"
+        >
+          ←
+        </Link>
+
+        <div className="text-center">
+          <p className="text-sm text-muted">{isToday ? "오늘" : formatKST(date)}</p>
+          <h1 className="text-xl font-bold">{formatHeading(date)}</h1>
         </div>
 
-        <form
-          action={async () => {
-            "use server";
-            await signOut({ redirectTo: "/login" });
-          }}
+        <Link
+          href={`/?date=${formatKST(addDays(date, 1))}`}
+          aria-label="다음 날"
+          className="rounded-lg px-2 py-1 text-muted hover:bg-surface-hover"
         >
-          <button
-            type="submit"
-            className="rounded-full px-3 py-1.5 text-sm text-muted transition-colors hover:bg-surface-hover hover:text-foreground"
-          >
-            로그아웃
-          </button>
-        </form>
+          →
+        </Link>
       </header>
 
-      <section className="rounded-2xl bg-surface p-5">
-        <p className="text-base font-semibold">
-          {user.profileEmoji} {user.nickname}
-        </p>
-        <p className="mt-1 text-sm text-muted">할 일 추가는 다음에 붙인다.</p>
-      </section>
+      {!isToday && (
+        <Link href="/" className="text-center text-sm text-brand">
+          오늘로 돌아가기
+        </Link>
+      )}
 
-      <section className="rounded-2xl border border-dashed border-border p-10 text-center">
-        <p className="text-sm text-muted">아직 오늘 할 일이 없다</p>
-      </section>
+      <AddTodoForm categories={categories} date={formatKST(date)} />
+
+      {todos.length === 0 ? (
+        <p className="rounded-2xl border border-dashed border-border p-10 text-center text-sm text-muted">
+          아직 할 일이 없다
+        </p>
+      ) : (
+        <>
+          <p className="text-sm text-muted">
+            {todos.length}개 중 {doneCount}개 완료
+          </p>
+          <ul className="flex flex-col gap-2">
+            {todos.map((todo) => (
+              <TodoRow key={todo.id} todo={todo} categories={categories} />
+            ))}
+          </ul>
+        </>
+      )}
     </div>
+  );
+}
+
+function AddTodoForm({
+  categories,
+  date,
+}: {
+  categories: { id: string; name: string; color: string }[];
+  date: string;
+}) {
+  return (
+    <form
+      action={addTodo}
+      className="flex flex-col gap-2 rounded-2xl bg-surface p-3"
+    >
+      <input type="hidden" name="date" value={date} />
+      <input
+        name="content"
+        required
+        maxLength={200}
+        placeholder="할 일 추가"
+        aria-label="할 일 내용"
+        className="h-11 rounded-xl bg-surface-hover px-3 outline-none"
+      />
+      <div className="flex gap-2">
+        <select
+          name="categoryId"
+          aria-label="카테고리"
+          className="h-11 flex-1 rounded-xl bg-surface-hover px-3 text-sm"
+        >
+          <option value="">카테고리 없음</option>
+          {categories.map((category) => (
+            <option key={category.id} value={category.id}>
+              {category.name}
+            </option>
+          ))}
+        </select>
+        <button
+          type="submit"
+          className="h-11 rounded-xl bg-brand px-5 text-sm font-semibold text-brand-contrast"
+        >
+          추가
+        </button>
+      </div>
+    </form>
   );
 }
