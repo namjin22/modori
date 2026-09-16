@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { SubmitButton } from "@/components/submit-button";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 
@@ -52,12 +53,12 @@ export default async function CategoriesPage() {
           aria-label="새 카테고리 색"
           className="h-11 w-12 rounded-xl bg-surface-hover"
         />
-        <button
-          type="submit"
+        <SubmitButton
+          pendingLabel="추가 중"
           className="h-11 rounded-xl bg-brand px-4 text-sm font-semibold text-brand-contrast"
         >
           추가
-        </button>
+        </SubmitButton>
       </form>
 
       {active.length === 0 ? (

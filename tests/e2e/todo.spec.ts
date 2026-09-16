@@ -49,6 +49,9 @@ test("삭제하면 목록에서 사라진다", async ({ page }) => {
   await page.getByLabel("할 일 내용").fill("지울 할 일");
   await page.getByRole("button", { name: "추가" }).click();
 
+  // 삭제는 확인창을 띄운다. Playwright는 기본적으로 닫아버리므로 수락해준다.
+  page.on("dialog", (dialog) => dialog.accept());
+
   await page.getByText("수정").click();
   await page.getByRole("button", { name: "삭제" }).click();
 

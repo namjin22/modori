@@ -12,8 +12,15 @@ export const requireUser = cache(async () => {
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
-    // createdAt은 루틴을 과거 어디까지 만들지 정하는 데 쓴다.
-    select: { id: true, nickname: true, profileEmoji: true, createdAt: true },
+    // createdAt은 루틴을 과거 어디까지 만들지, lastSeenAt은 안 읽은 반응을
+    // 세는 데 쓴다.
+    select: {
+      id: true,
+      nickname: true,
+      profileEmoji: true,
+      createdAt: true,
+      lastSeenAt: true,
+    },
   });
 
   // 세션은 남아 있는데 계정이 지워진 경우 (테스트에서 실제로 생긴다)

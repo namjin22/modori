@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+import { ConfirmButton } from "@/components/confirm-button";
+import { SubmitButton } from "@/components/submit-button";
 import { formatKST, todayKST } from "@/lib/date";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
@@ -143,12 +145,12 @@ export default async function RoutinesPage() {
             />
           </label>
 
-          <button
-            type="submit"
+          <SubmitButton
+            pendingLabel="추가 중"
             className="h-11 rounded-xl bg-brand text-sm font-semibold text-brand-contrast"
           >
             루틴 추가
-          </button>
+          </SubmitButton>
         </form>
       </details>
 
@@ -200,9 +202,12 @@ export default async function RoutinesPage() {
 
                 <form action={deleteRoutine}>
                   <input type="hidden" name="id" value={routine.id} />
-                  <button type="submit" className="text-xs text-red-500">
+                  <ConfirmButton
+                    message="이 루틴을 지울까요? 이미 만들어진 할 일은 남습니다."
+                    className="text-xs text-red-500"
+                  >
                     삭제
-                  </button>
+                  </ConfirmButton>
                 </form>
               </div>
             </li>

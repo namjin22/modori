@@ -101,6 +101,9 @@ test("루틴을 지워도 이미 만들어진 할 일은 남는다", async ({ pa
   await expect(page).toHaveURL("/");
   await expect(page.getByText("남을 할 일")).toBeVisible();
 
+  // 삭제는 확인창을 띄운다. Playwright는 기본적으로 닫아버리므로 수락해준다.
+  page.on("dialog", (dialog) => dialog.accept());
+
   await page.goto("/settings/routines");
   await page.getByRole("button", { name: "삭제" }).click();
   await expect(page.getByText("아직 루틴이 없다")).toBeVisible();

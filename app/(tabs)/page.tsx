@@ -16,6 +16,7 @@ import {
 import { requireUser } from "@/lib/session";
 
 import { ScheduledRoutineRow } from "@/components/scheduled-routine-row";
+import { SubmitButton } from "@/components/submit-button";
 import { TodoRow } from "@/components/todo-row";
 
 import { addTodo } from "./actions";
@@ -175,12 +176,12 @@ function AddTodoForm({
             </option>
           ))}
         </select>
-        <button
-          type="submit"
+        <SubmitButton
+          pendingLabel="추가 중"
           className="h-11 rounded-xl bg-brand px-5 text-sm font-semibold text-brand-contrast"
         >
           추가
-        </button>
+        </SubmitButton>
       </div>
     </form>
   );
