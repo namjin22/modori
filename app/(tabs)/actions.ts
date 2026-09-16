@@ -177,3 +177,31 @@ export async function moveTodo(formData: FormData) {
 
   revalidatePath("/");
 }
+
+/** 드래그로 순서를 바꾼 뒤, 화면에 보이는 순서를 그대로 저장한다. */
+export async function reorderTodos(date: string, orderedIds: string[]) {
+  const user = await requireUser();
+  const day = parseKSTDate(date);
+
+  // 남의 할 일이나 다른 날짜의 id가 섞여 들어오면 전부 무시한다.
+  const owned = await prisma.todo.findMany({
+    where: { userId: user.id, date: day },
+    select: { id: true },
+  });
+  const ownedIds = new Set(owned.map((todo) => todo.id));
+
+  if (
+    orderedIds.length !== ownedIds.size ||
+    orderedIds.some((id) => !ownedIds.has(id))
+  ) {
+    return;
+  }
+
+  await prisma.$transaction(
+    orderedIds.map((id, index) =>
+      prisma.todo.update({ where: { id }, data: { order: index } }),
+    ),
+  );
+
+  revalidatePath("/");
+}

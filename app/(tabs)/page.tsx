@@ -16,6 +16,7 @@ import {
 import { requireUser } from "@/lib/session";
 
 import { ScheduledRoutineRow } from "@/components/scheduled-routine-row";
+import { SortableTodoList } from "@/components/sortable-todo-list";
 import { SubmitButton } from "@/components/submit-button";
 import { TodoRow } from "@/components/todo-row";
 
@@ -120,11 +121,13 @@ export default async function TodayPage({
               <p className="text-sm text-muted">
                 {todos.length}개 중 {doneCount}개 완료
               </p>
-              <ul className="flex flex-col gap-2">
-                {todos.map((todo) => (
-                  <TodoRow key={todo.id} todo={todo} categories={categories} />
-                ))}
-              </ul>
+              <SortableTodoList
+                date={formatKST(date)}
+                items={todos.map((todo) => ({
+                  id: todo.id,
+                  node: <TodoRow todo={todo} categories={categories} />,
+                }))}
+              />
             </>
           )}
 
