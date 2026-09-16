@@ -29,17 +29,20 @@ function Row({ id, node }: SortableItem) {
     useSortable({ id });
 
   return (
+    // 카드는 여기서 그린다. 손잡이를 카드 밖에 두면 여백에 떠 있는 것처럼 보인다.
     <li
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={isDragging ? "relative z-10 opacity-90" : undefined}
+      className={`rounded-2xl bg-surface transition-colors ${
+        isDragging ? "relative z-10 opacity-90 shadow-lg" : ""
+      }`}
     >
-      <div className="flex items-stretch gap-1">
+      <div className="flex items-stretch">
         {/* 손잡이를 따로 둔다. 목록 어디나 잡히면 체크나 수정 버튼을 누를 수 없다. */}
         <button
           type="button"
           aria-label="순서 바꾸기 손잡이"
-          className="shrink-0 cursor-grab touch-none rounded-lg px-1 text-muted active:cursor-grabbing"
+          className="shrink-0 cursor-grab touch-none self-start px-2 py-3 text-muted active:cursor-grabbing"
           {...attributes}
           {...listeners}
         >

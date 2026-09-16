@@ -118,9 +118,27 @@ export default async function TodayPage({
         <>
           {todos.length > 0 && (
             <>
-              <p className="text-sm text-muted">
-                {todos.length}개 중 {doneCount}개 완료
-              </p>
+              {/* 숫자만으로는 얼마나 남았는지 한눈에 안 들어온다. */}
+              <div className="flex flex-col gap-1.5">
+                <p className="text-sm text-muted">
+                  {todos.length}개 중 {doneCount}개 완료
+                </p>
+                <div
+                  role="progressbar"
+                  aria-label="오늘 완료율"
+                  aria-valuemin={0}
+                  aria-valuemax={todos.length}
+                  aria-valuenow={doneCount}
+                  className="h-1.5 overflow-hidden rounded-full bg-surface"
+                >
+                  <div
+                    className="h-full rounded-full bg-brand transition-[width] duration-300"
+                    style={{
+                      width: `${Math.round((doneCount / todos.length) * 100)}%`,
+                    }}
+                  />
+                </div>
+              </div>
               <SortableTodoList
                 date={formatKST(date)}
                 items={todos.map((todo) => ({

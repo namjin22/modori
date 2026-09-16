@@ -1,12 +1,28 @@
 import type { ReactNode } from "react";
 
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 
 import "./globals.css";
 
 export const metadata: Metadata = {
   title: "모도리",
   description: "오늘 할 일을 색으로 남긴다",
+  // 홈 화면에 추가했을 때 주소창 없이 열린다.
+  appleWebApp: { capable: true, title: "모도리", statusBarStyle: "default" },
+  icons: { apple: "/icons/apple-touch-icon.png" },
+};
+
+export const viewport: Viewport = {
+  // 주소창 색을 배경과 맞춰 화면이 끊겨 보이지 않게 한다.
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f7f8fa" },
+    { media: "(prefers-color-scheme: dark)", color: "#0e1013" },
+  ],
+  // 입력칸을 눌렀을 때 iOS가 화면을 확대해버리는 것만 막는다.
+  // 사용자가 손가락으로 키우는 것은 막지 않는다.
+  initialScale: 1,
+  width: "device-width",
+  viewportFit: "cover",
 };
 
 // 화면이 그려지기 전에 테마를 정해야 라이트로 한 번 번쩍이지 않는다.
