@@ -21,7 +21,9 @@ model User {
   image         String?
 
   // 모도리 고유 필드
-  nickname     String?  // 최초 로그인 후 온보딩에서 입력받는다
+  // 최초 로그인 후 온보딩에서 입력받는다. 친구를 찾는 이름이라 겹치면 안 된다.
+  // 대소문자까지 구분하는 제약이라, 앱에서 대소문자 무시 비교를 한 번 더 한다.
+  nickname     String?  @unique
   profileEmoji String   @default("☁️")
   bio          String?
   grade        Int?
