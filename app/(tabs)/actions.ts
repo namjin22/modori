@@ -106,6 +106,47 @@ export async function deleteTodo(formData: FormData) {
   revalidatePath("/");
 }
 
+/**
+ * 미래 날짜의 "예정" 루틴을 체크한 경우. 이때 처음으로 행을 만든다.
+ * 미리 만들어두지 않는 이유는 docs/decisions.md 참고.
+ */
+export async function completeScheduledRoutine(formData: FormData) {
+  const user = await requireUser();
+  const routineId = readId(formData, "routineId");
+  const date = parseKSTDate(readId(formData, "date"));
+
+  const routine = await prisma.routine.findFirst({
+    where: { id: routineId, userId: user.id },
+    select: { content: true, categoryId: true },
+  });
+  if (!routine) return;
+
+  const last = await prisma.todo.findFirst({
+    where: { userId: user.id, date },
+    orderBy: { order: "desc" },
+    select: { order: true },
+  });
+
+  await prisma.todo.createMany({
+    data: [
+      {
+        userId: user.id,
+        date,
+        content: routine.content,
+        categoryId: routine.categoryId,
+        routineId,
+        order: (last?.order ?? -1) + 1,
+        done: true,
+        doneAt: new Date(),
+      },
+    ],
+    // 같은 순간에 두 번 눌러도 unique 제약이 막는다.
+    skipDuplicates: true,
+  });
+
+  revalidatePath("/");
+}
+
 export async function moveTodo(formData: FormData) {
   const user = await requireUser();
   const id = readId(formData, "id");
