@@ -14,6 +14,8 @@ type Todo = {
 type Category = { id: string; name: string; color: string };
 
 // 수정 폼은 details로 연다. 이것 때문에 클라이언트 컴포넌트를 만들 이유가 없다.
+// 접었을 때 보이는 것은 체크, 내용, "수정"뿐이다. 순서 바꾸기 화살표까지 항상
+// 내놓으면 한 줄에 버튼이 넷이라, 할 일 목록이 아니라 조작판처럼 보인다.
 export function TodoRow({
   todo,
   categories,
@@ -22,8 +24,8 @@ export function TodoRow({
   categories: Category[];
 }) {
   return (
-    <div className="rounded-2xl bg-surface p-3 transition-colors">
-      <div className="flex items-center gap-3">
+    <details className="group">
+      <summary className="flex cursor-pointer list-none items-center gap-3 py-3 pr-3 [&::-webkit-details-marker]:hidden">
         <TodoCheckbox id={todo.id} done={todo.done} />
 
         <div className="flex min-w-0 flex-1 items-center gap-2">
@@ -43,27 +45,13 @@ export function TodoRow({
           </span>
         </div>
 
-        <form action={moveTodo}>
-          <input type="hidden" name="id" value={todo.id} />
-          <input type="hidden" name="direction" value="up" />
-          <button type="submit" aria-label="위로" className="px-1 text-muted">
-            ↑
-          </button>
-        </form>
+        <span className="shrink-0 text-xs text-muted group-open:text-brand">
+          수정
+        </span>
+      </summary>
 
-        <form action={moveTodo}>
-          <input type="hidden" name="id" value={todo.id} />
-          <input type="hidden" name="direction" value="down" />
-          <button type="submit" aria-label="아래로" className="px-1 text-muted">
-            ↓
-          </button>
-        </form>
-      </div>
-
-      <details className="mt-2">
-        <summary className="cursor-pointer text-xs text-muted">수정</summary>
-
-        <form action={updateTodo} className="mt-2 flex flex-col gap-2">
+      <div className="flex flex-col gap-2 pb-3 pr-3">
+        <form action={updateTodo} className="flex flex-col gap-2">
           <input type="hidden" name="id" value={todo.id} />
           <input
             name="content"
@@ -96,16 +84,43 @@ export function TodoRow({
           </div>
         </form>
 
-        <form action={deleteTodo} className="mt-2">
-          <input type="hidden" name="id" value={todo.id} />
-          <ConfirmButton
-            message="이 할 일을 지울까요? 되돌릴 수 없습니다."
-            className="text-xs text-red-500"
-          >
-            삭제
-          </ConfirmButton>
-        </form>
-      </details>
-    </div>
+        <div className="flex items-center gap-2">
+          {/* 드래그가 어려운 상황(키보드, 손 떨림)을 위해 화살표를 남긴다. */}
+          <form action={moveTodo}>
+            <input type="hidden" name="id" value={todo.id} />
+            <input type="hidden" name="direction" value="up" />
+            <button
+              type="submit"
+              aria-label="위로"
+              className="h-9 rounded-xl bg-surface-hover px-3 text-muted"
+            >
+              ↑
+            </button>
+          </form>
+
+          <form action={moveTodo}>
+            <input type="hidden" name="id" value={todo.id} />
+            <input type="hidden" name="direction" value="down" />
+            <button
+              type="submit"
+              aria-label="아래로"
+              className="h-9 rounded-xl bg-surface-hover px-3 text-muted"
+            >
+              ↓
+            </button>
+          </form>
+
+          <form action={deleteTodo} className="ml-auto">
+            <input type="hidden" name="id" value={todo.id} />
+            <ConfirmButton
+              message="이 할 일을 지울까요? 되돌릴 수 없습니다."
+              className="h-9 rounded-xl px-3 text-sm text-red-500"
+            >
+              삭제
+            </ConfirmButton>
+          </form>
+        </div>
+      </div>
+    </details>
   );
 }
