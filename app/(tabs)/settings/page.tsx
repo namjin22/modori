@@ -8,9 +8,10 @@ import { requireUser } from "@/lib/session";
 export default async function SettingsPage() {
   const user = await requireUser();
 
-  const categoryCount = await prisma.category.count({
-    where: { userId: user.id, archivedAt: null },
-  });
+  const [categoryCount, routineCount] = await Promise.all([
+    prisma.category.count({ where: { userId: user.id, archivedAt: null } }),
+    prisma.routine.count({ where: { userId: user.id } }),
+  ]);
 
   return (
     <div className="flex flex-col gap-5">
@@ -26,10 +27,15 @@ export default async function SettingsPage() {
         <ThemeToggle />
       </section>
 
-      <section className="rounded-2xl bg-surface p-5">
+      <section className="flex flex-col gap-4 rounded-2xl bg-surface p-5">
         <Link href="/settings/categories" className="flex items-center justify-between">
           <span className="font-medium">카테고리 관리</span>
           <span className="text-sm text-muted">{categoryCount}개 →</span>
+        </Link>
+
+        <Link href="/settings/routines" className="flex items-center justify-between">
+          <span className="font-medium">루틴 관리</span>
+          <span className="text-sm text-muted">{routineCount}개 →</span>
         </Link>
       </section>
 
