@@ -102,3 +102,46 @@ body {
   /* 한글은 자간이 조금 좁아야 읽기 편하다. */
   letter-spacing: -0.01em;
 }
+
+/* 눌렀을 때 반응이 없으면 앱이 멈춘 것처럼 느껴진다.
+   누르는 즉시 작아지고, 목록은 살짝 떠오르며 나타난다. */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+main > * {
+  animation: rise 0.18s ease-out both;
+}
+
+button,
+a {
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease,
+    opacity 0.15s ease,
+    transform 0.1s ease;
+}
+
+button:active,
+a:active {
+  transform: scale(0.97);
+}
+
+/* 멀미나 어지럼을 느끼는 사람이 있다. 기기 설정을 존중한다. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
