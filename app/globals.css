@@ -1,26 +1,61 @@
 @import "tailwindcss";
+@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css");
 
+/* 색은 여기 CSS 변수로만 두고, 다크 모드에서 값만 바꾼다.
+   컴포넌트는 bg-surface / text-muted 처럼 의미 이름으로만 쓴다.
+   그래야 색을 바꿀 때 컴포넌트를 건드리지 않는다. */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+  --background: #f7f8fa;
+  --surface: #ffffff;
+  --surface-hover: #f2f4f6;
+  --foreground: #191f28;
+  --muted: #8b95a1;
+  --border: #e8ebed;
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --brand: #00b26a;
+  --brand-hover: #009a5c;
+  --brand-subtle: #e8f8f0;
+  --brand-contrast: #ffffff;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #0e1013;
+    --surface: #17191d;
+    --surface-hover: #1f2228;
+    --foreground: #edeff2;
+    --muted: #8b95a1;
+    --border: #2a2e35;
+
+    --brand: #22d387;
+    --brand-hover: #3ade98;
+    --brand-subtle: #12281f;
+    --brand-contrast: #06150e;
   }
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-hover: var(--surface-hover);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+
+  --color-brand: var(--brand);
+  --color-brand-hover: var(--brand-hover);
+  --color-brand-subtle: var(--brand-subtle);
+  --color-brand-contrast: var(--brand-contrast);
+
+  --font-sans: "Pretendard Variable", Pretendard, -apple-system,
+    BlinkMacSystemFont, system-ui, "Apple SD Gothic Neo", "Malgun Gothic",
+    sans-serif;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
+  /* 한글은 자간이 조금 좁아야 읽기 편하다. */
+  letter-spacing: -0.01em;
 }
