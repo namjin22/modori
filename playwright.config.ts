@@ -18,7 +18,8 @@ export default defineConfig({
     command: `npx next build && npx next start --port ${PORT}`,
     url: baseURL,
     reuseExistingServer: false,
-    timeout: 120_000,
+    // 빌드까지 포함한 시간이다. 화면이 늘면서 120초로는 모자랐다.
+    timeout: 300_000,
     // 프로덕션 모드로 띄우면 Auth.js가 Vercel이 아닌 호스트를 신뢰하지 않는다
     // (UntrustedHost). 로컬 테스트 서버에만 주는 값이라 코드에는 넣지 않는다.
     env: { AUTH_MODE: "mock", AUTH_TRUST_HOST: "true" },

@@ -22,7 +22,7 @@ export function TodoRow({
   categories: Category[];
 }) {
   return (
-    <li className="rounded-2xl bg-surface p-3 transition-colors">
+    <div className="rounded-2xl bg-surface p-3 transition-colors">
       <div className="flex items-center gap-3">
         <TodoCheckbox id={todo.id} done={todo.done} />
 
@@ -106,6 +106,6 @@ export function TodoRow({
           </ConfirmButton>
         </form>
       </details>
-    </li>
+    </div>
   );
 }

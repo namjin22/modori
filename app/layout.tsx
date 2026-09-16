@@ -28,6 +28,12 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <head>
         {/* 글꼴을 CDN에서 받으므로 연결을 미리 열어둔다. 첫 화면에서 글자가 늦게 뜨는 시간이 줄어든다. */}
         <link rel="preconnect" href="https://cdn.jsdelivr.net" crossOrigin="" />
+        {/* CSS의 @import로 넣으면 Tailwind가 앞에 규칙을 붙이면서
+            @import가 규칙 뒤로 밀려 브라우저가 무시한다. link로 직접 건다. */}
+        <link
+          rel="stylesheet"
+          href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"
+        />
         <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
       </head>
       <body className="flex min-h-full flex-col bg-background text-foreground">
