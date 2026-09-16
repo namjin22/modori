@@ -9,8 +9,13 @@ import {
   weekdayKST,
 } from "@/lib/date";
 import { prisma } from "@/lib/prisma";
+import {
+  ensureRoutineTodos,
+  listScheduledRoutines,
+} from "@/lib/routine-todos";
 import { requireUser } from "@/lib/session";
 
+import { ScheduledRoutineRow } from "@/components/scheduled-routine-row";
 import { TodoRow } from "@/components/todo-row";
 
 import { addTodo } from "./actions";
@@ -44,7 +49,10 @@ export default async function TodayPage({
   const date = readDate(dateParam);
   const isToday = isSameKSTDate(date, todayKST());
 
-  const [todos, categories] = await Promise.all([
+  // 이 날짜를 여는 순간 루틴 할 일이 없으면 만든다. 미래 날짜에는 만들지 않는다.
+  await ensureRoutineTodos(user, date);
+
+  const [todos, categories, scheduled] = await Promise.all([
     prisma.todo.findMany({
       where: { userId: user.id, date },
       orderBy: { order: "asc" },
@@ -55,6 +63,7 @@ export default async function TodayPage({
       orderBy: { order: "asc" },
       select: { id: true, name: true, color: true },
     }),
+    listScheduledRoutines(user.id, date),
   ]);
 
   const doneCount = todos.filter((todo) => todo.done).length;
@@ -92,20 +101,40 @@ export default async function TodayPage({
 
       <AddTodoForm categories={categories} date={formatKST(date)} />
 
-      {todos.length === 0 ? (
+      {todos.length === 0 && scheduled.length === 0 ? (
         <p className="rounded-2xl border border-dashed border-border p-10 text-center text-sm text-muted">
           아직 할 일이 없다
         </p>
       ) : (
         <>
-          <p className="text-sm text-muted">
-            {todos.length}개 중 {doneCount}개 완료
-          </p>
-          <ul className="flex flex-col gap-2">
-            {todos.map((todo) => (
-              <TodoRow key={todo.id} todo={todo} categories={categories} />
-            ))}
-          </ul>
+          {todos.length > 0 && (
+            <>
+              <p className="text-sm text-muted">
+                {todos.length}개 중 {doneCount}개 완료
+              </p>
+              <ul className="flex flex-col gap-2">
+                {todos.map((todo) => (
+                  <TodoRow key={todo.id} todo={todo} categories={categories} />
+                ))}
+              </ul>
+            </>
+          )}
+
+          {scheduled.length > 0 && (
+            <>
+              <p className="text-sm text-muted">예정된 루틴</p>
+              <ul className="flex flex-col gap-2">
+                {scheduled.map((routine) => (
+                  <ScheduledRoutineRow
+                    key={routine.id}
+                    routine={routine}
+                    categories={categories}
+                    date={formatKST(date)}
+                  />
+                ))}
+              </ul>
+            </>
+          )}
         </>
       )}
     </div>
