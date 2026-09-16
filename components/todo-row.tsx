@@ -1,11 +1,7 @@
 import { ConfirmButton } from "@/components/confirm-button";
+import { TodoCheckbox } from "@/components/todo-checkbox";
 
-import {
-  deleteTodo,
-  moveTodo,
-  toggleTodo,
-  updateTodo,
-} from "@/app/(tabs)/actions";
+import { deleteTodo, moveTodo, updateTodo } from "@/app/(tabs)/actions";
 
 type Todo = {
   id: string;
@@ -26,22 +22,9 @@ export function TodoRow({
   categories: Category[];
 }) {
   return (
-    <li className="rounded-2xl bg-surface p-3">
+    <li className="rounded-2xl bg-surface p-3 transition-colors">
       <div className="flex items-center gap-3">
-        <form action={toggleTodo} className="flex">
-          <input type="hidden" name="id" value={todo.id} />
-          <button
-            type="submit"
-            aria-label={todo.done ? "완료 취소" : "완료"}
-            className={`size-6 rounded-full border-2 text-xs font-bold ${
-              todo.done
-                ? "border-brand bg-brand text-brand-contrast"
-                : "border-border"
-            }`}
-          >
-            {todo.done ? "✓" : ""}
-          </button>
-        </form>
+        <TodoCheckbox id={todo.id} done={todo.done} />
 
         <div className="flex min-w-0 flex-1 items-center gap-2">
           {todo.category && (
@@ -52,7 +35,9 @@ export function TodoRow({
             />
           )}
           <span
-            className={`truncate ${todo.done ? "text-muted line-through" : ""}`}
+            className={`truncate transition-colors ${
+              todo.done ? "text-muted line-through" : ""
+            }`}
           >
             {todo.content}
           </span>
