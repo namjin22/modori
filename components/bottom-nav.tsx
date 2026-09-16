@@ -10,7 +10,7 @@ const TABS = [
   { href: "/settings", label: "설정" },
 ] as const;
 
-export function BottomNav() {
+export function BottomNav({ unreadReactions }: { unreadReactions: number }) {
   const pathname = usePathname();
 
   return (
@@ -19,19 +19,28 @@ export function BottomNav() {
         {TABS.map((tab) => {
           const isActive =
             tab.href === "/" ? pathname === "/" : pathname.startsWith(tab.href);
+          const badge = tab.href === "/feed" ? unreadReactions : 0;
 
           return (
             <li key={tab.href} className="flex-1">
               <Link
                 href={tab.href}
                 aria-current={isActive ? "page" : undefined}
-                className={`flex h-14 items-center justify-center text-sm transition-colors ${
+                className={`flex h-14 items-center justify-center gap-1 text-sm transition-colors ${
                   isActive
                     ? "font-semibold text-brand"
                     : "text-muted hover:text-foreground"
                 }`}
               >
                 {tab.label}
+                {badge > 0 && (
+                  <span
+                    aria-label={`안 읽은 반응 ${badge}개`}
+                    className="rounded-full bg-brand px-1.5 py-0.5 text-xs font-semibold text-brand-contrast"
+                  >
+                    {badge}
+                  </span>
+                )}
               </Link>
             </li>
           );
