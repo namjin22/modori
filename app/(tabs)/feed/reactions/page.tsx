@@ -22,7 +22,10 @@ export default async function ReactionsPage() {
     },
   });
 
-  await prisma.user.update({
+  // 응답을 보내기 전에 끝내야 한다. after()로 미루면 바로 피드로 돌아갔을 때
+  // 아직 안 읽은 것으로 나온다. updateMany를 쓰는 이유는 그 사이 계정이 사라져도
+  // 화면 전체가 죽지 않게 하려는 것이다(update는 대상이 없으면 던진다).
+  await prisma.user.updateMany({
     where: { id: user.id },
     data: { lastSeenAt: new Date() },
   });
