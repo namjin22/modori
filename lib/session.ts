@@ -29,3 +29,17 @@ export const requireUser = cache(async () => {
 
   return { ...user, nickname: user.nickname };
 });
+
+/**
+ * 안 읽은 반응 수. 하단 탭의 뱃지와 피드 화면이 같은 값을 쓰는데,
+ * cache()로 감싸두면 한 요청 안에서 두 번 부르더라도 질의는 한 번만 나간다.
+ */
+export const countUnreadReactions = cache(async (userId: string, since: Date) => {
+  return prisma.reaction.count({
+    where: {
+      todo: { userId },
+      userId: { not: userId },
+      createdAt: { gt: since },
+    },
+  });
+});

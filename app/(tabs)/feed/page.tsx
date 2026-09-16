@@ -2,7 +2,7 @@ import Link from "next/link";
 
 import { formatKST } from "@/lib/date";
 import { prisma } from "@/lib/prisma";
-import { requireUser } from "@/lib/session";
+import { countUnreadReactions, requireUser } from "@/lib/session";
 
 import { FeedItem } from "@/components/feed-item";
 
@@ -38,13 +38,8 @@ export default async function FeedPage({
       },
     }),
     prisma.follow.count({ where: { followerId: user.id } }),
-    prisma.reaction.count({
-      where: {
-        todo: { userId: user.id },
-        userId: { not: user.id },
-        createdAt: { gt: user.lastSeenAt },
-      },
-    }),
+    // 레이아웃이 같은 값을 이미 셌다. cache()가 막아주므로 질의는 한 번이다.
+    countUnreadReactions(user.id, user.lastSeenAt),
   ]);
 
   const hasMore = page.length > FEED_SIZE;

@@ -126,6 +126,9 @@ export default async function CalendarPage({
               <Link
                 key={key}
                 href={`/?date=${key}`}
+                // 한 달치 날짜 칸이 서른 개다. 미리 받으면 달력을 열 때마다
+                // 서버가 할 일 화면을 서른 번 그린다.
+                prefetch={false}
                 aria-label={`${day.getUTCDate()}일, 완료 ${colors.length > 0 ? "있음" : "없음"}`}
                 className={`flex aspect-square flex-col items-center justify-center gap-1.5 rounded-xl transition-colors hover:bg-surface-hover ${
                   isToday ? "bg-brand-subtle" : ""
