@@ -1,5 +1,4 @@
 @import "tailwindcss";
-@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css");
 
 /* 색 값은 여기에만 둔다. 아래에서는 배정만 바꾼다.
    화면에서는 bg-surface / text-muted 처럼 의미 이름으로만 쓴다. */
