@@ -2,8 +2,14 @@ name: verify
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main]
   pull_request:
+
+# E2E가 실제 DB 하나를 같이 쓴다. 두 실행이 겹치면 서로의 테스트 계정을 지워서
+# 아무 데나 실패한다. 줄 세워서 한 번에 하나만 돌린다.
+concurrency:
+  group: verify-shared-database
+  cancel-in-progress: false
 
 jobs:
   verify:
