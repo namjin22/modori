@@ -26,7 +26,7 @@ export function DeleteAccountForm({ nickname }: { nickname: string }) {
         name="confirm"
         required
         autoComplete="off"
-        placeholder={nickname}
+        placeholder="닉네임 입력"
         className="h-11 rounded-xl bg-surface-hover px-3 outline-none"
       />
 

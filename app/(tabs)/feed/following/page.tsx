@@ -44,10 +44,13 @@ export default async function FollowingPage() {
               key={person.id}
               className="flex items-center gap-3 rounded-2xl bg-surface p-3"
             >
-              <span className="text-xl">{person.profileEmoji}</span>
-              <span className="flex-1 truncate font-medium">
-                {person.nickname}
-              </span>
+              <Link
+                href={`/feed/u/${person.id}`}
+                className="flex min-w-0 flex-1 items-center gap-3"
+              >
+                <span className="text-xl">{person.profileEmoji}</span>
+                <span className="truncate font-medium">{person.nickname}</span>
+              </Link>
 
               <form action={unfollowUser}>
                 <input type="hidden" name="targetId" value={person.id} />

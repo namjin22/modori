@@ -18,10 +18,13 @@ export function WeekStrip({
   days,
   selected,
   today,
+  basePath = "/",
 }: {
   days: WeekDay[];
   selected: Date;
   today: Date;
+  // 친구 화면에서도 같은 줄을 쓴다. 링크만 그 사람 주소로 바꾼다.
+  basePath?: string;
 }) {
   const selectedKey = formatKST(selected);
   const todayKey = formatKST(today);
@@ -38,7 +41,7 @@ export function WeekStrip({
         return (
           <Link
             key={key}
-            href={`/?date=${key}`}
+            href={`${basePath}?date=${key}`}
             // 날짜 링크는 미리 받지 않는다. 한 줄에 일곱 개라, 켜두면 이 화면을
             // 그릴 때마다 서버에서 같은 화면을 일곱 번 더 그린다.
             prefetch={false}

@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { toggleReaction } from "@/app/(tabs)/feed/actions";
 import { REACTION_EMOJIS } from "@/lib/reactions";
 
@@ -13,17 +15,29 @@ type FeedTodo = {
 export function FeedItem({
   todo,
   viewerId,
+  showAuthor = true,
 }: {
   todo: FeedTodo;
   viewerId: string;
+  // 그 사람 화면에서는 이름과 날짜가 이미 위에 있다. 줄마다 반복하지 않는다.
+  showAuthor?: boolean;
 }) {
   return (
     <li className="flex flex-col gap-3 rounded-2xl bg-surface p-4">
-      <div className="flex items-center gap-2">
-        <span className="text-lg">{todo.user.profileEmoji}</span>
-        <span className="text-sm font-semibold">{todo.user.nickname}</span>
-        <span className="text-xs text-muted">{todo.date}</span>
-      </div>
+      {showAuthor && (
+        <div className="flex items-center gap-2">
+          <Link
+            href={`/feed/u/${todo.user.id}`}
+            className="flex min-w-0 items-center gap-2"
+          >
+            <span className="text-lg">{todo.user.profileEmoji}</span>
+            <span className="truncate text-sm font-semibold">
+              {todo.user.nickname}
+            </span>
+          </Link>
+          <span className="text-xs text-muted">{todo.date}</span>
+        </div>
+      )}
 
       <div className="flex items-center gap-2">
         {todo.category && (

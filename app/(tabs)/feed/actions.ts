@@ -75,5 +75,6 @@ export async function toggleReaction(formData: FormData) {
     await prisma.reaction.create({ data: { userId: user.id, todoId, emoji } });
   }
 
-  revalidatePath("/feed");
+  // 반응 수는 피드와 친구 화면 양쪽에 보인다. /feed 아래를 통째로 다시 그린다.
+  revalidatePath("/feed", "layout");
 }

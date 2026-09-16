@@ -1,6 +1,12 @@
 import Link from "next/link";
 
 import { formatKST } from "@/lib/date";
+
+// "2026-09-17"보다 "9월 17일"이 눈에 빨리 들어온다.
+function formatShortDate(date: Date): string {
+  const [, month, day] = formatKST(date).split("-");
+  return `${Number(month)}월 ${Number(day)}일`;
+}
 import { prisma } from "@/lib/prisma";
 import { countUnreadReactions, requireUser } from "@/lib/session";
 
@@ -48,23 +54,36 @@ export default async function FeedPage({
 
   return (
     <div className="flex flex-col gap-5">
-      <header className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">피드</h1>
+      {/* 셋을 한 줄에 붙여두니 글씨도 작고 손가락으로 누르기도 어려웠다.
+          자주 쓰는 "친구 찾기"만 제목 옆에 두고, 나머지는 아래에 칩으로 편다. */}
+      <header className="flex flex-col gap-3">
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-bold">피드</h1>
+          <Link
+            href="/feed/search"
+            className="h-9 rounded-full bg-brand px-4 text-sm font-semibold leading-9 text-brand-contrast"
+          >
+            친구 찾기
+          </Link>
+        </div>
 
-        <div className="flex items-center gap-3">
-          <Link href="/feed/reactions" className="text-sm text-muted">
+        <div className="flex gap-2">
+          <Link
+            href="/feed/reactions"
+            className="flex h-9 items-center gap-1.5 rounded-full bg-surface px-4 text-sm text-muted"
+          >
             받은 반응
             {unreadCount > 0 && (
-              <span className="ml-1 rounded-full bg-brand px-1.5 py-0.5 text-xs font-semibold text-brand-contrast">
+              <span className="rounded-full bg-brand px-1.5 text-xs font-semibold text-brand-contrast">
                 {unreadCount}
               </span>
             )}
           </Link>
-          <Link href="/feed/following" className="text-sm text-muted">
+          <Link
+            href="/feed/following"
+            className="flex h-9 items-center rounded-full bg-surface px-4 text-sm text-muted"
+          >
             팔로우 중 {followingCount}
-          </Link>
-          <Link href="/feed/search" className="text-sm text-brand">
-            친구 찾기
           </Link>
         </div>
       </header>
@@ -95,7 +114,7 @@ export default async function FeedPage({
               todo={{
                 id: todo.id,
                 content: todo.content,
-                date: formatKST(todo.date),
+                date: formatShortDate(todo.date),
                 user: todo.user,
                 category: todo.category,
                 reactions: todo.reactions,
