@@ -41,20 +41,36 @@ function readDate(formData: FormData, key: string): Date | null {
   }
 }
 
-export async function createRoutine(formData: FormData) {
+export type RoutineFormState = { message: string } | null;
+
+export async function createRoutine(
+  _previous: RoutineFormState,
+  formData: FormData,
+): Promise<RoutineFormState> {
   const user = await requireUser();
 
   const content = readText(formData, "content").slice(0, MAX_CONTENT_LENGTH);
   const freq = readFreq(formData);
-  if (!content || !freq) return;
+  if (!content) return { message: "반복할 할 일을 적어주세요." };
+  if (!freq) return { message: "반복 주기를 골라주세요." };
 
   const byWeekday = freq === "WEEKLY" ? readNumbers(formData, "byWeekday", 6) : [];
   const byMonthday =
     freq === "MONTHLY" ? readNumbers(formData, "byMonthday", 31) : [];
 
   // 요일이나 날짜를 하나도 고르지 않은 루틴은 영원히 실행되지 않는다. 만들지 않는다.
-  if (freq === "WEEKLY" && byWeekday.length === 0) return;
-  if (freq === "MONTHLY" && byMonthday.length === 0) return;
+  if (freq === "WEEKLY" && byWeekday.length === 0) {
+    return { message: "반복할 요일을 하나 이상 골라주세요." };
+  }
+  if (freq === "MONTHLY" && byMonthday.length === 0) {
+    return { message: "반복할 날짜를 하나 이상 골라주세요." };
+  }
+
+  const startDate = readDate(formData, "startDate") ?? todayKST();
+  const endDate = readDate(formData, "endDate");
+  if (endDate && endDate < startDate) {
+    return { message: "종료일이 시작일보다 앞설 수 없어요." };
+  }
 
   const categoryId = readText(formData, "categoryId") || null;
   if (categoryId) {
@@ -62,7 +78,7 @@ export async function createRoutine(formData: FormData) {
       where: { id: categoryId, userId: user.id },
       select: { id: true },
     });
-    if (!owned) return;
+    if (!owned) return { message: "고른 카테고리를 찾을 수 없어요." };
   }
 
   const last = await prisma.routine.findFirst({
@@ -79,14 +95,16 @@ export async function createRoutine(formData: FormData) {
       byWeekday,
       byMonthday,
       categoryId,
-      startDate: readDate(formData, "startDate") ?? todayKST(),
-      endDate: readDate(formData, "endDate"),
+      startDate,
+      endDate,
       order: (last?.order ?? -1) + 1,
     },
   });
 
   revalidatePath("/settings/routines");
   revalidatePath("/");
+
+  return { message: "루틴을 만들었어요." };
 }
 
 /** 일시정지하면 다음 조회부터 새 할 일이 생기지 않는다. 이미 만든 것은 남는다. */
