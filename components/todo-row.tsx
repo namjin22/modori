@@ -26,16 +26,13 @@ export function TodoRow({
   return (
     <details className="group">
       <summary className="flex cursor-pointer list-none items-center gap-3 py-3 pr-3 [&::-webkit-details-marker]:hidden">
-        <TodoCheckbox id={todo.id} done={todo.done} />
+        <TodoCheckbox
+          id={todo.id}
+          done={todo.done}
+          color={todo.category?.color}
+        />
 
         <div className="flex min-w-0 flex-1 items-center gap-2">
-          {todo.category && (
-            <span
-              aria-hidden
-              className="size-2.5 shrink-0 rounded-full"
-              style={{ backgroundColor: todo.category.color }}
-            />
-          )}
           <span
             className={`truncate transition-colors ${
               todo.done ? "text-muted line-through" : ""

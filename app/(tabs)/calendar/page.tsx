@@ -17,7 +17,8 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 
 const WEEKDAY_NAMES = ["일", "월", "화", "수", "목", "금", "토"];
-const MAX_DOTS = 4;
+// 한 칸에 이름을 몇 개까지 보여줄지. 넘치면 "+n"으로 접는다.
+const MAX_CHIPS = 3;
 // 카테고리를 고르지 않은 할 일도 완료했다는 표시는 남아야 한다.
 const NO_CATEGORY_COLOR = "#c7ccd1";
 
@@ -51,17 +52,23 @@ export default async function CalendarPage({
       date: { gte: monthStart, lte: monthEnd },
     },
     orderBy: { order: "asc" },
-    select: { date: true, category: { select: { color: true } } },
+    select: {
+      date: true,
+      content: true,
+      category: { select: { color: true } },
+    },
   });
 
-  // 날짜별로 그 날 완료한 할 일의 색을 모은다. 같은 색은 한 번만 찍는다.
-  const colorsByDate = new Map<string, string[]>();
+  // 날짜별로 그 날 완료한 할 일을 모은다. 색 점만 찍으면 무엇을 했는지는 알 수 없다.
+  const doneByDate = new Map<string, { content: string; color: string }[]>();
   for (const todo of done) {
     const key = formatKST(todo.date);
-    const colors = colorsByDate.get(key) ?? [];
-    const color = todo.category?.color ?? NO_CATEGORY_COLOR;
-    if (!colors.includes(color)) colors.push(color);
-    colorsByDate.set(key, colors);
+    const items = doneByDate.get(key) ?? [];
+    items.push({
+      content: todo.content,
+      color: todo.category?.color ?? NO_CATEGORY_COLOR,
+    });
+    doneByDate.set(key, items);
   }
 
   const [year, month] = formatMonthKST(monthStart).split("-");
@@ -94,7 +101,7 @@ export default async function CalendarPage({
         </Link>
       </header>
 
-      <div className="rounded-2xl bg-surface p-3">
+      <div className="rounded-2xl bg-surface p-2">
         <div className="grid grid-cols-7 text-center text-xs">
           {WEEKDAY_NAMES.map((name, index) => (
             <div
@@ -112,22 +119,25 @@ export default async function CalendarPage({
           ))}
         </div>
 
-        <div className="grid grid-cols-7 gap-1">
+        <div className="grid grid-cols-7 gap-0.5">
           {Array.from({ length: leadingBlanks }, (_, index) => (
             <div key={`blank-${index}`} />
           ))}
 
           {days.map((day) => {
             const key = formatKST(day);
-            const colors = colorsByDate.get(key) ?? [];
+            const items = doneByDate.get(key) ?? [];
             const isToday = isSameKSTDate(day, today);
 
             return (
               <Link
                 key={key}
                 href={`/?date=${key}`}
-                aria-label={`${day.getUTCDate()}일, 완료 ${colors.length > 0 ? "있음" : "없음"}`}
-                className={`flex aspect-square flex-col items-center justify-center gap-1.5 rounded-xl transition-colors hover:bg-surface-hover ${
+                // 한 달치 날짜 칸이 서른 개다. 미리 받으면 달력을 열 때마다
+                // 서버가 할 일 화면을 서른 번 그린다.
+                prefetch={false}
+                aria-label={`${day.getUTCDate()}일, 완료 ${items.length > 0 ? "있음" : "없음"}`}
+                className={`flex min-h-16 flex-col items-center gap-1 rounded-lg px-0.5 py-1 transition-colors hover:bg-surface-hover ${
                   isToday ? "bg-brand-subtle" : ""
                 }`}
               >
@@ -139,15 +149,26 @@ export default async function CalendarPage({
                   {day.getUTCDate()}
                 </span>
 
-                <span className="flex flex-wrap justify-center gap-0.5">
-                  {colors.slice(0, MAX_DOTS).map((color) => (
+                {/* 한 일의 이름을 그대로 보여준다. 칸이 좁아 잘리지만,
+                    색과 첫 글자만으로도 그 날 뭘 했는지 떠올릴 수 있다. */}
+                <span aria-hidden className="flex w-full flex-col gap-px">
+                  {items.slice(0, MAX_CHIPS).map((item, index) => (
                     <span
-                      key={color}
-                      aria-hidden
-                      className="size-2 rounded-full"
-                      style={{ backgroundColor: color }}
-                    />
+                      key={`${item.content}-${index}`}
+                      className="truncate rounded px-0.5 text-[9px] leading-[13px]"
+                      style={{
+                        color: item.color,
+                        backgroundColor: `${item.color}26`,
+                      }}
+                    >
+                      {item.content}
+                    </span>
                   ))}
+                  {items.length > MAX_CHIPS && (
+                    <span className="text-[9px] leading-[13px] text-muted">
+                      +{items.length - MAX_CHIPS}
+                    </span>
+                  )}
                 </span>
               </Link>
             );

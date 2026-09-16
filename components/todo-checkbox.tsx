@@ -6,7 +6,16 @@ import { toggleTodo } from "@/app/(tabs)/actions";
 
 // 서버 왕복을 기다렸다가 체크 표시를 바꾸면 손가락보다 화면이 한참 늦다.
 // 먼저 바꿔 보여주고, 서버 응답이 오면 진짜 값으로 맞춰진다.
-export function TodoCheckbox({ id, done }: { id: string; done: boolean }) {
+export function TodoCheckbox({
+  id,
+  done,
+  color,
+}: {
+  id: string;
+  done: boolean;
+  // 카테고리 색. 카테고리를 고르지 않은 할 일은 브랜드 색을 쓴다.
+  color?: string;
+}) {
   const [optimisticDone, setOptimisticDone] = useOptimistic(done);
 
   return (
@@ -21,7 +30,14 @@ export function TodoCheckbox({ id, done }: { id: string; done: boolean }) {
       <button
         type="submit"
         aria-label={optimisticDone ? "완료 취소" : "완료"}
-        className={`size-6 rounded-full border-2 text-xs font-bold transition-all duration-150 active:scale-90 ${
+        style={
+          color && optimisticDone
+            ? { backgroundColor: color, borderColor: color }
+            : color
+              ? { borderColor: `${color}66` }
+              : undefined
+        }
+        className={`size-6 rounded-full border-2 text-xs font-bold text-white transition-all duration-150 active:scale-90 ${
           optimisticDone
             ? "border-brand bg-brand text-brand-contrast"
             : "border-border hover:border-brand"
