@@ -28,7 +28,7 @@ async function createDailyRoutine(page: Page, content: string) {
   await page.goto("/settings/routines");
   await page.getByText("루틴 만들기").click();
   await page.getByLabel("루틴 내용").fill(content);
-  await page.getByLabel("반복 주기").selectOption("DAILY");
+  await page.getByRole("radio", { name: "매일" }).click();
   await page.getByRole("button", { name: "루틴 추가" }).click();
   await expect(
     page.getByRole("listitem").filter({ hasText: content }),
@@ -87,7 +87,7 @@ test("요일을 고르지 않은 매주 루틴은 만들어지지 않는다", as
   await page.goto("/settings/routines");
   await page.getByText("루틴 만들기").click();
   await page.getByLabel("루틴 내용").fill("요일 없는 루틴");
-  await page.getByLabel("반복 주기").selectOption("WEEKLY");
+  await page.getByRole("radio", { name: "매주" }).click();
   await page.getByRole("button", { name: "루틴 추가" }).click();
 
   await expect(page.getByText("아직 루틴이 없다")).toBeVisible();

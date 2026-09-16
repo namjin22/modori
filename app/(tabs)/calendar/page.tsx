@@ -95,9 +95,18 @@ export default async function CalendarPage({
       </header>
 
       <div className="rounded-2xl bg-surface p-3">
-        <div className="grid grid-cols-7 text-center text-xs text-muted">
-          {WEEKDAY_NAMES.map((name) => (
-            <div key={name} className="py-1">
+        <div className="grid grid-cols-7 text-center text-xs">
+          {WEEKDAY_NAMES.map((name, index) => (
+            <div
+              key={name}
+              className={`py-2 ${
+                index === 0
+                  ? "text-red-400"
+                  : index === 6
+                    ? "text-blue-400"
+                    : "text-muted"
+              }`}
+            >
               {name}
             </div>
           ))}
@@ -118,12 +127,14 @@ export default async function CalendarPage({
                 key={key}
                 href={`/?date=${key}`}
                 aria-label={`${day.getUTCDate()}일, 완료 ${colors.length > 0 ? "있음" : "없음"}`}
-                className={`flex aspect-square flex-col items-center gap-1 rounded-xl py-2 transition-colors hover:bg-surface-hover ${
-                  isToday ? "ring-2 ring-brand" : ""
+                className={`flex aspect-square flex-col items-center justify-center gap-1.5 rounded-xl transition-colors hover:bg-surface-hover ${
+                  isToday ? "bg-brand-subtle" : ""
                 }`}
               >
                 <span
-                  className={`text-sm ${isToday ? "font-bold text-brand" : ""}`}
+                  className={`text-sm ${
+                    isToday ? "font-bold text-brand" : "text-foreground"
+                  }`}
                 >
                   {day.getUTCDate()}
                 </span>
@@ -133,7 +144,7 @@ export default async function CalendarPage({
                     <span
                       key={color}
                       aria-hidden
-                      className="size-1.5 rounded-full"
+                      className="size-2 rounded-full"
                       style={{ backgroundColor: color }}
                     />
                   ))}
@@ -144,9 +155,14 @@ export default async function CalendarPage({
         </div>
       </div>
 
-      <p className="text-center text-sm text-muted">
-        이번 달 완료 {done.length}개
-      </p>
+      <div className="flex flex-col items-center gap-2">
+        <p className="text-sm text-muted">이번 달 완료 {done.length}개</p>
+        {formatMonthKST(monthStart) !== formatMonthKST(today) && (
+          <Link href="/calendar" className="text-sm text-brand">
+            이번 달로 돌아가기
+          </Link>
+        )}
+      </div>
     </div>
   );
 }

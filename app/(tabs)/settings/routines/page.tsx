@@ -1,20 +1,14 @@
 import Link from "next/link";
 
 import { ConfirmButton } from "@/components/confirm-button";
-import { SubmitButton } from "@/components/submit-button";
+import { RoutineForm } from "@/components/routine-form";
 import { formatKST, todayKST } from "@/lib/date";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 
-import {
-  createRoutine,
-  deleteRoutine,
-  endRoutineToday,
-  toggleRoutinePause,
-} from "./actions";
+import { deleteRoutine, endRoutineToday, toggleRoutinePause } from "./actions";
 
 const WEEKDAY_NAMES = ["일", "월", "화", "수", "목", "금", "토"];
-const MONTH_DAYS = Array.from({ length: 31 }, (_, index) => index + 1);
 
 function describeRule(routine: {
   freq: string;
@@ -67,91 +61,9 @@ export default async function RoutinesPage() {
 
       <details className="rounded-2xl bg-surface p-4">
         <summary className="cursor-pointer font-medium">루틴 만들기</summary>
-
-        <form action={createRoutine} className="mt-4 flex flex-col gap-3">
-          <input
-            name="content"
-            required
-            maxLength={200}
-            placeholder="반복할 할 일"
-            aria-label="루틴 내용"
-            className="h-11 rounded-xl bg-surface-hover px-3"
-          />
-
-          <select
-            name="categoryId"
-            aria-label="루틴 카테고리"
-            className="h-11 rounded-xl bg-surface-hover px-3 text-sm"
-          >
-            <option value="">카테고리 없음</option>
-            {categories.map((category) => (
-              <option key={category.id} value={category.id}>
-                {category.name}
-              </option>
-            ))}
-          </select>
-
-          <select
-            name="freq"
-            defaultValue="DAILY"
-            aria-label="반복 주기"
-            className="h-11 rounded-xl bg-surface-hover px-3 text-sm"
-          >
-            <option value="DAILY">매일</option>
-            <option value="WEEKLY">매주</option>
-            <option value="MONTHLY">매월</option>
-          </select>
-
-          <fieldset className="flex flex-wrap gap-2">
-            <legend className="mb-1 text-sm text-muted">
-              매주일 때 고를 요일
-            </legend>
-            {WEEKDAY_NAMES.map((name, index) => (
-              <label key={name} className="flex items-center gap-1 text-sm">
-                <input type="checkbox" name="byWeekday" value={index} />
-                {name}
-              </label>
-            ))}
-          </fieldset>
-
-          <fieldset className="flex flex-wrap gap-x-2 gap-y-1">
-            <legend className="mb-1 text-sm text-muted">
-              매월일 때 고를 날짜
-            </legend>
-            {MONTH_DAYS.map((day) => (
-              <label key={day} className="flex items-center gap-0.5 text-xs">
-                <input type="checkbox" name="byMonthday" value={day} />
-                {day}
-              </label>
-            ))}
-          </fieldset>
-
-          <label className="flex flex-col gap-1 text-sm text-muted">
-            시작일
-            <input
-              type="date"
-              name="startDate"
-              defaultValue={formatKST(todayKST())}
-              className="h-11 rounded-xl bg-surface-hover px-3 text-foreground"
-            />
-          </label>
-
-          <label className="flex flex-col gap-1 text-sm text-muted">
-            종료일 (비워두면 계속)
-            <input
-              type="date"
-              name="endDate"
-              className="h-11 rounded-xl bg-surface-hover px-3 text-foreground"
-            />
-          </label>
-
-          <SubmitButton
-            pendingLabel="추가 중"
-            className="h-11 rounded-xl bg-brand text-sm font-semibold text-brand-contrast"
-          >
-            루틴 추가
-          </SubmitButton>
-        </form>
+        <div className="mt-4">
+          <RoutineForm categories={categories} today={formatKST(todayKST())} />
+        </div>
       </details>
 
       {routines.length === 0 ? (
