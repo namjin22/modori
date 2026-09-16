@@ -52,6 +52,9 @@ export default async function FeedPage() {
               </span>
             )}
           </Link>
+          <Link href="/feed/following" className="text-sm text-muted">
+            팔로우 중 {followingCount}
+          </Link>
           <Link href="/feed/search" className="text-sm text-brand">
             친구 찾기
           </Link>

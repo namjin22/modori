@@ -1,8 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useActionState, useState } from "react";
 
-import { createRoutine } from "@/app/(tabs)/settings/routines/actions";
+import {
+  createRoutine,
+  type RoutineFormState,
+} from "@/app/(tabs)/settings/routines/actions";
 import { SubmitButton } from "@/components/submit-button";
 
 const WEEKDAY_NAMES = ["일", "월", "화", "수", "목", "금", "토"];
@@ -26,8 +29,14 @@ export function RoutineForm({
   // 주기를 고르기 전에는 요일·날짜를 다 보여줄 이유가 없다. 폼이 화면을 넘어간다.
   const [freq, setFreq] = useState<Freq>("DAILY");
 
+  // 서버가 거른 이유를 화면에 보여준다. 아무 일도 안 일어나면 고장 난 줄 안다.
+  const [state, formAction] = useActionState<RoutineFormState, FormData>(
+    createRoutine,
+    null,
+  );
+
   return (
-    <form action={createRoutine} className="flex flex-col gap-4">
+    <form action={formAction} className="flex flex-col gap-4">
       <input
         name="content"
         required
@@ -131,6 +140,19 @@ export function RoutineForm({
           />
         </label>
       </div>
+
+      {state && (
+        <p
+          role="status"
+          className={`text-sm ${
+            state.message === "루틴을 만들었어요."
+              ? "text-brand"
+              : "text-red-500"
+          }`}
+        >
+          {state.message}
+        </p>
+      )}
 
       <SubmitButton
         pendingLabel="추가 중"

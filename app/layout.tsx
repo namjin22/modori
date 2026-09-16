@@ -26,6 +26,8 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="ko" className="h-full antialiased">
       <head>
+        {/* 글꼴을 CDN에서 받으므로 연결을 미리 열어둔다. 첫 화면에서 글자가 늦게 뜨는 시간이 줄어든다. */}
+        <link rel="preconnect" href="https://cdn.jsdelivr.net" crossOrigin="" />
         <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
       </head>
       <body className="flex min-h-full flex-col bg-background text-foreground">
