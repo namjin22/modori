@@ -1,0 +1,27 @@
+"use client";
+
+import { useFormStatus } from "react-dom";
+
+// 제출 중에 버튼이 계속 눌리면 같은 것이 여러 개 만들어진다.
+// 실제로 루틴이 17개 쌓인 적이 있다.
+export function SubmitButton({
+  children,
+  pendingLabel = "저장 중",
+  className,
+}: {
+  children: React.ReactNode;
+  pendingLabel?: string;
+  className?: string;
+}) {
+  const { pending } = useFormStatus();
+
+  return (
+    <button
+      type="submit"
+      disabled={pending}
+      className={`${className ?? ""} disabled:opacity-50`}
+    >
+      {pending ? pendingLabel : children}
+    </button>
+  );
+}

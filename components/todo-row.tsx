@@ -1,3 +1,5 @@
+import { ConfirmButton } from "@/components/confirm-button";
+
 import {
   deleteTodo,
   moveTodo,
@@ -111,9 +113,12 @@ export function TodoRow({
 
         <form action={deleteTodo} className="mt-2">
           <input type="hidden" name="id" value={todo.id} />
-          <button type="submit" className="text-xs text-red-500">
+          <ConfirmButton
+            message="이 할 일을 지울까요? 되돌릴 수 없습니다."
+            className="text-xs text-red-500"
+          >
             삭제
-          </button>
+          </ConfirmButton>
         </form>
       </details>
     </li>
