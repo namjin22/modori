@@ -16,12 +16,17 @@
   `lib/prisma.ts` 싱글톤
 - **Day 3** — `lib/date.ts`, `lib/routine.ts`와 유닛 테스트 37개 (vitest,
   `scripts/test-tz.mjs`가 세 TZ에서 반복 실행)
+- **Day 4** — Auth.js v5 + Google 로그인, 닉네임 온보딩, `AUTH_MODE=mock` 우회 모드,
+  Playwright E2E
+- **Day 5** — 디자인 토큰(CSS 변수 + `@theme`), Pretendard, 하단 탭 네비게이션
+- **Day 6** — 카테고리 CRUD(보관 포함), 날짜별 할 일 CRUD, 다크 모드 수동 토글,
+  GitHub Actions CI
 
 **진행 중**
-- `develop` → `main` PR #1 병합 대기. Vercel 환경변수 등록이 선행되어야 한다.
+- 없음. 다음은 Day 7 월간 캘린더.
 
 **아직 안 함**
-- 인증, 화면, 기능 전부
+- 캘린더, 루틴, 팔로우·피드·반응, 데이터 내보내기
 
 ## 브랜치 전략
 

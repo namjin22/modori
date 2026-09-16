@@ -34,7 +34,7 @@ test("최초 로그인이면 닉네임 온보딩을 거쳐 홈에 도착한다",
   await page.getByRole("button", { name: "시작하기" }).click();
 
   await expect(page).toHaveURL("/");
-  await expect(page.getByText("모도리테스터")).toBeVisible();
+  await expect(page.getByLabel("할 일 내용")).toBeVisible();
 });
 
 test("닉네임이 이미 있으면 온보딩을 건너뛴다", async ({ page }) => {
@@ -68,6 +68,7 @@ test("로그아웃하면 다시 로그인 화면으로 간다", async ({ page })
   await page.getByPlaceholder("닉네임").fill("모도리테스터");
   await page.getByRole("button", { name: "시작하기" }).click();
 
+  await page.getByRole("link", { name: "설정" }).click();
   await page.getByRole("button", { name: "로그아웃" }).click();
 
   await expect(page).toHaveURL(/\/login$/);
