@@ -1,3 +1,5 @@
+import type { ReactNode } from "react";
+
 import type { Metadata } from "next";
 
 import "./globals.css";
@@ -18,7 +20,9 @@ try {
 }
 `;
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+// LayoutProps는 next build가 만들어주는 전역 타입이라 빌드 전에는 없다.
+// CI는 빌드 없이 tsc부터 돌리므로 직접 적는다.
+export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="ko" className="h-full antialiased">
       <head>
