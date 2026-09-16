@@ -7,13 +7,22 @@ import { prisma } from "@/lib/prisma";
 
 export const isMockAuth = process.env.AUTH_MODE === "mock";
 
-// 우회 모드가 켜진 채로 프로덕션에 나가면 아무나 남의 계정으로 들어올 수 있다.
-// Preview 배포는 URL이 매번 바뀌어 OAuth redirect URI를 등록할 수 없으므로 mock이
-// 필요하다. 그래서 NODE_ENV가 아니라 VERCEL_ENV로 막는다.
+// 우회 모드가 켜진 채로 프로덕션에 나가면 이메일만 아는 사람이 남의 계정으로 들어온다.
+// Vercel Production은 빌드 자체를 실패시킨다.
 if (isMockAuth && process.env.VERCEL_ENV === "production") {
   throw new Error(
     "AUTH_MODE=mock은 프로덕션에서 쓸 수 없다. Vercel Production 환경변수에서 지워라.",
   );
+}
+
+// 환경변수만으로 막으면 Vercel이 아닌 곳(GSMSV 등)에서는 VERCEL_ENV가 없어 그대로
+// 통과한다. 그래서 요청이 들어온 호스트로 한 번 더 막는다.
+// Preview 배포는 URL이 매번 바뀌어 OAuth redirect URI를 등록할 수 없으므로 허용한다.
+function isMockHostAllowed(request: Request): boolean {
+  if (process.env.VERCEL_ENV === "preview") return true;
+
+  const host = request.headers.get("host") ?? "";
+  return host.startsWith("localhost") || host.startsWith("127.0.0.1");
 }
 
 const providers: NextAuthConfig["providers"] = [
@@ -29,7 +38,12 @@ if (isMockAuth) {
       id: "mock",
       name: "테스트 로그인",
       credentials: { email: { label: "email", type: "text" } },
-      async authorize(credentials) {
+      async authorize(credentials, request) {
+        if (!isMockHostAllowed(request)) {
+          console.error("[auth] 허용되지 않은 호스트에서 mock 로그인을 시도했다.");
+          return null;
+        }
+
         const email = credentials?.email;
         if (typeof email !== "string" || !email.includes("@")) return null;
 
