@@ -103,9 +103,16 @@ export default async function TodayPage({
       <AddTodoForm categories={categories} date={formatKST(date)} />
 
       {todos.length === 0 && scheduled.length === 0 ? (
-        <p className="rounded-2xl border border-dashed border-border p-10 text-center text-sm text-muted">
-          아직 할 일이 없다
-        </p>
+        <div className="rounded-2xl border border-dashed border-border p-10 text-center">
+          <p className="text-2xl">🌱</p>
+          <p className="mt-2 text-sm text-muted">아직 할 일이 없다</p>
+          <Link
+            href="/settings/routines"
+            className="mt-3 inline-block text-sm text-brand"
+          >
+            반복되는 일이라면 루틴으로 →
+          </Link>
+        </div>
       ) : (
         <>
           {todos.length > 0 && (
