@@ -1,37 +1,80 @@
 @import "tailwindcss";
 @import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css");
 
-/* 색은 여기 CSS 변수로만 두고, 다크 모드에서 값만 바꾼다.
-   컴포넌트는 bg-surface / text-muted 처럼 의미 이름으로만 쓴다.
-   그래야 색을 바꿀 때 컴포넌트를 건드리지 않는다. */
+/* 색 값은 여기에만 둔다. 아래에서는 배정만 바꾼다.
+   화면에서는 bg-surface / text-muted 처럼 의미 이름으로만 쓴다. */
 :root {
-  --background: #f7f8fa;
-  --surface: #ffffff;
-  --surface-hover: #f2f4f6;
-  --foreground: #191f28;
-  --muted: #8b95a1;
-  --border: #e8ebed;
+  --light-background: #f7f8fa;
+  --light-surface: #ffffff;
+  --light-surface-hover: #f2f4f6;
+  --light-foreground: #191f28;
+  --light-muted: #8b95a1;
+  --light-border: #e8ebed;
+  --light-brand: #00b26a;
+  --light-brand-hover: #009a5c;
+  --light-brand-subtle: #e8f8f0;
+  --light-brand-contrast: #ffffff;
 
-  --brand: #00b26a;
-  --brand-hover: #009a5c;
-  --brand-subtle: #e8f8f0;
-  --brand-contrast: #ffffff;
+  --dark-background: #0e1013;
+  --dark-surface: #17191d;
+  --dark-surface-hover: #1f2228;
+  --dark-foreground: #edeff2;
+  --dark-muted: #8b95a1;
+  --dark-border: #2a2e35;
+  --dark-brand: #22d387;
+  --dark-brand-hover: #3ade98;
+  --dark-brand-subtle: #12281f;
+  --dark-brand-contrast: #06150e;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0e1013;
-    --surface: #17191d;
-    --surface-hover: #1f2228;
-    --foreground: #edeff2;
-    --muted: #8b95a1;
-    --border: #2a2e35;
+/* 기본값은 라이트 */
+:root {
+  --background: var(--light-background);
+  --surface: var(--light-surface);
+  --surface-hover: var(--light-surface-hover);
+  --foreground: var(--light-foreground);
+  --muted: var(--light-muted);
+  --border: var(--light-border);
+  --brand: var(--light-brand);
+  --brand-hover: var(--light-brand-hover);
+  --brand-subtle: var(--light-brand-subtle);
+  --brand-contrast: var(--light-brand-contrast);
 
-    --brand: #22d387;
-    --brand-hover: #3ade98;
-    --brand-subtle: #12281f;
-    --brand-contrast: #06150e;
+  color-scheme: light;
+}
+
+/* 기기 설정이 다크일 때. 단 사용자가 라이트를 직접 고른 경우는 제외한다. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --background: var(--dark-background);
+    --surface: var(--dark-surface);
+    --surface-hover: var(--dark-surface-hover);
+    --foreground: var(--dark-foreground);
+    --muted: var(--dark-muted);
+    --border: var(--dark-border);
+    --brand: var(--dark-brand);
+    --brand-hover: var(--dark-brand-hover);
+    --brand-subtle: var(--dark-brand-subtle);
+    --brand-contrast: var(--dark-brand-contrast);
+
+    color-scheme: dark;
   }
+}
+
+/* 사용자가 다크를 직접 고른 경우 */
+:root[data-theme="dark"] {
+  --background: var(--dark-background);
+  --surface: var(--dark-surface);
+  --surface-hover: var(--dark-surface-hover);
+  --foreground: var(--dark-foreground);
+  --muted: var(--dark-muted);
+  --border: var(--dark-border);
+  --brand: var(--dark-brand);
+  --brand-hover: var(--dark-brand-hover);
+  --brand-subtle: var(--dark-brand-subtle);
+  --brand-contrast: var(--dark-brand-contrast);
+
+  color-scheme: dark;
 }
 
 @theme inline {
