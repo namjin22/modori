@@ -10,7 +10,8 @@
     "postinstall": "prisma generate",
     "test:unit": "vitest run",
     "test:tz": "node scripts/test-tz.mjs",
-    "verify": "tsc --noEmit && npm run lint && npm run test:tz"
+    "test:e2e": "playwright test",
+    "verify": "tsc --noEmit && npm run lint && npm run test:tz && npm run test:e2e"
   },
   "dependencies": {
     "@auth/prisma-adapter": "2.11.3",
@@ -21,6 +22,7 @@
     "react-dom": "19.2.8"
   },
   "devDependencies": {
+    "@playwright/test": "1.63.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^24.13.5",
     "@types/react": "^19",
