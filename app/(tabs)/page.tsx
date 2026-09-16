@@ -8,6 +8,7 @@ import {
   todayKST,
   weekdayKST,
 } from "@/lib/date";
+import { groupByCategory } from "@/lib/group-by-category";
 import { prisma } from "@/lib/prisma";
 import {
   ensureRoutineTodos,
@@ -15,6 +16,7 @@ import {
 } from "@/lib/routine-todos";
 import { requireUser } from "@/lib/session";
 
+import { CategoryChip } from "@/components/category-chip";
 import { ScheduledRoutineRow } from "@/components/scheduled-routine-row";
 import { SortableTodoList } from "@/components/sortable-todo-list";
 import { SubmitButton } from "@/components/submit-button";
@@ -93,32 +95,7 @@ export default async function TodayPage({
   const doneCount = todos.filter((todo) => todo.done).length;
 
   // 카테고리별로 묶어서 보여준다. 색 점 하나보다 이쪽이 훨씬 잘 읽힌다.
-  // 순서는 카테고리 관리 화면에서 정한 순서를 따르고, 카테고리 없는 할 일이 맨 뒤다.
-  // 보관한 카테고리의 할 일은 목록에 없으므로 할 일이 들고 있는 값을 쓴다.
-  const groupOrder = new Map(categories.map((c, index) => [c.id, index]));
-  const groups = new Map<
-    string,
-    { name: string; color: string | null; rank: number; todos: typeof todos }
-  >();
-
-  for (const todo of todos) {
-    const key = todo.category?.id ?? "";
-    let group = groups.get(key);
-    if (!group) {
-      group = {
-        name: todo.category?.name ?? "카테고리 없음",
-        color: todo.category?.color ?? null,
-        rank: todo.category ? (groupOrder.get(todo.category.id) ?? 998) : 999,
-        todos: [],
-      };
-      groups.set(key, group);
-    }
-    group.todos.push(todo);
-  }
-
-  const todoGroups = [...groups.entries()]
-    .map(([key, group]) => ({ key, ...group }))
-    .sort((a, b) => a.rank - b.rank);
+  const todoGroups = groupByCategory(todos, categories);
 
   return (
     <div className="flex flex-col gap-5">
@@ -194,31 +171,16 @@ export default async function TodayPage({
               {todoGroups.map((group) => (
                 <section key={group.key} className="flex flex-col gap-2">
                   <div className="flex items-center gap-2">
-                    <span
-                      className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
-                        group.color ? "" : "bg-surface text-muted"
-                      }`}
-                      style={
-                        group.color
-                          ? {
-                              color: group.color,
-                              // 색 이름 뒤 1a는 10% 투명도다. 칩 배경을 연하게 깔아준다.
-                              backgroundColor: `${group.color}1a`,
-                            }
-                          : undefined
-                      }
-                    >
-                      {group.name}
-                    </span>
+                    <CategoryChip name={group.name} color={group.color} />
                     <span className="text-xs text-muted">
-                      {group.todos.filter((todo) => todo.done).length}/
-                      {group.todos.length}
+                      {group.items.filter((todo) => todo.done).length}/
+                      {group.items.length}
                     </span>
                   </div>
 
                   <SortableTodoList
                     date={formatKST(date)}
-                    items={group.todos.map((todo) => ({
+                    items={group.items.map((todo) => ({
                       id: todo.id,
                       node: <TodoRow todo={todo} categories={categories} />,
                     }))}
@@ -268,7 +230,7 @@ function AddTodoForm({
         maxLength={200}
         placeholder="할 일 추가"
         aria-label="할 일 내용"
-        className="h-11 rounded-xl bg-surface-hover px-3 outline-none"
+        className="h-11 rounded-xl bg-surface-hover px-3 outline-none focus:ring-2 focus:ring-brand"
       />
       <div className="flex gap-2">
         <select
