@@ -19,6 +19,7 @@ import { ScheduledRoutineRow } from "@/components/scheduled-routine-row";
 import { SortableTodoList } from "@/components/sortable-todo-list";
 import { SubmitButton } from "@/components/submit-button";
 import { TodoRow } from "@/components/todo-row";
+import { WeekStrip } from "@/components/week-strip";
 
 import { addTodo } from "./actions";
 
@@ -54,11 +55,15 @@ export default async function TodayPage({
   // 이 날짜를 여는 순간 루틴 할 일이 없으면 만든다. 미래 날짜에는 만들지 않는다.
   await ensureRoutineTodos(user, date);
 
-  const [todos, categories, scheduled] = await Promise.all([
+  // 이번 주 일요일부터 토요일까지. 주간 스트립에 쓴다.
+  const weekStart = addDays(date, -weekdayKST(date));
+  const weekEnd = addDays(weekStart, 6);
+
+  const [todos, categories, scheduled, weekCounts] = await Promise.all([
     prisma.todo.findMany({
       where: { userId: user.id, date },
       orderBy: { order: "asc" },
-      include: { category: { select: { name: true, color: true } } },
+      include: { category: { select: { id: true, name: true, color: true } } },
     }),
     prisma.category.findMany({
       where: { userId: user.id, archivedAt: null },
@@ -66,9 +71,54 @@ export default async function TodayPage({
       select: { id: true, name: true, color: true },
     }),
     listScheduledRoutines(user.id, date),
+    // 날짜별 완료 수를 한 번에 가져온다. 7일을 따로 세면 질의가 일곱 번이다.
+    prisma.todo.groupBy({
+      by: ["date", "done"],
+      where: { userId: user.id, date: { gte: weekStart, lte: weekEnd } },
+      _count: { _all: true },
+    }),
   ]);
 
+  const weekDays = Array.from({ length: 7 }, (_, index) => {
+    const day = addDays(weekStart, index);
+    const key = formatKST(day);
+    const rows = weekCounts.filter((row) => formatKST(row.date) === key);
+    const total = rows.reduce((sum, row) => sum + row._count._all, 0);
+    const done = rows
+      .filter((row) => row.done)
+      .reduce((sum, row) => sum + row._count._all, 0);
+    return { date: day, done, total };
+  });
+
   const doneCount = todos.filter((todo) => todo.done).length;
+
+  // 카테고리별로 묶어서 보여준다. 색 점 하나보다 이쪽이 훨씬 잘 읽힌다.
+  // 순서는 카테고리 관리 화면에서 정한 순서를 따르고, 카테고리 없는 할 일이 맨 뒤다.
+  // 보관한 카테고리의 할 일은 목록에 없으므로 할 일이 들고 있는 값을 쓴다.
+  const groupOrder = new Map(categories.map((c, index) => [c.id, index]));
+  const groups = new Map<
+    string,
+    { name: string; color: string | null; rank: number; todos: typeof todos }
+  >();
+
+  for (const todo of todos) {
+    const key = todo.category?.id ?? "";
+    let group = groups.get(key);
+    if (!group) {
+      group = {
+        name: todo.category?.name ?? "카테고리 없음",
+        color: todo.category?.color ?? null,
+        rank: todo.category ? (groupOrder.get(todo.category.id) ?? 998) : 999,
+        todos: [],
+      };
+      groups.set(key, group);
+    }
+    group.todos.push(todo);
+  }
+
+  const todoGroups = [...groups.entries()]
+    .map(([key, group]) => ({ key, ...group }))
+    .sort((a, b) => a.rank - b.rank);
 
   return (
     <div className="flex flex-col gap-5">
@@ -94,6 +144,8 @@ export default async function TodayPage({
           →
         </Link>
       </header>
+
+      <WeekStrip days={weekDays} selected={date} today={todayKST()} />
 
       {!isToday && (
         <Link href="/" className="text-center text-sm text-brand">
@@ -139,13 +191,40 @@ export default async function TodayPage({
                   />
                 </div>
               </div>
-              <SortableTodoList
-                date={formatKST(date)}
-                items={todos.map((todo) => ({
-                  id: todo.id,
-                  node: <TodoRow todo={todo} categories={categories} />,
-                }))}
-              />
+              {todoGroups.map((group) => (
+                <section key={group.key} className="flex flex-col gap-2">
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+                        group.color ? "" : "bg-surface text-muted"
+                      }`}
+                      style={
+                        group.color
+                          ? {
+                              color: group.color,
+                              // 색 이름 뒤 1a는 10% 투명도다. 칩 배경을 연하게 깔아준다.
+                              backgroundColor: `${group.color}1a`,
+                            }
+                          : undefined
+                      }
+                    >
+                      {group.name}
+                    </span>
+                    <span className="text-xs text-muted">
+                      {group.todos.filter((todo) => todo.done).length}/
+                      {group.todos.length}
+                    </span>
+                  </div>
+
+                  <SortableTodoList
+                    date={formatKST(date)}
+                    items={group.todos.map((todo) => ({
+                      id: todo.id,
+                      node: <TodoRow todo={todo} categories={categories} />,
+                    }))}
+                  />
+                </section>
+              ))}
             </>
           )}
 
