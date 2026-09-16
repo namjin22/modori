@@ -69,3 +69,42 @@ export function daysBetween(a: Date, b: Date): number {
   const diff = toKSTDateOnly(b).getTime() - toKSTDateOnly(a).getTime();
   return Math.round(diff / DAY_MS);
 }
+
+const MONTH_PATTERN = /^(\d{4})-(\d{2})$/;
+
+/** "YYYY-MM" */
+export function formatMonthKST(d: Date): string {
+  return formatKST(d).slice(0, 7);
+}
+
+/** "YYYY-MM"을 그 달 1일로. 형식이나 값이 틀리면 throw. */
+export function parseKSTMonth(s: string): Date {
+  const match = MONTH_PATTERN.exec(s);
+  if (!match) {
+    throw new RangeError(`월 형식이 올바르지 않다 (YYYY-MM): ${s}`);
+  }
+
+  return parseKSTDate(`${s}-01`);
+}
+
+export function startOfMonthKST(d: Date): Date {
+  return parseKSTDate(`${formatMonthKST(d)}-01`);
+}
+
+/** 그 달의 마지막 날. 다음 달 1일에서 하루를 뺀다. */
+export function endOfMonthKST(d: Date): Date {
+  return addDays(addMonths(startOfMonthKST(d), 1), -1);
+}
+
+/** n달 뒤(음수면 앞)의 같은 달 1일. 날짜는 1일로 맞춘다. */
+export function addMonths(d: Date, n: number): Date {
+  const start = startOfMonthKST(d);
+  const shifted = new Date(start.getTime());
+  shifted.setUTCMonth(shifted.getUTCMonth() + n);
+  return shifted;
+}
+
+/** 그 달의 일수. */
+export function daysInMonthKST(d: Date): number {
+  return endOfMonthKST(d).getUTCDate();
+}
