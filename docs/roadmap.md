@@ -4,7 +4,7 @@
 
 ---
 
-## 현재 상태 (2026-09-15)
+## 현재 상태 (2026-09-16)
 
 **완료**
 - Next.js 16 프로젝트 생성, GitHub 연결, Vercel 배포 (https://modori.vercel.app)
@@ -12,15 +12,21 @@
 - Neon Postgres 프로젝트 생성, `.env`에 DATABASE_URL / DIRECT_URL 작성
 - `prisma/schema.prisma` 배치, `.env.example`, `.gitignore` 정리
 - `package.json`에 `postinstall`, `verify` 스크립트 추가
+- **Day 2** — Prisma CLI/client를 6.19.3으로 고정, `migrate dev --name init` 적용,
+  `lib/prisma.ts` 싱글톤
+- **Day 3** — `lib/date.ts`, `lib/routine.ts`와 유닛 테스트 37개 (vitest,
+  `scripts/test-tz.mjs`가 세 TZ에서 반복 실행)
 
-**진행 중 (Day 2 마무리)**
-- Prisma CLI/client 버전을 6.x 안정 버전으로 통일
-  (현재 CLI 8.0.0-rc.15 / client 7.10.0 으로 어긋나 있음)
-- `npx prisma migrate dev --name init` 실행
-- `lib/prisma.ts` 싱글톤 작성
+**진행 중**
+- `develop` → `main` PR #1 병합 대기. Vercel 환경변수 등록이 선행되어야 한다.
 
 **아직 안 함**
 - 인증, 화면, 기능 전부
+
+## 브랜치 전략
+
+`main`은 배포 브랜치, `develop`이 통합 브랜치다. 작업은 `develop`에 쌓고,
+`main` 병합은 PR로 한다. main에 들어가는 순간 Vercel Production이 재배포된다.
 
 ---
 
