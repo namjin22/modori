@@ -5,7 +5,7 @@ import Google from "next-auth/providers/google";
 
 import { prisma } from "@/lib/prisma";
 
-const isMockAuth = process.env.AUTH_MODE === "mock";
+export const isMockAuth = process.env.AUTH_MODE === "mock";
 
 // 우회 모드가 켜진 채로 프로덕션에 나가면 아무나 남의 계정으로 들어올 수 있다.
 // Preview 배포는 URL이 매번 바뀌어 OAuth redirect URI를 등록할 수 없으므로 mock이

@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 
-import { auth, signIn } from "@/lib/auth";
+import { auth, isMockAuth, signIn } from "@/lib/auth";
 
 export default async function LoginPage() {
   const session = await auth();
@@ -28,6 +28,32 @@ export default async function LoginPage() {
           Google로 계속하기
         </button>
       </form>
+
+      {isMockAuth && (
+        <form
+          action={async (formData: FormData) => {
+            "use server";
+            await signIn("mock", {
+              email: formData.get("email"),
+              redirectTo: "/",
+            });
+          }}
+          className="flex w-full max-w-xs flex-col gap-2 border-t border-dashed border-black/20 pt-6 dark:border-white/20"
+        >
+          <p className="text-sm text-zinc-500">테스트 전용 로그인</p>
+          <input
+            name="email"
+            type="email"
+            required
+            placeholder="email"
+            aria-label="테스트 이메일"
+            className="h-10 rounded border border-black/10 px-3 dark:border-white/20"
+          />
+          <button type="submit" className="h-10 rounded border border-black/10 dark:border-white/20">
+            테스트 로그인
+          </button>
+        </form>
+      )}
     </main>
   );
 }
