@@ -4,6 +4,28 @@ export const REACTION_EMOJIS = ["👍", "🔥", "👏", "🎉"] as const;
 
 export type ReactionEmoji = (typeof REACTION_EMOJIS)[number];
 
+/**
+ * 반응은 이모지 문자로 저장하되, 화면에는 도리의 표정으로 보여준다.
+ * 저장값을 바꾸지 않으므로 이미 남긴 반응도 그대로 새 그림으로 보인다.
+ */
+export const REACTION_LOOKS: Record<
+  ReactionEmoji,
+  { mood: "like" | "fire" | "clap" | "party"; label: string }
+> = {
+  "👍": { mood: "like", label: "좋아요" },
+  "🔥": { mood: "fire", label: "불타요" },
+  "👏": { mood: "clap", label: "대단해" },
+  "🎉": { mood: "party", label: "축하해" },
+};
+
+/** 예전에 저장된 알 수 없는 값이면 기본 표정으로 보여준다. */
+export function lookOfReaction(emoji: string): {
+  mood: "like" | "fire" | "clap" | "party" | "happy";
+  label: string;
+} {
+  return REACTION_LOOKS[emoji as ReactionEmoji] ?? { mood: "happy", label: emoji };
+}
+
 export type ReactionSummary = {
   emoji: ReactionEmoji;
   count: number;

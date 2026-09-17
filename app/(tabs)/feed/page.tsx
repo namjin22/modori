@@ -4,6 +4,7 @@ import { formatMonthDayKST } from "@/lib/date";
 import { prisma } from "@/lib/prisma";
 import { countUnreadReactions, requireUser } from "@/lib/session";
 
+import { Dori } from "@/components/dori";
 import { FeedItem } from "@/components/feed-item";
 
 const FEED_SIZE = 50;
@@ -83,7 +84,8 @@ export default async function FeedPage({
       </header>
 
       {todos.length === 0 ? (
-        <div className="rounded-2xl bg-surface p-10 text-center">
+        <div className="flex flex-col items-center rounded-2xl bg-surface p-8 text-center">
+          <Dori mood={followingCount === 0 ? "hello" : "calm"} size={88} className="mb-2" />
           <p className="text-sm text-muted">
             {after
               ? "더 이전 기록은 없다"

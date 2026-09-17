@@ -1,6 +1,8 @@
 import Link from "next/link";
 
+import { Dori } from "@/components/dori";
 import { formatMonthDayKST } from "@/lib/date";
+import { lookOfReaction } from "@/lib/reactions";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 
@@ -40,9 +42,10 @@ export default async function ReactionsPage() {
       </header>
 
       {reactions.length === 0 ? (
-        <p className="rounded-2xl bg-surface p-10 text-center text-sm text-muted">
-          아직 받은 반응이 없다
-        </p>
+        <div className="flex flex-col items-center gap-2 rounded-2xl bg-surface p-8 text-center">
+          <Dori mood="calm" size={80} />
+          <p className="text-sm text-muted">아직 받은 반응이 없다</p>
+        </div>
       ) : (
         <ul className="flex flex-col gap-2">
           {reactions.map((reaction) => {
@@ -55,7 +58,11 @@ export default async function ReactionsPage() {
                   isNew ? "bg-brand-subtle" : "bg-surface"
                 }`}
               >
-                <span className="text-xl">{reaction.emoji}</span>
+                <Dori
+                  mood={lookOfReaction(reaction.emoji).mood}
+                  size={40}
+                  label={lookOfReaction(reaction.emoji).label}
+                />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm">
                     <span className="font-semibold">
