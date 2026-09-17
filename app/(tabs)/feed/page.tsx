@@ -1,12 +1,6 @@
 import Link from "next/link";
 
-import { formatKST } from "@/lib/date";
-
-// "2026-09-17"보다 "9월 17일"이 눈에 빨리 들어온다.
-function formatShortDate(date: Date): string {
-  const [, month, day] = formatKST(date).split("-");
-  return `${Number(month)}월 ${Number(day)}일`;
-}
+import { formatMonthDayKST } from "@/lib/date";
 import { prisma } from "@/lib/prisma";
 import { countUnreadReactions, requireUser } from "@/lib/session";
 
@@ -114,7 +108,7 @@ export default async function FeedPage({
               todo={{
                 id: todo.id,
                 content: todo.content,
-                date: formatShortDate(todo.date),
+                date: formatMonthDayKST(todo.date),
                 user: todo.user,
                 category: todo.category,
                 reactions: todo.reactions,

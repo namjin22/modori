@@ -1,4 +1,13 @@
-import { addDays, daysBetween, toKSTDateOnly, todayKST } from "@/lib/date";
+import { cache } from "react";
+
+import {
+  addDays,
+  daysBetween,
+  formatKST,
+  parseKSTDate,
+  toKSTDateOnly,
+  todayKST,
+} from "@/lib/date";
 import { prisma } from "@/lib/prisma";
 import { matchesRule } from "@/lib/routine";
 
@@ -22,7 +31,13 @@ function isMaterializable(owner: Owner, date: Date): boolean {
   return daysBetween(lowerBound, date) >= 0;
 }
 
-async function findDueRoutines(userId: string, date: Date) {
+/**
+ * 오늘 화면 한 번 그릴 때 ensureRoutineTodos와 listScheduledRoutines가 둘 다
+ * 이 조회를 한다. cache()로 한 요청 안에서는 한 번만 나가게 한다.
+ * cache()는 인자를 참조로 비교하므로 Date 대신 날짜 문자열을 키로 쓴다.
+ */
+const findDueRoutinesCached = cache(async (userId: string, dateKey: string) => {
+  const date = parseKSTDate(dateKey);
   const routines = await prisma.routine.findMany({
     where: {
       userId,
@@ -36,6 +51,10 @@ async function findDueRoutines(userId: string, date: Date) {
   });
 
   return routines.filter((routine) => matchesRule(routine, date));
+});
+
+function findDueRoutines(userId: string, date: Date) {
+  return findDueRoutinesCached(userId, formatKST(date));
 }
 
 /**

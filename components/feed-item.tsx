@@ -1,7 +1,7 @@
 import Link from "next/link";
 
-import { toggleReaction } from "@/app/(tabs)/feed/actions";
-import { REACTION_EMOJIS } from "@/lib/reactions";
+import { ReactionBar } from "@/components/reaction-bar";
+import { summarizeReactions } from "@/lib/reactions";
 
 type FeedTodo = {
   id: string;
@@ -39,47 +39,32 @@ export function FeedItem({
         </div>
       )}
 
-      <div className="flex items-center gap-2">
+      {/* 피드에는 완료한 일만 온다. 오늘 화면의 체크와 같은 모양으로 보여준다. */}
+      <div className="flex items-center gap-2.5">
+        <span
+          aria-hidden
+          className="flex size-5 shrink-0 items-center justify-center rounded-full bg-brand text-[11px] font-bold text-white"
+          style={
+            todo.category ? { backgroundColor: todo.category.color } : undefined
+          }
+        >
+          ✓
+        </span>
+        <span className="min-w-0 flex-1 truncate">{todo.content}</span>
         {todo.category && (
           <span
-            aria-hidden
-            className="size-2.5 shrink-0 rounded-full"
-            style={{ backgroundColor: todo.category.color }}
-          />
+            className="shrink-0 text-xs font-medium"
+            style={{ color: todo.category.color }}
+          >
+            {todo.category.name}
+          </span>
         )}
-        <span className="min-w-0 flex-1 truncate">{todo.content}</span>
       </div>
 
-      <div className="flex gap-1">
-        {REACTION_EMOJIS.map((emoji) => {
-          const count = todo.reactions.filter(
-            (reaction) => reaction.emoji === emoji,
-          ).length;
-          const mine = todo.reactions.some(
-            (reaction) => reaction.emoji === emoji && reaction.userId === viewerId,
-          );
-
-          return (
-            <form key={emoji} action={toggleReaction}>
-              <input type="hidden" name="todoId" value={todo.id} />
-              <input type="hidden" name="emoji" value={emoji} />
-              <button
-                type="submit"
-                aria-label={`${emoji} 반응${mine ? " 취소" : ""}`}
-                aria-pressed={mine}
-                className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-sm transition-colors ${
-                  mine
-                    ? "bg-brand-subtle text-brand"
-                    : "bg-surface-hover text-muted"
-                }`}
-              >
-                <span>{emoji}</span>
-                {count > 0 && <span className="text-xs">{count}</span>}
-              </button>
-            </form>
-          );
-        })}
-      </div>
+      <ReactionBar
+        todoId={todo.id}
+        summary={summarizeReactions(todo.reactions, viewerId)}
+      />
     </li>
   );
 }

@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { formatKST } from "@/lib/date";
+import { formatMonthDayKST } from "@/lib/date";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 
@@ -64,7 +64,7 @@ export default async function ReactionsPage() {
                     <span className="text-muted"> · {reaction.todo.content}</span>
                   </p>
                   <p className="text-xs text-muted">
-                    {formatKST(reaction.todo.date)}
+                    {formatMonthDayKST(reaction.todo.date)}
                   </p>
                 </div>
                 {isNew && <span className="text-xs text-brand">NEW</span>}

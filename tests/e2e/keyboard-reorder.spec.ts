@@ -45,7 +45,10 @@ test("손잡이에서 키보드로 순서를 바꾼다", async ({ page, email },
   const announcer = page.locator('[id^="DndLiveRegion"]');
 
   await page.keyboard.press("Space");
-  await expect(announcer).toContainText("1번째");
+  await expect(announcer).toContainText("1번째 자리로 옮기는 중");
+  // dnd-kit은 집을 때 누른 키를 이동으로 착각하지 않으려고 방향키 리스너를
+  // 다음 틱에 붙인다. 안내는 그보다 먼저 뜨므로, 사람이 그렇듯 잠깐 뒤에 누른다.
+  await page.waitForTimeout(150);
   await page.keyboard.press("ArrowDown");
   await expect(announcer).toContainText("2번째 자리로 옮기는 중");
   await page.keyboard.press("ArrowDown");
