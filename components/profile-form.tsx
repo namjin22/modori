@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 
 import {
   updateProfile,
@@ -24,6 +24,8 @@ export function ProfileForm({
     updateProfile,
     null,
   );
+  // 고른 이모지를 버튼에도 표시하려면 입력칸 값을 상태로 들고 있어야 한다.
+  const [emoji, setEmoji] = useState(profileEmoji);
 
   return (
     <form action={formAction} className="flex flex-col gap-4">
@@ -43,26 +45,29 @@ export function ProfileForm({
         <legend className="mb-1 text-xs text-muted">프로필 이모지</legend>
         <input
           name="profileEmoji"
-          defaultValue={profileEmoji}
+          value={emoji}
+          onChange={(event) => setEmoji(event.target.value)}
           required
           maxLength={8}
           aria-label="프로필 이모지"
           className="h-12 w-20 rounded-xl bg-surface-hover px-3 text-center text-2xl outline-none focus:ring-2 focus:ring-brand"
         />
-        <div className="flex flex-wrap gap-1">
-          {SUGGESTED_EMOJIS.map((emoji) => (
+        {/* 여덟 개가 한 줄에 들어가게 칸을 나눈다. 줄이 넘어가면 하나만 떨어져 어색하다. */}
+        <div className="grid grid-cols-8 gap-1">
+          {SUGGESTED_EMOJIS.map((suggested) => (
             <button
-              key={emoji}
+              key={suggested}
               type="button"
-              aria-label={`${emoji} 고르기`}
-              onClick={(event) => {
-                const form = event.currentTarget.form;
-                const input = form?.elements.namedItem("profileEmoji");
-                if (input instanceof HTMLInputElement) input.value = emoji;
-              }}
-              className="size-10 rounded-xl bg-surface-hover text-xl"
+              aria-label={`${suggested} 고르기`}
+              aria-pressed={emoji === suggested}
+              onClick={() => setEmoji(suggested)}
+              className={`flex aspect-square items-center justify-center rounded-xl text-xl ${
+                emoji === suggested
+                  ? "bg-brand-subtle ring-2 ring-brand"
+                  : "bg-surface-hover"
+              }`}
             >
-              {emoji}
+              {suggested}
             </button>
           ))}
         </div>
