@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+import { DayMark } from "@/components/day-mark";
+
 import {
   addMonths,
   daysInMonthKST,
@@ -16,23 +18,35 @@ const MAX_CHIPS = 3;
 
 export type DoneItem = { content: string; color: string };
 
+/** 달력 한 칸에 필요한 요약. 할 일이 없는 날은 넘기지 않아도 된다. */
+export type DaySummary = {
+  total: number;
+  done: DoneItem[];
+};
+
+/** 완료한 일의 색을 겹치지 않게 모은다. 클로버 잎을 칠하는 데 쓴다. */
+function uniqueColors(items: DoneItem[]): string[] {
+  return [...new Set(items.map((item) => item.color))];
+}
+
 /**
- * 한 달 달력. 칸마다 그 날 완료한 할 일 이름을 카테고리 색 칩으로 보여준다.
- * 색 점만 찍으면 그 날 무엇을 했는지 알 수 없다.
+ * 한 달 달력. 칸마다 클로버 표시로 그 날 한 일이 있는지 보여주고,
+ * 넓은 화면에서는 완료한 할 일 이름도 카테고리 색 칩으로 덧붙인다.
+ * 좁은 화면에서는 칸이 좁아 칩이 뭉개지므로 클로버만 둔다.
  * 링크 주소는 부르는 쪽이 정한다. 넓은 화면과 좁은 화면이 붙이는 쿼리가 다르다.
  */
 export function MonthCalendar({
   monthStart,
   selected,
   today,
-  doneByDate,
+  summaries,
   dayHref,
   monthHref,
 }: {
   monthStart: Date;
   selected: Date;
   today: Date;
-  doneByDate: Map<string, DoneItem[]>;
+  summaries: Map<string, DaySummary>;
   dayHref: (dateKey: string) => string;
   monthHref: (monthKey: string) => string;
 }) {
@@ -43,7 +57,7 @@ export function MonthCalendar({
     parseKSTDate(`${monthKey}-${String(index + 1).padStart(2, "0")}`),
   );
   const doneCount = days.reduce(
-    (sum, day) => sum + (doneByDate.get(formatKST(day))?.length ?? 0),
+    (sum, day) => sum + (summaries.get(formatKST(day))?.done.length ?? 0),
     0,
   );
   const isThisMonth = monthKey === formatMonthKST(today);
@@ -105,7 +119,8 @@ export function MonthCalendar({
 
           {days.map((day) => {
             const key = formatKST(day);
-            const items = doneByDate.get(key) ?? [];
+            const summary = summaries.get(key);
+            const items = summary?.done ?? [];
             const isToday = isSameKSTDate(day, today);
             const isSelected = isSameKSTDate(day, selected);
 
@@ -117,10 +132,14 @@ export function MonthCalendar({
                 prefetch={false}
                 aria-label={`${day.getUTCDate()}일, 완료 ${items.length > 0 ? "있음" : "없음"}`}
                 aria-current={isSelected ? "date" : undefined}
-                className="flex min-h-16 flex-col items-center gap-1 rounded-lg px-0.5 py-1 transition-colors hover:bg-surface-hover"
+                className="flex min-h-14 flex-col items-center gap-0.5 rounded-lg px-0.5 py-1 transition-colors hover:bg-surface-hover"
               >
+                <DayMark
+                  colors={uniqueColors(items)}
+                  allDone={!!summary && summary.total > 0 && items.length === summary.total}
+                />
                 <span
-                  className={`flex size-7 items-center justify-center rounded-full text-sm ${
+                  className={`flex size-6 items-center justify-center rounded-full text-xs ${
                     isSelected
                       ? "bg-foreground font-bold text-background"
                       : isToday
@@ -131,21 +150,18 @@ export function MonthCalendar({
                   {day.getUTCDate()}
                 </span>
 
-                <span aria-hidden className="flex w-full flex-col gap-px">
+                <span aria-hidden className="hidden w-full flex-col gap-px lg:flex">
                   {items.slice(0, MAX_CHIPS).map((item, index) => (
                     <span
                       key={`${item.content}-${index}`}
-                      className="truncate rounded px-0.5 text-[9px] leading-[13px]"
-                      style={{
-                        color: item.color,
-                        backgroundColor: `${item.color}26`,
-                      }}
+                      className="truncate rounded px-1 text-[10px] font-medium leading-[15px] text-white"
+                      style={{ backgroundColor: item.color }}
                     >
                       {item.content}
                     </span>
                   ))}
                   {items.length > MAX_CHIPS && (
-                    <span className="text-[9px] leading-[13px] text-muted">
+                    <span className="text-[10px] leading-[15px] text-muted">
                       +{items.length - MAX_CHIPS}
                     </span>
                   )}

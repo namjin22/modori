@@ -62,7 +62,7 @@ export default async function FriendDayPage({
   // 피드와 같은 조건: 완료했고, 공개 카테고리에 든 할 일만 보인다.
   const visible = { done: true, category: { isPublic: true }, userId: friend.id };
 
-  const [todos, weekCounts] = await Promise.all([
+  const [todos, weekTodos] = await Promise.all([
     prisma.todo.findMany({
       where: { ...visible, date },
       orderBy: { order: "asc" },
@@ -72,20 +72,25 @@ export default async function FriendDayPage({
         reactions: { select: { emoji: true, userId: true } },
       },
     }),
-    prisma.todo.groupBy({
-      by: ["date"],
+    prisma.todo.findMany({
       where: { ...visible, date: { gte: weekStart, lte: weekEnd } },
-      _count: { _all: true },
+      select: { date: true, category: { select: { color: true } } },
     }),
   ]);
 
   const weekDays = Array.from({ length: 7 }, (_, index) => {
     const day = addDays(weekStart, index);
     const key = formatKST(day);
-    const count =
-      weekCounts.find((row) => formatKST(row.date) === key)?._count._all ?? 0;
+    const dayTodos = weekTodos.filter((todo) => formatKST(todo.date) === key);
     // 친구 화면에는 완료한 것만 보이므로 남은 개수라는 개념이 없다. 전부 채운다.
-    return { date: day, done: count, total: count };
+    return {
+      date: day,
+      done: dayTodos.length,
+      total: dayTodos.length,
+      colors: [
+        ...new Set(dayTodos.flatMap((todo) => (todo.category ? [todo.category.color] : []))),
+      ],
+    };
   });
 
   const isToday = isSameKSTDate(date, todayKST());
