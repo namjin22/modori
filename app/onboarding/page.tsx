@@ -1,19 +1,13 @@
 import { redirect } from "next/navigation";
 
-import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { getCurrentUser } from "@/lib/session";
 
 import { OnboardingForm } from "@/components/onboarding-form";
 
 export default async function OnboardingPage() {
-  const session = await auth();
-  if (!session?.user?.id) redirect("/login");
-
-  const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { nickname: true },
-  });
-  if (user?.nickname) redirect("/");
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
+  if (user.nickname) redirect("/");
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-sm flex-col justify-center gap-10 px-6">
