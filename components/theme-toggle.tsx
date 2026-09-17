@@ -2,52 +2,56 @@
 
 import { useSyncExternalStore } from "react";
 
-type Theme = "system" | "light" | "dark";
+type Theme = "light" | "dark";
 
 const OPTIONS: { value: Theme; label: string }[] = [
-  { value: "system", label: "기기 설정" },
   { value: "light", label: "라이트" },
   { value: "dark", label: "다크" },
 ];
 
+const DARK_QUERY = "(prefers-color-scheme: dark)";
 const listeners = new Set<() => void>();
 
 function subscribe(onChange: () => void) {
   listeners.add(onChange);
-  // 다른 탭에서 바꾼 경우도 따라간다.
+  // 다른 탭에서 바꾼 경우와, 아직 고르지 않았을 때 기기 설정이 바뀐 경우도 따라간다.
   window.addEventListener("storage", onChange);
+  const media = window.matchMedia(DARK_QUERY);
+  media.addEventListener("change", onChange);
 
   return () => {
     listeners.delete(onChange);
     window.removeEventListener("storage", onChange);
+    media.removeEventListener("change", onChange);
   };
 }
 
+/**
+ * 고른 값이 있으면 그것, 없으면 기기 설정이 보여주는 쪽.
+ * "기기 설정"을 따로 고르는 칸은 없앴지만, 처음 들어온 사람에게 라이트를 강요하면
+ * 다크 모드 기기에서 화면이 한 번 하얗게 번쩍인다. 시작값으로만 기기 설정을 쓴다.
+ */
 function getTheme(): Theme {
   try {
     const stored = localStorage.getItem("theme");
-    return stored === "light" || stored === "dark" ? stored : "system";
-  } catch {
+    if (stored === "light" || stored === "dark") return stored;
+  } catch (error) {
     // 시크릿 모드처럼 저장소를 못 읽는 경우가 있다. 기기 설정으로 본다.
-    return "system";
+    console.warn("[theme] 저장된 테마를 읽지 못했다.", error);
   }
+  return window.matchMedia(DARK_QUERY).matches ? "dark" : "light";
 }
 
-// 서버에는 localStorage가 없다. 기기 설정을 기본으로 그리고, 마운트 후 실제 값으로 맞춘다.
+// 서버에는 localStorage도 기기 설정도 없다. 마운트 후 실제 값으로 맞춘다.
 function getServerTheme(): Theme {
-  return "system";
+  return "light";
 }
 
 function setTheme(theme: Theme) {
-  if (theme === "system") {
-    delete document.documentElement.dataset.theme;
-  } else {
-    document.documentElement.dataset.theme = theme;
-  }
+  document.documentElement.dataset.theme = theme;
 
   try {
-    if (theme === "system") localStorage.removeItem("theme");
-    else localStorage.setItem("theme", theme);
+    localStorage.setItem("theme", theme);
   } catch (error) {
     console.error("[theme] 테마를 저장하지 못했다.", error);
   }
