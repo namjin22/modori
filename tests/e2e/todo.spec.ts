@@ -76,8 +76,7 @@ test("할 일은 날짜별로 따로 쌓인다", async ({ page }) => {
 test("기본 카테고리가 만들어지고 새 카테고리를 추가할 수 있다", async ({
   page,
 }) => {
-  await page.getByRole("link", { name: "설정" }).click();
-  await page.getByRole("link", { name: /카테고리 관리/ }).click();
+  await page.getByRole("link", { name: "카테고리", exact: true }).click();
 
   await expect(page.getByText("공부")).toBeVisible();
   await expect(page.getByText("운동")).toBeVisible();
@@ -88,7 +87,7 @@ test("기본 카테고리가 만들어지고 새 카테고리를 추가할 수 �
 
   await expect(page.getByText("동아리")).toBeVisible();
 
-  await page.getByRole("link", { name: "오늘" }).click();
+  await page.getByRole("link", { name: "피드", exact: true }).click();
   await expect(page).toHaveURL("/");
   await expect(page.getByLabel("카테고리", { exact: true })).toContainText(
     "동아리",
@@ -106,7 +105,7 @@ test("보관한 카테고리는 할 일 추가 목록에서 빠진다", async ({
 
   await expect(page.getByText("보관함")).toBeVisible();
 
-  await page.getByRole("link", { name: "오늘" }).click();
+  await page.getByRole("link", { name: "피드", exact: true }).click();
   await expect(page).toHaveURL("/");
   await expect(page.getByLabel("카테고리", { exact: true })).not.toContainText(
     "운동",

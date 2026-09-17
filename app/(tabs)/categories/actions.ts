@@ -34,7 +34,7 @@ export async function createCategory(formData: FormData) {
     data: { userId: user.id, name, color, order: (last?.order ?? -1) + 1 },
   });
 
-  revalidatePath("/settings/categories");
+  revalidatePath("/categories");
   revalidatePath("/");
 }
 
@@ -50,7 +50,7 @@ export async function updateCategory(formData: FormData) {
     data: { name, color, isPublic: formData.get("isPublic") === "on" },
   });
 
-  revalidatePath("/settings/categories");
+  revalidatePath("/categories");
   revalidatePath("/");
 }
 
@@ -63,7 +63,7 @@ export async function archiveCategory(formData: FormData) {
     data: { archivedAt: new Date() },
   });
 
-  revalidatePath("/settings/categories");
+  revalidatePath("/categories");
   revalidatePath("/");
 }
 
@@ -75,7 +75,7 @@ export async function restoreCategory(formData: FormData) {
     data: { archivedAt: null },
   });
 
-  revalidatePath("/settings/categories");
+  revalidatePath("/categories");
   revalidatePath("/");
 }
 
@@ -112,6 +112,6 @@ export async function moveCategory(formData: FormData) {
     }),
   ]);
 
-  revalidatePath("/settings/categories");
+  revalidatePath("/categories");
   revalidatePath("/");
 }

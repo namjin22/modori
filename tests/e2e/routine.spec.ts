@@ -46,7 +46,7 @@ test.afterAll(async () => {
 test("매일 루틴은 오늘 화면을 열면 할 일로 만들어진다", async ({ page }) => {
   await createDailyRoutine(page, "아침 스트레칭");
 
-  await page.getByRole("link", { name: "오늘" }).click();
+  await page.getByRole("link", { name: "피드", exact: true }).click();
   await expect(page).toHaveURL("/");
 
   await expect(page.getByText("아침 스트레칭")).toBeVisible();
@@ -97,7 +97,7 @@ test("루틴을 지워도 이미 만들어진 할 일은 남는다", async ({ pa
   await createDailyRoutine(page, "남을 할 일");
 
   // 오늘 화면을 실제로 열어야 루틴 할 일이 만들어진다. 이동을 기다린 뒤 확인한다.
-  await page.getByRole("link", { name: "오늘" }).click();
+  await page.getByRole("link", { name: "피드", exact: true }).click();
   await expect(page).toHaveURL("/");
   await expect(page.getByText("남을 할 일")).toBeVisible();
 
@@ -108,7 +108,7 @@ test("루틴을 지워도 이미 만들어진 할 일은 남는다", async ({ pa
   await page.getByRole("button", { name: "삭제" }).click();
   await expect(page.getByText("아직 루틴이 없다")).toBeVisible();
 
-  await page.getByRole("link", { name: "오늘" }).click();
+  await page.getByRole("link", { name: "피드", exact: true }).click();
   await expect(page).toHaveURL("/");
   await expect(page.getByText("남을 할 일")).toBeVisible();
 });

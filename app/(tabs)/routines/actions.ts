@@ -101,7 +101,7 @@ export async function createRoutine(
     },
   });
 
-  revalidatePath("/settings/routines");
+  revalidatePath("/routines");
   revalidatePath("/");
 
   return { message: "루틴을 만들었어요." };
@@ -123,7 +123,7 @@ export async function toggleRoutinePause(formData: FormData) {
     data: { pausedAt: routine.pausedAt ? null : new Date() },
   });
 
-  revalidatePath("/settings/routines");
+  revalidatePath("/routines");
   revalidatePath("/");
 }
 
@@ -162,7 +162,7 @@ export async function deleteRoutine(id: string): Promise<DeletedRoutine | null> 
 
   await prisma.routine.delete({ where: { id: routine.id } });
 
-  revalidatePath("/settings/routines");
+  revalidatePath("/routines");
   revalidatePath("/");
 
   return {
@@ -255,7 +255,7 @@ export async function restoreRoutine(snapshot: DeletedRoutine) {
     throw error;
   }
 
-  revalidatePath("/settings/routines");
+  revalidatePath("/routines");
   revalidatePath("/");
 }
 
@@ -267,6 +267,6 @@ export async function endRoutineToday(formData: FormData) {
     data: { endDate: parseKSTDate(formatKST(todayKST())) },
   });
 
-  revalidatePath("/settings/routines");
+  revalidatePath("/routines");
   revalidatePath("/");
 }

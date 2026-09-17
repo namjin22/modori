@@ -52,7 +52,7 @@ export default async function FeedPage({
           자주 쓰는 "친구 찾기"만 제목 옆에 두고, 나머지는 아래에 칩으로 편다. */}
       <header className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold">피드</h1>
+          <h1 className="text-2xl font-bold">소셜</h1>
           <Link
             href="/feed/search"
             className="h-9 rounded-full bg-brand px-4 text-sm font-semibold leading-9 text-brand-contrast"

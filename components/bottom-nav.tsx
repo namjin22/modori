@@ -3,18 +3,30 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-import {
-  CalendarIcon,
-  FeedIcon,
-  SettingsIcon,
-  TodayIcon,
-} from "@/components/tab-icons";
+import { FeedIcon, SettingsIcon, TodayIcon } from "@/components/tab-icons";
+
+// 카테고리와 루틴은 할 일을 적다 손보는 화면이라 피드 탭에 속한다.
+const FEED_PATHS = ["/", "/categories", "/routines"];
 
 const TABS = [
-  { href: "/", label: "오늘", Icon: TodayIcon },
-  { href: "/calendar", label: "캘린더", Icon: CalendarIcon },
-  { href: "/feed", label: "피드", Icon: FeedIcon },
-  { href: "/settings", label: "설정", Icon: SettingsIcon },
+  {
+    href: "/",
+    label: "피드",
+    Icon: TodayIcon,
+    isActive: (path: string) => FEED_PATHS.includes(path),
+  },
+  {
+    href: "/feed",
+    label: "소셜",
+    Icon: FeedIcon,
+    isActive: (path: string) => path.startsWith("/feed"),
+  },
+  {
+    href: "/settings",
+    label: "설정",
+    Icon: SettingsIcon,
+    isActive: (path: string) => path.startsWith("/settings"),
+  },
 ] as const;
 
 export function BottomNav({ unreadReactions }: { unreadReactions: number }) {
@@ -25,9 +37,8 @@ export function BottomNav({ unreadReactions }: { unreadReactions: number }) {
     // env(safe-area-inset-bottom)만큼 아래를 더 띄운다.
     <nav className="sticky bottom-0 border-t border-border bg-surface pb-[env(safe-area-inset-bottom,0px)]">
       <ul className="mx-auto flex w-full max-w-lg">
-        {TABS.map(({ href, label, Icon }) => {
-          const isActive =
-            href === "/" ? pathname === "/" : pathname.startsWith(href);
+        {TABS.map(({ href, label, Icon, isActive: matches }) => {
+          const isActive = matches(pathname);
           // 받은 반응 화면을 보는 중이면 이미 읽고 있는 것이다. 뱃지를 띄우지 않는다.
           const badge =
             href === "/feed" && pathname !== "/feed/reactions"

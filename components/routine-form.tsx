@@ -5,7 +5,7 @@ import { useActionState, useState } from "react";
 import {
   createRoutine,
   type RoutineFormState,
-} from "@/app/(tabs)/settings/routines/actions";
+} from "@/app/(tabs)/routines/actions";
 import { SubmitButton } from "@/components/submit-button";
 
 const WEEKDAY_NAMES = ["일", "월", "화", "수", "목", "금", "토"];
