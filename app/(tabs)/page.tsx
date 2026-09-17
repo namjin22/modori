@@ -182,6 +182,7 @@ export default async function TodayPage({
                     date={formatKST(date)}
                     items={group.items.map((todo) => ({
                       id: todo.id,
+                      label: todo.content,
                       node: <TodoRow todo={todo} categories={categories} />,
                     }))}
                   />
