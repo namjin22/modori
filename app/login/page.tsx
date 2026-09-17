@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { redirect } from "next/navigation";
 
 import { auth, isMockAuth, signIn } from "@/lib/auth";
@@ -7,10 +8,22 @@ export default async function LoginPage() {
   if (session?.user) redirect("/");
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-sm flex-col justify-center gap-10 px-6">
-      <div>
-        <h1 className="text-3xl font-bold">모도리</h1>
-        <p className="mt-2 text-muted">오늘 할 일을 색으로 남긴다</p>
+    // 이름만 덩그러니 있으면 첫 화면이 휑하다. 위아래로 갈라서, 가운데는 브랜드,
+    // 아래는 누를 것을 둔다. 손가락이 닿는 곳에 버튼이 오는 배치이기도 하다.
+    <main className="mx-auto flex min-h-screen w-full max-w-sm flex-col px-6 pb-10">
+      <div className="flex flex-1 flex-col items-center justify-center gap-4 text-center">
+        <Image
+          src="/icons/icon-192.png"
+          alt=""
+          width={72}
+          height={72}
+          priority
+          className="rounded-[22px]"
+        />
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">모도리</h1>
+          <p className="mt-2 text-muted">오늘 할 일을 색으로 남긴다</p>
+        </div>
       </div>
 
       <form
@@ -21,7 +34,7 @@ export default async function LoginPage() {
       >
         <button
           type="submit"
-          className="h-14 w-full rounded-2xl bg-brand text-base font-semibold text-brand-contrast transition-colors hover:bg-brand-hover"
+          className="h-14 w-full rounded-2xl bg-brand text-base font-semibold text-brand-contrast transition-colors hover:bg-brand-hover active:scale-[0.98]"
         >
           Google로 계속하기
         </button>
@@ -36,7 +49,7 @@ export default async function LoginPage() {
               redirectTo: "/",
             });
           }}
-          className="flex flex-col gap-2 rounded-2xl border border-dashed border-border p-4"
+          className="mt-4 flex flex-col gap-2 rounded-2xl border border-dashed border-border p-4"
         >
           <p className="text-sm text-muted">테스트 전용 로그인</p>
           <input
