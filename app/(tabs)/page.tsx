@@ -133,7 +133,7 @@ export default async function TodayPage({
       <AddTodoForm categories={categories} date={formatKST(date)} />
 
       {todos.length === 0 && scheduled.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-border p-10 text-center">
+        <div className="rounded-2xl bg-surface p-10 text-center">
           <p className="text-2xl">🌱</p>
           <p className="mt-2 text-sm text-muted">아직 할 일이 없다</p>
           <Link
@@ -158,7 +158,7 @@ export default async function TodayPage({
                   aria-valuemin={0}
                   aria-valuemax={todos.length}
                   aria-valuenow={doneCount}
-                  className="h-1.5 overflow-hidden rounded-full bg-surface"
+                  className="h-1.5 overflow-hidden rounded-full bg-border"
                 >
                   <div
                     className="h-full rounded-full bg-brand transition-[width] duration-300"
@@ -219,10 +219,9 @@ function AddTodoForm({
   date: string;
 }) {
   return (
-    <form
-      action={addTodo}
-      className="flex flex-col gap-2 rounded-2xl bg-surface p-3"
-    >
+    // 카드 안에 또 회색 상자를 넣으면 상자가 겹쳐 보인다.
+    // 입력칸은 배경 없이 두고 가는 선으로만 나눈다.
+    <form action={addTodo} className="rounded-2xl bg-surface px-3 py-1">
       <input type="hidden" name="date" value={date} />
       <input
         name="content"
@@ -230,13 +229,13 @@ function AddTodoForm({
         maxLength={200}
         placeholder="할 일 추가"
         aria-label="할 일 내용"
-        className="h-11 rounded-xl bg-surface-hover px-3 outline-none focus:ring-2 focus:ring-brand"
+        className="h-12 w-full border-b border-border bg-transparent text-[15px] outline-none placeholder:text-muted focus:border-brand"
       />
-      <div className="flex gap-2">
+      <div className="flex gap-2 py-2">
         <select
           name="categoryId"
           aria-label="카테고리"
-          className="h-11 flex-1 rounded-xl bg-surface-hover px-3 text-sm"
+          className="h-10 flex-1 rounded-xl bg-surface-hover px-3 text-sm"
         >
           <option value="">카테고리 없음</option>
           {categories.map((category) => (
@@ -247,7 +246,7 @@ function AddTodoForm({
         </select>
         <SubmitButton
           pendingLabel="추가 중"
-          className="h-11 rounded-xl bg-brand px-5 text-sm font-semibold text-brand-contrast"
+          className="h-10 rounded-xl bg-brand px-5 text-sm font-semibold text-brand-contrast"
         >
           추가
         </SubmitButton>

@@ -72,7 +72,7 @@ export default async function RoutinesPage() {
       </details>
 
       {routines.length === 0 ? (
-        <p className="rounded-2xl border border-dashed border-border p-10 text-center text-sm text-muted">
+        <p className="rounded-2xl bg-surface p-10 text-center text-sm text-muted">
           아직 루틴이 없다
         </p>
       ) : (
