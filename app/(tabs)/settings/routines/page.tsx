@@ -1,14 +1,19 @@
 import Link from "next/link";
 
-import { ConfirmButton } from "@/components/confirm-button";
 import { CategoryChip } from "@/components/category-chip";
 import { RoutineForm } from "@/components/routine-form";
+import { UndoableDeleteButton } from "@/components/undoable-delete-button";
 import { formatKST, todayKST } from "@/lib/date";
 import { groupByCategory } from "@/lib/group-by-category";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 
-import { deleteRoutine, endRoutineToday, toggleRoutinePause } from "./actions";
+import {
+  deleteRoutine,
+  endRoutineToday,
+  restoreRoutine,
+  toggleRoutinePause,
+} from "./actions";
 
 const WEEKDAY_NAMES = ["일", "월", "화", "수", "목", "금", "토"];
 
@@ -126,15 +131,14 @@ export default async function RoutinesPage() {
                       </form>
                     )}
 
-                    <form action={deleteRoutine}>
-                      <input type="hidden" name="id" value={routine.id} />
-                      <ConfirmButton
-                        message="이 루틴을 지울까요? 이미 만들어진 할 일은 남습니다."
-                        className="text-xs text-red-500"
-                      >
-                        삭제
-                      </ConfirmButton>
-                    </form>
+                    {/* 이미 만들어진 할 일은 남는다. 되돌리면 그 할 일들에 다시 이어진다. */}
+                    <UndoableDeleteButton
+                      id={routine.id}
+                      remove={deleteRoutine}
+                      restore={restoreRoutine}
+                      message="루틴을 지웠어요. 만들어진 할 일은 남아요"
+                      className="text-xs text-red-500"
+                    />
                   </div>
                 </li>
               ))}

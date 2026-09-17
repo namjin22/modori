@@ -148,9 +148,6 @@ a:active {
   }
 }
 
-/* 키보드로 움직일 때 지금 어디에 있는지 보여야 한다. 브라우저 기본 외곽선은
-   배경색에 따라 안 보이는 경우가 있어 브랜드 색으로 통일한다.
-   :focus가 아니라 :focus-visible이라 마우스로 누를 때는 나오지 않는다. */
 /* 제목은 자간을 살짝 좁힌다. Pretendard는 기본 자간이 넉넉해서
    큰 글씨에서 헐렁해 보인다. 본문은 그대로 둔다. */
 h1,
@@ -158,7 +155,22 @@ h2 {
   letter-spacing: -0.02em;
 }
 
+/* 키보드로 움직일 때 지금 어디에 있는지 보여야 한다. 브라우저 기본 외곽선은
+   배경색에 따라 안 보이는 경우가 있어 브랜드 색으로 통일한다.
+   :focus가 아니라 :focus-visible이라 마우스로 누를 때는 나오지 않는다. */
 :focus-visible {
   outline: 2px solid var(--color-brand);
   outline-offset: 2px;
+}
+
+/* 화면 아래에서 올라오는 알림. 목록 애니메이션보다 조금 더 멀리서 올라온다. */
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
