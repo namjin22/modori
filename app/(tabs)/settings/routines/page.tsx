@@ -1,14 +1,19 @@
 import Link from "next/link";
 
-import { ConfirmButton } from "@/components/confirm-button";
 import { CategoryChip } from "@/components/category-chip";
 import { RoutineForm } from "@/components/routine-form";
+import { UndoableDeleteButton } from "@/components/undoable-delete-button";
 import { formatKST, todayKST } from "@/lib/date";
 import { groupByCategory } from "@/lib/group-by-category";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 
-import { deleteRoutine, endRoutineToday, toggleRoutinePause } from "./actions";
+import {
+  deleteRoutine,
+  endRoutineToday,
+  restoreRoutine,
+  toggleRoutinePause,
+} from "./actions";
 
 const WEEKDAY_NAMES = ["일", "월", "화", "수", "목", "금", "토"];
 
@@ -60,19 +65,28 @@ export default async function RoutinesPage() {
       </header>
 
       <p className="text-sm text-muted">
-        해당 날짜를 열 때 할 일이 자동으로 만들어진다. 앞으로의 날짜는
-        예정으로만 보이다가 체크할 때 생긴다.
+        정해둔 날이 되면 할 일로 들어온다. 앞으로의 날짜에는 예정으로만 보이다가
+        체크하면 그때 생긴다.
       </p>
 
-      <details className="rounded-2xl bg-surface p-4">
-        <summary className="cursor-pointer font-medium">루틴 만들기</summary>
-        <div className="mt-4">
+      {/* 브라우저 기본 삼각형 대신 + 표시를 쓰고, 열리면 ×로 돌린다. */}
+      <details className="group rounded-2xl bg-surface">
+        <summary className="flex cursor-pointer list-none items-center gap-2 p-4 font-medium [&::-webkit-details-marker]:hidden">
+          <span
+            aria-hidden
+            className="flex size-6 items-center justify-center rounded-full bg-brand text-brand-contrast transition-transform group-open:rotate-45"
+          >
+            +
+          </span>
+          루틴 만들기
+        </summary>
+        <div className="px-4 pb-4">
           <RoutineForm categories={categories} today={formatKST(todayKST())} />
         </div>
       </details>
 
       {routines.length === 0 ? (
-        <p className="rounded-2xl border border-dashed border-border p-10 text-center text-sm text-muted">
+        <p className="rounded-2xl bg-surface p-10 text-center text-sm text-muted">
           아직 루틴이 없다
         </p>
       ) : (
@@ -117,15 +131,14 @@ export default async function RoutinesPage() {
                       </form>
                     )}
 
-                    <form action={deleteRoutine}>
-                      <input type="hidden" name="id" value={routine.id} />
-                      <ConfirmButton
-                        message="이 루틴을 지울까요? 이미 만들어진 할 일은 남습니다."
-                        className="text-xs text-red-500"
-                      >
-                        삭제
-                      </ConfirmButton>
-                    </form>
+                    {/* 이미 만들어진 할 일은 남는다. 되돌리면 그 할 일들에 다시 이어진다. */}
+                    <UndoableDeleteButton
+                      id={routine.id}
+                      remove={deleteRoutine}
+                      restore={restoreRoutine}
+                      message="루틴을 지웠어요. 만들어진 할 일은 남아요"
+                      className="text-xs text-red-500"
+                    />
                   </div>
                 </li>
               ))}

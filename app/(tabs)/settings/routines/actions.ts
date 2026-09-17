@@ -1,6 +1,6 @@
 "use server";
 
-import type { RoutineFreq } from "@prisma/client";
+import { Prisma, type RoutineFreq } from "@prisma/client";
 
 import { revalidatePath } from "next/cache";
 
@@ -131,12 +131,129 @@ export async function toggleRoutinePause(formData: FormData) {
  * 루틴을 지워도 이미 만들어진 할 일은 남는다.
  * 스키마의 onDelete: SetNull이 routineId만 비운다. 지나간 기록은 사실 그대로 둔다.
  */
-export async function deleteRoutine(formData: FormData) {
+/** 지운 루틴을 되돌릴 때 필요한 값. 날짜는 전부 문자열로 주고받는다. */
+export type DeletedRoutine = {
+  id: string;
+  content: string;
+  freq: RoutineFreq;
+  byWeekday: number[];
+  byMonthday: number[];
+  categoryId: string | null;
+  startDate: string;
+  endDate: string | null;
+  paused: boolean;
+  order: number;
+  // 루틴을 지우면 할 일의 routineId가 비워진다. 되돌릴 때 다시 이어 붙인다.
+  todoIds: string[];
+  skipDates: string[];
+};
+
+export async function deleteRoutine(id: string): Promise<DeletedRoutine | null> {
   const user = await requireUser();
 
-  await prisma.routine.deleteMany({
-    where: { id: readText(formData, "id"), userId: user.id },
+  const routine = await prisma.routine.findFirst({
+    where: { id, userId: user.id },
+    include: {
+      todos: { select: { id: true } },
+      skips: { select: { date: true } },
+    },
   });
+  if (!routine) return null;
+
+  await prisma.routine.delete({ where: { id: routine.id } });
+
+  revalidatePath("/settings/routines");
+  revalidatePath("/");
+
+  return {
+    id: routine.id,
+    content: routine.content,
+    freq: routine.freq,
+    byWeekday: routine.byWeekday,
+    byMonthday: routine.byMonthday,
+    categoryId: routine.categoryId,
+    startDate: formatKST(routine.startDate),
+    endDate: routine.endDate ? formatKST(routine.endDate) : null,
+    paused: routine.pausedAt !== null,
+    order: routine.order,
+    todoIds: routine.todos.map((todo) => todo.id),
+    skipDates: routine.skips.map((skip) => formatKST(skip.date)),
+  };
+}
+
+function toKSTDates(values: string[]): Date[] {
+  return values.flatMap((value) => {
+    try {
+      return [parseKSTDate(value)];
+    } catch (error) {
+      console.error("[routine] 되돌릴 날짜 형식이 잘못됐다.", error);
+      return [];
+    }
+  });
+}
+
+/**
+ * 방금 지운 루틴을 되살린다. 값은 브라우저에서 오므로 그대로 믿지 않는다.
+ * 이어 붙이는 할 일도 본인 것이고 아직 비어 있는 것만 고른다.
+ */
+export async function restoreRoutine(snapshot: DeletedRoutine) {
+  const user = await requireUser();
+
+  const content = snapshot.content.trim().slice(0, MAX_CONTENT_LENGTH);
+  const freq = FREQS.find((value) => value === snapshot.freq);
+  if (!content || !freq) return;
+
+  const [startDate] = toKSTDates([snapshot.startDate]);
+  if (!startDate) return;
+  const [endDate] = snapshot.endDate ? toKSTDates([snapshot.endDate]) : [];
+
+  const category = snapshot.categoryId
+    ? await prisma.category.findFirst({
+        where: { id: snapshot.categoryId, userId: user.id },
+        select: { id: true },
+      })
+    : null;
+
+  try {
+    await prisma.$transaction([
+      prisma.routine.create({
+        data: {
+          id: snapshot.id,
+          userId: user.id,
+          content,
+          freq,
+          byWeekday: snapshot.byWeekday.filter((d) => Number.isInteger(d) && d >= 0 && d <= 6),
+          byMonthday: snapshot.byMonthday.filter((d) => Number.isInteger(d) && d >= 1 && d <= 31),
+          categoryId: category?.id ?? null,
+          startDate,
+          endDate: endDate ?? null,
+          pausedAt: snapshot.paused ? new Date() : null,
+          order: Number.isInteger(snapshot.order) ? snapshot.order : 0,
+        },
+      }),
+      prisma.todo.updateMany({
+        where: { id: { in: snapshot.todoIds }, userId: user.id, routineId: null },
+        data: { routineId: snapshot.id },
+      }),
+      prisma.routineSkip.createMany({
+        data: toKSTDates(snapshot.skipDates).map((date) => ({
+          routineId: snapshot.id,
+          date,
+        })),
+        skipDuplicates: true,
+      }),
+    ]);
+  } catch (error) {
+    // 두 번 눌렀거나 이미 되살아난 경우.
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2002"
+    ) {
+      console.warn("[routine] 이미 되살린 루틴이다.", snapshot.id);
+      return;
+    }
+    throw error;
+  }
 
   revalidatePath("/settings/routines");
   revalidatePath("/");

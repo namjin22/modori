@@ -47,3 +47,6 @@ next-env.d.ts
 /playwright-report/
 /blob-report/
 /.playwright/
+
+# 에디터 확장 설치 파일. 저장소에 들어갈 것이 아니다.
+*.vsix

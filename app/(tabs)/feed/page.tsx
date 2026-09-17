@@ -89,7 +89,7 @@ export default async function FeedPage({
       </header>
 
       {todos.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-border p-10 text-center">
+        <div className="rounded-2xl bg-surface p-10 text-center">
           <p className="text-sm text-muted">
             {after
               ? "더 이전 기록은 없다"

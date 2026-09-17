@@ -29,6 +29,8 @@ async function findDueRoutines(userId: string, date: Date) {
       pausedAt: null,
       startDate: { lte: date },
       OR: [{ endDate: null }, { endDate: { gte: date } }],
+      // 사용자가 그 날의 할 일을 지웠으면 다시 만들지 않는다.
+      skips: { none: { date } },
     },
     orderBy: { order: "asc" },
   });
