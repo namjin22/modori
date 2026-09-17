@@ -60,13 +60,22 @@ export default async function RoutinesPage() {
       </header>
 
       <p className="text-sm text-muted">
-        해당 날짜를 열 때 할 일이 자동으로 만들어진다. 앞으로의 날짜는
-        예정으로만 보이다가 체크할 때 생긴다.
+        정해둔 날이 되면 할 일로 들어온다. 앞으로의 날짜에는 예정으로만 보이다가
+        체크하면 그때 생긴다.
       </p>
 
-      <details className="rounded-2xl bg-surface p-4">
-        <summary className="cursor-pointer font-medium">루틴 만들기</summary>
-        <div className="mt-4">
+      {/* 브라우저 기본 삼각형 대신 + 표시를 쓰고, 열리면 ×로 돌린다. */}
+      <details className="group rounded-2xl bg-surface">
+        <summary className="flex cursor-pointer list-none items-center gap-2 p-4 font-medium [&::-webkit-details-marker]:hidden">
+          <span
+            aria-hidden
+            className="flex size-6 items-center justify-center rounded-full bg-brand text-brand-contrast transition-transform group-open:rotate-45"
+          >
+            +
+          </span>
+          루틴 만들기
+        </summary>
+        <div className="px-4 pb-4">
           <RoutineForm categories={categories} today={formatKST(todayKST())} />
         </div>
       </details>

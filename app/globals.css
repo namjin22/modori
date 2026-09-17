@@ -98,6 +98,9 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans);
+  /* 한국어는 기본값이면 "있/다"처럼 글자 사이에서 줄이 바뀐다. 어절 단위로 끊는다. */
+  word-break: keep-all;
+  overflow-wrap: anywhere;
   /* 한글은 자간이 조금 좁아야 읽기 편하다. */
   letter-spacing: -0.01em;
 }
