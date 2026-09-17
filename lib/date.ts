@@ -30,6 +30,12 @@ export function formatKST(d: Date): string {
   return `${year}-${month}-${day}`;
 }
 
+/** 화면에 보여줄 짧은 날짜. "2026-09-17"보다 "9월 17일"이 눈에 빨리 들어온다. */
+export function formatMonthDayKST(d: Date): string {
+  const date = toKSTDateOnly(d);
+  return `${date.getUTCMonth() + 1}월 ${date.getUTCDate()}일`;
+}
+
 /** "YYYY-MM-DD"를 KST 날짜로. 형식이나 값이 틀리면 throw. */
 export function parseKSTDate(s: string): Date {
   const match = DATE_PATTERN.exec(s);

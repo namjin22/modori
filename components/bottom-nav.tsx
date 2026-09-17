@@ -28,7 +28,11 @@ export function BottomNav({ unreadReactions }: { unreadReactions: number }) {
         {TABS.map(({ href, label, Icon }) => {
           const isActive =
             href === "/" ? pathname === "/" : pathname.startsWith(href);
-          const badge = href === "/feed" ? unreadReactions : 0;
+          // 받은 반응 화면을 보는 중이면 이미 읽고 있는 것이다. 뱃지를 띄우지 않는다.
+          const badge =
+            href === "/feed" && pathname !== "/feed/reactions"
+              ? unreadReactions
+              : 0;
 
           return (
             <li key={href} className="flex-1">

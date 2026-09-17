@@ -31,8 +31,8 @@ export default async function ProfilePage() {
       </section>
 
       <p className="text-xs text-muted">
-        닉네임과 이모지는 친구들이 보는 이름이다. 소개는 아직 화면에 쓰이지 않지만
-        나중에 프로필에 보인다.
+        닉네임과 이모지는 친구들이 보는 이름이다. 소개는 친구가 내 하루를 열었을 때
+        이름 아래에 보인다.
       </p>
     </div>
   );
