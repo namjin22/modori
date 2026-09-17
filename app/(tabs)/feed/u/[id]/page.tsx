@@ -94,7 +94,7 @@ export default async function FriendDayPage({
   return (
     <div className="flex flex-col gap-5">
       <header className="flex items-center gap-3">
-        <Link href="/feed" aria-label="피드로" className="text-muted">
+        <Link href="/feed" aria-label="소셜로" className="text-muted">
           ←
         </Link>
         <span className="text-2xl">{friend.profileEmoji}</span>

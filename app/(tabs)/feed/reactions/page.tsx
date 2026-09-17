@@ -33,7 +33,7 @@ export default async function ReactionsPage() {
   return (
     <div className="flex flex-col gap-5">
       <header className="flex items-center gap-3">
-        <Link href="/feed" aria-label="피드로" className="text-muted">
+        <Link href="/feed" aria-label="소셜로" className="text-muted">
           ←
         </Link>
         <h1 className="text-2xl font-bold">받은 반응</h1>

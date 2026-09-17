@@ -70,7 +70,8 @@ test("할 일은 확인 없이 지워지고 되돌리기로 살아난다", async
 
   // 새로고침해도 남아 있어야 진짜 되살린 것이다.
   await page.reload();
-  await expect(page.getByText("잠깐 지울 일")).toBeVisible();
+  // 완료한 일은 달력 칸에도 이름이 뜨므로 목록 안에서 찾는다.
+  await expect(page.getByRole("listitem").filter({ hasText: "잠깐 지울 일" })).toBeVisible();
 });
 
 test("루틴이 만든 오늘 할 일은 지우면 다시 생기지 않는다", async ({ page, email }, testInfo) => {

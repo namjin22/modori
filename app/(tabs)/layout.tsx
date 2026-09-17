@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 
 import { BottomNav } from "@/components/bottom-nav";
+import { PageFrame } from "@/components/page-frame";
 import { ToastProvider } from "@/components/toast";
 import { countUnreadReactions, requireUser } from "@/lib/session";
 
@@ -14,9 +15,7 @@ export default async function TabsLayout({ children }: { children: ReactNode }) 
   return (
     <ToastProvider>
       <div className="flex min-h-screen flex-col">
-        <main className="mx-auto w-full max-w-lg flex-1 px-5 pb-8 pt-6">
-          {children}
-        </main>
+        <PageFrame>{children}</PageFrame>
         <BottomNav unreadReactions={unreadReactions} />
       </div>
     </ToastProvider>

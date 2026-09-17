@@ -41,7 +41,7 @@ export default async function SearchPage({
   return (
     <div className="flex flex-col gap-5">
       <header className="flex items-center gap-3">
-        <Link href="/feed" aria-label="피드로" className="text-muted">
+        <Link href="/feed" aria-label="소셜로" className="text-muted">
           ←
         </Link>
         <h1 className="text-2xl font-bold">친구 찾기</h1>

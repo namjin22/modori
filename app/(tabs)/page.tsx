@@ -2,9 +2,12 @@ import Link from "next/link";
 
 import {
   addDays,
+  endOfMonthKST,
   formatKST,
   isSameKSTDate,
   parseKSTDate,
+  parseKSTMonth,
+  startOfMonthKST,
   todayKST,
   weekdayKST,
 } from "@/lib/date";
@@ -17,15 +20,19 @@ import {
 import { requireUser } from "@/lib/session";
 
 import { CategoryChip } from "@/components/category-chip";
+import { type DoneItem, MonthCalendar } from "@/components/month-calendar";
 import { ScheduledRoutineRow } from "@/components/scheduled-routine-row";
 import { SortableTodoList } from "@/components/sortable-todo-list";
 import { SubmitButton } from "@/components/submit-button";
+import { CalendarIcon } from "@/components/tab-icons";
 import { TodoRow } from "@/components/todo-row";
 import { WeekStrip } from "@/components/week-strip";
 
 import { addTodo } from "./actions";
 
 const WEEKDAY_NAMES = ["일", "월", "화", "수", "목", "금", "토"];
+// 카테고리를 고르지 않은 할 일도 달력에 흔적은 남아야 한다.
+const NO_CATEGORY_COLOR = "#c7ccd1";
 
 function readDate(raw: string | undefined): Date {
   if (!raw) return todayKST();
@@ -39,20 +46,45 @@ function readDate(raw: string | undefined): Date {
   }
 }
 
+/** 달력에 보여줄 달. 주소에 없거나 잘못됐으면 고른 날이 속한 달. */
+function readMonth(raw: string | undefined, fallback: Date): Date {
+  if (!raw) return startOfMonthKST(fallback);
+
+  try {
+    return parseKSTMonth(raw);
+  } catch (error) {
+    console.error("[feed] 월 형식이 잘못됐다.", error);
+    return startOfMonthKST(fallback);
+  }
+}
+
 function formatHeading(date: Date): string {
   const [, month, day] = formatKST(date).split("-");
   return `${Number(month)}월 ${Number(day)}일 ${WEEKDAY_NAMES[weekdayKST(date)]}요일`;
 }
 
-export default async function TodayPage({
+export default async function FeedPage({
   searchParams,
 }: {
-  searchParams: Promise<{ date?: string }>;
+  searchParams: Promise<{ date?: string; month?: string; view?: string }>;
 }) {
   const user = await requireUser();
-  const { date: dateParam } = await searchParams;
-  const date = readDate(dateParam);
-  const isToday = isSameKSTDate(date, todayKST());
+  const params = await searchParams;
+  const date = readDate(params.date);
+  const today = todayKST();
+  const isToday = isSameKSTDate(date, today);
+  const monthStart = readMonth(params.month, date);
+
+  // 좁은 화면에서는 주간 줄이 기본이고, 달력은 눌렀을 때만 편다.
+  // 넓은 화면에서는 이 값과 상관없이 왼쪽에 늘 달력이 있다.
+  const monthOpen = params.view === "month";
+  const viewQuery = monthOpen ? "&view=month" : "";
+  const dayHref = (key: string) => `/?date=${key}${viewQuery}`;
+  const monthHref = (month: string) =>
+    `/?date=${formatKST(date)}&month=${month}${viewQuery}`;
+  const toggleHref = monthOpen
+    ? `/?date=${formatKST(date)}`
+    : `/?date=${formatKST(date)}&view=month`;
 
   // 이 날짜를 여는 순간 루틴 할 일이 없으면 만든다. 미래 날짜에는 만들지 않는다.
   await ensureRoutineTodos(user, date);
@@ -61,7 +93,7 @@ export default async function TodayPage({
   const weekStart = addDays(date, -weekdayKST(date));
   const weekEnd = addDays(weekStart, 6);
 
-  const [todos, categories, scheduled, weekCounts] = await Promise.all([
+  const [todos, categories, scheduled, weekCounts, monthDone] = await Promise.all([
     prisma.todo.findMany({
       where: { userId: user.id, date },
       orderBy: { order: "asc" },
@@ -79,7 +111,31 @@ export default async function TodayPage({
       where: { userId: user.id, date: { gte: weekStart, lte: weekEnd } },
       _count: { _all: true },
     }),
+    prisma.todo.findMany({
+      where: {
+        userId: user.id,
+        done: true,
+        date: { gte: monthStart, lte: endOfMonthKST(monthStart) },
+      },
+      orderBy: { order: "asc" },
+      select: {
+        date: true,
+        content: true,
+        category: { select: { color: true } },
+      },
+    }),
   ]);
+
+  const doneByDate = new Map<string, DoneItem[]>();
+  for (const todo of monthDone) {
+    const key = formatKST(todo.date);
+    const items = doneByDate.get(key) ?? [];
+    items.push({
+      content: todo.content,
+      color: todo.category?.color ?? NO_CATEGORY_COLOR,
+    });
+    doneByDate.set(key, items);
+  }
 
   const weekDays = Array.from({ length: 7 }, (_, index) => {
     const day = addDays(weekStart, index);
@@ -98,10 +154,23 @@ export default async function TodayPage({
   const todoGroups = groupByCategory(todos, categories);
 
   return (
-    <div className="flex flex-col gap-5">
+    // 투두메이트 웹처럼 넓은 화면에서는 왼쪽에 달력, 오른쪽에 고른 날의 목록을 둔다.
+    <div className="flex flex-col gap-5 lg:grid lg:grid-cols-2 lg:items-start lg:gap-10">
+      <div className={`${monthOpen ? "" : "hidden"} lg:sticky lg:top-6 lg:block`}>
+        <MonthCalendar
+          monthStart={monthStart}
+          selected={date}
+          today={today}
+          doneByDate={doneByDate}
+          dayHref={dayHref}
+          monthHref={monthHref}
+        />
+      </div>
+
+      <div className="flex flex-col gap-5">
       <header className="flex items-center justify-between">
         <Link
-          href={`/?date=${formatKST(addDays(date, -1))}`}
+          href={`/?date=${formatKST(addDays(date, -1))}${viewQuery}`}
           aria-label="이전 날"
           className="rounded-lg px-2 py-1 text-muted hover:bg-surface-hover"
         >
@@ -114,7 +183,7 @@ export default async function TodayPage({
         </div>
 
         <Link
-          href={`/?date=${formatKST(addDays(date, 1))}`}
+          href={`/?date=${formatKST(addDays(date, 1))}${viewQuery}`}
           aria-label="다음 날"
           className="rounded-lg px-2 py-1 text-muted hover:bg-surface-hover"
         >
@@ -122,7 +191,37 @@ export default async function TodayPage({
         </Link>
       </header>
 
-      <WeekStrip days={weekDays} selected={date} today={todayKST()} />
+      {!monthOpen && (
+        <div className="lg:hidden">
+          <WeekStrip days={weekDays} selected={date} today={today} />
+        </div>
+      )}
+
+      {/* 카테고리와 루틴은 할 일을 적다가 바로 손보는 것이라 설정이 아니라 여기 둔다. */}
+      <nav aria-label="할 일 관리" className="flex items-center gap-2">
+        <Link
+          href="/categories"
+          className="flex h-9 items-center rounded-full bg-surface px-4 text-sm text-muted hover:text-foreground"
+        >
+          카테고리
+        </Link>
+        <Link
+          href="/routines"
+          className="flex h-9 items-center rounded-full bg-surface px-4 text-sm text-muted hover:text-foreground"
+        >
+          루틴
+        </Link>
+        <Link
+          href={toggleHref}
+          aria-label={monthOpen ? "달력 접기" : "달력 펼치기"}
+          className={`ml-auto flex h-9 items-center gap-1.5 rounded-full px-3 text-sm lg:hidden ${
+            monthOpen ? "bg-brand-subtle text-brand" : "bg-surface text-muted"
+          }`}
+        >
+          <CalendarIcon active={monthOpen} />
+          달력
+        </Link>
+      </nav>
 
       {!isToday && (
         <Link href="/" className="text-center text-sm text-brand">
@@ -137,7 +236,7 @@ export default async function TodayPage({
           <p className="text-2xl">🌱</p>
           <p className="mt-2 text-sm text-muted">아직 할 일이 없다</p>
           <Link
-            href="/settings/routines"
+            href="/routines"
             className="mt-3 inline-block text-sm text-brand"
           >
             반복되는 일이라면 루틴으로 →
@@ -208,6 +307,7 @@ export default async function TodayPage({
           )}
         </>
       )}
+      </div>
     </div>
   );
 }

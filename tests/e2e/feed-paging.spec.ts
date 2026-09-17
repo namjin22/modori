@@ -120,5 +120,5 @@ test("주소창의 이어보기 값이 엉터리여도 피드는 열린다", asy
 
   await page.goto("/feed?after=이런id는없다");
 
-  await expect(page.getByRole("heading", { name: "피드" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "소셜" })).toBeVisible();
 });
