@@ -1,11 +1,12 @@
 import Image from "next/image";
 import { redirect } from "next/navigation";
 
-import { auth, isMockAuth, signIn } from "@/lib/auth";
+import { isMockAuth, signIn } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/session";
 
 export default async function LoginPage() {
-  const session = await auth();
-  if (session?.user) redirect("/");
+  // 세션만 보고 보내면, 계정이 사라진 세션에서 탭 화면과 서로 튕겨낸다.
+  if (await getCurrentUser()) redirect("/");
 
   return (
     // 이름만 덩그러니 있으면 첫 화면이 휑하다. 위아래로 갈라서, 가운데는 브랜드,

@@ -4,7 +4,6 @@ import { Prisma } from "@prisma/client";
 
 import { redirect } from "next/navigation";
 
-import { auth } from "@/lib/auth";
 import {
   isNicknameTaken,
   normalizeNickname,
@@ -12,6 +11,7 @@ import {
   validateNickname,
 } from "@/lib/nickname";
 import { prisma } from "@/lib/prisma";
+import { getCurrentUser } from "@/lib/session";
 
 // 빈 화면으로 시작하면 무엇부터 해야 할지 모른다. 지우거나 바꿀 수 있는 기본값을 준다.
 const DEFAULT_CATEGORIES = [
@@ -26,10 +26,10 @@ export async function saveNickname(
   _previous: OnboardingState,
   formData: FormData,
 ): Promise<OnboardingState> {
-  const session = await auth();
-  if (!session?.user?.id) redirect("/login");
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
 
-  const userId = session.user.id;
+  const userId = user.id;
   const nickname = normalizeNickname(formData.get("nickname"));
 
   const valid = validateNickname(nickname);
