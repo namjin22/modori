@@ -26,6 +26,7 @@ export const getCurrentUser = cache(async () => {
       id: true,
       nickname: true,
       profileEmoji: true,
+      bio: true,
       createdAt: true,
       lastSeenAt: true,
     },

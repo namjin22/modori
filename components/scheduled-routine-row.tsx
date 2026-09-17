@@ -23,14 +23,14 @@ export function ScheduledRoutineRow({
   )?.color;
 
   return (
-    <li className="flex items-center gap-3 rounded-2xl border border-dashed border-border p-3">
+    <li className="flex items-center gap-3 rounded-xl px-1.5 py-2.5">
       <form action={completeScheduledRoutine} className="flex">
         <input type="hidden" name="routineId" value={routine.id} />
         <input type="hidden" name="date" value={date} />
         <button
           type="submit"
           aria-label="미리 완료"
-          className="size-6 rounded-full border-2 border-border"
+          className="size-[22px] rounded-[7px] border-2 border-dashed border-border hover:border-brand"
         />
       </form>
 

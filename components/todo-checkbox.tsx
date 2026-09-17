@@ -30,17 +30,10 @@ export function TodoCheckbox({
       <button
         type="submit"
         aria-label={optimisticDone ? "완료 취소" : "완료"}
-        style={
-          color && optimisticDone
-            ? { backgroundColor: color, borderColor: color }
-            : color
-              ? { borderColor: `${color}66` }
-              : undefined
-        }
-        className={`size-6 rounded-full border-2 text-xs font-bold text-white transition-all duration-150 active:scale-90 ${
-          optimisticDone
-            ? "border-brand bg-brand text-brand-contrast"
-            : "border-border hover:border-brand"
+        // 투두메이트처럼 둥근 네모. 안 한 일은 회색으로 채우고, 한 일은 카테고리 색으로 채운다.
+        style={color && optimisticDone ? { backgroundColor: color } : undefined}
+        className={`flex size-[22px] shrink-0 items-center justify-center rounded-[7px] text-xs font-bold text-white transition-all duration-150 active:scale-90 ${
+          optimisticDone ? "bg-brand" : "bg-border hover:brightness-95"
         }`}
       >
         {optimisticDone ? "✓" : ""}

@@ -3,7 +3,7 @@
 import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
-import { formatKST, parseKSTDate } from "@/lib/date";
+import { addDays, formatKST, parseKSTDate } from "@/lib/date";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 
@@ -218,6 +218,34 @@ export async function restoreTodo(snapshot: DeletedTodo) {
     }
     throw error;
   }
+
+  revalidatePath("/");
+}
+
+/**
+ * 할 일을 다음 날 맨 뒤로 옮긴다. 오늘 못 한 일을 내일로 넘기는 흔한 동작이다.
+ * 루틴 할 일은 다음 날에도 루틴이 따로 만들어서 겹치므로 옮기지 않는다.
+ */
+export async function postponeTodo(formData: FormData) {
+  const user = await requireUser();
+
+  const todo = await prisma.todo.findFirst({
+    where: { id: readId(formData, "id"), userId: user.id, done: false, routineId: null },
+    select: { id: true, date: true },
+  });
+  if (!todo) return;
+
+  const nextDay = addDays(todo.date, 1);
+  const last = await prisma.todo.findFirst({
+    where: { userId: user.id, date: nextDay },
+    orderBy: { order: "desc" },
+    select: { order: true },
+  });
+
+  await prisma.todo.update({
+    where: { id: todo.id },
+    data: { date: nextDay, order: (last?.order ?? -1) + 1 },
+  });
 
   revalidatePath("/");
 }
