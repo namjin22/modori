@@ -77,6 +77,8 @@ test("기본 카테고리가 만들어지고 새 카테고리를 추가할 수 �
   page,
 }) => {
   await page.getByRole("link", { name: "카테고리", exact: true }).click();
+  // 피드 화면에도 카테고리 칩이 있어서, 화면이 넘어간 뒤에 찾아야 한다.
+  await expect(page).toHaveURL(/\/categories$/);
 
   await expect(page.getByText("공부")).toBeVisible();
   await expect(page.getByText("운동")).toBeVisible();

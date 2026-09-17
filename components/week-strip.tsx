@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { DayMark } from "@/components/day-mark";
 import { formatKST, weekdayKST } from "@/lib/date";
 
 const WEEKDAY_NAMES = ["일", "월", "화", "수", "목", "금", "토"];
@@ -8,6 +9,8 @@ export type WeekDay = {
   date: Date;
   done: number;
   total: number;
+  // 그 날 완료한 할 일의 카테고리 색.
+  colors: string[];
 };
 
 /**
@@ -36,7 +39,6 @@ export function WeekStrip({
         const weekday = weekdayKST(day.date);
         const isSelected = key === selectedKey;
         const isToday = key === todayKey;
-        const ratio = day.total === 0 ? 0 : day.done / day.total;
 
         return (
           <Link
@@ -61,8 +63,14 @@ export function WeekStrip({
               {WEEKDAY_NAMES[weekday]}
             </span>
 
+            <DayMark
+              colors={day.colors}
+              allDone={day.total > 0 && day.done === day.total}
+              size={24}
+            />
+
             <span
-              className={`flex size-8 items-center justify-center rounded-full text-sm transition-colors ${
+              className={`flex size-6 items-center justify-center rounded-full text-xs ${
                 isSelected
                   ? "bg-foreground font-bold text-background"
                   : isToday
@@ -71,19 +79,6 @@ export function WeekStrip({
               }`}
             >
               {Number(key.slice(8))}
-            </span>
-
-            {/* 그 날 얼마나 했는지. 할 일이 없는 날은 아무것도 그리지 않는다. */}
-            {/* 할 일이 없는 날은 빈 줄도 그리지 않는다. 자국처럼 보인다. */}
-            <span className="h-1 w-6 overflow-hidden rounded-full">
-              {day.total > 0 && (
-                <span className="flex h-full w-full rounded-full bg-surface-hover">
-                  <span
-                    className="block h-full rounded-full bg-brand"
-                    style={{ width: `${Math.round(ratio * 100)}%` }}
-                  />
-                </span>
-              )}
             </span>
           </Link>
         );

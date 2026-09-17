@@ -37,12 +37,12 @@ function Row({ id, node }: Omit<SortableItem, "label">) {
     useSortable({ id });
 
   return (
-    // 카드는 여기서 그린다. 손잡이를 카드 밖에 두면 여백에 떠 있는 것처럼 보인다.
+    // 투두메이트처럼 줄마다 카드를 두지 않는다. 올리거나 펼쳤을 때만 바탕을 깐다.
     <li
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={`rounded-2xl bg-surface transition-colors ${
-        isDragging ? "relative z-10 opacity-90 shadow-lg" : ""
+      className={`group/row rounded-xl transition-colors hover:bg-surface has-[details[open]]:bg-surface ${
+        isDragging ? "relative z-10 bg-surface opacity-90 shadow-lg" : ""
       }`}
     >
       <div className="flex items-stretch">
@@ -50,7 +50,8 @@ function Row({ id, node }: Omit<SortableItem, "label">) {
         <button
           type="button"
           aria-label="순서 바꾸기 손잡이"
-          className="shrink-0 cursor-grab touch-none self-start px-2 py-3 text-muted active:cursor-grabbing"
+          // 넓은 화면에서는 마우스를 올렸을 때만 드러낸다. 손가락에는 올림이 없으니 늘 보인다.
+          className="shrink-0 cursor-grab touch-none self-start px-1.5 py-2.5 text-muted/60 active:cursor-grabbing lg:opacity-0 lg:group-hover/row:opacity-100 lg:focus-visible:opacity-100"
           {...attributes}
           {...listeners}
         >
@@ -140,7 +141,7 @@ export function SortableTodoList({
       <SortableContext items={order} strategy={verticalListSortingStrategy}>
         {/* 저장이 끝났는지 화면 밖에서도 알 수 있어야 한다.
             드래그 직후 새로고침하면 요청이 끊기기 때문이다. */}
-        <ul className="flex flex-col gap-2" aria-busy={isSaving}>
+        <ul className="flex flex-col" aria-busy={isSaving}>
           {order.map((id) => (
             <Row key={id} id={id} node={byId.get(id)} />
           ))}

@@ -1,13 +1,19 @@
 import { TodoCheckbox } from "@/components/todo-checkbox";
 import { UndoableDeleteButton } from "@/components/undoable-delete-button";
 
-import { deleteTodo, restoreTodo, updateTodo } from "@/app/(tabs)/actions";
+import {
+  deleteTodo,
+  postponeTodo,
+  restoreTodo,
+  updateTodo,
+} from "@/app/(tabs)/actions";
 
 type Todo = {
   id: string;
   content: string;
   done: boolean;
   categoryId: string | null;
+  routineId: string | null;
   category: { name: string; color: string } | null;
 };
 
@@ -25,7 +31,7 @@ export function TodoRow({
 }) {
   return (
     <details className="group">
-      <summary className="flex cursor-pointer list-none items-center gap-3 py-3 pr-3 [&::-webkit-details-marker]:hidden">
+      <summary className="flex cursor-pointer list-none items-center gap-3 py-2.5 pr-3 [&::-webkit-details-marker]:hidden">
         <TodoCheckbox
           id={todo.id}
           done={todo.done}
@@ -42,7 +48,7 @@ export function TodoRow({
           </span>
         </div>
 
-        <span className="shrink-0 text-xs text-muted group-open:text-brand">
+        <span className="shrink-0 text-xs text-muted group-open:text-brand lg:opacity-0 lg:group-hover/row:opacity-100 lg:group-open:opacity-100">
           수정
         </span>
       </summary>
@@ -81,7 +87,19 @@ export function TodoRow({
           </div>
         </form>
 
-        <div className="flex justify-end">
+        <div className="flex items-center justify-end gap-1">
+          {/* 루틴 할 일은 내일 또 생기므로 미루지 않는다. 끝낸 일도 미룰 이유가 없다. */}
+          {!todo.done && !todo.routineId && (
+            <form action={postponeTodo}>
+              <input type="hidden" name="id" value={todo.id} />
+              <button
+                type="submit"
+                className="h-9 rounded-xl px-3 text-sm text-muted hover:bg-surface-hover"
+              >
+                내일로
+              </button>
+            </form>
+          )}
           <UndoableDeleteButton
             id={todo.id}
             remove={deleteTodo}

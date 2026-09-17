@@ -19,8 +19,8 @@ import {
 } from "@/lib/routine-todos";
 import { requireUser } from "@/lib/session";
 
-import { CategoryChip } from "@/components/category-chip";
-import { type DoneItem, MonthCalendar } from "@/components/month-calendar";
+import { CategoryAdder } from "@/components/category-adder";
+import { type DaySummary, MonthCalendar } from "@/components/month-calendar";
 import { ScheduledRoutineRow } from "@/components/scheduled-routine-row";
 import { SortableTodoList } from "@/components/sortable-todo-list";
 import { SubmitButton } from "@/components/submit-button";
@@ -32,7 +32,7 @@ import { addTodo } from "./actions";
 
 const WEEKDAY_NAMES = ["일", "월", "화", "수", "목", "금", "토"];
 // 카테고리를 고르지 않은 할 일도 달력에 흔적은 남아야 한다.
-const NO_CATEGORY_COLOR = "#c7ccd1";
+const NO_CATEGORY_COLOR = "#8b95a1";
 
 function readDate(raw: string | undefined): Date {
   if (!raw) return todayKST();
@@ -41,7 +41,7 @@ function readDate(raw: string | undefined): Date {
     return parseKSTDate(raw);
   } catch (error) {
     // 주소창을 손으로 고친 경우. 오늘로 돌린다.
-    console.error("[today] 날짜 형식이 잘못됐다.", error);
+    console.error("[feed] 날짜 형식이 잘못됐다.", error);
     return todayKST();
   }
 }
@@ -62,6 +62,38 @@ function formatHeading(date: Date): string {
   const [, month, day] = formatKST(date).split("-");
   return `${Number(month)}월 ${Number(day)}일 ${WEEKDAY_NAMES[weekdayKST(date)]}요일`;
 }
+
+type RangeTodo = {
+  date: Date;
+  done: boolean;
+  content: string;
+  category: { color: string } | null;
+};
+
+/** 기간 안의 할 일을 날짜별 요약(전체 수, 완료한 일)으로 접는다. */
+function summarizeByDate(todos: RangeTodo[]): Map<string, DaySummary> {
+  const summaries = new Map<string, DaySummary>();
+  for (const todo of todos) {
+    const key = formatKST(todo.date);
+    const summary = summaries.get(key) ?? { total: 0, done: [] };
+    summary.total += 1;
+    if (todo.done) {
+      summary.done.push({
+        content: todo.content,
+        color: todo.category?.color ?? NO_CATEGORY_COLOR,
+      });
+    }
+    summaries.set(key, summary);
+  }
+  return summaries;
+}
+
+const RANGE_SELECT = {
+  date: true,
+  done: true,
+  content: true,
+  category: { select: { color: true } },
+} as const;
 
 export default async function FeedPage({
   searchParams,
@@ -89,230 +121,244 @@ export default async function FeedPage({
   // 이 날짜를 여는 순간 루틴 할 일이 없으면 만든다. 미래 날짜에는 만들지 않는다.
   await ensureRoutineTodos(user, date);
 
-  // 이번 주 일요일부터 토요일까지. 주간 스트립에 쓴다.
+  // 이번 주 일요일부터 토요일까지. 주간 줄에 쓴다.
   const weekStart = addDays(date, -weekdayKST(date));
   const weekEnd = addDays(weekStart, 6);
 
-  const [todos, categories, scheduled, weekCounts, monthDone] = await Promise.all([
-    prisma.todo.findMany({
-      where: { userId: user.id, date },
-      orderBy: { order: "asc" },
-      include: { category: { select: { id: true, name: true, color: true } } },
-    }),
-    prisma.category.findMany({
-      where: { userId: user.id, archivedAt: null },
-      orderBy: { order: "asc" },
-      select: { id: true, name: true, color: true },
-    }),
-    listScheduledRoutines(user.id, date),
-    // 날짜별 완료 수를 한 번에 가져온다. 7일을 따로 세면 질의가 일곱 번이다.
-    prisma.todo.groupBy({
-      by: ["date", "done"],
-      where: { userId: user.id, date: { gte: weekStart, lte: weekEnd } },
-      _count: { _all: true },
-    }),
-    prisma.todo.findMany({
-      where: {
-        userId: user.id,
-        done: true,
-        date: { gte: monthStart, lte: endOfMonthKST(monthStart) },
-      },
-      orderBy: { order: "asc" },
-      select: {
-        date: true,
-        content: true,
-        category: { select: { color: true } },
-      },
-    }),
-  ]);
+  const [todos, categories, scheduled, weekTodos, monthTodos] =
+    await Promise.all([
+      prisma.todo.findMany({
+        where: { userId: user.id, date },
+        orderBy: { order: "asc" },
+        include: {
+          category: { select: { id: true, name: true, color: true } },
+        },
+      }),
+      prisma.category.findMany({
+        where: { userId: user.id, archivedAt: null },
+        orderBy: { order: "asc" },
+        select: { id: true, name: true, color: true, isPublic: true },
+      }),
+      listScheduledRoutines(user.id, date),
+      prisma.todo.findMany({
+        where: { userId: user.id, date: { gte: weekStart, lte: weekEnd } },
+        orderBy: { order: "asc" },
+        select: RANGE_SELECT,
+      }),
+      prisma.todo.findMany({
+        where: {
+          userId: user.id,
+          date: { gte: monthStart, lte: endOfMonthKST(monthStart) },
+        },
+        orderBy: { order: "asc" },
+        select: RANGE_SELECT,
+      }),
+    ]);
 
-  const doneByDate = new Map<string, DoneItem[]>();
-  for (const todo of monthDone) {
-    const key = formatKST(todo.date);
-    const items = doneByDate.get(key) ?? [];
-    items.push({
-      content: todo.content,
-      color: todo.category?.color ?? NO_CATEGORY_COLOR,
-    });
-    doneByDate.set(key, items);
-  }
-
+  const weekSummaries = summarizeByDate(weekTodos);
   const weekDays = Array.from({ length: 7 }, (_, index) => {
     const day = addDays(weekStart, index);
-    const key = formatKST(day);
-    const rows = weekCounts.filter((row) => formatKST(row.date) === key);
-    const total = rows.reduce((sum, row) => sum + row._count._all, 0);
-    const done = rows
-      .filter((row) => row.done)
-      .reduce((sum, row) => sum + row._count._all, 0);
-    return { date: day, done, total };
+    const summary = weekSummaries.get(formatKST(day));
+    return {
+      date: day,
+      total: summary?.total ?? 0,
+      done: summary?.done.length ?? 0,
+      colors: [...new Set(summary?.done.map((item) => item.color) ?? [])],
+    };
   });
 
   const doneCount = todos.filter((todo) => todo.done).length;
 
-  // 카테고리별로 묶어서 보여준다. 색 점 하나보다 이쪽이 훨씬 잘 읽힌다.
-  const todoGroups = groupByCategory(todos, categories);
+  // 투두메이트처럼 카테고리마다 칩과 +를 두고, 할 일이 없는 카테고리도 보여준다.
+  const todoGroups = groupByCategory(todos, categories, { includeEmpty: true });
 
   return (
-    // 투두메이트 웹처럼 넓은 화면에서는 왼쪽에 달력, 오른쪽에 고른 날의 목록을 둔다.
+    // 넓은 화면에서는 왼쪽에 프로필과 달력, 오른쪽에 고른 날의 목록을 둔다.
     <div className="flex flex-col gap-5 lg:grid lg:grid-cols-2 lg:items-start lg:gap-10">
-      <div className={`${monthOpen ? "" : "hidden"} lg:sticky lg:top-6 lg:block`}>
-        <MonthCalendar
-          monthStart={monthStart}
-          selected={date}
-          today={today}
-          doneByDate={doneByDate}
-          dayHref={dayHref}
-          monthHref={monthHref}
-        />
+      <div className="flex flex-col gap-5 lg:sticky lg:top-6">
+        <Link href="/settings/profile" className="flex items-center gap-3">
+          <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-surface text-2xl">
+            {user.profileEmoji}
+          </span>
+          <span className="min-w-0">
+            <span className="block truncate font-bold">{user.nickname}</span>
+            <span className="block truncate text-sm text-muted">
+              {user.bio || "한 줄 소개를 적어보세요"}
+            </span>
+          </span>
+        </Link>
+
+        <div className={monthOpen ? "" : "hidden lg:block"}>
+          <MonthCalendar
+            monthStart={monthStart}
+            selected={date}
+            today={today}
+            summaries={summarizeByDate(monthTodos)}
+            dayHref={dayHref}
+            monthHref={monthHref}
+          />
+        </div>
       </div>
 
       <div className="flex flex-col gap-5">
-      <header className="flex items-center justify-between">
-        <Link
-          href={`/?date=${formatKST(addDays(date, -1))}${viewQuery}`}
-          aria-label="이전 날"
-          className="rounded-lg px-2 py-1 text-muted hover:bg-surface-hover"
-        >
-          ←
-        </Link>
+        <header className="flex items-center justify-between">
+          <Link
+            href={`/?date=${formatKST(addDays(date, -1))}${viewQuery}`}
+            aria-label="이전 날"
+            className="flex size-9 items-center justify-center rounded-full text-lg text-muted hover:bg-surface-hover"
+          >
+            ‹
+          </Link>
 
-        <div className="text-center">
-          <p className="text-sm text-muted">{isToday ? "오늘" : formatKST(date)}</p>
-          <h1 className="text-xl font-bold">{formatHeading(date)}</h1>
-        </div>
+          <div className="text-center">
+            <p className="text-xs text-muted">
+              {isToday ? "오늘" : formatKST(date)}
+            </p>
+            <h1 className="text-lg font-bold">{formatHeading(date)}</h1>
+          </div>
 
-        <Link
-          href={`/?date=${formatKST(addDays(date, 1))}${viewQuery}`}
-          aria-label="다음 날"
-          className="rounded-lg px-2 py-1 text-muted hover:bg-surface-hover"
-        >
-          →
-        </Link>
-      </header>
+          <Link
+            href={`/?date=${formatKST(addDays(date, 1))}${viewQuery}`}
+            aria-label="다음 날"
+            className="flex size-9 items-center justify-center rounded-full text-lg text-muted hover:bg-surface-hover"
+          >
+            ›
+          </Link>
+        </header>
 
-      {!monthOpen && (
-        <div className="lg:hidden">
-          <WeekStrip days={weekDays} selected={date} today={today} />
-        </div>
-      )}
+        {!monthOpen && (
+          <div className="lg:hidden">
+            <WeekStrip days={weekDays} selected={date} today={today} />
+          </div>
+        )}
 
-      {/* 카테고리와 루틴은 할 일을 적다가 바로 손보는 것이라 설정이 아니라 여기 둔다. */}
-      <nav aria-label="할 일 관리" className="flex items-center gap-2">
-        <Link
-          href="/categories"
-          className="flex h-9 items-center rounded-full bg-surface px-4 text-sm text-muted hover:text-foreground"
-        >
-          카테고리
-        </Link>
-        <Link
-          href="/routines"
-          className="flex h-9 items-center rounded-full bg-surface px-4 text-sm text-muted hover:text-foreground"
-        >
-          루틴
-        </Link>
-        <Link
-          href={toggleHref}
-          aria-label={monthOpen ? "달력 접기" : "달력 펼치기"}
-          className={`ml-auto flex h-9 items-center gap-1.5 rounded-full px-3 text-sm lg:hidden ${
-            monthOpen ? "bg-brand-subtle text-brand" : "bg-surface text-muted"
-          }`}
-        >
-          <CalendarIcon active={monthOpen} />
-          달력
-        </Link>
-      </nav>
-
-      {!isToday && (
-        <Link href="/" className="text-center text-sm text-brand">
-          오늘로 돌아가기
-        </Link>
-      )}
-
-      <AddTodoForm categories={categories} date={formatKST(date)} />
-
-      {todos.length === 0 && scheduled.length === 0 ? (
-        <div className="rounded-2xl bg-surface p-10 text-center">
-          <p className="text-2xl">🌱</p>
-          <p className="mt-2 text-sm text-muted">아직 할 일이 없다</p>
+        {/* 카테고리와 루틴은 할 일을 적다가 바로 손보는 것이라 설정이 아니라 여기 둔다. */}
+        <nav aria-label="할 일 관리" className="flex flex-wrap items-center gap-2">
+          <Link
+            href="/categories"
+            className="flex h-8 items-center rounded-full bg-surface px-3.5 text-sm text-muted hover:text-foreground"
+          >
+            카테고리
+          </Link>
           <Link
             href="/routines"
-            className="mt-3 inline-block text-sm text-brand"
+            className="flex h-8 items-center rounded-full bg-surface px-3.5 text-sm text-muted hover:text-foreground"
           >
-            반복되는 일이라면 루틴으로 →
+            루틴
           </Link>
-        </div>
-      ) : (
-        <>
-          {todos.length > 0 && (
-            <>
-              {/* 숫자만으로는 얼마나 남았는지 한눈에 안 들어온다. */}
-              <div className="flex flex-col gap-1.5">
-                <p className="text-sm text-muted">
-                  {todos.length}개 중 {doneCount}개 완료
-                </p>
-                <div
-                  role="progressbar"
-                  aria-label="오늘 완료율"
-                  aria-valuemin={0}
-                  aria-valuemax={todos.length}
-                  aria-valuenow={doneCount}
-                  className="h-1.5 overflow-hidden rounded-full bg-border"
-                >
-                  <div
-                    className="h-full rounded-full bg-brand transition-[width] duration-300"
-                    style={{
-                      width: `${Math.round((doneCount / todos.length) * 100)}%`,
-                    }}
-                  />
-                </div>
-              </div>
-              {todoGroups.map((group) => (
-                <section key={group.key} className="flex flex-col gap-2">
-                  <div className="flex items-center gap-2">
-                    <CategoryChip name={group.name} color={group.color} />
-                    <span className="text-xs text-muted">
-                      {group.items.filter((todo) => todo.done).length}/
-                      {group.items.length}
-                    </span>
-                  </div>
+          {!isToday && (
+            <Link
+              href={monthOpen ? "/?view=month" : "/"}
+              className="flex h-8 items-center rounded-full px-3 text-sm text-brand hover:bg-surface-hover"
+            >
+              오늘로 돌아가기
+            </Link>
+          )}
+          <Link
+            href={toggleHref}
+            aria-label={monthOpen ? "달력 접기" : "달력 펼치기"}
+            className={`ml-auto flex h-8 items-center gap-1.5 rounded-full px-3 text-sm lg:hidden ${
+              monthOpen ? "bg-brand-subtle text-brand" : "bg-surface text-muted"
+            }`}
+          >
+            <CalendarIcon active={monthOpen} />
+            달력
+          </Link>
+        </nav>
 
-                  <SortableTodoList
-                    date={formatKST(date)}
-                    items={group.items.map((todo) => ({
-                      id: todo.id,
-                      label: todo.content,
-                      node: <TodoRow todo={todo} categories={categories} />,
-                    }))}
-                  />
-                </section>
+        {todos.length > 0 && (
+          // 숫자만으로는 얼마나 남았는지 한눈에 안 들어온다.
+          <div className="flex flex-col gap-1.5">
+            <p className="text-sm text-muted">
+              {todos.length}개 중 {doneCount}개 완료
+            </p>
+            <div
+              role="progressbar"
+              aria-label="오늘 완료율"
+              aria-valuemin={0}
+              aria-valuemax={todos.length}
+              aria-valuenow={doneCount}
+              className="h-1.5 overflow-hidden rounded-full bg-border"
+            >
+              <div
+                className="h-full rounded-full bg-brand transition-[width] duration-300"
+                style={{
+                  width: `${Math.round((doneCount / todos.length) * 100)}%`,
+                }}
+              />
+            </div>
+          </div>
+        )}
+
+        {todoGroups.map((group) => (
+          <section key={group.key} className="flex flex-col gap-1">
+            <CategoryAdder
+              categoryId={group.categoryId}
+              name={group.name}
+              color={group.color}
+              isPublic={group.isPublic}
+              date={formatKST(date)}
+              count={
+                group.items.length > 0
+                  ? `${group.items.filter((todo) => todo.done).length}/${group.items.length}`
+                  : null
+              }
+            />
+
+            {group.items.length > 0 && (
+              <SortableTodoList
+                date={formatKST(date)}
+                items={group.items.map((todo) => ({
+                  id: todo.id,
+                  label: todo.content,
+                  node: <TodoRow todo={todo} categories={categories} />,
+                }))}
+              />
+            )}
+          </section>
+        ))}
+
+        {todos.length === 0 && scheduled.length === 0 && (
+          <div className="flex flex-col items-center gap-1 py-2 text-center">
+            <p className="text-sm text-muted">
+              🌱 <span>아직 할 일이 없다</span>
+            </p>
+            <p className="text-xs text-muted">
+              카테고리 옆 +를 눌러 바로 적어보세요.{" "}
+              <Link href="/routines" className="text-brand">
+                반복되는 일이라면 루틴으로 →
+              </Link>
+            </p>
+          </div>
+        )}
+
+        {scheduled.length > 0 && (
+          <section className="flex flex-col gap-2">
+            <p className="text-sm text-muted">예정된 루틴</p>
+            <ul className="flex flex-col gap-1">
+              {scheduled.map((routine) => (
+                <ScheduledRoutineRow
+                  key={routine.id}
+                  routine={routine}
+                  categories={categories}
+                  date={formatKST(date)}
+                />
               ))}
-            </>
-          )}
+            </ul>
+          </section>
+        )}
 
-          {scheduled.length > 0 && (
-            <>
-              <p className="text-sm text-muted">예정된 루틴</p>
-              <ul className="flex flex-col gap-2">
-                {scheduled.map((routine) => (
-                  <ScheduledRoutineRow
-                    key={routine.id}
-                    routine={routine}
-                    categories={categories}
-                    date={formatKST(date)}
-                  />
-                ))}
-              </ul>
-            </>
-          )}
-        </>
-      )}
+        <QuickAddForm categories={categories} date={formatKST(date)} />
       </div>
     </div>
   );
 }
 
-function AddTodoForm({
+/**
+ * 카테고리를 골라서 적는 공용 입력. 주로는 칩의 +로 적고, 이 폼은 카테고리 없이
+ * 빨리 적거나 고르면서 적고 싶을 때 쓴다. 그래서 목록 아래에 조용히 둔다.
+ */
+function QuickAddForm({
   categories,
   date,
 }: {
@@ -320,38 +366,39 @@ function AddTodoForm({
   date: string;
 }) {
   return (
-    // 카드 안에 또 회색 상자를 넣으면 상자가 겹쳐 보인다.
-    // 입력칸은 배경 없이 두고 가는 선으로만 나눈다.
-    <form action={addTodo} className="rounded-2xl bg-surface px-3 py-1">
+    <form
+      action={addTodo}
+      className="mt-2 flex flex-col gap-2 border-t border-dashed border-border pt-4"
+    >
       <input type="hidden" name="date" value={date} />
-      <input
-        name="content"
-        required
-        maxLength={200}
-        placeholder="할 일 추가"
-        aria-label="할 일 내용"
-        className="h-12 w-full border-b border-border bg-transparent text-[15px] outline-none placeholder:text-muted focus:border-brand"
-      />
-      <div className="flex gap-2 py-2">
-        <select
-          name="categoryId"
-          aria-label="카테고리"
-          className="h-10 flex-1 rounded-xl bg-surface-hover px-3 text-sm"
-        >
-          <option value="">카테고리 없음</option>
-          {categories.map((category) => (
-            <option key={category.id} value={category.id}>
-              {category.name}
-            </option>
-          ))}
-        </select>
+      <div className="flex gap-2">
+        <input
+          name="content"
+          required
+          maxLength={200}
+          placeholder="할 일 추가"
+          aria-label="할 일 내용"
+          className="h-10 min-w-0 flex-1 rounded-xl bg-surface px-3 text-[15px] outline-none placeholder:text-muted focus:ring-2 focus:ring-brand"
+        />
         <SubmitButton
           pendingLabel="추가 중"
-          className="h-10 rounded-xl bg-brand px-5 text-sm font-semibold text-brand-contrast"
+          className="h-10 shrink-0 rounded-xl bg-brand px-4 text-sm font-semibold text-brand-contrast"
         >
           추가
         </SubmitButton>
       </div>
+      <select
+        name="categoryId"
+        aria-label="카테고리"
+        className="h-9 rounded-xl bg-surface px-3 text-sm text-muted"
+      >
+        <option value="">카테고리 없음</option>
+        {categories.map((category) => (
+          <option key={category.id} value={category.id}>
+            {category.name}
+          </option>
+        ))}
+      </select>
     </form>
   );
 }
