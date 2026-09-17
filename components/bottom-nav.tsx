@@ -3,44 +3,58 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import {
+  CalendarIcon,
+  FeedIcon,
+  SettingsIcon,
+  TodayIcon,
+} from "@/components/tab-icons";
+
 const TABS = [
-  { href: "/", label: "오늘" },
-  { href: "/calendar", label: "캘린더" },
-  { href: "/feed", label: "피드" },
-  { href: "/settings", label: "설정" },
+  { href: "/", label: "오늘", Icon: TodayIcon },
+  { href: "/calendar", label: "캘린더", Icon: CalendarIcon },
+  { href: "/feed", label: "피드", Icon: FeedIcon },
+  { href: "/settings", label: "설정", Icon: SettingsIcon },
 ] as const;
 
 export function BottomNav({ unreadReactions }: { unreadReactions: number }) {
   const pathname = usePathname();
 
   return (
-    <nav className="sticky bottom-0 border-t border-border bg-surface">
+    // 홈 화면에 추가해서 전체 화면으로 열면 아이폰 아래 막대가 탭을 가린다.
+    // env(safe-area-inset-bottom)만큼 아래를 더 띄운다.
+    <nav className="sticky bottom-0 border-t border-border bg-surface pb-[env(safe-area-inset-bottom,0px)]">
       <ul className="mx-auto flex w-full max-w-lg">
-        {TABS.map((tab) => {
+        {TABS.map(({ href, label, Icon }) => {
           const isActive =
-            tab.href === "/" ? pathname === "/" : pathname.startsWith(tab.href);
-          const badge = tab.href === "/feed" ? unreadReactions : 0;
+            href === "/" ? pathname === "/" : pathname.startsWith(href);
+          const badge = href === "/feed" ? unreadReactions : 0;
 
           return (
-            <li key={tab.href} className="flex-1">
+            <li key={href} className="flex-1">
               <Link
-                href={tab.href}
+                href={href}
                 aria-current={isActive ? "page" : undefined}
-                className={`flex h-14 items-center justify-center gap-1 text-sm transition-colors ${
-                  isActive
-                    ? "font-semibold text-brand"
-                    : "text-muted hover:text-foreground"
+                className={`flex h-14 flex-col items-center justify-center gap-0.5 transition-colors active:scale-95 ${
+                  isActive ? "text-brand" : "text-muted hover:text-foreground"
                 }`}
               >
-                {tab.label}
-                {badge > 0 && (
-                  <span
-                    aria-label={`안 읽은 반응 ${badge}개`}
-                    className="rounded-full bg-brand px-1.5 py-0.5 text-xs font-semibold text-brand-contrast"
-                  >
-                    {badge}
-                  </span>
-                )}
+                <span className="relative">
+                  <Icon active={isActive} />
+                  {badge > 0 && (
+                    <span
+                      aria-label={`안 읽은 반응 ${badge}개`}
+                      className="absolute -right-2 -top-1 min-w-4 rounded-full bg-brand px-1 text-[10px] font-bold leading-4 text-brand-contrast"
+                    >
+                      {badge}
+                    </span>
+                  )}
+                </span>
+                <span
+                  className={`text-[11px] ${isActive ? "font-semibold" : ""}`}
+                >
+                  {label}
+                </span>
               </Link>
             </li>
           );
