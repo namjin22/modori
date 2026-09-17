@@ -2,6 +2,8 @@
 
 import { useEffect } from "react";
 
+import { Dori } from "@/components/dori";
+
 export default function Error({
   error,
   reset,
@@ -17,7 +19,7 @@ export default function Error({
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-sm flex-col items-center justify-center gap-6 px-6 text-center">
       <div>
-        <p className="text-3xl">🌧️</p>
+        <Dori mood="sad" size={110} className="mx-auto" />
         <h1 className="mt-3 text-xl font-bold">잠깐 문제가 생겼어요</h1>
         <p className="mt-2 text-sm text-muted">
           잠시 뒤에 다시 시도해보세요. 계속 이러면 알려주세요.

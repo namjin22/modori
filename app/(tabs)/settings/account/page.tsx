@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 
 import { DeleteAccountForm } from "@/components/delete-account-form";
+import { Dori } from "@/components/dori";
 
 export default async function AccountPage() {
   const user = await requireUser();
@@ -35,6 +36,7 @@ export default async function AccountPage() {
       </header>
 
       <div className="flex flex-col gap-3 rounded-2xl bg-surface p-4">
+        <Dori mood="sad" size={72} className="mx-auto" />
         <p className="text-sm text-muted">
           계정을 지우면 아래 기록이 모두 사라집니다. 되돌릴 수 없고, 같은 구글
           계정으로 다시 로그인해도 예전 기록은 돌아오지 않습니다.

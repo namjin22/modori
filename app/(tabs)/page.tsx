@@ -20,6 +20,7 @@ import {
 import { requireUser } from "@/lib/session";
 
 import { CategoryAdder } from "@/components/category-adder";
+import { Dori } from "@/components/dori";
 import { type DaySummary, MonthCalendar } from "@/components/month-calendar";
 import { ScheduledRoutineRow } from "@/components/scheduled-routine-row";
 import { SortableTodoList } from "@/components/sortable-todo-list";
@@ -266,6 +267,19 @@ export default async function FeedPage({
           </Link>
         </nav>
 
+        {todos.length > 0 && doneCount === todos.length && (
+          // 다 끝낸 날은 알아봐 준다. 마지막 하나를 체크할 동기가 된다.
+          <div className="flex items-center gap-3 rounded-2xl bg-brand-subtle px-4 py-3">
+            <Dori mood="party" size={56} />
+            <div>
+              <p className="font-semibold text-brand">
+                {isToday ? "오늘" : "이 날"} 할 일을 다 끝냈어요
+              </p>
+              <p className="text-xs text-muted">도리가 대신 박수 쳐줄게요</p>
+            </div>
+          </div>
+        )}
+
         {todos.length > 0 && (
           // 숫자만으로는 얼마나 남았는지 한눈에 안 들어온다.
           <div className="flex flex-col gap-1.5">
@@ -320,9 +334,8 @@ export default async function FeedPage({
 
         {todos.length === 0 && scheduled.length === 0 && (
           <div className="flex flex-col items-center gap-1 py-2 text-center">
-            <p className="text-sm text-muted">
-              🌱 <span>아직 할 일이 없다</span>
-            </p>
+            <Dori mood="calm" size={80} />
+            <p className="text-sm text-muted">아직 할 일이 없다</p>
             <p className="text-xs text-muted">
               카테고리 옆 +를 눌러 바로 적어보세요.{" "}
               <Link href="/routines" className="text-brand">
