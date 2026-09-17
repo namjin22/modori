@@ -175,9 +175,23 @@ model Routine {
   order      Int         @default(0)
   createdAt  DateTime    @default(now())
 
-  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  category Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  user     User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category Category?     @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   todos    Todo[]
+  skips    RoutineSkip[]
 
   @@index([userId])
+}
+
+// 루틴이 만든 할 일을 사용자가 지운 날.
+// 할 일은 그 날짜를 열 때 없으면 만들어지므로, 지운 사실을 따로 남기지 않으면
+// 지우자마자 다시 생긴다. 루틴을 지우면 이 기록도 같이 사라진다.
+model RoutineSkip {
+  routineId String
+  date      DateTime @db.Date
+  createdAt DateTime @default(now())
+
+  routine Routine @relation(fields: [routineId], references: [id], onDelete: Cascade)
+
+  @@id([routineId, date])
 }
