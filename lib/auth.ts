@@ -30,7 +30,7 @@ function DataGSM(): OAuthConfig<DataGSMProfile> {
     clientSecret: process.env.DATAGSM_CLIENT_SECRET,
     authorization: {
       url: "https://oauth.authorization.datagsm.kr/v1/oauth/authorize",
-      params: { scope: "datagsm:self_read", response_type: "code" },
+      params: { response_type: "code" },
     },
     token: "https://oauth.authorization.datagsm.kr/v1/oauth/token",
     userinfo: "https://oauth.resource.datagsm.kr/userinfo",
