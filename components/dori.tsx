@@ -41,8 +41,8 @@ function Stroke({ d, width = 2.8 }: { d: string; width?: number }) {
 function DotEye({ x }: { x: number }) {
   return (
     <>
-      <circle cx={x} cy={-1} r={4.2} fill={INK} />
-      <circle cx={x + 1.3} cy={-2.5} r={1.3} fill="#fff" />
+      <circle cx={x} cy={-1} r={5.2} fill={INK} />
+      <circle cx={x + 1.7} cy={-3} r={1.7} fill="#fff" />
     </>
   );
 }
@@ -239,6 +239,8 @@ export function Dori({
         <ellipse cx={0} cy={-5} rx={38} ry={47} fill={SHADE} />
         <ellipse cx={0} cy={-8} rx={34} ry={42} fill={BODY} />
         <ellipse cx={0} cy={13} rx={24} ry={29} fill={BELLY} />
+        <path d="M-24 -30 Q0 -56 24 -30 L19 -26 Q0 -44 -19 -26Z" fill={SCARF} />
+        <circle cx={0} cy={-50} r={5} fill="#60a5fa" />
         <path d="M-27 14 Q0 27 27 14 L24 23 Q0 35 -24 23Z" fill={SCARF} />
         <path d="M-31 0 Q-46 8 -35 25 Q-28 20 -23 12Z" fill={SHADE} />
         <path d="M31 0 Q46 8 35 25 Q28 20 23 12Z" fill={SHADE} />
