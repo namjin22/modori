@@ -5,7 +5,7 @@
 
 ## P0: 출시 차단
 
-- [ ] `npm run verify`가 55개 E2E 전체 통과한다. (현재 54/55)
+- [ ] `npm run verify`가 56개 E2E 전체 통과한다. (현재 55/56)
 - [ ] 두 할 일을 동시에 완료해도 진행률과 DB 값이 모두 맞다.
 - [ ] Production에서 Google 로그인이 성공한다.
 - [ ] DataGSM OAuth의 authorize/token/userinfo URL과 실제 응답을 확보하고 검증한다.
