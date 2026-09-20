@@ -1,6 +1,5 @@
 import Link from "next/link";
 
-import { DayMark } from "@/components/day-mark";
 
 import {
   addMonths,
@@ -11,28 +10,25 @@ import {
   parseKSTDate,
   weekdayKST,
 } from "@/lib/date";
+import { contrastTextColor, dayFillStyle } from "@/lib/colors";
 
 const WEEKDAY_NAMES = ["일", "월", "화", "수", "목", "금", "토"];
 // 한 칸에 이름을 몇 개까지 보여줄지. 넘치면 "+n"으로 접는다.
 const MAX_CHIPS = 3;
 
-export type DoneItem = { content: string; color: string };
-
 /** 달력 한 칸에 필요한 요약. 할 일이 없는 날은 넘기지 않아도 된다. */
 export type DaySummary = {
   total: number;
-  done: DoneItem[];
+  // 완료한 할 일의 색. 할 일 순서대로.
+  doneColors: string[];
 };
 
-/** 완료한 일의 색을 겹치지 않게 모은다. 클로버 잎을 칠하는 데 쓴다. */
-function uniqueColors(items: DoneItem[]): string[] {
-  return [...new Set(items.map((item) => item.color))];
-}
+/** 달력에 이름으로 보일 일정. */
+export type CalendarEvent = { id: string; title: string; color: string };
 
 /**
- * 한 달 달력. 칸마다 클로버 표시로 그 날 한 일이 있는지 보여주고,
- * 넓은 화면에서는 완료한 할 일 이름도 카테고리 색 칩으로 덧붙인다.
- * 좁은 화면에서는 칸이 좁아 칩이 뭉개지므로 클로버만 둔다.
+ * 한 달 달력. 칸에는 일정 이름만 글자로 보이고, 할 일은 글자 대신
+ * 완료한 만큼 그 색으로 칸을 아래부터 채운다. 둘을 섞으면 칸이 금방 넘친다.
  * 링크 주소는 부르는 쪽이 정한다. 넓은 화면과 좁은 화면이 붙이는 쿼리가 다르다.
  */
 export function MonthCalendar({
@@ -40,6 +36,7 @@ export function MonthCalendar({
   selected,
   today,
   summaries,
+  eventsByDate,
   dayHref,
   monthHref,
 }: {
@@ -47,6 +44,7 @@ export function MonthCalendar({
   selected: Date;
   today: Date;
   summaries: Map<string, DaySummary>;
+  eventsByDate: Map<string, CalendarEvent[]>;
   dayHref: (dateKey: string) => string;
   monthHref: (monthKey: string) => string;
 }) {
@@ -57,7 +55,7 @@ export function MonthCalendar({
     parseKSTDate(`${monthKey}-${String(index + 1).padStart(2, "0")}`),
   );
   const doneCount = days.reduce(
-    (sum, day) => sum + (summaries.get(formatKST(day))?.done.length ?? 0),
+    (sum, day) => sum + (summaries.get(formatKST(day))?.doneColors.length ?? 0),
     0,
   );
   const isThisMonth = monthKey === formatMonthKST(today);
@@ -120,9 +118,16 @@ export function MonthCalendar({
           {days.map((day) => {
             const key = formatKST(day);
             const summary = summaries.get(key);
-            const items = summary?.done ?? [];
+            const doneColors = summary?.doneColors ?? [];
+            const events = eventsByDate.get(key) ?? [];
             const isToday = isSameKSTDate(day, today);
             const isSelected = isSameKSTDate(day, selected);
+            const eventLabel = events.length
+              ? `, 일정 ${events
+                  .slice(0, MAX_CHIPS)
+                  .map((event) => event.title)
+                  .join(", ")}${events.length > MAX_CHIPS ? ` 외 ${events.length - MAX_CHIPS}개` : ""}`
+              : "";
 
             return (
               <Link
@@ -130,14 +135,12 @@ export function MonthCalendar({
                 href={dayHref(key)}
                 // 한 달치 날짜 칸이 서른 개다. 미리 받으면 서버가 같은 화면을 서른 번 그린다.
                 prefetch={false}
-                aria-label={`${day.getUTCDate()}일, 완료 ${items.length > 0 ? "있음" : "없음"}`}
+                aria-label={`${day.getUTCDate()}일, 완료 ${doneColors.length > 0 ? "있음" : "없음"}`}
+                aria-describedby={events.length ? `calendar-events-${key}` : undefined}
                 aria-current={isSelected ? "date" : undefined}
-                className="flex min-h-14 flex-col items-center gap-0.5 rounded-lg px-0.5 py-1 transition-colors hover:bg-surface-hover"
+                style={dayFillStyle(doneColors, summary?.total ?? 0)}
+                className="flex min-h-16 flex-col items-center gap-0.5 rounded-lg px-0.5 py-1 transition-colors hover:bg-surface-hover"
               >
-                <DayMark
-                  colors={uniqueColors(items)}
-                  allDone={!!summary && summary.total > 0 && items.length === summary.total}
-                />
                 <span
                   className={`flex size-6 items-center justify-center rounded-full text-xs ${
                     isSelected
@@ -150,22 +153,27 @@ export function MonthCalendar({
                   {day.getUTCDate()}
                 </span>
 
-                <span aria-hidden className="hidden w-full flex-col gap-px lg:flex">
-                  {items.slice(0, MAX_CHIPS).map((item, index) => (
+                <span aria-hidden className="flex w-full flex-col gap-px">
+                  {events.slice(0, MAX_CHIPS).map((event) => (
                     <span
-                      key={`${item.content}-${index}`}
-                      className="truncate rounded px-1 text-[10px] font-medium leading-[15px] text-white"
-                      style={{ backgroundColor: item.color }}
+                      key={event.id}
+                      className="truncate rounded px-1 text-[10px] font-medium leading-[15px]"
+                      style={{ backgroundColor: event.color, color: contrastTextColor(event.color) }}
                     >
-                      {item.content}
+                      {event.title}
                     </span>
                   ))}
-                  {items.length > MAX_CHIPS && (
+                  {events.length > MAX_CHIPS && (
                     <span className="text-[10px] leading-[15px] text-muted">
-                      +{items.length - MAX_CHIPS}
+                      +{events.length - MAX_CHIPS}
                     </span>
                   )}
                 </span>
+                {events.length > 0 && (
+                  <span id={`calendar-events-${key}`} className="sr-only">
+                    {eventLabel.slice(2)}
+                  </span>
+                )}
               </Link>
             );
           })}

@@ -45,6 +45,18 @@ test("완료 표시를 하면 완료 개수가 올라간다", async ({ page }) =
   await expect(page.getByRole("button", { name: "완료 취소" })).toBeVisible();
 });
 
+test("할 일을 연달아 완료해도 완료 개수가 즉시 맞는다", async ({ page }) => {
+  for (const content of ["첫 번째 일", "두 번째 일"]) {
+    await page.getByLabel("할 일 내용").fill(content);
+    await page.getByRole("button", { name: "추가" }).click();
+  }
+
+  const checkboxes = await page.getByRole("button", { name: "완료", exact: true }).all();
+  await Promise.all(checkboxes.map((checkbox) => checkbox.click()));
+
+  await expect(page.getByText("2개 중 2개 완료")).toBeVisible();
+});
+
 test("삭제하면 목록에서 사라진다", async ({ page }) => {
   await page.getByLabel("할 일 내용").fill("지울 할 일");
   await page.getByRole("button", { name: "추가" }).click();

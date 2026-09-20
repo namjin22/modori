@@ -1,10 +1,13 @@
 "use server";
 
 import { Prisma } from "@prisma/client";
+
+import { isPaletteColor } from "@/lib/colors";
 import { revalidatePath } from "next/cache";
 
-import { addDays, formatKST, parseKSTDate } from "@/lib/date";
+import { addDays, daysBetween, formatKST, parseKSTDate, todayKST } from "@/lib/date";
 import { prisma } from "@/lib/prisma";
+import { matchesRule } from "@/lib/routine";
 import { requireUser } from "@/lib/session";
 
 const MAX_CONTENT_LENGTH = 200;
@@ -19,6 +22,12 @@ function readInstant(value: string | null, fallback: Date): Date {
   if (!value) return fallback;
   const parsed = new Date(value);
   return Number.isNaN(parsed.getTime()) ? fallback : parsed;
+}
+
+/** 할 일마다 고른 색. 고르지 않았으면 null이고, 그때는 카테고리 색을 쓴다. */
+function readColor(formData: FormData): string | null {
+  const value = readId(formData, "color");
+  return isPaletteColor(value) ? value : null;
 }
 
 function readId(formData: FormData, key: string): string {
@@ -59,6 +68,7 @@ export async function addTodo(formData: FormData) {
     },
   });
 
+
   revalidatePath("/");
 }
 
@@ -74,11 +84,8 @@ export async function toggleTodo(formData: FormData) {
 
   await prisma.todo.update({
     where: { id },
-    // 완료 시각은 캘린더와 피드가 쓰므로 같이 기록한다.
     data: { done: !todo.done, doneAt: todo.done ? null : new Date() },
   });
-
-  revalidatePath("/");
 }
 
 export async function updateTodo(formData: FormData) {
@@ -98,7 +105,7 @@ export async function updateTodo(formData: FormData) {
 
   await prisma.todo.updateMany({
     where: { id, userId: user.id },
-    data: { content, categoryId },
+    data: { content, categoryId, color: readColor(formData) },
   });
 
   revalidatePath("/");
@@ -113,6 +120,7 @@ export type DeletedTodo = {
   doneAt: string | null;
   order: number;
   categoryId: string | null;
+  color: string | null;
   routineId: string | null;
   createdAt: string;
 };
@@ -150,6 +158,7 @@ export async function deleteTodo(id: string): Promise<DeletedTodo | null> {
     doneAt: todo.doneAt?.toISOString() ?? null,
     order: todo.order,
     categoryId: todo.categoryId,
+    color: todo.color,
     routineId: todo.routineId,
     createdAt: todo.createdAt.toISOString(),
   };
@@ -202,6 +211,10 @@ export async function restoreTodo(snapshot: DeletedTodo) {
           doneAt: snapshot.done ? readInstant(snapshot.doneAt, new Date()) : null,
           order: Number.isInteger(snapshot.order) ? snapshot.order : 0,
           categoryId: category?.id ?? null,
+          color:
+            snapshot.color && isPaletteColor(snapshot.color)
+              ? snapshot.color
+              : null,
           routineId: routine?.id ?? null,
           createdAt: readInstant(snapshot.createdAt, new Date()),
         },
@@ -261,9 +274,26 @@ export async function completeScheduledRoutine(formData: FormData) {
 
   const routine = await prisma.routine.findFirst({
     where: { id: routineId, userId: user.id },
-    select: { content: true, categoryId: true },
+    select: {
+      content: true,
+      categoryId: true,
+      freq: true,
+      byWeekday: true,
+      byMonthday: true,
+      startDate: true,
+      endDate: true,
+      pausedAt: true,
+    },
   });
   if (!routine) return;
+
+  if (daysBetween(todayKST(), date) <= 0 || !matchesRule(routine, date)) return;
+
+  const skipped = await prisma.routineSkip.findUnique({
+    where: { routineId_date: { routineId, date } },
+    select: { routineId: true },
+  });
+  if (skipped) return;
 
   const last = await prisma.todo.findFirst({
     where: { userId: user.id, date },

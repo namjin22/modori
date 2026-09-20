@@ -10,10 +10,11 @@ export default async function AccountPage() {
   const user = await requireUser();
 
   // 무엇이 사라지는지 숫자로 보여준다. "모든 데이터"라고만 쓰면 와닿지 않는다.
-  const [todos, categories, routines, following, reactions] = await Promise.all([
+  const [todos, categories, routines, events, following, reactions] = await Promise.all([
     prisma.todo.count({ where: { userId: user.id } }),
     prisma.category.count({ where: { userId: user.id } }),
     prisma.routine.count({ where: { userId: user.id } }),
+    prisma.event.count({ where: { userId: user.id } }),
     prisma.follow.count({ where: { followerId: user.id } }),
     prisma.reaction.count({ where: { todo: { userId: user.id } } }),
   ]);
@@ -22,6 +23,7 @@ export default async function AccountPage() {
     ["할 일", todos],
     ["카테고리", categories],
     ["루틴", routines],
+    ["일정", events],
     ["팔로우", following],
     ["받은 반응", reactions],
   ] as const;

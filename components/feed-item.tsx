@@ -8,6 +8,7 @@ type FeedTodo = {
   content: string;
   date: string;
   user: { id: string; nickname: string | null; profileEmoji: string };
+  color: string | null;
   category: { name: string; color: string } | null;
   reactions: { emoji: string; userId: string }[];
 };
@@ -45,7 +46,9 @@ export function FeedItem({
           aria-hidden
           className="flex size-5 shrink-0 items-center justify-center rounded-full bg-brand text-[11px] font-bold text-white"
           style={
-            todo.category ? { backgroundColor: todo.category.color } : undefined
+            todo.color || todo.category
+              ? { backgroundColor: todo.color ?? todo.category?.color }
+              : undefined
           }
         >
           ✓
@@ -54,7 +57,7 @@ export function FeedItem({
         {todo.category && (
           <span
             className="shrink-0 text-xs font-medium"
-            style={{ color: todo.category.color }}
+            style={{ color: todo.color ?? todo.category.color }}
           >
             {todo.category.name}
           </span>

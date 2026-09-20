@@ -36,6 +36,7 @@ model User {
   categories Category[]
   todos      Todo[]
   routines   Routine[]
+  events     Event[]
   following  Follow[]   @relation("follower")
   followers  Follow[]   @relation("following")
   reactions  Reaction[]
@@ -140,6 +141,7 @@ model Todo {
   doneAt     DateTime?
   order      Int       @default(0)
   routineId  String? // 루틴이 생성한 인스턴스면 채워진다
+  color      String? // 비어 있으면 카테고리 색을 쓴다
   createdAt  DateTime  @default(now())
 
   user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -194,4 +196,20 @@ model RoutineSkip {
   routine Routine @relation(fields: [routineId], references: [id], onDelete: Cascade)
 
   @@id([routineId, date])
+}
+
+// 일정. 할 일과 달리 체크하지 않고, 달력에 이름으로 보인다.
+// 시험 기간처럼 여러 날에 걸칠 수 있어서 시작일과 종료일을 둔다. 하루짜리는 둘이 같다.
+model Event {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  startDate DateTime @db.Date
+  endDate   DateTime @db.Date
+  color     String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, startDate])
 }

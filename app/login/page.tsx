@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { Dori } from "@/components/dori";
-import { isMockAuth, signIn } from "@/lib/auth";
+import { isDataGSMConfigured, isMockAuth, signIn } from "@/lib/auth";
 import { getCurrentUser } from "@/lib/session";
 
 export default async function LoginPage() {
@@ -33,6 +33,23 @@ export default async function LoginPage() {
           Google로 계속하기
         </button>
       </form>
+
+      {isDataGSMConfigured && (
+        <form
+          action={async () => {
+            "use server";
+            await signIn("datagsm", { redirectTo: "/" });
+          }}
+          className="mt-3"
+        >
+          <button
+            type="submit"
+            className="h-12 w-full rounded-2xl bg-surface text-sm font-semibold text-foreground transition-colors hover:bg-surface-hover active:scale-[0.98]"
+          >
+            DataGSM으로 계속하기
+          </button>
+        </form>
+      )}
 
       {isMockAuth && (
         <form
