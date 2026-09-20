@@ -8,7 +8,7 @@
 - [ ] `npm run verify`가 56개 E2E 전체 통과한다. (현재 55/56)
 - [ ] 두 할 일을 동시에 완료해도 진행률과 DB 값이 모두 맞다.
 - [ ] Production에서 Google 로그인이 성공한다.
-- [ ] DataGSM OAuth의 authorize/token/userinfo URL과 실제 응답을 확보하고 검증한다.
+- [ ] DataGSM OAuth 실제 로그인과 userinfo 매핑을 확인한다. (Provider 구현 완료, 수동 확인 필요)
 - [ ] Production에 `AUTH_MODE=mock`가 없고 mock 로그인으로 접근할 수 없다.
 - [ ] Production DB에 최신 Prisma migration이 적용됐음을 `prisma migrate status`로 확인한다.
 - [ ] 계정 삭제가 세션, 할 일, 일정, 반응, 팔로우를 모두 삭제한다.

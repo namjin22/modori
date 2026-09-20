@@ -2,10 +2,54 @@ import { PrismaAdapter } from "@auth/prisma-adapter";
 import NextAuth, { type NextAuthConfig } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import Google from "next-auth/providers/google";
+import type { OAuthConfig } from "next-auth/providers";
 
 import { prisma } from "@/lib/prisma";
 
 export const isMockAuth = process.env.AUTH_MODE === "mock";
+export const isDataGSMConfigured = Boolean(process.env.DATAGSM_CLIENT_ID);
+
+type DataGSMProfile = {
+  id: number;
+  email: string;
+  status: "PENDING" | "ACTIVE";
+  objectType: "STUDENT" | "TEACHER" | null;
+  student: { name: string } | null;
+  teacher: { name: string } | null;
+};
+
+function DataGSM(): OAuthConfig<DataGSMProfile> {
+  const clientId = process.env.DATAGSM_CLIENT_ID;
+  if (!clientId) throw new Error("DATAGSM_CLIENT_ID가 설정되지 않았다.");
+
+  return {
+    id: "datagsm",
+    name: "DataGSM",
+    type: "oauth",
+    clientId,
+    clientSecret: process.env.DATAGSM_CLIENT_SECRET,
+    authorization: {
+      url: "https://oauth.authorization.datagsm.kr/v1/oauth/authorize",
+      params: { scope: "datagsm:self_read", response_type: "code" },
+    },
+    token: "https://oauth.authorization.datagsm.kr/v1/oauth/token",
+    userinfo: "https://oauth.resource.datagsm.kr/userinfo",
+    checks: ["pkce", "state"],
+    client: { token_endpoint_auth_method: "none" },
+    allowDangerousEmailAccountLinking: true,
+    profile(profile) {
+      if (profile.status !== "ACTIVE") {
+        throw new Error("DataGSM 계정이 아직 활성화되지 않았다.");
+      }
+
+      return {
+        id: String(profile.id),
+        email: profile.email,
+        name: profile.student?.name ?? profile.teacher?.name ?? profile.email,
+      };
+    },
+  };
+}
 
 // 우회 모드가 켜진 채로 프로덕션에 나가면 이메일만 아는 사람이 남의 계정으로 들어온다.
 // Vercel Production은 빌드 자체를 실패시킨다.
@@ -31,6 +75,8 @@ const providers: NextAuthConfig["providers"] = [
   // OAuthAccountNotLinked 에러를 만난다.
   Google({ allowDangerousEmailAccountLinking: true }),
 ];
+
+if (isDataGSMConfigured) providers.push(DataGSM());
 
 if (isMockAuth) {
   providers.push(

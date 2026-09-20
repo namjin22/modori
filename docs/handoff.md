@@ -108,3 +108,8 @@ push하지 않는다.
 
 색상 대비 계산기를 추가해 일정 칩의 텍스트 색을 배경 대비에 맞춰 선택하도록 보강했고,
 유효한 팔레트·밝은 색·잘못된 색상 fallback 단위 테스트를 추가했다.
+
+DataGSM OAuth Provider를 추가했다. PKCE S256, state, `datagsm:self_read`, token 교환,
+userinfo 매핑, ACTIVE 상태 검증을 사용한다. `DATAGSM_CLIENT_ID`가 설정된 환경에서만
+로그인 버튼이 노출된다. 실제 DataGSM 계정으로 Production redirect와 userinfo를 확인하는
+수동 검증은 아직 남아 있다.
