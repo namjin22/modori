@@ -5,8 +5,9 @@ import { Prisma } from "@prisma/client";
 import { isPaletteColor } from "@/lib/colors";
 import { revalidatePath } from "next/cache";
 
-import { addDays, formatKST, parseKSTDate } from "@/lib/date";
+import { addDays, daysBetween, formatKST, parseKSTDate, todayKST } from "@/lib/date";
 import { prisma } from "@/lib/prisma";
+import { matchesRule } from "@/lib/routine";
 import { requireUser } from "@/lib/session";
 
 const MAX_CONTENT_LENGTH = 200;
@@ -273,9 +274,26 @@ export async function completeScheduledRoutine(formData: FormData) {
 
   const routine = await prisma.routine.findFirst({
     where: { id: routineId, userId: user.id },
-    select: { content: true, categoryId: true },
+    select: {
+      content: true,
+      categoryId: true,
+      freq: true,
+      byWeekday: true,
+      byMonthday: true,
+      startDate: true,
+      endDate: true,
+      pausedAt: true,
+    },
   });
   if (!routine) return;
+
+  if (daysBetween(todayKST(), date) <= 0 || !matchesRule(routine, date)) return;
+
+  const skipped = await prisma.routineSkip.findUnique({
+    where: { routineId_date: { routineId, date } },
+    select: { routineId: true },
+  });
+  if (skipped) return;
 
   const last = await prisma.todo.findFirst({
     where: { userId: user.id, date },

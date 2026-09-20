@@ -70,6 +70,21 @@ test("미래 날짜에서는 예정으로만 보이고 체크하면 그때 만�
   await expect(page.getByText("1개 중 1개 완료")).toBeVisible();
 });
 
+test("예정 루틴은 오늘 날짜로 조작해도 만들어지지 않는다", async ({ page }) => {
+  await createDailyRoutine(page, "조작할 루틴");
+
+  const tomorrow = formatKST(addDays(todayKST(), 1));
+  await page.goto(`/?date=${tomorrow}`);
+  const form = page.getByRole("button", { name: "미리 완료" }).locator("..");
+  await form.locator('input[name="date"]').evaluate((input, value) => {
+    (input as HTMLInputElement).value = value;
+  }, formatKST(todayKST()));
+  await form.getByRole("button", { name: "미리 완료" }).click();
+
+  await expect(page.getByText("예정된 루틴")).toBeVisible();
+  await expect(page.getByText("1개 중 1개 완료")).toBeHidden();
+});
+
 test("멈춘 루틴은 새 할 일을 만들지 않는다", async ({ page }) => {
   await createDailyRoutine(page, "멈출 루틴");
 
