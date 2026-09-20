@@ -9,9 +9,9 @@
   --light-foreground: #191f28;
   --light-muted: #8b95a1;
   --light-border: #e8ebed;
-  --light-brand: #00b26a;
-  --light-brand-hover: #009a5c;
-  --light-brand-subtle: #e8f8f0;
+  --light-brand: #2563eb;
+  --light-brand-hover: #1d4ed8;
+  --light-brand-subtle: #eff6ff;
   --light-brand-contrast: #ffffff;
 
   --dark-background: #0e1013;
@@ -20,10 +20,10 @@
   --dark-foreground: #edeff2;
   --dark-muted: #8b95a1;
   --dark-border: #2a2e35;
-  --dark-brand: #22d387;
-  --dark-brand-hover: #3ade98;
-  --dark-brand-subtle: #12281f;
-  --dark-brand-contrast: #06150e;
+  --dark-brand: #60a5fa;
+  --dark-brand-hover: #93c5fd;
+  --dark-brand-subtle: #172554;
+  --dark-brand-contrast: #08152d;
 }
 
 /* 기본값은 라이트 */

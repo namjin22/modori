@@ -113,3 +113,7 @@ DataGSM OAuth Provider를 추가했다. PKCE S256, state, `datagsm:self_read`, t
 userinfo 매핑, ACTIVE 상태 검증을 사용한다. `DATAGSM_CLIENT_ID`가 설정된 환경에서만
 로그인 버튼이 노출된다. 실제 DataGSM 계정으로 Production redirect와 userinfo를 확인하는
 수동 검증은 아직 남아 있다.
+
+브랜드 시각 언어를 투두메이트의 클로버 계열과 분리하기 위해 도리를 펭귄 캐릭터로 교체하고,
+대표 색상을 초록에서 파랑으로 변경했다. 기존 mood 이름과 반응 저장값은 호환성을 위해
+유지했고 mascot E2E와 Production build를 통과했다.
