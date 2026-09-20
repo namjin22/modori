@@ -117,3 +117,71 @@ userinfo 매핑, ACTIVE 상태 검증을 사용한다. `DATAGSM_CLIENT_ID`가 �
 브랜드 시각 언어를 투두메이트의 클로버 계열과 분리하기 위해 도리를 펭귄 캐릭터로 교체하고,
 대표 색상을 초록에서 파랑으로 변경했다. 기존 mood 이름과 반응 저장값은 호환성을 위해
 유지했고 mascot E2E와 Production build를 통과했다.
+
+## 2026-09-20 — 다음 에이전트 필수 인수인계
+
+### DataGSM OAuth 현재 상태
+
+- Production에서 Google 로그인은 정상이다.
+- DataGSM 로그인 버튼도 Production에 노출된다.
+- DataGSM 로그인 화면까지는 이동하지만, 아이디·비밀번호 입력 후
+  `/api/auth/error?error=Configuration`으로 돌아온다.
+- Vercel invocation에서 확인한 내용:
+  - Route: `/api/auth/[...nextauth]`
+  - External APIs: `No outgoing requests`
+  - callback 이후 Auth.js Configuration 오류
+  - 한 로그에서는 `/api/auth/callback/datagsm`의 `[auth] details`에
+    `error: invalid_request`가 보였지만 전체 `error_description`은 아직 확보하지 못했다.
+- Google/DataGSM 계정 중복 단계까지 도달하지 않은 것으로 보인다. userinfo 요청이 발생하지
+  않았으므로 계정 linking 로직을 원인으로 단정하지 말 것.
+- Production Client 설정 화면에서는 다음을 확인했다:
+  - Client ID: `e461f60e-4a4b-4bb6-9d6a-dbf36abbaefa`
+  - Production redirect: `https://modori.vercel.app/api/auth/callback/datagsm`
+  - 권한 표시: `SELF_READ`
+- DataGSM 문서 기준 endpoint:
+  - authorize: `https://oauth.authorization.datagsm.kr/v1/oauth/authorize`
+  - token: `https://oauth.authorization.datagsm.kr/v1/oauth/token`
+  - userinfo: `https://oauth.resource.datagsm.kr/userinfo`
+- 현재 `lib/auth.ts`는 다음 상태다:
+  - `scope: "datagsm:self_read"`
+  - `checks: ["pkce"]` (DataGSM callback에서 state가 누락될 가능성을 분리하기 위해 state를 임시 제거)
+  - Auth.js 기본 token 요청을 `customFetch`로 가로채 JSON body로 변환
+  - 기본 Authorization header 제거
+  - Client Secret은 환경변수에서 읽음
+  - ACTIVE 상태만 허용
+  - `allowDangerousEmailAccountLinking: true`
+- Auth.js v5 beta의 `token.request` override는 실제로 호출되지 않는 사례가 있어 사용하지 않는다.
+- 다음 에이전트는 추측으로 scope/checks를 반복 변경하지 말고, Vercel callback 로그의 정확한
+  `error_description` 또는 DataGSM 친구에게 callback 요청/응답 원문을 확인받아야 한다.
+
+### DataGSM 다음 확인 순서
+
+1. DataGSM 친구에게 해당 Client의 실제 허용 scope 문자열이 정확히 `datagsm:self_read`인지 확인한다.
+2. authorize 성공 후 DataGSM이 redirect하는 실제 callback query에 `code`가 있는지, `state`가
+   있는지 확인한다. Authorization Code와 토큰은 공유하지 않는다.
+3. PKCE cookie가 Vercel callback에서 존재하는지 확인한다. 없으면 Auth.js cookie 설정과
+   DataGSM redirect 흐름을 점검한다.
+4. callback에서 token endpoint 요청이 실제로 나가는지 확인한다.
+5. token 요청의 DataGSM 응답 status와 `error_description`만 로그로 확인한다.
+6. 정상 userinfo JSON의 `status`, `email`, `student.name`을 확인한다.
+
+### 캐릭터 현재 상태
+
+- 사용자 피드백: 현재 펭귄/몽글 생명체 디자인은 “별로”이며 수용하지 않았다.
+- 현재 `components/dori.tsx`는 파란 몽글 생명체 SVG지만 최종 디자인으로 간주하지 않는다.
+- 다음 에이전트는 기존 SVG를 조금씩 고치는 대신 새 콘셉트부터 다시 설계해야 한다.
+- 요구사항:
+  - 투두메이트 클로버 캐릭터와 시각적으로 완전히 달라야 한다.
+  - 작고 귀엽고 한눈에 기억되는 실루엣이어야 한다.
+  - `happy`, `like`, `fire`, `clap`, `party`, `calm`, `sad`, `confused`, `hello` mood를 모두 표현해야 한다.
+  - 반응 저장값 `👍🔥👏🎉`과 기존 컴포넌트 호출 API는 깨지지 않아야 한다.
+  - 새 캐릭터 시안은 mascot E2E와 Production build를 통과시킨다.
+
+### Git/배포 상태
+
+- Production main 최신 merge commit: `ce48819` 또는 이후 DataGSM scope/캐릭터 관련 merge commit
+- develop과 main은 squash merge 방식으로 동기화한다.
+- PR check는 동시 체크 회귀와 CI Neon 데이터 경합 때문에 종종 실패한다. 실패 내용을 숨기고
+  테스트를 바꾸지 않는다.
+- Production migration 상태는 확인 완료:
+  - `Database schema is up to date!`
