@@ -35,7 +35,6 @@ function DataGSM(): OAuthConfig<DataGSMProfile> {
     token: "https://oauth.authorization.datagsm.kr/v1/oauth/token",
     userinfo: "https://oauth.resource.datagsm.kr/userinfo",
     checks: ["pkce", "state"],
-    client: { token_endpoint_auth_method: "none" },
     allowDangerousEmailAccountLinking: true,
     profile(profile) {
       if (profile.status !== "ACTIVE") {
