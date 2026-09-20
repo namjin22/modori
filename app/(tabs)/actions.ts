@@ -1,6 +1,8 @@
 "use server";
 
 import { Prisma } from "@prisma/client";
+
+import { isPaletteColor } from "@/lib/colors";
 import { revalidatePath } from "next/cache";
 
 import { addDays, formatKST, parseKSTDate } from "@/lib/date";
@@ -19,6 +21,12 @@ function readInstant(value: string | null, fallback: Date): Date {
   if (!value) return fallback;
   const parsed = new Date(value);
   return Number.isNaN(parsed.getTime()) ? fallback : parsed;
+}
+
+/** 할 일마다 고른 색. 고르지 않았으면 null이고, 그때는 카테고리 색을 쓴다. */
+function readColor(formData: FormData): string | null {
+  const value = readId(formData, "color");
+  return isPaletteColor(value) ? value : null;
 }
 
 function readId(formData: FormData, key: string): string {
@@ -59,6 +67,7 @@ export async function addTodo(formData: FormData) {
     },
   });
 
+
   revalidatePath("/");
 }
 
@@ -74,11 +83,8 @@ export async function toggleTodo(formData: FormData) {
 
   await prisma.todo.update({
     where: { id },
-    // 완료 시각은 캘린더와 피드가 쓰므로 같이 기록한다.
     data: { done: !todo.done, doneAt: todo.done ? null : new Date() },
   });
-
-  revalidatePath("/");
 }
 
 export async function updateTodo(formData: FormData) {
@@ -98,7 +104,7 @@ export async function updateTodo(formData: FormData) {
 
   await prisma.todo.updateMany({
     where: { id, userId: user.id },
-    data: { content, categoryId },
+    data: { content, categoryId, color: readColor(formData) },
   });
 
   revalidatePath("/");
@@ -113,6 +119,7 @@ export type DeletedTodo = {
   doneAt: string | null;
   order: number;
   categoryId: string | null;
+  color: string | null;
   routineId: string | null;
   createdAt: string;
 };
@@ -150,6 +157,7 @@ export async function deleteTodo(id: string): Promise<DeletedTodo | null> {
     doneAt: todo.doneAt?.toISOString() ?? null,
     order: todo.order,
     categoryId: todo.categoryId,
+    color: todo.color,
     routineId: todo.routineId,
     createdAt: todo.createdAt.toISOString(),
   };
@@ -202,6 +210,10 @@ export async function restoreTodo(snapshot: DeletedTodo) {
           doneAt: snapshot.done ? readInstant(snapshot.doneAt, new Date()) : null,
           order: Number.isInteger(snapshot.order) ? snapshot.order : 0,
           categoryId: category?.id ?? null,
+          color:
+            snapshot.color && isPaletteColor(snapshot.color)
+              ? snapshot.color
+              : null,
           routineId: routine?.id ?? null,
           createdAt: readInstant(snapshot.createdAt, new Date()),
         },

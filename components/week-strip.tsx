@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { DayMark } from "@/components/day-mark";
+import { dayFillStyle } from "@/lib/colors";
 import { formatKST, weekdayKST } from "@/lib/date";
 
 const WEEKDAY_NAMES = ["일", "월", "화", "수", "목", "금", "토"];
@@ -9,8 +9,8 @@ export type WeekDay = {
   date: Date;
   done: number;
   total: number;
-  // 그 날 완료한 할 일의 카테고리 색.
-  colors: string[];
+  // 그 날 완료한 할 일의 색. 할 일 순서대로.
+  doneColors: string[];
 };
 
 /**
@@ -49,7 +49,9 @@ export function WeekStrip({
             prefetch={false}
             aria-label={`${Number(key.slice(5, 7))}월 ${Number(key.slice(8))}일`}
             aria-current={isSelected ? "date" : undefined}
-            className="flex flex-1 flex-col items-center gap-1 rounded-xl py-1.5 transition-colors hover:bg-surface-hover"
+            // 달력 칸과 같이, 완료한 할 일의 색으로 아래부터 채운다.
+            style={dayFillStyle(day.doneColors, day.total)}
+            className="flex flex-1 flex-col items-center gap-1 rounded-xl py-2 transition-colors hover:bg-surface-hover"
           >
             <span
               className={`text-[11px] ${
@@ -63,14 +65,8 @@ export function WeekStrip({
               {WEEKDAY_NAMES[weekday]}
             </span>
 
-            <DayMark
-              colors={day.colors}
-              allDone={day.total > 0 && day.done === day.total}
-              size={24}
-            />
-
             <span
-              className={`flex size-6 items-center justify-center rounded-full text-xs ${
+              className={`flex size-7 items-center justify-center rounded-full text-sm ${
                 isSelected
                   ? "bg-foreground font-bold text-background"
                   : isToday

@@ -74,7 +74,8 @@ export default async function FriendDayPage({
     }),
     prisma.todo.findMany({
       where: { ...visible, date: { gte: weekStart, lte: weekEnd } },
-      select: { date: true, category: { select: { color: true } } },
+      orderBy: { order: "asc" },
+      select: { date: true, color: true, category: { select: { color: true } } },
     }),
   ]);
 
@@ -87,9 +88,10 @@ export default async function FriendDayPage({
       date: day,
       done: dayTodos.length,
       total: dayTodos.length,
-      colors: [
-        ...new Set(dayTodos.flatMap((todo) => (todo.category ? [todo.category.color] : []))),
-      ],
+      doneColors: dayTodos.flatMap((todo) => {
+        const color = todo.color ?? todo.category?.color;
+        return color ? [color] : [];
+      }),
     };
   });
 
@@ -143,6 +145,7 @@ export default async function FriendDayPage({
                 content: todo.content,
                 date: formatKST(todo.date),
                 user: todo.user,
+                color: todo.color,
                 category: todo.category,
                 reactions: todo.reactions,
               }}

@@ -21,15 +21,20 @@ import { requireUser } from "@/lib/session";
 
 import { CategoryAdder } from "@/components/category-adder";
 import { Dori } from "@/components/dori";
-import { type DaySummary, MonthCalendar } from "@/components/month-calendar";
+import { type DayEvent, EventSection } from "@/components/event-section";
+import {
+  type CalendarEvent,
+  type DaySummary,
+  MonthCalendar,
+} from "@/components/month-calendar";
 import { ScheduledRoutineRow } from "@/components/scheduled-routine-row";
 import { SortableTodoList } from "@/components/sortable-todo-list";
-import { SubmitButton } from "@/components/submit-button";
 import { CalendarIcon } from "@/components/tab-icons";
+import { QuickAddForm } from "@/components/quick-add-form";
 import { TodoRow } from "@/components/todo-row";
+import { TodoProgress } from "@/components/todo-progress";
 import { WeekStrip } from "@/components/week-strip";
 
-import { addTodo } from "./actions";
 
 const WEEKDAY_NAMES = ["일", "월", "화", "수", "목", "금", "토"];
 // 카테고리를 고르지 않은 할 일도 달력에 흔적은 남아야 한다.
@@ -67,33 +72,63 @@ function formatHeading(date: Date): string {
 type RangeTodo = {
   date: Date;
   done: boolean;
-  content: string;
+  color: string | null;
   category: { color: string } | null;
 };
 
-/** 기간 안의 할 일을 날짜별 요약(전체 수, 완료한 일)으로 접는다. */
+/** 기간 안의 할 일을 날짜별 요약(전체 수, 완료한 일의 색)으로 접는다. */
 function summarizeByDate(todos: RangeTodo[]): Map<string, DaySummary> {
   const summaries = new Map<string, DaySummary>();
   for (const todo of todos) {
     const key = formatKST(todo.date);
-    const summary = summaries.get(key) ?? { total: 0, done: [] };
+    const summary = summaries.get(key) ?? { total: 0, doneColors: [] };
     summary.total += 1;
     if (todo.done) {
-      summary.done.push({
-        content: todo.content,
-        color: todo.category?.color ?? NO_CATEGORY_COLOR,
-      });
+      // 할 일에 따로 고른 색이 있으면 그것, 없으면 카테고리 색.
+      summary.doneColors.push(
+        todo.color ?? todo.category?.color ?? NO_CATEGORY_COLOR,
+      );
     }
     summaries.set(key, summary);
   }
   return summaries;
 }
 
+/** 여러 날에 걸친 일정을 달력의 각 날짜에 펼쳐 놓는다. 이번 달 밖은 버린다. */
+function spreadEvents(
+  events: DayEvent[],
+  monthStart: Date,
+  monthEnd: Date,
+): Map<string, CalendarEvent[]> {
+  const byDate = new Map<string, CalendarEvent[]>();
+  for (const event of events) {
+    let day = event.startDate < monthStart ? monthStart : event.startDate;
+    const last = event.endDate > monthEnd ? monthEnd : event.endDate;
+    while (day <= last) {
+      const key = formatKST(day);
+      byDate.set(key, [
+        ...(byDate.get(key) ?? []),
+        { id: event.id, title: event.title, color: event.color },
+      ]);
+      day = addDays(day, 1);
+    }
+  }
+  return byDate;
+}
+
 const RANGE_SELECT = {
   date: true,
   done: true,
-  content: true,
+  color: true,
   category: { select: { color: true } },
+} as const;
+
+const EVENT_SELECT = {
+  id: true,
+  title: true,
+  startDate: true,
+  endDate: true,
+  color: true,
 } as const;
 
 export default async function FeedPage({
@@ -126,7 +161,9 @@ export default async function FeedPage({
   const weekStart = addDays(date, -weekdayKST(date));
   const weekEnd = addDays(weekStart, 6);
 
-  const [todos, categories, scheduled, weekTodos, monthTodos] =
+  const monthEnd = endOfMonthKST(monthStart);
+
+  const [todos, categories, scheduled, weekTodos, monthTodos, dayEvents, monthEvents] =
     await Promise.all([
       prisma.todo.findMany({
         where: { userId: user.id, date },
@@ -149,10 +186,26 @@ export default async function FeedPage({
       prisma.todo.findMany({
         where: {
           userId: user.id,
-          date: { gte: monthStart, lte: endOfMonthKST(monthStart) },
+          date: { gte: monthStart, lte: monthEnd },
         },
         orderBy: { order: "asc" },
         select: RANGE_SELECT,
+      }),
+      // 고른 날에 걸쳐 있는 일정
+      prisma.event.findMany({
+        where: { userId: user.id, startDate: { lte: date }, endDate: { gte: date } },
+        orderBy: [{ startDate: "asc" }, { createdAt: "asc" }],
+        select: EVENT_SELECT,
+      }),
+      // 이번 달에 조금이라도 걸쳐 있는 일정
+      prisma.event.findMany({
+        where: {
+          userId: user.id,
+          startDate: { lte: monthEnd },
+          endDate: { gte: monthStart },
+        },
+        orderBy: [{ startDate: "asc" }, { createdAt: "asc" }],
+        select: EVENT_SELECT,
       }),
     ]);
 
@@ -163,8 +216,8 @@ export default async function FeedPage({
     return {
       date: day,
       total: summary?.total ?? 0,
-      done: summary?.done.length ?? 0,
-      colors: [...new Set(summary?.done.map((item) => item.color) ?? [])],
+      done: summary?.doneColors.length ?? 0,
+      doneColors: summary?.doneColors ?? [],
     };
   });
 
@@ -195,6 +248,7 @@ export default async function FeedPage({
             selected={date}
             today={today}
             summaries={summarizeByDate(monthTodos)}
+            eventsByDate={spreadEvents(monthEvents, monthStart, monthEnd)}
             dayHref={dayHref}
             monthHref={monthHref}
           />
@@ -267,6 +321,10 @@ export default async function FeedPage({
           </Link>
         </nav>
 
+        <EventSection events={dayEvents} date={formatKST(date)} />
+
+        <h2 className="-mb-2 text-sm font-semibold">할 일</h2>
+
         {todos.length > 0 && doneCount === todos.length && (
           // 다 끝낸 날은 알아봐 준다. 마지막 하나를 체크할 동기가 된다.
           <div className="flex items-center gap-3 rounded-2xl bg-brand-subtle px-4 py-3">
@@ -280,57 +338,40 @@ export default async function FeedPage({
           </div>
         )}
 
-        {todos.length > 0 && (
-          // 숫자만으로는 얼마나 남았는지 한눈에 안 들어온다.
-          <div className="flex flex-col gap-1.5">
-            <p className="text-sm text-muted">
-              {todos.length}개 중 {doneCount}개 완료
-            </p>
-            <div
-              role="progressbar"
-              aria-label="오늘 완료율"
-              aria-valuemin={0}
-              aria-valuemax={todos.length}
-              aria-valuenow={doneCount}
-              className="h-1.5 overflow-hidden rounded-full bg-border"
-            >
-              <div
-                className="h-full rounded-full bg-brand transition-[width] duration-300"
-                style={{
-                  width: `${Math.round((doneCount / todos.length) * 100)}%`,
-                }}
-              />
-            </div>
-          </div>
-        )}
-
-        {todoGroups.map((group) => (
-          <section key={group.key} className="flex flex-col gap-1">
-            <CategoryAdder
-              categoryId={group.categoryId}
-              name={group.name}
-              color={group.color}
-              isPublic={group.isPublic}
-              date={formatKST(date)}
-              count={
-                group.items.length > 0
-                  ? `${group.items.filter((todo) => todo.done).length}/${group.items.length}`
-                  : null
-              }
-            />
-
-            {group.items.length > 0 && (
-              <SortableTodoList
+        <TodoProgress
+          key={formatKST(date)}
+          total={todos.length}
+          done={doneCount}
+          scope={formatKST(date)}
+        >
+          {todoGroups.map((group) => (
+            <section key={group.key} className="flex flex-col gap-1">
+              <CategoryAdder
+                categoryId={group.categoryId}
+                name={group.name}
+                color={group.color}
+                isPublic={group.isPublic}
                 date={formatKST(date)}
-                items={group.items.map((todo) => ({
-                  id: todo.id,
-                  label: todo.content,
-                  node: <TodoRow todo={todo} categories={categories} />,
-                }))}
+                count={
+                  group.items.length > 0
+                    ? `${group.items.filter((todo) => todo.done).length}/${group.items.length}`
+                    : null
+                }
               />
-            )}
-          </section>
-        ))}
+
+              {group.items.length > 0 && (
+                <SortableTodoList
+                  date={formatKST(date)}
+                  items={group.items.map((todo) => ({
+                    id: todo.id,
+                    label: todo.content,
+                    node: <TodoRow todo={todo} categories={categories} />,
+                  }))}
+                />
+              )}
+            </section>
+          ))}
+        </TodoProgress>
 
         {todos.length === 0 && scheduled.length === 0 && (
           <div className="flex flex-col items-center gap-1 py-2 text-center">
@@ -364,54 +405,5 @@ export default async function FeedPage({
         <QuickAddForm categories={categories} date={formatKST(date)} />
       </div>
     </div>
-  );
-}
-
-/**
- * 카테고리를 골라서 적는 공용 입력. 주로는 칩의 +로 적고, 이 폼은 카테고리 없이
- * 빨리 적거나 고르면서 적고 싶을 때 쓴다. 그래서 목록 아래에 조용히 둔다.
- */
-function QuickAddForm({
-  categories,
-  date,
-}: {
-  categories: { id: string; name: string; color: string }[];
-  date: string;
-}) {
-  return (
-    <form
-      action={addTodo}
-      className="mt-2 flex flex-col gap-2 border-t border-dashed border-border pt-4"
-    >
-      <input type="hidden" name="date" value={date} />
-      <div className="flex gap-2">
-        <input
-          name="content"
-          required
-          maxLength={200}
-          placeholder="할 일 추가"
-          aria-label="할 일 내용"
-          className="h-10 min-w-0 flex-1 rounded-xl bg-surface px-3 text-[15px] outline-none placeholder:text-muted focus:ring-2 focus:ring-brand"
-        />
-        <SubmitButton
-          pendingLabel="추가 중"
-          className="h-10 shrink-0 rounded-xl bg-brand px-4 text-sm font-semibold text-brand-contrast"
-        >
-          추가
-        </SubmitButton>
-      </div>
-      <select
-        name="categoryId"
-        aria-label="카테고리"
-        className="h-9 rounded-xl bg-surface px-3 text-sm text-muted"
-      >
-        <option value="">카테고리 없음</option>
-        {categories.map((category) => (
-          <option key={category.id} value={category.id}>
-            {category.name}
-          </option>
-        ))}
-      </select>
-    </form>
   );
 }

@@ -112,6 +112,7 @@ export default async function FeedPage({
                 content: todo.content,
                 date: formatMonthDayKST(todo.date),
                 user: todo.user,
+                color: todo.color,
                 category: todo.category,
                 reactions: todo.reactions,
               }}
