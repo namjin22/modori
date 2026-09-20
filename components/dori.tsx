@@ -1,4 +1,4 @@
-// 모도리의 캐릭터 "도리". 작은 펭귄과 파란 스카프가 서비스의 새 표정이다.
+// 모도리의 캐릭터 "도리". 파란 몽글 강아지처럼 생긴 작은 생명체다.
 // 직접 그린 그림이라 외부 저작권이나 표기 의무가 없다.
 // 서버 컴포넌트에서도 쓰므로 상태나 훅을 두지 않는다.
 
@@ -15,12 +15,12 @@ export type DoriMood =
   | "confused"
   | "hello";
 
-const INK = "#10253f";
-const BODY = "#17324d";
-const SHADE = "#0b1e33";
-const BELLY = "#f8fbff";
+const INK = "#17345d";
+const BODY = "#5b9af5";
+const SHADE = "#3674cf";
+const BELLY = "#eaf4ff";
 const SCARF = "#2563eb";
-const CHEEK = "#8fc8ff";
+const CHEEK = "#ff9eb5";
 const TONGUE = "#ff8ca8";
 const STAR =
   "l1.6 3.4 3.6.4 -2.7 2.4 .8 3.6 -3.3 -1.9 -3.3 1.9 .8 -3.6 -2.7 -2.4 3.6 -.4z";
@@ -236,18 +236,19 @@ export function Dori({
     >
       {look.behind}
       <g transform="translate(60 70) scale(1.06)">
-        <ellipse cx={0} cy={-5} rx={38} ry={47} fill={SHADE} />
-        <ellipse cx={0} cy={-8} rx={34} ry={42} fill={BODY} />
-        <ellipse cx={0} cy={13} rx={24} ry={29} fill={BELLY} />
-        <path d="M-24 -30 Q0 -56 24 -30 L19 -26 Q0 -44 -19 -26Z" fill={SCARF} />
-        <circle cx={0} cy={-50} r={5} fill="#60a5fa" />
-        <path d="M-27 14 Q0 27 27 14 L24 23 Q0 35 -24 23Z" fill={SCARF} />
-        <path d="M-31 0 Q-46 8 -35 25 Q-28 20 -23 12Z" fill={SHADE} />
-        <path d="M31 0 Q46 8 35 25 Q28 20 23 12Z" fill={SHADE} />
-        <path d="M-7 4 L0 10 L7 4 L0 1Z" fill="#ffb84d" />
-        <ellipse cx={-17} cy={38} rx={12} ry={5} fill="#ffb84d" />
-        <ellipse cx={17} cy={38} rx={12} ry={5} fill="#ffb84d" />
-        <ellipse cx={-22} cy={-31} rx={7} ry={4} fill="#fff" opacity={0.55} transform="rotate(-35 -22 -31)" />
+        <path d="M0 -48 C-20 -48 -34 -34 -34 -16 C-48 -8 -45 14 -28 21 C-23 39 -9 48 0 48 C9 48 23 39 28 21 C45 14 48 -8 34 -16 C34 -34 20 -48 0 -48Z" fill={SHADE} />
+        <path d="M0 -43 C-18 -43 -29 -30 -29 -14 C-39 -7 -37 8 -23 14 C-19 30 -8 39 0 39 C8 39 19 30 23 14 C37 8 39 -7 29 -14 C29 -30 18 -43 0 -43Z" fill={BODY} />
+        <ellipse cx={0} cy={14} rx={22} ry={25} fill={BELLY} />
+        <path d="M-22 15 Q0 27 22 15 L19 23 Q0 34 -19 23Z" fill={SCARF} />
+        <circle cx={-25} cy={-30} r={10} fill={BODY} />
+        <circle cx={25} cy={-30} r={10} fill={BODY} />
+        <circle cx={-25} cy={-30} r={5} fill="#b9d8ff" />
+        <circle cx={25} cy={-30} r={5} fill="#b9d8ff" />
+        <ellipse cx={0} cy={8} rx={9} ry={7} fill="#fff" />
+        <circle cx={0} cy={7} r={2.4} fill={INK} />
+        <path d="M-15 39 Q-9 34 -4 39" stroke={INK} strokeWidth={2.5} fill="none" strokeLinecap="round" />
+        <path d="M4 39 Q9 34 15 39" stroke={INK} strokeWidth={2.5} fill="none" strokeLinecap="round" />
+        <ellipse cx={-22} cy={-25} rx={6} ry={3.5} fill="#fff" opacity={0.6} transform="rotate(-35 -22 -25)" />
         <ellipse cx={-20} cy={9} rx={5.5} ry={3.3} fill={CHEEK} opacity={0.75} />
         <ellipse cx={20} cy={9} rx={5.5} ry={3.3} fill={CHEEK} opacity={0.75} />
         {look.face}
