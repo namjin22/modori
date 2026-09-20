@@ -34,7 +34,8 @@ function DataGSM(): OAuthConfig<DataGSMProfile> {
     },
     token: "https://oauth.authorization.datagsm.kr/v1/oauth/token",
     userinfo: "https://oauth.resource.datagsm.kr/userinfo",
-    checks: ["pkce", "state"],
+    // DataGSM callback에서 state가 누락되는 경우가 있어 PKCE로 code를 보호한다.
+    checks: ["pkce"],
     [customFetch]: async (input, init) => {
       const url = input instanceof Request ? input.url : String(input);
       if (url !== "https://oauth.authorization.datagsm.kr/v1/oauth/token" || !init?.body) {
