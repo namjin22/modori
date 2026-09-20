@@ -76,7 +76,7 @@ export function TodoProgress({
     <CompletionContext.Provider value={context}>
       {total > 0 && (
         <div className="flex flex-col gap-1">
-          <p className="text-sm text-muted">
+          <p aria-live="polite" className="text-sm text-muted">
             {total}개 중 {doneCount}개 완료
           </p>
           <div
