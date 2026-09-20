@@ -338,12 +338,7 @@ export default async function FeedPage({
           </div>
         )}
 
-        <TodoProgress
-          key={formatKST(date)}
-          total={todos.length}
-          done={doneCount}
-          scope={formatKST(date)}
-        >
+        <TodoProgress key={formatKST(date)} total={todos.length} done={doneCount}>
           {todoGroups.map((group) => (
             <section key={group.key} className="flex flex-col gap-1">
               <CategoryAdder
