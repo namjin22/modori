@@ -10,7 +10,7 @@ import {
   parseKSTDate,
   weekdayKST,
 } from "@/lib/date";
-import { dayFillStyle } from "@/lib/colors";
+import { contrastTextColor, dayFillStyle } from "@/lib/colors";
 
 const WEEKDAY_NAMES = ["일", "월", "화", "수", "목", "금", "토"];
 // 한 칸에 이름을 몇 개까지 보여줄지. 넘치면 "+n"으로 접는다.
@@ -157,8 +157,8 @@ export function MonthCalendar({
                   {events.slice(0, MAX_CHIPS).map((event) => (
                     <span
                       key={event.id}
-                      className="truncate rounded px-1 text-[10px] font-medium leading-[15px] text-white"
-                      style={{ backgroundColor: event.color }}
+                      className="truncate rounded px-1 text-[10px] font-medium leading-[15px]"
+                      style={{ backgroundColor: event.color, color: contrastTextColor(event.color) }}
                     >
                       {event.title}
                     </span>
