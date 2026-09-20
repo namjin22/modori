@@ -122,6 +122,12 @@ export function MonthCalendar({
             const events = eventsByDate.get(key) ?? [];
             const isToday = isSameKSTDate(day, today);
             const isSelected = isSameKSTDate(day, selected);
+            const eventLabel = events.length
+              ? `, 일정 ${events
+                  .slice(0, MAX_CHIPS)
+                  .map((event) => event.title)
+                  .join(", ")}${events.length > MAX_CHIPS ? ` 외 ${events.length - MAX_CHIPS}개` : ""}`
+              : "";
 
             return (
               <Link
@@ -130,6 +136,7 @@ export function MonthCalendar({
                 // 한 달치 날짜 칸이 서른 개다. 미리 받으면 서버가 같은 화면을 서른 번 그린다.
                 prefetch={false}
                 aria-label={`${day.getUTCDate()}일, 완료 ${doneColors.length > 0 ? "있음" : "없음"}`}
+                aria-describedby={events.length ? `calendar-events-${key}` : undefined}
                 aria-current={isSelected ? "date" : undefined}
                 style={dayFillStyle(doneColors, summary?.total ?? 0)}
                 className="flex min-h-16 flex-col items-center gap-0.5 rounded-lg px-0.5 py-1 transition-colors hover:bg-surface-hover"
@@ -162,6 +169,11 @@ export function MonthCalendar({
                     </span>
                   )}
                 </span>
+                {events.length > 0 && (
+                  <span id={`calendar-events-${key}`} className="sr-only">
+                    {eventLabel.slice(2)}
+                  </span>
+                )}
               </Link>
             );
           })}
