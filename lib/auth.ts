@@ -1,5 +1,5 @@
 import { PrismaAdapter } from "@auth/prisma-adapter";
-import NextAuth, { type NextAuthConfig } from "next-auth";
+import NextAuth, { customFetch, type NextAuthConfig } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import Google from "next-auth/providers/google";
 import type { OAuthConfig } from "next-auth/providers";
@@ -35,6 +35,29 @@ function DataGSM(): OAuthConfig<DataGSMProfile> {
     token: "https://oauth.authorization.datagsm.kr/v1/oauth/token",
     userinfo: "https://oauth.resource.datagsm.kr/userinfo",
     checks: ["pkce", "state"],
+    [customFetch]: async (input, init) => {
+      const url = input instanceof Request ? input.url : String(input);
+      if (url !== "https://oauth.authorization.datagsm.kr/v1/oauth/token" || !init?.body) {
+        return fetch(input, init);
+      }
+
+      const params =
+        typeof init.body === "string"
+          ? new URLSearchParams(init.body)
+          : init.body instanceof URLSearchParams
+            ? init.body
+            : null;
+      if (!params) return fetch(input, init);
+
+      const headers = new Headers(init.headers);
+      headers.delete("authorization");
+      headers.set("content-type", "application/json");
+      return fetch(input, {
+        ...init,
+        headers,
+        body: JSON.stringify(Object.fromEntries(params)),
+      });
+    },
     allowDangerousEmailAccountLinking: true,
     profile(profile) {
       if (profile.status !== "ACTIVE") {
