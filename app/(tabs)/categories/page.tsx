@@ -12,7 +12,7 @@ import {
   updateCategory,
 } from "./actions";
 
-const DEFAULT_NEW_COLOR = "#00b26a";
+const DEFAULT_NEW_COLOR = "#2563eb";
 
 // 브라우저 기본 색 입력은 회색 테두리 안에 네모가 들어 있어 거칠어 보인다.
 // 테두리와 안쪽 여백을 걷어내고 둥근 견본 하나로 만든다.

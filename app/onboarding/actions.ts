@@ -15,7 +15,7 @@ import { getCurrentUser } from "@/lib/session";
 
 // 빈 화면으로 시작하면 무엇부터 해야 할지 모른다. 지우거나 바꿀 수 있는 기본값을 준다.
 const DEFAULT_CATEGORIES = [
-  { name: "공부", color: "#00b26a" },
+  { name: "공부", color: "#2563eb" },
   { name: "운동", color: "#3b82f6" },
   { name: "생활", color: "#f59e0b" },
 ];
