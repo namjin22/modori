@@ -129,6 +129,17 @@ if (isMockAuth) {
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
   providers,
+  logger: {
+    error(error) {
+      const cause = error.cause as { err?: { name?: string; message?: string } } | undefined;
+      console.error("[auth:error]", {
+        name: error.name,
+        message: error.message,
+        causeName: cause?.err?.name,
+        causeMessage: cause?.err?.message,
+      });
+    },
+  },
   // Credentials 프로바이더는 DB 세션 전략을 지원하지 않는다.
   // 평소에는 DB 세션(서버에서 강제 로그아웃 가능), 우회 모드일 때만 JWT.
   session: { strategy: isMockAuth ? "jwt" : "database" },
