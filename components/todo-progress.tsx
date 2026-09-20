@@ -41,6 +41,12 @@ export function TodoProgress({
   }, [scope, total]);
 
   useEffect(() => {
+    if (optimisticCounts.has(scope) || sessionStorage.getItem(`modori:done-count:${scope}`) !== null) return;
+    const timer = window.setTimeout(() => setDoneCount(done), 0);
+    return () => window.clearTimeout(timer);
+  }, [done, scope, total]);
+
+  useEffect(() => {
     if (pendingToggles > 0) {
       hadPendingToggle.current = true;
       return;
