@@ -35,7 +35,7 @@ export function CategoryAdder({
           style={color ? { color } : undefined}
         >
           {!isPublic && (
-            <span aria-label="비공개" title="친구 피드에 보이지 않는다" className="text-xs">
+            <span aria-label="비공개" title="친구 피드에 보이지 않아요" className="text-xs">
               🔒
             </span>
           )}

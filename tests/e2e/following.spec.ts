@@ -50,7 +50,7 @@ test("팔로우한 사람 목록에서 언팔로우할 수 있다", async ({ pag
   await signIn(page, accounts.me);
 
   await page.goto("/feed/following");
-  await expect(page.getByText("아직 팔로우한 친구가 없다")).toBeVisible();
+  await expect(page.getByText("아직 팔로우한 친구가 없어요")).toBeVisible();
 
   await page.goto("/feed/search");
   await page.getByLabel("닉네임 검색").fill(accounts.friend.nickname);
@@ -62,5 +62,5 @@ test("팔로우한 사람 목록에서 언팔로우할 수 있다", async ({ pag
   await expect(page.getByText(accounts.friend.nickname)).toBeVisible();
 
   await page.getByRole("button", { name: "언팔로우" }).click();
-  await expect(page.getByText("아직 팔로우한 친구가 없다")).toBeVisible();
+  await expect(page.getByText("아직 팔로우한 친구가 없어요")).toBeVisible();
 });

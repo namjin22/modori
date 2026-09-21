@@ -371,7 +371,7 @@ export default async function FeedPage({
         {todos.length === 0 && scheduled.length === 0 && (
           <div className="flex flex-col items-center gap-1 py-2 text-center">
             <Dori mood="calm" size={80} />
-            <p className="text-sm text-muted">아직 할 일이 없다</p>
+            <p className="text-sm text-muted">아직 할 일이 없어요</p>
             <p className="text-xs text-muted">
               카테고리 옆 +를 눌러 바로 적어보세요.{" "}
               <Link href="/routines" className="text-brand">

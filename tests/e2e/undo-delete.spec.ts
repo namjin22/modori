@@ -57,7 +57,7 @@ test("할 일은 확인 없이 지워지고 되돌리기로 살아난다", async
   await expect(row.getByRole("button", { name: "위로" })).toHaveCount(0);
   await row.getByRole("button", { name: "삭제" }).click();
 
-  await expect(page.getByText("아직 할 일이 없다")).toBeVisible();
+  await expect(page.getByText("아직 할 일이 없어요")).toBeVisible();
   await expect(page.getByRole("status", { name: "알림" })).toContainText("할 일을 지웠어요");
 
   await page.getByRole("button", { name: "되돌리기" }).click();
@@ -85,7 +85,7 @@ test("루틴이 만든 오늘 할 일은 지우면 다시 생기지 않는다", 
 
   await row.getByText("수정").click();
   await row.getByRole("button", { name: "삭제" }).click();
-  await expect(page.getByText("아직 할 일이 없다")).toBeVisible();
+  await expect(page.getByText("아직 할 일이 없어요")).toBeVisible();
 
   // 화면을 다시 그려도 "없으니 만든다"가 돌지 않아야 한다.
   await page.reload();
@@ -111,7 +111,7 @@ test("지운 루틴을 되돌리면 만들어 둔 할 일과 다시 이어진다
     .filter({ hasText: "일기 쓰기" })
     .getByRole("button", { name: "삭제" })
     .click();
-  await expect(page.getByText("아직 루틴이 없다")).toBeVisible();
+  await expect(page.getByText("아직 루틴이 없어요")).toBeVisible();
 
   await page.getByRole("button", { name: "되돌리기" }).click();
   await expect(page.getByRole("listitem").filter({ hasText: "일기 쓰기" })).toBeVisible();

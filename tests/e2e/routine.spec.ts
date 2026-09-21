@@ -95,7 +95,7 @@ test("멈춘 루틴은 새 할 일을 만들지 않는다", async ({ page }) => 
   await page.goto(`/?date=${tomorrow}`);
 
   await expect(page.getByText("멈출 루틴")).toBeHidden();
-  await expect(page.getByText("아직 할 일이 없다")).toBeVisible();
+  await expect(page.getByText("아직 할 일이 없어요")).toBeVisible();
 });
 
 test("요일을 고르지 않은 매주 루틴은 만들어지지 않는다", async ({ page }) => {
@@ -105,7 +105,7 @@ test("요일을 고르지 않은 매주 루틴은 만들어지지 않는다", as
   await page.getByRole("radio", { name: "매주" }).click();
   await page.getByRole("button", { name: "루틴 추가" }).click();
 
-  await expect(page.getByText("아직 루틴이 없다")).toBeVisible();
+  await expect(page.getByText("아직 루틴이 없어요")).toBeVisible();
 });
 
 test("루틴을 지워도 이미 만들어진 할 일은 남는다", async ({ page }) => {
@@ -121,7 +121,7 @@ test("루틴을 지워도 이미 만들어진 할 일은 남는다", async ({ pa
 
   await page.goto("/settings/routines");
   await page.getByRole("button", { name: "삭제" }).click();
-  await expect(page.getByText("아직 루틴이 없다")).toBeVisible();
+  await expect(page.getByText("아직 루틴이 없어요")).toBeVisible();
 
   await page.getByRole("link", { name: "피드", exact: true }).click();
   await expect(page).toHaveURL("/");

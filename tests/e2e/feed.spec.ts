@@ -77,7 +77,7 @@ test("팔로우하면 친구가 완료한 할 일이 피드에 보인다", async
 
   await signIn(page, accounts.me);
   await page.goto("/feed");
-  await expect(page.getByText("아직 팔로우한 친구가 없다")).toBeVisible();
+  await expect(page.getByText("아직 팔로우한 친구가 없어요")).toBeVisible();
 
   await follow(page, accounts.friend.nickname);
 

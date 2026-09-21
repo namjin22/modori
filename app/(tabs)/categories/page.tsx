@@ -66,7 +66,7 @@ export default async function CategoriesPage() {
 
       {active.length === 0 ? (
         <p className="rounded-2xl bg-surface p-10 text-center text-sm text-muted">
-          카테고리가 없다
+          아직 카테고리가 없어요
         </p>
       ) : (
         <ul className="flex flex-col gap-2">
@@ -174,7 +174,7 @@ export default async function CategoriesPage() {
         <section className="flex flex-col gap-2">
           <h2 className="text-sm font-semibold text-muted">보관함</h2>
           <p className="text-xs text-muted">
-            지나간 기록의 색을 지키려고 삭제 대신 보관한다.
+            지나간 기록의 색을 지키려고, 지우지 않고 보관해요.
           </p>
           <ul className="flex flex-col gap-2">
             {archived.map((category) => (

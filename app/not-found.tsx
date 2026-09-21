@@ -9,7 +9,7 @@ export default function NotFound() {
         <Dori mood="confused" size={110} className="mx-auto" />
         <h1 className="mt-3 text-xl font-bold">없는 주소예요</h1>
         <p className="mt-2 text-sm text-muted">
-          주소가 바뀌었거나 지워진 화면입니다.
+          주소가 바뀌었거나 지워진 화면이에요.
         </p>
       </div>
 

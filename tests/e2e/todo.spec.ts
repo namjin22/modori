@@ -80,7 +80,7 @@ test("삭제하면 목록에서 사라진다", async ({ page }) => {
   await page.getByRole("button", { name: "삭제" }).click();
 
   await expect(page.getByText("지울 할 일")).toBeHidden();
-  await expect(page.getByText("아직 할 일이 없다")).toBeVisible();
+  await expect(page.getByText("아직 할 일이 없어요")).toBeVisible();
 });
 
 test("할 일은 날짜별로 따로 쌓인다", async ({ page }) => {
@@ -91,7 +91,7 @@ test("할 일은 날짜별로 따로 쌓인다", async ({ page }) => {
   await page.getByLabel("다음 날").click();
 
   await expect(page.getByText("오늘의 할 일")).toBeHidden();
-  await expect(page.getByText("아직 할 일이 없다")).toBeVisible();
+  await expect(page.getByText("아직 할 일이 없어요")).toBeVisible();
 
   await page.getByLabel("이전 날").click();
   await expect(page.getByText("오늘의 할 일")).toBeVisible();

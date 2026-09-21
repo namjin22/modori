@@ -40,8 +40,8 @@ export default async function AccountPage() {
       <div className="flex flex-col gap-3 rounded-2xl bg-surface p-4">
         <Dori mood="sad" size={72} className="mx-auto" />
         <p className="text-sm text-muted">
-          계정을 지우면 아래 기록이 모두 사라집니다. 되돌릴 수 없고, 같은 구글
-          계정으로 다시 로그인해도 예전 기록은 돌아오지 않습니다.
+          계정을 지우면 아래 기록이 모두 사라져요. 되돌릴 수 없고, 같은 구글
+          계정으로 다시 로그인해도 예전 기록은 돌아오지 않아요.
         </p>
 
         <ul className="flex flex-col gap-1 text-sm">
@@ -54,7 +54,7 @@ export default async function AccountPage() {
         </ul>
 
         <p className="text-sm text-muted">
-          내가 친구에게 남긴 반응도 함께 사라집니다.
+          내가 친구에게 남긴 반응도 함께 사라져요.
         </p>
       </div>
 

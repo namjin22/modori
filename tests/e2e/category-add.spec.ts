@@ -70,7 +70,7 @@ test("못 한 일은 내일로 넘긴다", async ({ page, email }, testInfo) => 
 
   await row.getByText("수정").click();
   await row.getByRole("button", { name: "내일로" }).click();
-  await expect(page.getByText("아직 할 일이 없다")).toBeVisible();
+  await expect(page.getByText("아직 할 일이 없어요")).toBeVisible();
 
   await page.goto(`/?date=${formatKST(addDays(todayKST(), 1))}`);
   await expect(page.getByRole("listitem").filter({ hasText: "영단어 외우기" })).toBeVisible();

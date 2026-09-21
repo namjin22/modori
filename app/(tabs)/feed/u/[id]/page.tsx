@@ -133,7 +133,7 @@ export default async function FriendDayPage({
 
       {todos.length === 0 ? (
         <p className="rounded-2xl bg-surface p-10 text-center text-sm text-muted">
-          이 날 완료한 할 일이 없다
+          이 날 끝낸 할 일이 없어요
         </p>
       ) : (
         <ul className="flex flex-col gap-2">
