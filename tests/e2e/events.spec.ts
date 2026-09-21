@@ -40,7 +40,6 @@ test("일정은 달력에 이름으로 뜨고, 할 일은 색으로만 남는다
 
   await page.getByText("+ 일정 만들기").click();
   await page.getByLabel("새 일정 이름").fill("중간고사");
-  await page.getByLabel("보라").check();
   await page.getByRole("button", { name: "일정 넣기" }).click();
 
   // 오른쪽 목록과 왼쪽 달력 양쪽에 보인다.
@@ -90,25 +89,4 @@ test("일정을 지우면 되돌릴 수 있다", async ({ page, email }, testInf
 
   await page.getByRole("button", { name: "되돌리기" }).click();
   await expect(page.getByRole("listitem").filter({ hasText: "동아리 발표" })).toBeVisible();
-});
-
-test("할 일에 색을 따로 고를 수 있다", async ({ page, email }, testInfo) => {
-  await signInAndOnboard(page, email, `색${testInfo.testId.slice(-6)}`);
-
-  await addTodo(page, "색 바꿀 일");
-
-  const row = page.getByRole("listitem").filter({ hasText: "색 바꿀 일" });
-  await row.getByText("수정").click();
-  await row.getByLabel("분홍").check();
-  await row.getByRole("button", { name: "저장" }).click();
-
-  await row.getByRole("button", { name: "완료" }).click();
-  await expect(row.getByRole("button", { name: "완료 취소" })).toHaveCSS(
-    "background-color",
-    "rgb(236, 72, 153)",
-  );
-
-  const user = await prisma.user.findUniqueOrThrow({ where: { email } });
-  const todo = await prisma.todo.findFirstOrThrow({ where: { userId: user.id } });
-  expect(todo.color).toBe("#ec4899");
 });

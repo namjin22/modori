@@ -22,7 +22,7 @@ export function ColorSwatches({
 
   return (
     <fieldset className="flex flex-col gap-1.5">
-      <legend className="mb-1 text-xs text-muted">{legend}</legend>
+      <legend className="mb-2 text-xs text-muted">{legend}</legend>
       <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
         {emptyLabel && (
           <label className="relative flex h-7 cursor-pointer items-center rounded-full bg-surface-hover px-2.5 text-xs text-muted has-[:checked]:bg-foreground has-[:checked]:text-background">

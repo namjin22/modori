@@ -360,7 +360,7 @@ export default async function FeedPage({
                   items={group.items.map((todo) => ({
                     id: todo.id,
                     label: todo.content,
-                    node: <TodoRow todo={todo} categories={categories} />,
+                    node: <TodoRow todo={todo} />,
                   }))}
                 />
               )}

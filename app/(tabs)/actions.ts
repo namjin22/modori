@@ -5,7 +5,7 @@ import { Prisma } from "@prisma/client";
 import { isPaletteColor } from "@/lib/colors";
 import { revalidatePath } from "next/cache";
 
-import { addDays, daysBetween, formatKST, parseKSTDate, todayKST } from "@/lib/date";
+import { daysBetween, formatKST, parseKSTDate, todayKST } from "@/lib/date";
 import { prisma } from "@/lib/prisma";
 import { matchesRule } from "@/lib/routine";
 import { requireUser } from "@/lib/session";
@@ -25,11 +25,6 @@ function readInstant(value: string | null, fallback: Date): Date {
 }
 
 /** 할 일마다 고른 색. 고르지 않았으면 null이고, 그때는 카테고리 색을 쓴다. */
-function readColor(formData: FormData): string | null {
-  const value = readId(formData, "color");
-  return isPaletteColor(value) ? value : null;
-}
-
 function readId(formData: FormData, key: string): string {
   const raw = formData.get(key);
   return typeof raw === "string" ? raw : "";
@@ -97,18 +92,10 @@ export async function updateTodo(formData: FormData) {
   const content = readContent(formData);
   if (!content) return;
 
-  const categoryId = readId(formData, "categoryId") || null;
-  if (categoryId) {
-    const owned = await prisma.category.findFirst({
-      where: { id: categoryId, userId: user.id },
-      select: { id: true },
-    });
-    if (!owned) return;
-  }
-
+  // 폼은 글자만 보낸다. 카테고리와 색은 건드리지 않는다.
   await prisma.todo.updateMany({
     where: { id, userId: user.id },
-    data: { content, categoryId, color: readColor(formData) },
+    data: { content },
   });
 
   revalidatePath("/");
@@ -234,34 +221,6 @@ export async function restoreTodo(snapshot: DeletedTodo) {
     }
     throw error;
   }
-
-  revalidatePath("/");
-}
-
-/**
- * 할 일을 다음 날 맨 뒤로 옮긴다. 오늘 못 한 일을 내일로 넘기는 흔한 동작이다.
- * 루틴 할 일은 다음 날에도 루틴이 따로 만들어서 겹치므로 옮기지 않는다.
- */
-export async function postponeTodo(formData: FormData) {
-  const user = await requireUser();
-
-  const todo = await prisma.todo.findFirst({
-    where: { id: readId(formData, "id"), userId: user.id, done: false, routineId: null },
-    select: { id: true, date: true },
-  });
-  if (!todo) return;
-
-  const nextDay = addDays(todo.date, 1);
-  const last = await prisma.todo.findFirst({
-    where: { userId: user.id, date: nextDay },
-    orderBy: { order: "desc" },
-    select: { order: true },
-  });
-
-  await prisma.todo.update({
-    where: { id: todo.id },
-    data: { date: nextDay, order: (last?.order ?? -1) + 1 },
-  });
 
   revalidatePath("/");
 }
