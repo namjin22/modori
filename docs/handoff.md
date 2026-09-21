@@ -208,7 +208,12 @@ userinfo 매핑, ACTIVE 상태 검증을 사용한다. `DATAGSM_CLIENT_ID`가 �
 - authorize 엔드포인트는 state가 없어도 302를 준다. 즉 로그인 화면까지는 간다.
   로그인 이후 콜백에서 무엇이 돌아오는지는 실제 계정이 있어야 확인된다.
 
-### DataGSM: 남은 확인
+### DataGSM: 해결됨 (2026-09-21 확인)
+
+프로덕션 배포 후 실제 DataGSM 로그인이 성공했다. 원인은 위 두 가지가 맞았다.
+아래 "남은 확인"은 해결 전 절차이므로 참고용으로만 남긴다.
+
+### DataGSM: (해결 전) 남은 확인
 
 프로덕션에서 DataGSM 로그인을 한 번 더 시도한 뒤, Vercel 로그의 `[auth:error]` 한 줄이
 필요하다. 이제 `providerError`와 `providerErrorDescription`을 함께 남긴다.
