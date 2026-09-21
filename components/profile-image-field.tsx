@@ -52,7 +52,7 @@ export function ProfileImageField({ defaultValue }: { defaultValue: string | nul
               onClick={() => setImage(null)}
               className="h-10 rounded-xl px-4 text-sm text-muted"
             >
-              도리로 되돌리기
+              삭제
             </button>
           )}
         </div>

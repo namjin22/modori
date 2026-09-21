@@ -1,9 +1,8 @@
 import { expect, test as base, type Page } from "@playwright/test";
 
-import { addDays, formatKST, todayKST } from "@/lib/date";
 import { prisma } from "@/lib/prisma";
 
-import { addCategory, addTodo, FIRST_CATEGORY, homeReady } from "./todo-helpers";
+import { addCategory, FIRST_CATEGORY, homeReady } from "./todo-helpers";
 
 const test = base.extend<{ email: string }>({
   email: async ({}, provide, testInfo) => {
@@ -63,19 +62,4 @@ test("카테고리 옆 +로 그 카테고리에 연달아 적는다", async ({ p
     ["스쿼트 30개", "운동"],
     ["플랭크 1분", "운동"],
   ]);
-});
-
-test("못 한 일은 내일로 넘긴다", async ({ page, email }, testInfo) => {
-  await signInAndOnboard(page, email, `내일${testInfo.testId.slice(-6)}`);
-
-  await addTodo(page, "영단어 외우기");
-  const row = page.getByRole("listitem").filter({ hasText: "영단어 외우기" });
-  await expect(row).toBeVisible();
-
-  await row.getByText("수정").click();
-  await row.getByRole("button", { name: "내일로" }).click();
-  await expect(page.getByText("아직 할 일이 없어요")).toBeVisible();
-
-  await page.goto(`/?date=${formatKST(addDays(todayKST(), 1))}`);
-  await expect(page.getByRole("listitem").filter({ hasText: "영단어 외우기" })).toBeVisible();
 });

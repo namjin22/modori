@@ -3,7 +3,7 @@
 import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
-import { isPaletteColor } from "@/lib/colors";
+import { DEFAULT_EVENT_COLOR } from "@/lib/colors";
 import { daysBetween, formatKST, parseKSTDate } from "@/lib/date";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
@@ -53,8 +53,8 @@ function readEventInput(formData: FormData): EventInput | string {
     return "일정은 1년 안으로만 잡을 수 있어요.";
   }
 
-  const color = readText(formData, "color");
-  if (!isPaletteColor(color)) return "색을 골라주세요.";
+  // 색은 고르지 않는다. 달력에서는 일정 이름으로 알아본다.
+  const color = DEFAULT_EVENT_COLOR;
 
   return { title, startDate, endDate, color };
 }

@@ -7,16 +7,13 @@ import {
   type EventFormState,
   updateEvent,
 } from "@/app/(tabs)/events/actions";
-import { ColorSwatches } from "@/components/color-swatches";
 import { SubmitButton } from "@/components/submit-button";
-import { DEFAULT_EVENT_COLOR } from "@/lib/colors";
 
 type EditingEvent = {
   id: string;
   title: string;
   startDate: string;
   endDate: string;
-  color: string;
 };
 
 /**
@@ -80,12 +77,6 @@ export function EventForm({
           />
         </label>
       </div>
-      <ColorSwatches
-        name="color"
-        legend="색"
-        defaultValue={event?.color ?? DEFAULT_EVENT_COLOR}
-      />
-
       {state?.message && (
         <p
           role={state.ok ? "status" : "alert"}

@@ -72,7 +72,6 @@ export function EventSection({
                         title: event.title,
                         startDate: formatKST(event.startDate),
                         endDate: formatKST(event.endDate),
-                        color: event.color,
                       }}
                     />
                     <div className="flex justify-end">

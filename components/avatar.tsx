@@ -31,7 +31,7 @@ export function Avatar({
   return <DoriFace size={size} className={`${round} ${className}`} />;
 }
 
-/** 탭 아이콘(app/icon.svg)과 같은 그림. 작게 써야 해서 몸 없이 얼굴만 담는다. */
+/** 탭 아이콘(app/icon.svg)과 같은 그림. 도리를 머리와 어깨까지 잘라 담는다. */
 export function DoriFace({
   size = 40,
   className = "",
@@ -43,30 +43,34 @@ export function DoriFace({
     <svg
       width={size}
       height={size}
-      viewBox="0 0 64 64"
+      viewBox="20 3 80 80"
       aria-hidden
       className={className}
     >
-      <rect width={64} height={64} fill="#2563eb" />
-      <g fill="#6e82ad" stroke="#6e82ad" strokeWidth={5} strokeLinejoin="round">
-        <path d="M23 25 L20 12 Q29 13 34 21 Z" />
-        <path d="M45 25 L48 12 Q39 13 34 21 Z" />
-        <circle cx={32} cy={38} r={19} />
+      <rect x={20} y={3} width={80} height={80} fill="#2563eb" />
+
+      <g fill="#6e82ad" stroke="#6e82ad" strokeWidth={8} strokeLinejoin="round">
+        <path d="M40 25 L35 9 Q48 11 55 21 Z" />
+        <path d="M80 25 L85 9 Q72 11 65 21 Z" />
+        <circle cx={60} cy={46} r={32} />
+        <rect x={34} y={58} width={52} height={38} rx={16} />
       </g>
       <g fill="#fdfbf7">
-        <path d="M23 25 L20 12 Q29 13 34 21 Z" />
-        <path d="M45 25 L48 12 Q39 13 34 21 Z" />
-        <circle cx={32} cy={38} r={19} />
+        <path d="M40 25 L35 9 Q48 11 55 21 Z" />
+        <path d="M80 25 L85 9 Q72 11 65 21 Z" />
+        <circle cx={60} cy={46} r={32} />
+        <rect x={34} y={58} width={52} height={38} rx={16} />
       </g>
-      <ellipse cx={25} cy={19} rx={2.4} ry={3} fill="#ffd0dc" transform="rotate(-20 25 19)" />
-      <ellipse cx={43} cy={19} rx={2.4} ry={3} fill="#ffd0dc" transform="rotate(20 43 19)" />
-      <ellipse cx={23} cy={44} rx={5.2} ry={4.2} fill="#ffdbe4" />
-      <ellipse cx={41} cy={44} rx={5.2} ry={4.2} fill="#ffdbe4" />
-      <ellipse cx={24.5} cy={36} rx={3.4} ry={4.3} fill="#5d6f96" />
-      <ellipse cx={39.5} cy={36} rx={3.4} ry={4.3} fill="#5d6f96" />
-      <g stroke="#5d6f96" strokeWidth={2.2} strokeLinecap="round">
-        <path d="M29.8 41.6 L34.2 44.4" />
-        <path d="M34.2 41.6 L29.8 44.4" />
+
+      <ellipse cx={44} cy={18} rx={4.5} ry={5.5} fill="#ffd0dc" transform="rotate(-20 44 18)" />
+      <ellipse cx={76} cy={18} rx={4.5} ry={5.5} fill="#ffd0dc" transform="rotate(20 76 18)" />
+      <ellipse cx={42} cy={59} rx={9.5} ry={7.5} fill="#ffdbe4" />
+      <ellipse cx={78} cy={59} rx={9.5} ry={7.5} fill="#ffdbe4" />
+      <ellipse cx={46} cy={46} rx={6} ry={7.5} fill="#5d6f96" />
+      <ellipse cx={74} cy={46} rx={6} ry={7.5} fill="#5d6f96" />
+      <g stroke="#5d6f96" strokeWidth={3.2} strokeLinecap="round">
+        <path d="M57 55 L63 59" />
+        <path d="M63 55 L57 59" />
       </g>
     </svg>
   );
