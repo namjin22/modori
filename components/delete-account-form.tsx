@@ -16,7 +16,7 @@ export function DeleteAccountForm({ nickname }: { nickname: string }) {
   );
 
   return (
-    <form action={action} className="flex flex-col gap-3">
+    <form action={action} className="flex flex-col gap-4">
       <label htmlFor="confirm" className="text-sm text-muted">
         확인을 위해 지금 닉네임 <b className="text-foreground">{nickname}</b>을(를)
         그대로 입력해주세요.

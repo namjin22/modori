@@ -22,7 +22,7 @@ export default function Error({
         <Dori mood="sad" size={110} className="mx-auto" />
         <h1 className="mt-3 text-xl font-bold">잠깐 문제가 생겼어요</h1>
         <p className="mt-2 text-sm text-muted">
-          잠시 뒤에 다시 시도해보세요. 계속 이러면 알려주세요.
+          잠깐 뒤에 다시 해보세요. 계속 이러면 알려주세요.
         </p>
       </div>
 

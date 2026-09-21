@@ -46,7 +46,7 @@ export function EventForm({
   }, [state, event]);
 
   return (
-    <form ref={formRef} action={action} className="flex flex-col gap-3">
+    <form ref={formRef} action={action} className="flex flex-col gap-4">
       {event && <input type="hidden" name="id" value={event.id} />}
       <input
         name="title"

@@ -4,23 +4,25 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { signOut } from "@/lib/auth";
 import { requireUser } from "@/lib/session";
 
+import { Avatar } from "@/components/avatar";
+
 export default async function SettingsPage() {
   const user = await requireUser();
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-6">
       <h1 className="text-2xl font-bold">설정</h1>
 
       <Link
         href="/settings/profile"
         className="flex items-center gap-3 rounded-2xl bg-surface p-5"
       >
-        <span className="text-3xl">{user.profileEmoji}</span>
+        <Avatar src={user.profileImage} size={48} />
         <p className="flex-1 text-base font-semibold">{user.nickname}</p>
         <span className="text-sm text-muted">프로필 수정 →</span>
       </Link>
 
-      <section className="flex flex-col gap-3 rounded-2xl bg-surface p-5">
+      <section className="flex flex-col gap-4 rounded-2xl bg-surface p-5">
         <h2 className="text-sm font-semibold text-muted">화면</h2>
         <ThemeToggle />
       </section>

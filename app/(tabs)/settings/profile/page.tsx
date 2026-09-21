@@ -10,11 +10,11 @@ export default async function ProfilePage() {
 
   const profile = await prisma.user.findUniqueOrThrow({
     where: { id: user.id },
-    select: { nickname: true, profileEmoji: true, bio: true },
+    select: { nickname: true, profileImage: true, bio: true },
   });
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-6">
       <header className="flex items-center gap-3">
         <Link href="/settings" aria-label="설정으로" className="text-muted">
           ←
@@ -25,14 +25,13 @@ export default async function ProfilePage() {
       <section className="rounded-2xl bg-surface p-5">
         <ProfileForm
           nickname={profile.nickname ?? ""}
-          profileEmoji={profile.profileEmoji}
+          profileImage={profile.profileImage}
           bio={profile.bio ?? ""}
         />
       </section>
 
       <p className="text-xs text-muted">
-        닉네임과 이모지는 친구들에게 보이는 이름이에요. 소개는 친구가 내 하루를
-        열었을 때 이름 아래에 보여요.
+        친구가 내 하루를 열면 이렇게 보여요.
       </p>
     </div>
   );

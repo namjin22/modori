@@ -3,6 +3,8 @@ import { expect, test, type Page } from "@playwright/test";
 import { formatKST, formatMonthKST, todayKST } from "@/lib/date";
 import { prisma } from "@/lib/prisma";
 
+import { addTodo } from "./todo-helpers";
+
 const TEST_EMAIL = "e2e-calendar@modori.test";
 
 async function removeTestUser() {
@@ -31,8 +33,7 @@ test.afterAll(async () => {
 test("완료한 할 일이 있는 날에 표시가 생긴다", async ({ page }) => {
   const dayNumber = todayKST().getUTCDate();
 
-  await page.getByLabel("할 일 내용").fill("캘린더에 남길 할 일");
-  await page.getByRole("button", { name: "추가" }).click();
+  await addTodo(page, "캘린더에 남길 할 일");
 
   await expect(
     page.getByRole("link", { name: `${dayNumber}일, 완료 없음` }),

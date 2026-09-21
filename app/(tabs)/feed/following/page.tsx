@@ -7,6 +7,8 @@ import { SubmitButton } from "@/components/submit-button";
 
 import { unfollowUser } from "../actions";
 
+import { Avatar } from "@/components/avatar";
+
 export default async function FollowingPage() {
   const user = await requireUser();
 
@@ -14,12 +16,12 @@ export default async function FollowingPage() {
     where: { followerId: user.id },
     orderBy: { createdAt: "desc" },
     select: {
-      following: { select: { id: true, nickname: true, profileEmoji: true } },
+      following: { select: { id: true, nickname: true, profileImage: true } },
     },
   });
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-6">
       <header className="flex items-center gap-3">
         <Link href="/feed" aria-label="소셜로" className="text-muted">
           ←
@@ -38,17 +40,17 @@ export default async function FollowingPage() {
           </Link>
         </div>
       ) : (
-        <ul className="flex flex-col gap-2">
+        <ul className="flex flex-col gap-3">
           {following.map(({ following: person }) => (
             <li
               key={person.id}
-              className="flex items-center gap-3 rounded-2xl bg-surface p-3"
+              className="flex items-center gap-3 rounded-2xl bg-surface p-4"
             >
               <Link
                 href={`/feed/u/${person.id}`}
                 className="flex min-w-0 flex-1 items-center gap-3"
               >
-                <span className="text-xl">{person.profileEmoji}</span>
+                <Avatar src={person.profileImage} size={36} />
                 <span className="truncate font-medium">{person.nickname}</span>
               </Link>
 

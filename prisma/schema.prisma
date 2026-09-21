@@ -24,7 +24,8 @@ model User {
   // 최초 로그인 후 온보딩에서 입력받는다. 친구를 찾는 이름이라 겹치면 안 된다.
   // 대소문자까지 구분하는 제약이라, 앱에서 대소문자 무시 비교를 한 번 더 한다.
   nickname     String?  @unique
-  profileEmoji String   @default("☁️")
+  // 올린 사진을 128×128로 줄인 data URL. 없으면 화면에서 도리 얼굴을 쓴다.
+  profileImage String?
   bio          String?
   grade        Int?
   classNum     Int?

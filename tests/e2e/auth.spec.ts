@@ -2,6 +2,8 @@ import { expect, test } from "@playwright/test";
 
 import { prisma } from "@/lib/prisma";
 
+import { homeReady } from "./todo-helpers";
+
 // 온보딩은 닉네임이 비어 있을 때만 뜨므로, 매 테스트마다 계정을 지우고 시작한다.
 // 실제 사람이 쓰지 않는 도메인을 쓴다.
 const TEST_EMAIL = "e2e@modori.test";
@@ -34,7 +36,7 @@ test("최초 로그인이면 닉네임 온보딩을 거쳐 홈에 도착한다",
   await page.getByRole("button", { name: "시작하기" }).click();
 
   await expect(page).toHaveURL("/");
-  await expect(page.getByLabel("할 일 내용")).toBeVisible();
+  await expect(homeReady(page)).toBeVisible();
 });
 
 test("닉네임이 이미 있으면 온보딩을 건너뛴다", async ({ page }) => {

@@ -2,6 +2,8 @@ import { expect, test as base, type Page } from "@playwright/test";
 
 import { prisma } from "@/lib/prisma";
 
+import { addTodo, homeReady } from "./todo-helpers";
+
 const test = base.extend<{ email: string }>({
   email: async ({}, provide, testInfo) => {
     const email = `e2e-account-${testInfo.testId}@modori.test`;
@@ -17,7 +19,7 @@ async function signInAndOnboard(page: Page, email: string, nickname: string) {
   await page.getByRole("button", { name: "테스트 로그인" }).click();
   await page.getByPlaceholder("닉네임").fill(nickname);
   await page.getByRole("button", { name: "시작하기" }).click();
-  await expect(page.getByLabel("할 일 내용", { exact: true })).toBeVisible();
+  await expect(homeReady(page)).toBeVisible();
 }
 
 test.afterAll(async () => {
@@ -28,8 +30,7 @@ test("닉네임을 그대로 적어야 계정이 지워진다", async ({ page, e
   const nickname = `탈퇴${testInfo.testId.slice(-6)}`;
   await signInAndOnboard(page, email, nickname);
 
-  await page.getByLabel("할 일 내용", { exact: true }).fill("지워질 할 일");
-  await page.getByRole("button", { name: "추가" }).click();
+  await addTodo(page, "지워질 할 일");
   await expect(page.getByText("지워질 할 일")).toBeVisible();
 
   const before = await prisma.user.findUniqueOrThrow({ where: { email } });

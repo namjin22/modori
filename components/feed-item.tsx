@@ -3,11 +3,13 @@ import Link from "next/link";
 import { ReactionBar } from "@/components/reaction-bar";
 import { summarizeReactions } from "@/lib/reactions";
 
+import { Avatar } from "@/components/avatar";
+
 type FeedTodo = {
   id: string;
   content: string;
   date: string;
-  user: { id: string; nickname: string | null; profileEmoji: string };
+  user: { id: string; nickname: string | null; profileImage: string | null };
   color: string | null;
   category: { name: string; color: string } | null;
   reactions: { emoji: string; userId: string }[];
@@ -24,14 +26,14 @@ export function FeedItem({
   showAuthor?: boolean;
 }) {
   return (
-    <li className="flex flex-col gap-3 rounded-2xl bg-surface p-4">
+    <li className="flex flex-col gap-4 rounded-2xl bg-surface p-4">
       {showAuthor && (
         <div className="flex items-center gap-2">
           <Link
             href={`/feed/u/${todo.user.id}`}
             className="flex min-w-0 items-center gap-2"
           >
-            <span className="text-lg">{todo.user.profileEmoji}</span>
+            <Avatar src={todo.user.profileImage} size={32} />
             <span className="truncate text-sm font-semibold">
               {todo.user.nickname}
             </span>

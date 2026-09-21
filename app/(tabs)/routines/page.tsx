@@ -56,7 +56,7 @@ export default async function RoutinesPage() {
   const groups = groupByCategory(routines, categories);
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-6">
       <header className="flex items-center gap-3">
         <Link href="/" aria-label="피드로" className="text-muted">
           ←
@@ -65,8 +65,7 @@ export default async function RoutinesPage() {
       </header>
 
       <p className="text-sm text-muted">
-        정해둔 날이 되면 할 일로 들어와요. 앞으로의 날짜에는 예정으로만 보이다가,
-        체크하면 그때 만들어져요.
+        정해둔 날이 오면 할 일로 들어와요. 아직 안 온 날에는 예정으로만 보여요.
       </p>
 
       {/* 브라우저 기본 삼각형 대신 + 표시를 쓰고, 열리면 ×로 돌린다. */}
@@ -91,15 +90,15 @@ export default async function RoutinesPage() {
         </p>
       ) : (
         groups.map((group) => (
-          <section key={group.key} className="flex flex-col gap-2">
+          <section key={group.key} className="flex flex-col gap-3">
             <div className="flex items-center gap-2">
               <CategoryChip name={group.name} color={group.color} />
               <span className="text-xs text-muted">{group.items.length}개</span>
             </div>
 
-            <ul className="flex flex-col gap-2">
+            <ul className="flex flex-col gap-3">
               {group.items.map((routine) => (
-                <li key={routine.id} className="rounded-2xl bg-surface p-3">
+                <li key={routine.id} className="rounded-2xl bg-surface p-4">
                   <div className="flex items-center gap-2">
                     <span className="flex-1 truncate font-medium">
                       {routine.content}

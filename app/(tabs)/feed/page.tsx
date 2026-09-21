@@ -55,7 +55,7 @@ export default async function FeedPage({
       // 한 개 더 불러서 다음 쪽이 있는지 본다. 전체 개수를 세는 것보다 싸다.
       take: FEED_SIZE + 1,
       include: {
-        user: { select: { id: true, nickname: true, profileEmoji: true } },
+        user: { select: { id: true, nickname: true, profileImage: true } },
         category: { select: { name: true, color: true } },
         reactions: { select: { emoji: true, userId: true } },
       },
@@ -70,10 +70,10 @@ export default async function FeedPage({
   const nextCursor = hasMore ? writeCursor(todos[todos.length - 1]) : null;
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-6">
       {/* 셋을 한 줄에 붙여두니 글씨도 작고 손가락으로 누르기도 어려웠다.
           자주 쓰는 "친구 찾기"만 제목 옆에 두고, 나머지는 아래에 칩으로 편다. */}
-      <header className="flex flex-col gap-3">
+      <header className="flex flex-col gap-4">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold">소셜</h1>
           <Link
@@ -125,7 +125,7 @@ export default async function FeedPage({
           )}
         </div>
       ) : (
-        <ul className="flex flex-col gap-2">
+        <ul className="flex flex-col gap-3">
           {todos.map((todo) => (
             <FeedItem
               key={todo.id}

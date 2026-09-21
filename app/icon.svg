@@ -1,0 +1,26 @@
+<!-- 브라우저 탭에 뜨는 아이콘. 16px까지 줄어들기 때문에 도리의 몸은 빼고
+     얼굴만 꽉 차게 담는다. 브랜드 파랑을 깔아야 밝은 탭에서도 크림색 얼굴이 보인다.
+     components/dori.tsx와 같은 색을 쓴다. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <rect width="64" height="64" rx="14" fill="#2563eb"/>
+  <g fill="#6e82ad" stroke="#6e82ad" stroke-width="5" stroke-linejoin="round">
+    <path d="M23 25 L20 12 Q29 13 34 21 Z"/>
+    <path d="M45 25 L48 12 Q39 13 34 21 Z"/>
+    <circle cx="32" cy="38" r="19"/>
+  </g>
+  <g fill="#fdfbf7">
+    <path d="M23 25 L20 12 Q29 13 34 21 Z"/>
+    <path d="M45 25 L48 12 Q39 13 34 21 Z"/>
+    <circle cx="32" cy="38" r="19"/>
+  </g>
+  <ellipse cx="25" cy="19" rx="2.4" ry="3" fill="#ffd0dc" transform="rotate(-20 25 19)"/>
+  <ellipse cx="43" cy="19" rx="2.4" ry="3" fill="#ffd0dc" transform="rotate(20 43 19)"/>
+  <ellipse cx="23" cy="44" rx="5.2" ry="4.2" fill="#ffdbe4"/>
+  <ellipse cx="41" cy="44" rx="5.2" ry="4.2" fill="#ffdbe4"/>
+  <ellipse cx="24.5" cy="36" rx="3.4" ry="4.3" fill="#5d6f96"/>
+  <ellipse cx="39.5" cy="36" rx="3.4" ry="4.3" fill="#5d6f96"/>
+  <g stroke="#5d6f96" stroke-width="2.2" stroke-linecap="round">
+    <path d="M29.8 41.6 L34.2 44.4"/>
+    <path d="M34.2 41.6 L29.8 44.4"/>
+  </g>
+</svg>

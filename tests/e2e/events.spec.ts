@@ -3,6 +3,8 @@ import { expect, test as base, type Page } from "@playwright/test";
 import { addDays, formatKST, todayKST } from "@/lib/date";
 import { prisma } from "@/lib/prisma";
 
+import { addTodo, homeReady } from "./todo-helpers";
+
 const test = base.extend<{ email: string }>({
   email: async ({}, provide, testInfo) => {
     const email = `e2e-event-${testInfo.testId}@modori.test`;
@@ -18,7 +20,7 @@ async function signInAndOnboard(page: Page, email: string, nickname: string) {
   await page.getByRole("button", { name: "테스트 로그인" }).click();
   await page.getByPlaceholder("닉네임").fill(nickname);
   await page.getByRole("button", { name: "시작하기" }).click();
-  await expect(page.getByLabel("할 일 내용", { exact: true })).toBeVisible();
+  await expect(homeReady(page)).toBeVisible();
 }
 
 /** 달력에서 그 날 칸. 완료 여부와 상관없이 날짜로 찾는다. */
@@ -46,8 +48,7 @@ test("일정은 달력에 이름으로 뜨고, 할 일은 색으로만 남는다
   await expect(dayCell(page, today)).toContainText("중간고사");
 
   // 할 일은 이름이 달력에 나오지 않는다.
-  await page.getByLabel("할 일 내용", { exact: true }).fill("숨은 할 일");
-  await page.getByRole("button", { name: "추가", exact: true }).click();
+  await addTodo(page, "숨은 할 일");
   await page.getByRole("button", { name: "완료", exact: true }).click();
   // 한 일은 이름이 아니라 칸 색으로만 남는다.
   await expect(dayCell(page, today)).toHaveAttribute("aria-label", /완료 있음/);
@@ -94,9 +95,7 @@ test("일정을 지우면 되돌릴 수 있다", async ({ page, email }, testInf
 test("할 일에 색을 따로 고를 수 있다", async ({ page, email }, testInfo) => {
   await signInAndOnboard(page, email, `색${testInfo.testId.slice(-6)}`);
 
-  await page.getByLabel("할 일 내용", { exact: true }).fill("색 바꿀 일");
-  await page.getByLabel("카테고리", { exact: true }).selectOption({ label: "공부" });
-  await page.getByRole("button", { name: "추가", exact: true }).click();
+  await addTodo(page, "색 바꿀 일");
 
   const row = page.getByRole("listitem").filter({ hasText: "색 바꿀 일" });
   await row.getByText("수정").click();

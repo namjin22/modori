@@ -30,10 +30,11 @@ import {
 import { ScheduledRoutineRow } from "@/components/scheduled-routine-row";
 import { SortableTodoList } from "@/components/sortable-todo-list";
 import { CalendarIcon } from "@/components/tab-icons";
-import { QuickAddForm } from "@/components/quick-add-form";
 import { TodoRow } from "@/components/todo-row";
 import { TodoProgress } from "@/components/todo-progress";
 import { WeekStrip } from "@/components/week-strip";
+
+import { Avatar } from "@/components/avatar";
 
 
 const WEEKDAY_NAMES = ["일", "월", "화", "수", "목", "금", "토"];
@@ -228,12 +229,10 @@ export default async function FeedPage({
 
   return (
     // 넓은 화면에서는 왼쪽에 프로필과 달력, 오른쪽에 고른 날의 목록을 둔다.
-    <div className="flex flex-col gap-5 lg:grid lg:grid-cols-2 lg:items-start lg:gap-10">
-      <div className="flex flex-col gap-5 lg:sticky lg:top-6">
+    <div className="flex flex-col gap-6 lg:grid lg:grid-cols-2 lg:items-start lg:gap-10">
+      <div className="flex flex-col gap-6 lg:sticky lg:top-6">
         <Link href="/settings/profile" className="flex items-center gap-3">
-          <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-surface text-2xl">
-            {user.profileEmoji}
-          </span>
+          <Avatar src={user.profileImage} size={48} />
           <span className="min-w-0">
             <span className="block truncate font-bold">{user.nickname}</span>
             <span className="block truncate text-sm text-muted">
@@ -255,7 +254,7 @@ export default async function FeedPage({
         </div>
       </div>
 
-      <div className="flex flex-col gap-5">
+      <div className="flex flex-col gap-6">
         <header className="flex items-center justify-between">
           <Link
             href={`/?date=${formatKST(addDays(date, -1))}${viewQuery}`}
@@ -346,6 +345,7 @@ export default async function FeedPage({
                 name={group.name}
                 color={group.color}
                 isPublic={group.isPublic}
+                archived={group.archived}
                 date={formatKST(date)}
                 count={
                   group.items.length > 0
@@ -373,7 +373,7 @@ export default async function FeedPage({
             <Dori mood="calm" size={80} />
             <p className="text-sm text-muted">아직 할 일이 없어요</p>
             <p className="text-xs text-muted">
-              카테고리 옆 +를 눌러 바로 적어보세요.{" "}
+              카테고리 옆 +를 눌러 적어보세요.{" "}
               <Link href="/routines" className="text-brand">
                 반복되는 일이라면 루틴으로 →
               </Link>
@@ -382,7 +382,7 @@ export default async function FeedPage({
         )}
 
         {scheduled.length > 0 && (
-          <section className="flex flex-col gap-2">
+          <section className="flex flex-col gap-3">
             <p className="text-sm text-muted">예정된 루틴</p>
             <ul className="flex flex-col gap-1">
               {scheduled.map((routine) => (
@@ -396,8 +396,6 @@ export default async function FeedPage({
             </ul>
           </section>
         )}
-
-        <QuickAddForm categories={categories} date={formatKST(date)} />
       </div>
     </div>
   );

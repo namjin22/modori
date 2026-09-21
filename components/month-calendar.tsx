@@ -61,7 +61,7 @@ export function MonthCalendar({
   const isThisMonth = monthKey === formatMonthKST(today);
 
   return (
-    <section className="flex flex-col gap-3">
+    <section className="flex flex-col gap-4">
       <header className="flex items-center justify-between">
         <h2 className="text-lg font-bold">
           {Number(year)}년 {Number(month)}월

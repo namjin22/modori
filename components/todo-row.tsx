@@ -20,8 +20,8 @@ export function TodoRow({ todo, categories }: { todo: Todo; categories: Category
           <div className="flex min-w-0 flex-1 items-center gap-2"><span className={`truncate transition-colors ${todo.done ? "text-muted line-through" : ""}`}>{todo.content}</span></div>
           <span className="shrink-0 text-xs text-muted group-open:text-brand lg:opacity-0 lg:group-hover/row:opacity-100 lg:group-open:opacity-100">수정</span>
         </summary>
-        <div className="flex flex-col gap-2 pb-3">
-          <form action={updateTodo} className="flex flex-col gap-2">
+        <div className="flex flex-col gap-3 pb-3">
+          <form action={updateTodo} className="flex flex-col gap-3">
             <input type="hidden" name="id" value={todo.id} />
             <input name="content" defaultValue={todo.content} maxLength={200} required aria-label={open ? "할 일 내용 수정" : undefined} className="h-10 rounded-xl bg-surface-hover px-3" />
             <div className="flex gap-2"><select name="categoryId" defaultValue={todo.categoryId ?? ""} aria-label="카테고리 변경" className="h-10 flex-1 rounded-xl bg-surface-hover px-3 text-sm"><option value="">카테고리 없음</option>{categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</select><button type="submit" className="h-10 rounded-xl bg-surface-hover px-4 text-sm font-medium">저장</button></div>

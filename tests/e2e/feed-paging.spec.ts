@@ -3,6 +3,8 @@ import { expect, test as base, type Page } from "@playwright/test";
 import { prisma } from "@/lib/prisma";
 import { todayKST } from "@/lib/date";
 
+import { homeReady } from "./todo-helpers";
+
 // 50개를 넘겨야 다음 쪽이 생긴다. 화면으로 50번 넣으면 너무 느려서 DB에 바로 넣는다.
 const FEED_SIZE = 50;
 
@@ -31,12 +33,12 @@ async function signIn(page: Page, account: Account) {
   await page.getByRole("button", { name: "테스트 로그인" }).click();
 
   const nickname = page.getByPlaceholder("닉네임");
-  await expect(nickname.or(page.getByLabel("할 일 내용", { exact: true })).first()).toBeVisible();
+  await expect(nickname.or(homeReady(page)).first()).toBeVisible();
 
   if (await nickname.isVisible()) {
     await nickname.fill(account.nickname);
     await page.getByRole("button", { name: "시작하기" }).click();
-    await expect(page.getByLabel("할 일 내용", { exact: true })).toBeVisible();
+    await expect(homeReady(page)).toBeVisible();
   }
 }
 

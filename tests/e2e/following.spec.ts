@@ -2,6 +2,8 @@ import { expect, test as base, type Page } from "@playwright/test";
 
 import { prisma } from "@/lib/prisma";
 
+import { homeReady } from "./todo-helpers";
+
 type Account = { email: string; nickname: string };
 
 const test = base.extend<{ accounts: { me: Account; friend: Account } }>({
@@ -28,12 +30,12 @@ async function signIn(page: Page, account: Account) {
   await page.getByRole("button", { name: "테스트 로그인" }).click();
 
   const nickname = page.getByPlaceholder("닉네임");
-  await expect(nickname.or(page.getByLabel("할 일 내용", { exact: true })).first()).toBeVisible();
+  await expect(nickname.or(homeReady(page)).first()).toBeVisible();
 
   if (await nickname.isVisible()) {
     await nickname.fill(account.nickname);
     await page.getByRole("button", { name: "시작하기" }).click();
-    await expect(page.getByLabel("할 일 내용", { exact: true })).toBeVisible();
+    await expect(homeReady(page)).toBeVisible();
   }
 }
 

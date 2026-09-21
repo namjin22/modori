@@ -15,6 +15,8 @@ import { requireUser } from "@/lib/session";
 import { FeedItem } from "@/components/feed-item";
 import { WeekStrip } from "@/components/week-strip";
 
+import { Avatar } from "@/components/avatar";
+
 const WEEKDAY_NAMES = ["일", "월", "화", "수", "목", "금", "토"];
 
 function readDate(raw: string | undefined): Date {
@@ -51,7 +53,7 @@ export default async function FriendDayPage({
       // 팔로우한 사람만 볼 수 있다. 피드와 같은 규칙이다.
       followers: { some: { followerId: viewer.id } },
     },
-    select: { id: true, nickname: true, profileEmoji: true, bio: true },
+    select: { id: true, nickname: true, profileImage: true, bio: true },
   });
   if (!friend) notFound();
 
@@ -67,7 +69,7 @@ export default async function FriendDayPage({
       where: { ...visible, date },
       orderBy: { order: "asc" },
       include: {
-        user: { select: { id: true, nickname: true, profileEmoji: true } },
+        user: { select: { id: true, nickname: true, profileImage: true } },
         category: { select: { name: true, color: true } },
         reactions: { select: { emoji: true, userId: true } },
       },
@@ -99,12 +101,12 @@ export default async function FriendDayPage({
   const basePath = `/feed/u/${friend.id}`;
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-6">
       <header className="flex items-center gap-3">
         <Link href="/feed" aria-label="소셜로" className="text-muted">
           ←
         </Link>
-        <span className="text-2xl">{friend.profileEmoji}</span>
+        <Avatar src={friend.profileImage} size={44} />
         <div className="min-w-0">
           <h1 className="truncate text-xl font-bold">{friend.nickname}</h1>
           {friend.bio && (
@@ -136,7 +138,7 @@ export default async function FriendDayPage({
           이 날 끝낸 할 일이 없어요
         </p>
       ) : (
-        <ul className="flex flex-col gap-2">
+        <ul className="flex flex-col gap-3">
           {todos.map((todo) => (
             <FeedItem
               key={todo.id}

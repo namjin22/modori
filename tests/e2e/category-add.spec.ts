@@ -3,6 +3,8 @@ import { expect, test as base, type Page } from "@playwright/test";
 import { addDays, formatKST, todayKST } from "@/lib/date";
 import { prisma } from "@/lib/prisma";
 
+import { addCategory, addTodo, FIRST_CATEGORY, homeReady } from "./todo-helpers";
+
 const test = base.extend<{ email: string }>({
   email: async ({}, provide, testInfo) => {
     const email = `e2e-catadd-${testInfo.testId}@modori.test`;
@@ -18,7 +20,7 @@ async function signInAndOnboard(page: Page, email: string, nickname: string) {
   await page.getByRole("button", { name: "테스트 로그인" }).click();
   await page.getByPlaceholder("닉네임").fill(nickname);
   await page.getByRole("button", { name: "시작하기" }).click();
-  await expect(page.getByLabel("할 일 내용", { exact: true })).toBeVisible();
+  await expect(homeReady(page)).toBeVisible();
 }
 
 test.afterAll(async () => {
@@ -29,9 +31,12 @@ test("카테고리 옆 +로 그 카테고리에 연달아 적는다", async ({ p
   await signInAndOnboard(page, email, `칩${testInfo.testId.slice(-6)}`);
 
   // 할 일이 없어도 카테고리 칩은 보인다.
-  for (const name of ["공부", "운동", "생활"]) {
-    await expect(page.getByRole("button", { name: `${name}에 할 일 쓰기` })).toBeVisible();
-  }
+  await expect(
+    page.getByRole("button", { name: `${FIRST_CATEGORY}에 할 일 쓰기` }),
+  ).toBeVisible();
+
+  await addCategory(page, "운동");
+  await page.goto("/");
 
   await page.getByRole("button", { name: "운동에 할 일 쓰기" }).click();
   const input = page.getByLabel("운동 할 일");
@@ -63,8 +68,7 @@ test("카테고리 옆 +로 그 카테고리에 연달아 적는다", async ({ p
 test("못 한 일은 내일로 넘긴다", async ({ page, email }, testInfo) => {
   await signInAndOnboard(page, email, `내일${testInfo.testId.slice(-6)}`);
 
-  await page.getByLabel("할 일 내용", { exact: true }).fill("영단어 외우기");
-  await page.getByRole("button", { name: "추가", exact: true }).click();
+  await addTodo(page, "영단어 외우기");
   const row = page.getByRole("listitem").filter({ hasText: "영단어 외우기" });
   await expect(row).toBeVisible();
 

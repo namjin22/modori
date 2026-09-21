@@ -88,7 +88,7 @@ export default async function LoginPage({
               redirectTo: "/",
             });
           }}
-          className="mt-4 flex flex-col gap-2 rounded-2xl border border-dashed border-border p-4"
+          className="mt-4 flex flex-col gap-3 rounded-2xl border border-dashed border-border p-4"
         >
           <p className="text-sm text-muted">테스트 전용 로그인</p>
           <input
