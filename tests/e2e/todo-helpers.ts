@@ -35,3 +35,24 @@ export async function addCategory(page: Page, name: string) {
   await page.getByRole("button", { name: "추가", exact: true }).click();
   await expect(page.getByText(name, { exact: true })).toBeVisible();
 }
+
+/** 할 일 글자를 눌러 고치는 창을 연다. */
+export async function openTodo(page: Page, content: string) {
+  await page.getByRole("button", { name: content, exact: true }).click();
+  await expect(page.getByLabel("할 일 내용 수정")).toBeVisible();
+}
+
+/** 일정 이름을 눌러 고치는 창을 연다. */
+export async function openEvent(page: Page, title: string) {
+  await page.getByRole("button", { name: title, exact: true }).click();
+  await expect(page.getByLabel("일정 이름", { exact: true })).toBeVisible();
+}
+
+/** "일정"을 눌러 만들기 창을 열고 하나 만든다. */
+export async function addEvent(page: Page, title: string, endDate?: string) {
+  await page.getByRole("button", { name: "일정", exact: true }).click();
+  await page.getByLabel("새 일정 이름").fill(title);
+  if (endDate) await page.getByLabel("새 일정 종료일").fill(endDate);
+  await page.getByLabel("새 일정 이름").press("Enter");
+  await expect(page.getByRole("listitem").filter({ hasText: title })).toBeVisible();
+}

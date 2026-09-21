@@ -3,7 +3,7 @@ import { expect, test as base, type Page } from "@playwright/test";
 import { addDays, formatKST, todayKST } from "@/lib/date";
 import { prisma } from "@/lib/prisma";
 
-import { addTodo, homeReady } from "./todo-helpers";
+import { addEvent, addTodo, homeReady, openEvent } from "./todo-helpers";
 
 const test = base.extend<{ email: string }>({
   email: async ({}, provide, testInfo) => {
@@ -38,12 +38,9 @@ test("일정은 달력에 이름으로 뜨고, 할 일은 색으로만 남는다
   await signInAndOnboard(page, email, `일정${testInfo.testId.slice(-6)}`);
   const today = todayKST();
 
-  await page.getByText("+ 일정 만들기").click();
-  await page.getByLabel("새 일정 이름").fill("중간고사");
-  await page.getByRole("button", { name: "일정 넣기" }).click();
+  await addEvent(page, "중간고사");
 
   // 오른쪽 목록과 왼쪽 달력 양쪽에 보인다.
-  await expect(page.getByRole("listitem").filter({ hasText: "중간고사" })).toBeVisible();
   await expect(dayCell(page, today)).toContainText("중간고사");
 
   // 할 일은 이름이 달력에 나오지 않는다.
@@ -60,10 +57,7 @@ test("여러 날 일정은 그 기간의 모든 날에 뜬다", async ({ page, e
   const today = todayKST();
   const third = addDays(today, 2);
 
-  await page.getByText("+ 일정 만들기").click();
-  await page.getByLabel("새 일정 이름").fill("수학여행");
-  await page.getByLabel("새 일정 종료일").fill(formatKST(third));
-  await page.getByRole("button", { name: "일정 넣기" }).click();
+  await addEvent(page, "수학여행", formatKST(third));
 
   for (const day of [today, addDays(today, 1), third]) {
     await expect(dayCell(page, day)).toContainText("수학여행");
@@ -78,13 +72,10 @@ test("여러 날 일정은 그 기간의 모든 날에 뜬다", async ({ page, e
 test("일정을 지우면 되돌릴 수 있다", async ({ page, email }, testInfo) => {
   await signInAndOnboard(page, email, `취소${testInfo.testId.slice(-6)}`);
 
-  await page.getByText("+ 일정 만들기").click();
-  await page.getByLabel("새 일정 이름").fill("동아리 발표");
-  await page.getByRole("button", { name: "일정 넣기" }).click();
+  await addEvent(page, "동아리 발표");
 
-  const row = page.getByRole("listitem").filter({ hasText: "동아리 발표" });
-  await row.getByText("수정").click();
-  await row.getByRole("button", { name: "삭제" }).click();
+  await openEvent(page, "동아리 발표");
+  await page.getByRole("button", { name: "삭제" }).click();
   await expect(page.getByRole("listitem").filter({ hasText: "동아리 발표" })).toHaveCount(0);
 
   await page.getByRole("button", { name: "되돌리기" }).click();

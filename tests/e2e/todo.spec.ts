@@ -2,7 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 
 import { prisma } from "@/lib/prisma";
 
-import { addCategory, addTodo, FIRST_CATEGORY } from "./todo-helpers";
+import { addCategory, addTodo, FIRST_CATEGORY, openTodo } from "./todo-helpers";
 
 const TEST_EMAIL = "e2e-todo@modori.test";
 
@@ -71,10 +71,7 @@ test("할 일을 연달아 완료해도 완료 개수가 즉시 맞는다", asyn
 test("삭제하면 목록에서 사라진다", async ({ page }) => {
   await addTodo(page, "지울 할 일");
 
-  // 삭제는 확인창을 띄운다. Playwright는 기본적으로 닫아버리므로 수락해준다.
-  page.on("dialog", (dialog) => dialog.accept());
-
-  await page.getByText("수정").click();
+  await openTodo(page, "지울 할 일");
   await page.getByRole("button", { name: "삭제" }).click();
 
   await expect(page.getByText("지울 할 일")).toBeHidden();
