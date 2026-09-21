@@ -4,9 +4,28 @@ import { Dori } from "@/components/dori";
 import { isDataGSMConfigured, isMockAuth, signIn } from "@/lib/auth";
 import { getCurrentUser } from "@/lib/session";
 
-export default async function LoginPage() {
+// Auth.js가 붙여 보내는 오류 코드. 사람이 읽을 말로 바꾼다.
+// 모르는 코드는 일반 안내로 받는다.
+const ERROR_MESSAGES: Record<string, string> = {
+  Configuration: "로그인 설정에 문제가 있어요. 잠시 뒤 다시 시도해주세요.",
+  AccessDenied: "로그인이 취소됐거나 권한이 없어요.",
+  Verification: "로그인 링크가 만료됐어요. 다시 시도해주세요.",
+  OAuthAccountNotLinked:
+    "같은 이메일로 이미 다른 방법으로 가입했어요. 처음 쓰던 방법으로 로그인해주세요.",
+};
+
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
   // 세션만 보고 보내면, 계정이 사라진 세션에서 탭 화면과 서로 튕겨낸다.
   if (await getCurrentUser()) redirect("/");
+
+  const { error } = await searchParams;
+  const message = error
+    ? (ERROR_MESSAGES[error] ?? "로그인하지 못했어요. 다시 시도해주세요.")
+    : null;
 
   return (
     // 이름만 덩그러니 있으면 첫 화면이 휑하다. 위아래로 갈라서, 가운데는 브랜드,
@@ -19,6 +38,15 @@ export default async function LoginPage() {
           <p className="mt-2 text-muted">오늘 할 일을 색으로 남긴다</p>
         </div>
       </div>
+
+      {message && (
+        <p
+          role="alert"
+          className="mb-4 rounded-2xl bg-surface p-4 text-center text-sm text-red-500"
+        >
+          {message}
+        </p>
+      )}
 
       <form
         action={async () => {
