@@ -65,8 +65,8 @@ export default async function RoutinesPage() {
       </header>
 
       <p className="text-sm text-muted">
-        정해둔 날이 되면 할 일로 들어온다. 앞으로의 날짜에는 예정으로만 보이다가
-        체크하면 그때 생긴다.
+        정해둔 날이 되면 할 일로 들어와요. 앞으로의 날짜에는 예정으로만 보이다가,
+        체크하면 그때 만들어져요.
       </p>
 
       {/* 브라우저 기본 삼각형 대신 + 표시를 쓰고, 열리면 ×로 돌린다. */}
@@ -87,7 +87,7 @@ export default async function RoutinesPage() {
 
       {routines.length === 0 ? (
         <p className="rounded-2xl bg-surface p-10 text-center text-sm text-muted">
-          아직 루틴이 없다
+          아직 루틴이 없어요
         </p>
       ) : (
         groups.map((group) => (

@@ -44,7 +44,7 @@ export default async function ReactionsPage() {
       {reactions.length === 0 ? (
         <div className="flex flex-col items-center gap-2 rounded-2xl bg-surface p-8 text-center">
           <Dori mood="calm" size={80} />
-          <p className="text-sm text-muted">아직 받은 반응이 없다</p>
+          <p className="text-sm text-muted">아직 받은 반응이 없어요</p>
         </div>
       ) : (
         <ul className="flex flex-col gap-2">

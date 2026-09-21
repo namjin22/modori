@@ -6,7 +6,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "모도리",
-  description: "오늘 할 일을 색으로 남긴다",
+  description: "오늘 할 일을 색으로 남겨요",
   // 홈 화면에 추가했을 때 주소창 없이 열린다.
   appleWebApp: { capable: true, title: "모도리", statusBarStyle: "default" },
   icons: { apple: "/icons/apple-touch-icon.png" },

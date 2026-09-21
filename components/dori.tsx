@@ -31,7 +31,7 @@ const PAD = "#ffc3d2";
 const HINT = "#a8b6d1";
 
 /** 실루엣 바깥으로 번지는 테두리 두께. 위아래 두 겹이 같은 값을 쓴다. */
-const OUTLINE = 10;
+const OUTLINE = 8;
 
 type Arms = "rest" | "wave" | "up";
 
@@ -95,13 +95,14 @@ function Outlined({ children }: { children: ReactNode }) {
 function Body() {
   return (
     <>
-      {/* 귀는 얇으면 테두리가 붙어 뿔처럼 휜다. 머리에 깊게 박은 넓은 삼각으로 둔다. */}
-      <path d="M32 32 L42 9 L52 32 Z" />
-      <path d="M88 32 L78 9 L68 32 Z" />
+      <path d="M40 25 L35 9 Q48 11 55 21 Z" />
+      <path d="M80 25 L85 9 Q72 11 65 21 Z" />
       <circle cx={60} cy={46} r={32} />
-      {/* 몸통·팔·발을 따로 된 타원으로 두면 이음매마다 테두리가 파고들어 자국이
-          남는다. 닫힌 path 하나로 그려서 팔과 발을 혹으로만 부풀린다. */}
-      <path d="M36 64 C29 70 26 86 33 93 C35 98 38 101 44 104 C52 108 57 104 60 100 C63 104 68 108 76 104 C82 101 85 98 87 93 C94 86 91 70 84 64 Z" />
+      {/* 몸통 바닥을 평평하게 둔다. 둥근 바닥에 발을 붙이면 발끼리 너무 벌어져
+          이음매가 꺾이고, 좁히면 발 사이 홈이 테두리에 메워진다. */}
+      <rect x={34} y={58} width={52} height={38} rx={16} />
+      <ellipse cx={48} cy={94} rx={8.5} ry={8} />
+      <ellipse cx={72} cy={94} rx={8.5} ry={8} />
     </>
   );
 }
@@ -403,20 +404,20 @@ export function Dori({
       {arms === "up" && <PawPads x={20} />}
 
       <ellipse
-        cx={42}
-        cy={19}
-        rx={3.8}
-        ry={5}
+        cx={44}
+        cy={18}
+        rx={4.5}
+        ry={5.5}
         fill={EAR}
-        transform="rotate(0 42 19)"
+        transform="rotate(-20 44 18)"
       />
       <ellipse
-        cx={78}
-        cy={19}
-        rx={3.8}
-        ry={5}
+        cx={76}
+        cy={18}
+        rx={4.5}
+        ry={5.5}
         fill={EAR}
-        transform="rotate(0 78 19)"
+        transform="rotate(20 76 18)"
       />
       <ellipse cx={42} cy={59} rx={9.5} ry={7.5} fill={BLUSH} />
       <ellipse cx={78} cy={59} rx={9.5} ry={7.5} fill={BLUSH} />

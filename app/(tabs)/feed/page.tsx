@@ -110,10 +110,10 @@ export default async function FeedPage({
           <Dori mood={followingCount === 0 ? "hello" : "calm"} size={88} className="mb-2" />
           <p className="text-sm text-muted">
             {after
-              ? "더 이전 기록은 없다"
+              ? "더 이전 기록은 없어요"
               : followingCount === 0
-                ? "아직 팔로우한 친구가 없다"
-                : "친구들이 아직 완료한 할 일이 없다"}
+                ? "아직 팔로우한 친구가 없어요"
+                : "친구들이 아직 끝낸 할 일이 없어요"}
           </p>
           {followingCount === 0 && (
             <Link

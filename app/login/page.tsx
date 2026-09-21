@@ -35,7 +35,7 @@ export default async function LoginPage({
         <Dori mood="hello" size={120} />
         <div>
           <h1 className="text-3xl font-bold tracking-tight">모도리</h1>
-          <p className="mt-2 text-muted">오늘 할 일을 색으로 남긴다</p>
+          <p className="mt-2 text-muted">오늘 할 일을 색으로 남겨요</p>
         </div>
       </div>
 

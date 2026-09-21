@@ -65,11 +65,11 @@ export default async function SearchPage({
 
       {query.length === 0 ? (
         <p className="rounded-2xl bg-surface p-10 text-center text-sm text-muted">
-          닉네임을 입력해서 찾는다
+          닉네임으로 친구를 찾아보세요
         </p>
       ) : results.length === 0 ? (
         <p className="rounded-2xl bg-surface p-10 text-center text-sm text-muted">
-          {query}에 맞는 사람이 없다
+          {query}에 맞는 사람이 없어요
         </p>
       ) : (
         <ul className="flex flex-col gap-2">

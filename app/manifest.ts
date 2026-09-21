@@ -7,7 +7,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "모도리",
     short_name: "모도리",
-    description: "오늘 할 일을 색으로 남긴다",
+    description: "오늘 할 일을 색으로 남겨요",
     start_url: "/",
     display: "standalone",
     background_color: "#f7f8fa",

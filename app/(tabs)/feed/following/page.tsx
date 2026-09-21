@@ -29,7 +29,7 @@ export default async function FollowingPage() {
 
       {following.length === 0 ? (
         <div className="rounded-2xl bg-surface p-10 text-center">
-          <p className="text-sm text-muted">아직 팔로우한 친구가 없다</p>
+          <p className="text-sm text-muted">아직 팔로우한 친구가 없어요</p>
           <Link
             href="/feed/search"
             className="mt-3 inline-block text-sm text-brand"
