@@ -72,7 +72,7 @@ export default async function LoginPage({
         >
           <button
             type="submit"
-            className="h-12 w-full rounded-2xl bg-surface text-sm font-semibold text-foreground transition-colors hover:bg-surface-hover active:scale-[0.98]"
+            className="h-14 w-full rounded-2xl bg-surface text-base font-semibold text-foreground transition-colors hover:bg-surface-hover active:scale-[0.98]"
           >
             DataGSM으로 계속하기
           </button>

@@ -31,7 +31,7 @@ export default async function ProfilePage() {
       </section>
 
       <p className="text-xs text-muted">
-        친구가 내 하루를 열면 이렇게 보여요.
+        닉네임과 사진은 친구에게 보여요.
       </p>
     </div>
   );
