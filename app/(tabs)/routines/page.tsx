@@ -68,7 +68,22 @@ export default async function RoutinesPage() {
         정해둔 날이 오면 할 일로 들어와요. 아직 안 온 날에는 예정으로만 보여요.
       </p>
 
-      {/* 브라우저 기본 삼각형 대신 + 표시를 쓰고, 열리면 ×로 돌린다. */}
+      {categories.length === 0 ? (
+        // 루틴은 카테고리 안에 묶인다. 카테고리가 없으면 만들어도 갈 곳이 없다.
+        <div className="flex flex-col items-start gap-2 rounded-2xl bg-surface p-5">
+          <p className="text-sm font-medium">카테고리를 먼저 만들어주세요</p>
+          <p className="text-sm text-muted">
+            루틴은 카테고리 안에 들어가요. 하나만 만들어도 바로 쓸 수 있어요.
+          </p>
+          <Link
+            href="/categories"
+            className="mt-1 flex h-10 items-center rounded-xl bg-brand px-4 text-sm font-semibold text-brand-contrast"
+          >
+            카테고리 만들기
+          </Link>
+        </div>
+      ) : (
+      /* 브라우저 기본 삼각형 대신 + 표시를 쓰고, 열리면 ×로 돌린다. */
       <details className="group rounded-2xl bg-surface">
         <summary className="flex cursor-pointer list-none items-center gap-2 p-4 font-medium [&::-webkit-details-marker]:hidden">
           <span
@@ -83,6 +98,7 @@ export default async function RoutinesPage() {
           <RoutineForm categories={categories} today={formatKST(todayKST())} />
         </div>
       </details>
+      )}
 
       {routines.length === 0 ? (
         <p className="rounded-2xl bg-surface p-10 text-center text-sm text-muted">
