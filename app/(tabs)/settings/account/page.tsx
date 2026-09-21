@@ -29,7 +29,7 @@ export default async function AccountPage() {
   ] as const;
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-6">
       <header className="flex items-center gap-3">
         <Link href="/settings" aria-label="설정으로" className="text-muted">
           ←
@@ -37,11 +37,10 @@ export default async function AccountPage() {
         <h1 className="text-2xl font-bold">계정 지우기</h1>
       </header>
 
-      <div className="flex flex-col gap-3 rounded-2xl bg-surface p-4">
+      <div className="flex flex-col gap-4 rounded-2xl bg-surface p-4">
         <Dori mood="sad" size={72} className="mx-auto" />
         <p className="text-sm text-muted">
-          계정을 지우면 아래 기록이 모두 사라져요. 되돌릴 수 없고, 같은 구글
-          계정으로 다시 로그인해도 예전 기록은 돌아오지 않아요.
+          지우면 아래 기록이 전부 없어져요. 다시 로그인해도 되살릴 수 없어요.
         </p>
 
         <ul className="flex flex-col gap-1 text-sm">
@@ -54,7 +53,7 @@ export default async function AccountPage() {
         </ul>
 
         <p className="text-sm text-muted">
-          내가 친구에게 남긴 반응도 함께 사라져요.
+          친구에게 남긴 반응도 같이 없어져요.
         </p>
       </div>
 

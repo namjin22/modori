@@ -29,7 +29,7 @@ export default async function CategoriesPage() {
   const archived = categories.filter((category) => category.archivedAt);
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-6">
       <header className="flex items-center gap-3">
         <Link href="/" aria-label="피드로" className="text-muted">
           ←
@@ -39,7 +39,7 @@ export default async function CategoriesPage() {
 
       <form
         action={createCategory}
-        className="flex flex-col gap-3 rounded-2xl bg-surface p-3"
+        className="flex flex-col gap-4 rounded-2xl bg-surface p-4"
       >
         <div className="flex gap-2">
           <input
@@ -69,7 +69,7 @@ export default async function CategoriesPage() {
           아직 카테고리가 없어요
         </p>
       ) : (
-        <ul className="flex flex-col gap-2">
+        <ul className="flex flex-col gap-3">
           {active.map((category) => (
             // 오늘 화면의 할 일 줄과 같은 모양으로 맞춘다. 접었을 때는 색, 이름,
             // "수정"만 보이고, 순서 화살표와 보관은 펼쳤을 때 나온다.
@@ -94,8 +94,8 @@ export default async function CategoriesPage() {
                   </span>
                 </summary>
 
-                <div className="flex flex-col gap-3 px-3 pb-3">
-                  <form action={updateCategory} className="flex flex-col gap-2">
+                <div className="flex flex-col gap-4 px-3 pb-3">
+                  <form action={updateCategory} className="flex flex-col gap-3">
                     <input type="hidden" name="id" value={category.id} />
                     <input
                       name="name"
@@ -171,16 +171,16 @@ export default async function CategoriesPage() {
       )}
 
       {archived.length > 0 && (
-        <section className="flex flex-col gap-2">
+        <section className="flex flex-col gap-3">
           <h2 className="text-sm font-semibold text-muted">보관함</h2>
           <p className="text-xs text-muted">
-            지나간 기록의 색을 지키려고, 지우지 않고 보관해요.
+            지운 카테고리는 예전 기록의 색까지 가져가요. 그래서 보관만 해요.
           </p>
-          <ul className="flex flex-col gap-2">
+          <ul className="flex flex-col gap-3">
             {archived.map((category) => (
               <li
                 key={category.id}
-                className="flex items-center gap-3 rounded-2xl bg-surface p-3"
+                className="flex items-center gap-3 rounded-2xl bg-surface p-4"
               >
                 <span
                   aria-hidden

@@ -7,6 +7,8 @@ import { SubmitButton } from "@/components/submit-button";
 
 import { followUser, unfollowUser } from "../actions";
 
+import { Avatar } from "@/components/avatar";
+
 const MAX_RESULTS = 20;
 
 export default async function SearchPage({
@@ -27,7 +29,7 @@ export default async function SearchPage({
           },
           orderBy: { nickname: "asc" },
           take: MAX_RESULTS,
-          select: { id: true, nickname: true, profileEmoji: true },
+          select: { id: true, nickname: true, profileImage: true },
         })
       : Promise.resolve([]),
     prisma.follow.findMany({
@@ -39,7 +41,7 @@ export default async function SearchPage({
   const followingIds = new Set(following.map((row) => row.followingId));
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-6">
       <header className="flex items-center gap-3">
         <Link href="/feed" aria-label="소셜로" className="text-muted">
           ←
@@ -47,7 +49,7 @@ export default async function SearchPage({
         <h1 className="text-2xl font-bold">친구 찾기</h1>
       </header>
 
-      <form className="flex gap-2 rounded-2xl bg-surface p-3">
+      <form className="flex gap-2 rounded-2xl bg-surface p-4">
         <input
           name="q"
           defaultValue={query}
@@ -65,23 +67,23 @@ export default async function SearchPage({
 
       {query.length === 0 ? (
         <p className="rounded-2xl bg-surface p-10 text-center text-sm text-muted">
-          닉네임으로 친구를 찾아보세요
+          닉네임으로 찾아보세요
         </p>
       ) : results.length === 0 ? (
         <p className="rounded-2xl bg-surface p-10 text-center text-sm text-muted">
           {query}에 맞는 사람이 없어요
         </p>
       ) : (
-        <ul className="flex flex-col gap-2">
+        <ul className="flex flex-col gap-3">
           {results.map((person) => {
             const isFollowing = followingIds.has(person.id);
 
             return (
               <li
                 key={person.id}
-                className="flex items-center gap-3 rounded-2xl bg-surface p-3"
+                className="flex items-center gap-3 rounded-2xl bg-surface p-4"
               >
-                <span className="text-xl">{person.profileEmoji}</span>
+                <Avatar src={person.profileImage} size={36} />
                 <span className="flex-1 truncate font-medium">
                   {person.nickname}
                 </span>
