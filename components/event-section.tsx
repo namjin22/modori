@@ -50,7 +50,7 @@ export function EventSection({
                 style={{ boxShadow: `inset 4px 0 0 ${event.color}` }}
               >
                 <details className="group/event">
-                  <summary className="flex cursor-pointer list-none items-center gap-2 py-2.5 pl-4 pr-3 [&::-webkit-details-marker]:hidden">
+                  <summary className="flex cursor-pointer list-none items-center gap-3 py-2.5 pl-4 pr-3 [&::-webkit-details-marker]:hidden">
                     <span className="min-w-0 flex-1 truncate font-medium">
                       {event.title}
                     </span>
