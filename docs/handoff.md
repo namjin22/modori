@@ -185,3 +185,86 @@ userinfo 매핑, ACTIVE 상태 검증을 사용한다. `DATAGSM_CLIENT_ID`가 �
   테스트를 바꾸지 않는다.
 - Production migration 상태는 확인 완료:
   - `Database schema is up to date!`
+
+## 2026-09-21 — DataGSM 토큰 형식과 캐릭터 재설계
+
+### DataGSM: 확인한 사실
+
+추측 대신 실제로 측정했다. 비밀값은 출력하지 않았다.
+
+- **authorize 요청에 state가 없었다.** 로컬에서 `/api/auth/signin/datagsm`의 302
+  Location을 찍어 확인했다. `checks: ["pkce"]`라서 파라미터 자체가 생성되지 않는다.
+  나머지(response_type, scope, redirect_uri, code_challenge, S256)는 문서와 일치했다.
+  `checks: ["state", "pkce"]`로 되돌린 뒤 state와 `authjs.state` 쿠키가 생기는 것을 확인했다.
+- **PKCE 쿠키는 정상이었다.** authorize 직후 `authjs.pkce.code_verifier`가 저장된다.
+- **토큰 엔드포인트는 JSON 본문 + 본문 자격 증명만 받는다.** 일부러 틀린 code로
+  세 형식을 보내 응답을 비교했다.
+  - JSON 본문 + client_id/client_secret → 400 `invalid_grant` (형식·인증 통과)
+  - JSON 본문 + Basic 헤더 → 401 "잘못된 형식의 Authorization 헤더입니다"
+  - form 본문 → 415 "지원되지 않는 미디어 타입입니다"
+  기존 코드는 customFetch가 Authorization 헤더를 지우는데 본문에도 자격 증명이 없어서
+  어떤 인증도 실리지 않았다. `client_secret_post`로 바꿔 본문에 들어가게 했다.
+- **scope는 `datagsm:self_read`가 맞다.** `SELF_READ`로 보내면 400 `invalid_scope`다.
+- authorize 엔드포인트는 state가 없어도 302를 준다. 즉 로그인 화면까지는 간다.
+  로그인 이후 콜백에서 무엇이 돌아오는지는 실제 계정이 있어야 확인된다.
+
+### DataGSM: 남은 확인
+
+프로덕션에서 DataGSM 로그인을 한 번 더 시도한 뒤, Vercel 로그의 `[auth:error]` 한 줄이
+필요하다. 이제 `providerError`와 `providerErrorDescription`을 함께 남긴다.
+authorization code와 토큰은 로그에 남지 않는다.
+
+- `providerError: invalid_request` 계열이면 DataGSM이 콜백에 오류를 실어 보낸 것이다.
+- `name: InvalidCheck`면 PKCE/state 쿠키 문제다.
+- `message`에 `unexpected "iss"`가 있으면 DataGSM이 RFC 9207 `iss`를 보내는 것이므로
+  provider에 `issuer`를 정확한 문자열로 지정해야 한다. 값은 DataGSM 쪽에 확인해야 한다.
+
+### 캐릭터
+
+`components/dori.tsx`를 파란 고양이로 다시 그렸다. 귀로 실루엣을 잡아 24px에서도
+구분되고, 눈 반지름 7과 선 굵기 3.2로 작은 크기에서 표정이 남는다. mood 아홉 가지와
+`Dori({ mood, size, label, className })` 호출 방식, 반응 저장값(👍🔥👏🎉)은 그대로다.
+장식으로 쓸 때는 `aria-hidden`을 유지한다.
+
+### 되돌린 구현
+
+빠른 추가가 `/api/todos`로 폼을 직접 POST해서 할 일 하나 넣을 때마다 전체 페이지가
+다시 열렸다(목록이 사라졌다가 로딩 뼈대가 보였다). 서버 액션으로 되돌렸다.
+완료 개수는 모듈 전역 Map·sessionStorage·타이머·`router.refresh` 대신 `useOptimistic`
+하나로 바꿨다. `toggleTodo`에 빠져 있던 `revalidatePath("/")`도 되살렸다.
+쓰지 않게 된 `app/api/todos` 라우트 두 개는 삭제했다.
+
+### 검증 기록 (2026-09-21)
+
+- `npx tsc --noEmit` 통과, `npm run lint` 통과, `npx next build` 통과.
+- `npm run verify`: 단위 테스트 56개가 세 타임존에서 모두 통과.
+  E2E는 55개 통과, 1개 실패(아래).
+
+### 실패하는 테스트 1개 — 구현이 아니라 테스트 문제
+
+`tests/e2e/todo.spec.ts:48` "할 일을 연달아 완료해도 완료 개수가 즉시 맞는다".
+
+측정한 내용:
+
+- 이 테스트는 `getByRole("button", { name: "완료", exact: true }).all()`로 체크박스
+  목록을 미리 붙잡는다. 그런데 첫 번째를 누르는 순간 그 버튼의 이름이 "완료 취소"로
+  바뀌어 조건에서 빠진다. 그래서 두 번째 클릭이 엉뚱한 자리를 가리키고,
+  서버 액션 요청이 **한 건만** 나간다(요청 수를 세어 확인했다).
+- 같은 동시 클릭을 로케이터로 그때그때 찾게 하면(`nth(0)`, `nth(1)`을 클릭 시점에 해석)
+  요청 2건, 진행률 "2개 중 2개 완료", DB도 둘 다 `done=true`로 정상이다.
+  간격 0ms와 120ms 모두 통과한다.
+- 즉 동시 체크 동작 자체는 정상이고, 실패는 테스트가 붙잡아 둔 목록이 낡아서 생긴다.
+
+사용자 승인을 받고 로케이터만 고쳤다. 확인하는 내용은 그대로다.
+각 할 일 줄 안에서 체크박스를 찾고, 앞 클릭이 반환되면 바로 다음을 누른다.
+서버 응답은 기다리지 않으므로 첫 저장이 끝나기 전에 두 번째를 누르는 상황은
+그대로 검증된다.
+
+두 클릭을 `Promise.all`로 같은 순간에 보내면 1ms 안에 겹칠 때 한쪽 DOM 이벤트가
+사라진다. 브라우저에 `[dom-click]` 리스너를 붙여 계측했을 때, 겹치면 클릭이 한 번만
+도달했고 두 번 도달한 경우에는 항상 요청 2건·진행률 2/2·DB 둘 다 완료로 정상이었다.
+
+### 최종 검증 (2026-09-21)
+
+`npm run verify` 전체 통과. 단위 56개가 세 타임존에서 통과, E2E 56개 통과.
+`npx next build`도 통과했다.

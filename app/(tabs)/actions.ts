@@ -84,8 +84,11 @@ export async function toggleTodo(formData: FormData) {
 
   await prisma.todo.update({
     where: { id },
+    // 완료 시각은 캘린더와 피드가 쓰므로 같이 기록한다.
     data: { done: !todo.done, doneAt: todo.done ? null : new Date() },
   });
+
+  revalidatePath("/");
 }
 
 export async function updateTodo(formData: FormData) {

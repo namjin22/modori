@@ -7,7 +7,19 @@ import type { OAuthConfig } from "next-auth/providers";
 import { prisma } from "@/lib/prisma";
 
 export const isMockAuth = process.env.AUTH_MODE === "mock";
-export const isDataGSMConfigured = Boolean(process.env.DATAGSM_CLIENT_ID);
+
+// 토큰 요청에 client_secret을 실어야 하므로 둘 다 있어야 쓸 수 있다.
+// 하나만 있으면 로그인 버튼을 숨기고 로그에 남긴다. 여기서 throw하면 구글 로그인까지
+// 같이 죽는다.
+export const isDataGSMConfigured =
+  Boolean(process.env.DATAGSM_CLIENT_ID) &&
+  Boolean(process.env.DATAGSM_CLIENT_SECRET);
+
+if (process.env.DATAGSM_CLIENT_ID && !process.env.DATAGSM_CLIENT_SECRET) {
+  console.error(
+    "[auth] DATAGSM_CLIENT_SECRET이 없어서 DataGSM 로그인을 끈다. 환경변수를 확인해라.",
+  );
+}
 
 type DataGSMProfile = {
   id: number;
@@ -20,22 +32,30 @@ type DataGSMProfile = {
 
 function DataGSM(): OAuthConfig<DataGSMProfile> {
   const clientId = process.env.DATAGSM_CLIENT_ID;
-  if (!clientId) throw new Error("DATAGSM_CLIENT_ID가 설정되지 않았다.");
+  const clientSecret = process.env.DATAGSM_CLIENT_SECRET;
+  if (!clientId || !clientSecret) {
+    throw new Error("DataGSM 환경변수가 설정되지 않았다.");
+  }
 
   return {
     id: "datagsm",
     name: "DataGSM",
     type: "oauth",
     clientId,
-    clientSecret: process.env.DATAGSM_CLIENT_SECRET,
+    clientSecret,
+    // 토큰 요청을 JSON으로 보내려면 client 인증도 본문에 들어가야 한다.
+    // 기본값(client_secret_basic)은 Authorization 헤더를 쓰는데, 아래 customFetch가
+    // 본문을 JSON으로 바꾸면서 헤더만 남으면 서버가 형식을 맞추기 어렵다.
+    client: { token_endpoint_auth_method: "client_secret_post" },
     authorization: {
       url: "https://oauth.authorization.datagsm.kr/v1/oauth/authorize",
       params: { response_type: "code", scope: "datagsm:self_read" },
     },
     token: "https://oauth.authorization.datagsm.kr/v1/oauth/token",
     userinfo: "https://oauth.resource.datagsm.kr/userinfo",
-    // DataGSM callback에서 state가 누락되는 경우가 있어 PKCE로 code를 보호한다.
-    checks: ["pkce"],
+    // state는 CSRF를 막는 값이고 Auth.js의 기본값이다. 없으면 authorize 요청에
+    // state 파라미터 자체가 빠져서, 이를 요구하는 서버는 invalid_request로 되돌린다.
+    checks: ["state", "pkce"],
     [customFetch]: async (input, init) => {
       const url = input instanceof Request ? input.url : String(input);
       if (url !== "https://oauth.authorization.datagsm.kr/v1/oauth/token" || !init?.body) {
@@ -50,8 +70,8 @@ function DataGSM(): OAuthConfig<DataGSMProfile> {
             : null;
       if (!params) return fetch(input, init);
 
+      // client_secret_post라서 자격 증명은 이미 본문 params에 들어 있다.
       const headers = new Headers(init.headers);
-      headers.delete("authorization");
       headers.set("content-type", "application/json");
       return fetch(input, {
         ...init,
@@ -132,12 +152,27 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   providers,
   logger: {
     error(error) {
-      const cause = error.cause as { err?: { name?: string; message?: string } } | undefined;
+      // OAuth 제공자가 돌려준 오류는 cause에 콜백 쿼리가 통째로 들어온다.
+      // 그 안에는 authorization code도 있으므로, 원인 파악에 필요한 칸만 골라 남긴다.
+      const cause = error.cause as
+        | {
+            err?: { name?: string; message?: string };
+            providerId?: string;
+            error?: string;
+            error_description?: string;
+            error_uri?: string;
+          }
+        | undefined;
+
       console.error("[auth:error]", {
         name: error.name,
         message: error.message,
         causeName: cause?.err?.name,
         causeMessage: cause?.err?.message,
+        providerId: cause?.providerId,
+        providerError: cause?.error,
+        providerErrorDescription: cause?.error_description,
+        providerErrorUri: cause?.error_uri,
       });
     },
   },

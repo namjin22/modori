@@ -46,13 +46,25 @@ test("완료 표시를 하면 완료 개수가 올라간다", async ({ page }) =
 });
 
 test("할 일을 연달아 완료해도 완료 개수가 즉시 맞는다", async ({ page }) => {
-  for (const content of ["첫 번째 일", "두 번째 일"]) {
+  const contents = ["첫 번째 일", "두 번째 일"];
+  for (const content of contents) {
     await page.getByLabel("할 일 내용").fill(content);
     await page.getByRole("button", { name: "추가" }).click();
+    await expect(page.getByRole("listitem").filter({ hasText: content })).toBeVisible();
   }
 
-  const checkboxes = await page.getByRole("button", { name: "완료", exact: true }).all();
-  await Promise.all(checkboxes.map((checkbox) => checkbox.click()));
+  // 체크박스는 각 할 일 줄 안에서 찾는다. "완료"라는 이름으로 한꺼번에 붙잡아 두면,
+  // 첫 번째를 누르는 순간 이름이 "완료 취소"로 바뀌어 목록에서 빠지고
+  // 두 번째 클릭이 엉뚱한 자리를 가리킨다.
+  // 서버 응답을 기다리지 않고 바로 다음 것을 누른다. 첫 번째 저장이 끝나기 전에
+  // 두 번째를 누르는 상황이 이 테스트가 잡으려는 것이다.
+  for (const content of contents) {
+    await page
+      .getByRole("listitem")
+      .filter({ hasText: content })
+      .getByRole("button", { name: "완료", exact: true })
+      .click();
+  }
 
   await expect(page.getByText("2개 중 2개 완료")).toBeVisible();
 });
