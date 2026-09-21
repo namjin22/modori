@@ -273,3 +273,30 @@ authorization code와 토큰은 로그에 남지 않는다.
 
 `npm run verify` 전체 통과. 단위 56개가 세 타임존에서 통과, E2E 56개 통과.
 `npx next build`도 통과했다.
+
+## 2026-09-21 — UI/UX 다듬기 1차
+
+화면을 전부 찍어 놓고(임시 Playwright 스펙, 커밋 전 삭제함) 눈에 걸리는 것부터 고쳤다.
+
+- **기본 카테고리 색** (`app/onboarding/actions.ts`): 공부 `#2563eb`, 운동 `#3b82f6`이
+  브랜드 파랑과 거의 같아서, 색으로 구분한다는 전제 자체가 무너져 있었다.
+  공부 `#8b5cf6`, 운동 `#00b26a`, 생활 `#f59e0b`로 바꿨다.
+  **이미 가입한 계정은 옛 색 그대로다.** 카테고리 관리에서 직접 바꿔야 한다.
+- **카테고리 색 고르기** (`app/(tabs)/categories/page.tsx`, `components/color-swatches.tsx`):
+  할 일·일정은 팔레트, 카테고리만 `<input type="color">`였다. 전부 팔레트로 통일했다.
+  팔레트에 없는 옛 색은 "지금 쓰는 색" 견본으로 함께 보여준다. 안 그러면 아무것도
+  고르지 않은 상태가 되어 저장이 조용히 무시된다.
+- **로그인 실패 안내** (`lib/auth.ts`, `app/login/page.tsx`): `pages.error`를 `/login`으로
+  돌리고 오류 코드를 한국어로 바꿔 `role="alert"`로 띄운다. 그전에는 Auth.js 기본
+  영어 "Server error" 화면이었다(사용자가 DataGSM 실패 때 본 그 화면).
+  `/login`은 로그인이 필요 없는 화면이라 되돌이 리디렉션이 생기지 않는다.
+- **일정 줄** (`components/event-section.tsx`): 날짜 범위와 "수정"이 붙어 보여 `gap-3`으로 띄웠다.
+
+### 검증
+
+`npm run verify` 통과 (tsc + lint + E2E 56/56, 6.3분).
+
+중간에 `todo.spec.ts:100`이 한 번 실패했다. 카테고리 수정 폼의 색 묶음 legend를
+`${category.name} 색`으로 달았더니 목록의 카테고리 이름과 글이 겹쳐
+`getByText("공부")`가 두 곳에 걸렸다. 테스트가 아니라 구현을 고쳤다 —
+legend는 펼친 카테고리 안이므로 이름 없이 "색"이면 충분하다.
