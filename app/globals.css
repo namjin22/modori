@@ -178,3 +178,20 @@ h2 {
     transform: none;
   }
 }
+
+/* 떠서 열리는 창. 갑자기 나타나면 어디서 나왔는지 몰라서 살짝 올라오게 한다. */
+@keyframes modal-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* 떠 있는 창 뒤를 어둡게 덮는다. backdrop은 유틸리티로 잘 닿지 않아 여기에 둔다. */
+dialog::backdrop {
+  background: rgb(0 0 0 / 0.5);
+}

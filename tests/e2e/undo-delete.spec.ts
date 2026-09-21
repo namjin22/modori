@@ -2,7 +2,7 @@ import { expect, test as base, type Page } from "@playwright/test";
 
 import { prisma } from "@/lib/prisma";
 
-import { addTodo, FIRST_CATEGORY, homeReady } from "./todo-helpers";
+import { FIRST_CATEGORY, addTodo, homeReady, openTodo } from "./todo-helpers";
 
 const test = base.extend<{ email: string }>({
   email: async ({}, provide, testInfo) => {
@@ -51,11 +51,10 @@ test("할 일은 확인 없이 지워지고 되돌리기로 살아난다", async
   await page.getByRole("button", { name: "완료", exact: true }).click();
   await expect(page.getByRole("button", { name: "완료 취소" })).toBeVisible();
 
-  const row = page.getByRole("listitem").filter({ hasText: "잠깐 지울 일" });
-  await row.getByText("수정").click();
-  // 할 일 줄에서 순서 화살표는 없어졌다. 손잡이로만 옮긴다.
-  await expect(row.getByRole("button", { name: "위로" })).toHaveCount(0);
-  await row.getByRole("button", { name: "삭제" }).click();
+  await openTodo(page, "잠깐 지울 일");
+  // 할 일 창에는 지우기만 있다. 순서는 손잡이로만 바꾼다.
+  await expect(page.getByRole("button", { name: "위로" })).toHaveCount(0);
+  await page.getByRole("button", { name: "삭제" }).click();
 
   await expect(page.getByText("아직 할 일이 없어요")).toBeVisible();
   await expect(page.getByRole("status", { name: "알림" })).toContainText("할 일을 지웠어요");
@@ -83,8 +82,8 @@ test("루틴이 만든 오늘 할 일은 지우면 다시 생기지 않는다", 
   const row = page.getByRole("listitem").filter({ hasText: "물 두 잔" });
   await expect(row).toBeVisible();
 
-  await row.getByText("수정").click();
-  await row.getByRole("button", { name: "삭제" }).click();
+  await openTodo(page, "물 두 잔");
+  await page.getByRole("button", { name: "삭제" }).click();
   await expect(page.getByText("아직 할 일이 없어요")).toBeVisible();
 
   // 화면을 다시 그려도 "없으니 만든다"가 돌지 않아야 한다.

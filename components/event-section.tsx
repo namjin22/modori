@@ -1,4 +1,9 @@
+"use client";
+
+import { useState } from "react";
+
 import { EventForm } from "@/components/event-form";
+import { Modal } from "@/components/modal";
 import { UndoableDeleteButton } from "@/components/undoable-delete-button";
 import { formatKST, formatMonthDayKST, isSameKSTDate } from "@/lib/date";
 
@@ -14,7 +19,7 @@ export type DayEvent = {
 
 /**
  * 고른 날의 일정. 할 일과 달리 체크가 없고, 달력에 이름으로 보인다.
- * 만들기와 고치기 모두 펼침(details)으로 열어서 클라이언트 상태를 두지 않는다.
+ * "일정"을 누르면 만들고, 일정 이름을 누르면 고친다. 둘 다 떠 있는 창에서 한다.
  */
 export function EventSection({
   events,
@@ -23,23 +28,24 @@ export function EventSection({
   events: DayEvent[];
   date: string;
 }) {
+  const [creating, setCreating] = useState(false);
+  const [editing, setEditing] = useState<DayEvent | null>(null);
+
   return (
     <section aria-label="일정" className="flex flex-col gap-3">
-      <details className="group">
-        <summary className="flex cursor-pointer list-none items-center justify-between [&::-webkit-details-marker]:hidden">
-          <h2 className="text-sm font-semibold">일정</h2>
-          <span className="flex h-8 items-center rounded-full bg-surface px-3 text-sm text-muted group-open:bg-foreground group-open:text-background">
-            <span className="group-open:hidden">+ 일정 만들기</span>
-            <span className="hidden group-open:inline">닫기</span>
-          </span>
-        </summary>
-        <div className="mt-2 rounded-2xl bg-surface p-4">
-          <EventForm defaultDate={date} />
-        </div>
-      </details>
+      <button
+        type="button"
+        onClick={() => setCreating(true)}
+        className="flex w-fit items-center gap-1.5 text-sm font-semibold text-foreground"
+      >
+        일정
+        <span aria-hidden className="text-muted">
+          +
+        </span>
+      </button>
 
       {events.length > 0 && (
-        <ul className="flex flex-col gap-1.5">
+        <ul className="flex flex-col gap-2">
           {events.map((event) => {
             const multiDay = !isSameKSTDate(event.startDate, event.endDate);
 
@@ -49,47 +55,67 @@ export function EventSection({
                 className="overflow-hidden rounded-xl bg-surface"
                 style={{ boxShadow: `inset 4px 0 0 ${event.color}` }}
               >
-                <details className="group/event">
-                  <summary className="flex cursor-pointer list-none items-center gap-3 py-2.5 pl-4 pr-3 [&::-webkit-details-marker]:hidden">
-                    <span className="min-w-0 flex-1 truncate font-medium">
-                      {event.title}
+                <button
+                  type="button"
+                  onClick={() => setEditing(event)}
+                  className="flex w-full cursor-pointer items-center gap-3 py-3 pl-4 pr-4 text-left"
+                >
+                  <span className="min-w-0 flex-1 truncate font-medium">
+                    {event.title}
+                  </span>
+                  {multiDay && (
+                    <span className="shrink-0 text-xs text-muted">
+                      {formatMonthDayKST(event.startDate)} ~{" "}
+                      {formatMonthDayKST(event.endDate)}
                     </span>
-                    {multiDay && (
-                      <span className="shrink-0 text-xs text-muted">
-                        {formatMonthDayKST(event.startDate)} ~{" "}
-                        {formatMonthDayKST(event.endDate)}
-                      </span>
-                    )}
-                    <span className="shrink-0 text-xs text-muted group-open/event:text-brand">
-                      수정
-                    </span>
-                  </summary>
-                  <div className="flex flex-col gap-3 px-4 pb-3">
-                    <EventForm
-                      defaultDate={date}
-                      event={{
-                        id: event.id,
-                        title: event.title,
-                        startDate: formatKST(event.startDate),
-                        endDate: formatKST(event.endDate),
-                      }}
-                    />
-                    <div className="flex justify-end">
-                      <UndoableDeleteButton
-                        id={event.id}
-                        remove={deleteEvent}
-                        restore={restoreEvent}
-                        message="일정을 지웠어요"
-                        className="h-9 rounded-xl px-3 text-sm text-red-500"
-                      />
-                    </div>
-                  </div>
-                </details>
+                  )}
+                </button>
               </li>
             );
           })}
         </ul>
       )}
+
+      <Modal
+        open={creating}
+        onClose={() => setCreating(false)}
+        title="새 일정"
+      >
+        <EventForm defaultDate={date} onSaved={() => setCreating(false)} />
+        <p className="text-xs text-muted">Enter로 저장돼요.</p>
+      </Modal>
+
+      <Modal
+        open={editing !== null}
+        onClose={() => setEditing(null)}
+        title="일정"
+      >
+        {editing && (
+          <>
+            <EventForm
+              defaultDate={date}
+              event={{
+                id: editing.id,
+                title: editing.title,
+                startDate: formatKST(editing.startDate),
+                endDate: formatKST(editing.endDate),
+              }}
+              onSaved={() => setEditing(null)}
+            />
+            <div className="flex items-center justify-between">
+              <p className="text-xs text-muted">Enter로 저장돼요.</p>
+              <UndoableDeleteButton
+                id={editing.id}
+                remove={deleteEvent}
+                restore={restoreEvent}
+                message="일정을 지웠어요"
+                onDone={() => setEditing(null)}
+                className="h-10 rounded-xl px-3 text-sm font-medium text-red-500"
+              />
+            </div>
+          </>
+        )}
+      </Modal>
     </section>
   );
 }

@@ -1,13 +1,12 @@
 "use client";
 
-import { useActionState, useEffect, useRef } from "react";
+import { useActionState, useEffect } from "react";
 
 import {
   createEvent,
   type EventFormState,
   updateEvent,
 } from "@/app/(tabs)/events/actions";
-import { SubmitButton } from "@/components/submit-button";
 
 type EditingEvent = {
   id: string;
@@ -17,45 +16,48 @@ type EditingEvent = {
 };
 
 /**
- * 일정 만들기와 고치기에 같이 쓴다. 저장되면 감싸고 있는 펼침(details)을 닫는다.
- * 만들 때는 입력칸도 비워서 다음 일정을 바로 적을 수 있게 한다.
+ * 일정 만들기와 고치기에 같이 쓴다. 떠 있는 창 안에 들어간다.
+ *
+ * 저장 버튼을 두지 않는다. 이름을 적고 Enter를 누르면 저장된다.
+ * 날짜는 바꾸는 일이 드물어서 이름 아래에 조용히 둔다.
  */
 export function EventForm({
   event,
   defaultDate,
+  onSaved,
 }: {
   event?: EditingEvent;
   defaultDate: string;
+  onSaved: () => void;
 }) {
   const [state, action] = useActionState<EventFormState, FormData>(
     event ? updateEvent : createEvent,
     null,
   );
-  const formRef = useRef<HTMLFormElement>(null);
-  // 만들기 폼과 이미 있는 일정의 수정 폼이 한 화면에 같이 있다. 이름표를 구분한다.
+  // 만들기 창과 고치기 창이 한 화면에 여럿 떠 있을 수 있다. 이름표를 구분한다.
   const label = event ? "일정" : "새 일정";
 
   useEffect(() => {
-    if (!state?.ok) return;
-    const form = formRef.current;
-    if (!event) form?.reset();
-    form?.closest("details")?.removeAttribute("open");
-  }, [state, event]);
+    if (state?.ok) onSaved();
+  }, [state, onSaved]);
 
   return (
-    <form ref={formRef} action={action} className="flex flex-col gap-4">
+    <form action={action} className="flex flex-col gap-4">
       {event && <input type="hidden" name="id" value={event.id} />}
+
       <input
         name="title"
         required
         maxLength={100}
         defaultValue={event?.title}
+        autoFocus
         placeholder="예: 중간고사, 동아리 발표"
         aria-label={`${label} 이름`}
-        className="h-10 rounded-xl bg-surface-hover px-3 text-[15px] outline-none focus:ring-2 focus:ring-brand"
+        className="h-12 w-full rounded-xl bg-surface-hover px-4 text-[15px] outline-none placeholder:text-muted focus:ring-2 focus:ring-brand"
       />
-      <div className="grid grid-cols-2 gap-2">
-        <label className="flex flex-col gap-1 text-xs text-muted">
+
+      <div className="grid grid-cols-2 gap-3">
+        <label className="flex flex-col gap-1.5 text-xs text-muted">
           시작일
           <input
             type="date"
@@ -63,35 +65,31 @@ export function EventForm({
             required
             defaultValue={event?.startDate ?? defaultDate}
             aria-label={`${label} 시작일`}
-            className="h-10 rounded-xl bg-surface-hover px-3 text-sm text-foreground"
+            className="h-11 rounded-xl bg-surface-hover px-3 text-sm text-foreground"
           />
         </label>
-        <label className="flex flex-col gap-1 text-xs text-muted">
+        <label className="flex flex-col gap-1.5 text-xs text-muted">
           종료일
           <input
             type="date"
             name="endDate"
             defaultValue={event?.endDate ?? defaultDate}
             aria-label={`${label} 종료일`}
-            className="h-10 rounded-xl bg-surface-hover px-3 text-sm text-foreground"
+            className="h-11 rounded-xl bg-surface-hover px-3 text-sm text-foreground"
           />
         </label>
       </div>
-      {state?.message && (
-        <p
-          role={state.ok ? "status" : "alert"}
-          className={`text-sm ${state.ok ? "text-brand" : "text-red-500"}`}
-        >
+
+      {state?.message && !state.ok && (
+        <p role="alert" className="text-sm text-red-500">
           {state.message}
         </p>
       )}
 
-      <SubmitButton
-        pendingLabel="저장 중"
-        className="h-10 rounded-xl bg-brand text-sm font-semibold text-brand-contrast"
-      >
+      {/* 화면에는 두지 않는다. 날짜 칸에서 Enter를 눌러도 저장되게 하는 버튼이다. */}
+      <button type="submit" className="sr-only">
         {event ? "일정 고치기" : "일정 넣기"}
-      </SubmitButton>
+      </button>
     </form>
   );
 }

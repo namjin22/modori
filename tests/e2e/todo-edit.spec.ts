@@ -2,7 +2,7 @@ import { expect, test as base, type Page } from "@playwright/test";
 
 import { prisma } from "@/lib/prisma";
 
-import { addTodo, homeReady } from "./todo-helpers";
+import { addTodo, homeReady, openTodo } from "./todo-helpers";
 
 const test = base.extend<{ email: string }>({
   email: async ({}, provide, testInfo) => {
@@ -31,17 +31,15 @@ test("할 일 글자를 누르면 바로 고칠 수 있다", async ({ page, emai
 
   await addTodo(page, "우유 사기");
 
-  const row = page.getByRole("listitem").filter({ hasText: "우유 사기" });
-  const input = row.getByLabel("할 일 내용 수정");
+  // 창이 열리기 전에는 고치는 칸이 보이지 않는다.
+  await expect(page.getByLabel("할 일 내용 수정")).toBeHidden();
 
-  // 접혀 있을 때는 DOM에 있어도 보이지 않는다.
-  await expect(input).toBeHidden();
+  await openTodo(page, "우유 사기");
 
-  await row.getByText("우유 사기").click();
-  await expect(input).toBeVisible();
-
+  const input = page.getByLabel("할 일 내용 수정");
   await input.fill("우유랑 계란 사기");
-  await row.getByRole("button", { name: "저장" }).click();
+  // 저장 버튼은 없다. Enter로 저장한다.
+  await input.press("Enter");
 
   await expect(page.getByText("우유랑 계란 사기")).toBeVisible();
 });
