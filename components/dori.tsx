@@ -58,20 +58,20 @@ function Stroke({
 
 /** 위로 든 앞발. dir이 1이면 오른쪽, -1이면 왼쪽. */
 function RaisedArm({ dir }: { dir: 1 | -1 }) {
-  const pivotX = 60 + dir * 35;
-  const pawX = 60 + dir * 41;
+  const pivotX = 60 + dir * 33;
+  const pawX = 60 + dir * 40;
 
   return (
     <>
       <rect
-        x={pivotX - 8.5}
-        y={42}
-        width={17}
-        height={42}
-        rx={8.5}
+        x={pivotX - 7}
+        y={46}
+        width={14}
+        height={40}
+        rx={7}
         transform={`rotate(${dir * 18} ${pivotX} 63)`}
       />
-      <circle cx={pawX} cy={42} r={9.5} />
+      <circle cx={pawX} cy={44} r={8.5} />
     </>
   );
 }
@@ -92,15 +92,16 @@ function Outlined({ children }: { children: ReactNode }) {
   );
 }
 
-function Body({ arms }: { arms: Arms }) {
+function Body() {
   return (
     <>
-      <path d="M40 26 L35 10 Q48 12 55 22 Z" />
-      <path d="M80 26 L85 10 Q72 12 65 22 Z" />
-      <circle cx={60} cy={47} r={32} />
-      <ellipse cx={60} cy={89} rx={23} ry={21} />
-      {arms !== "up" && <ellipse cx={35} cy={84} rx={9.5} ry={8.5} />}
-      {arms === "rest" && <ellipse cx={85} cy={84} rx={9.5} ry={8.5} />}
+      {/* 귀는 얇으면 테두리가 붙어 뿔처럼 휜다. 머리에 깊게 박은 넓은 삼각으로 둔다. */}
+      <path d="M32 32 L42 9 L52 32 Z" />
+      <path d="M88 32 L78 9 L68 32 Z" />
+      <circle cx={60} cy={46} r={32} />
+      {/* 몸통·팔·발을 따로 된 타원으로 두면 이음매마다 테두리가 파고들어 자국이
+          남는다. 닫힌 path 하나로 그려서 팔과 발을 혹으로만 부풀린다. */}
+      <path d="M36 64 C29 70 26 86 33 93 C35 98 38 101 44 104 C52 108 57 104 60 100 C63 104 68 108 76 104 C82 101 85 98 87 93 C94 86 91 70 84 64 Z" />
     </>
   );
 }
@@ -108,10 +109,10 @@ function Body({ arms }: { arms: Arms }) {
 function PawPads({ x }: { x: number }) {
   return (
     <g fill={PAD}>
-      <circle cx={x - 4} cy={38.5} r={2.1} />
-      <circle cx={x + 0.5} cy={37} r={2.1} />
-      <circle cx={x + 4.5} cy={39} r={2.1} />
-      <ellipse cx={x} cy={44.5} rx={4} ry={3} />
+      <circle cx={x - 3.4} cy={41} r={1.8} />
+      <circle cx={x + 0.4} cy={39.8} r={1.8} />
+      <circle cx={x + 4} cy={41.4} r={1.8} />
+      <ellipse cx={x} cy={46.5} rx={3.5} ry={2.7} />
     </g>
   );
 }
@@ -383,47 +384,42 @@ export function Dori({
     >
       {look.behind}
 
-      <Outlined>
-        <Body arms={arms} />
-      </Outlined>
-
       {arms !== "rest" && (
-        <>
-          <Outlined>
-            <RaisedArm dir={1} />
-          </Outlined>
-          <PawPads x={101} />
-        </>
+        <Outlined>
+          <RaisedArm dir={1} />
+        </Outlined>
       )}
       {arms === "up" && (
-        <>
-          <Outlined>
-            <RaisedArm dir={-1} />
-          </Outlined>
-          <PawPads x={19} />
-        </>
+        <Outlined>
+          <RaisedArm dir={-1} />
+        </Outlined>
       )}
 
+      <Outlined>
+        <Body />
+      </Outlined>
+
+      {arms !== "rest" && <PawPads x={100} />}
+      {arms === "up" && <PawPads x={20} />}
+
       <ellipse
-        cx={44}
+        cx={42}
         cy={19}
-        rx={4.5}
-        ry={5.5}
+        rx={3.8}
+        ry={5}
         fill={EAR}
-        transform="rotate(-20 44 19)"
+        transform="rotate(0 42 19)"
       />
       <ellipse
-        cx={76}
+        cx={78}
         cy={19}
-        rx={4.5}
-        ry={5.5}
+        rx={3.8}
+        ry={5}
         fill={EAR}
-        transform="rotate(20 76 19)"
+        transform="rotate(0 78 19)"
       />
-      <ellipse cx={42} cy={60} rx={9.5} ry={7.5} fill={BLUSH} />
-      <ellipse cx={78} cy={60} rx={9.5} ry={7.5} fill={BLUSH} />
-      {/* 두 발 사이 틈. 없으면 아래가 통짜 덩어리로 보인다. */}
-      <Stroke d="M60 103 L60 109" width={4} color={INK} />
+      <ellipse cx={42} cy={59} rx={9.5} ry={7.5} fill={BLUSH} />
+      <ellipse cx={78} cy={59} rx={9.5} ry={7.5} fill={BLUSH} />
 
       {look.face}
       {look.props}
