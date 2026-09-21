@@ -36,7 +36,7 @@ export function RoutineForm({
   );
 
   return (
-    <form action={formAction} className="flex flex-col gap-4">
+    <form action={formAction} className="flex flex-col gap-5">
       <input
         name="content"
         required

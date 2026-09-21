@@ -13,7 +13,7 @@ export function PageFrame({ children }: { children: ReactNode }) {
   const width = pathname === "/" ? "max-w-lg lg:max-w-5xl" : "max-w-lg";
 
   return (
-    <main className={`mx-auto w-full flex-1 px-5 pb-8 pt-6 ${width}`}>
+    <main className={`mx-auto w-full flex-1 px-5 pb-12 pt-8 ${width}`}>
       {children}
     </main>
   );

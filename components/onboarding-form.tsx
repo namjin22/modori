@@ -15,7 +15,7 @@ export function OnboardingForm() {
   );
 
   return (
-    <form action={formAction} className="flex flex-col gap-3">
+    <form action={formAction} className="flex flex-col gap-4">
       <input
         name="nickname"
         type="text"

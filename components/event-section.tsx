@@ -24,7 +24,7 @@ export function EventSection({
   date: string;
 }) {
   return (
-    <section aria-label="일정" className="flex flex-col gap-2">
+    <section aria-label="일정" className="flex flex-col gap-3">
       <details className="group">
         <summary className="flex cursor-pointer list-none items-center justify-between [&::-webkit-details-marker]:hidden">
           <h2 className="text-sm font-semibold">일정</h2>
@@ -33,7 +33,7 @@ export function EventSection({
             <span className="hidden group-open:inline">닫기</span>
           </span>
         </summary>
-        <div className="mt-2 rounded-2xl bg-surface p-3">
+        <div className="mt-2 rounded-2xl bg-surface p-4">
           <EventForm defaultDate={date} />
         </div>
       </details>
@@ -64,7 +64,7 @@ export function EventSection({
                       수정
                     </span>
                   </summary>
-                  <div className="flex flex-col gap-2 px-4 pb-3">
+                  <div className="flex flex-col gap-3 px-4 pb-3">
                     <EventForm
                       defaultDate={date}
                       event={{
