@@ -1,7 +1,12 @@
-// 모도리의 캐릭터 "도리". 브랜드 파랑을 쓰는 작은 고양이다.
+// 모도리의 캐릭터 "도리". 크림색 몸에 파르스름한 굵은 테두리를 두른 작은 고양이다.
 // 직접 그린 그림이라 외부 저작권이나 표기 의무가 없다.
-// 귀 두 개로 실루엣이 잡혀서 24px로 줄여도 무엇인지 알아볼 수 있고,
-// 눈과 입을 굵게 그려 작은 크기에서도 뭉개지지 않는다.
+//
+// 테두리는 도형마다 그리지 않는다. 같은 실루엣을 두 번 그려서 아래 겹은 굵은 선으로
+// 부풀리고 위 겹을 크림색으로 덮는다. 이렇게 해야 도형이 겹치는 안쪽에는 선이 남지
+// 않고 바깥 윤곽만 고르게 두꺼워진다.
+//
+// 몸이 크림색이라 파랑 버튼 옆에 두어도 브랜드 색과 싸우지 않고, 다크 모드에서도
+// 배경에서 떠오른다. 24px(반응 줄)까지 줄어들기 때문에 눈·입은 크고 단순하게 그린다.
 // 서버 컴포넌트에서도 쓰므로 상태나 훅을 두지 않는다.
 
 import type { ReactNode } from "react";
@@ -17,20 +22,32 @@ export type DoriMood =
   | "confused"
   | "hello";
 
-const INK = "#10305c";
-const BODY = "#4d9bff";
-const SHADE = "#2f7ae0";
-const EAR = "#ffc2d4";
-const CHEEK = "#ff9ec2";
-const MUZZLE = "#eef6ff";
-const HINT = "#93b8e8";
-const STAR = "l2.3 4.8 5.2.6 -3.9 3.5 1.1 5.1 -4.7 -2.7 -4.7 2.7 1.1 -5.1 -3.9 -3.5 5.2 -.6z";
+const INK = "#6e82ad";
+const BODY = "#fdfbf7";
+const EYE = "#5d6f96";
+const EAR = "#ffd0dc";
+const BLUSH = "#ffdbe4";
+const PAD = "#ffc3d2";
+const HINT = "#a8b6d1";
 
-function Stroke({ d, width = 3.2 }: { d: string; width?: number }) {
+/** 실루엣 바깥으로 번지는 테두리 두께. 위아래 두 겹이 같은 값을 쓴다. */
+const OUTLINE = 10;
+
+type Arms = "rest" | "wave" | "up";
+
+function Stroke({
+  d,
+  width = 3.4,
+  color = EYE,
+}: {
+  d: string;
+  width?: number;
+  color?: string;
+}) {
   return (
     <path
       d={d}
-      stroke={INK}
+      stroke={color}
       strokeWidth={width}
       fill="none"
       strokeLinecap="round"
@@ -39,207 +56,303 @@ function Stroke({ d, width = 3.2 }: { d: string; width?: number }) {
   );
 }
 
-function DotEye({ x, r = 7 }: { x: number; r?: number }) {
+/** 위로 든 앞발. dir이 1이면 오른쪽, -1이면 왼쪽. */
+function RaisedArm({ dir }: { dir: 1 | -1 }) {
+  const pivotX = 60 + dir * 35;
+  const pawX = 60 + dir * 41;
+
   return (
     <>
-      <circle cx={x} cy={-4} r={r} fill={INK} />
-      <circle cx={x + 2.4} cy={-6.4} r={r / 2.9} fill="#fff" />
+      <rect
+        x={pivotX - 8.5}
+        y={42}
+        width={17}
+        height={42}
+        rx={8.5}
+        transform={`rotate(${dir * 18} ${pivotX} 63)`}
+      />
+      <circle cx={pawX} cy={42} r={9.5} />
     </>
   );
 }
 
+/**
+ * 도형 묶음에 바깥 테두리만 두른다. 같은 그림을 굵은 선으로 한 번, 크림색으로 한 번
+ * 그린다. 묶음끼리는 테두리가 따로 생기므로, 들어 올린 앞발처럼 몸 위에 겹쳐야
+ * 하는 부분은 몸과 다른 묶음으로 그린다.
+ */
+function Outlined({ children }: { children: ReactNode }) {
+  return (
+    <>
+      <g fill={INK} stroke={INK} strokeWidth={OUTLINE} strokeLinejoin="round">
+        {children}
+      </g>
+      <g fill={BODY}>{children}</g>
+    </>
+  );
+}
+
+function Body({ arms }: { arms: Arms }) {
+  return (
+    <>
+      <path d="M40 26 L35 10 Q48 12 55 22 Z" />
+      <path d="M80 26 L85 10 Q72 12 65 22 Z" />
+      <circle cx={60} cy={47} r={32} />
+      <ellipse cx={60} cy={89} rx={23} ry={21} />
+      {arms !== "up" && <ellipse cx={35} cy={84} rx={9.5} ry={8.5} />}
+      {arms === "rest" && <ellipse cx={85} cy={84} rx={9.5} ry={8.5} />}
+    </>
+  );
+}
+
+function PawPads({ x }: { x: number }) {
+  return (
+    <g fill={PAD}>
+      <circle cx={x - 4} cy={38.5} r={2.1} />
+      <circle cx={x + 0.5} cy={37} r={2.1} />
+      <circle cx={x + 4.5} cy={39} r={2.1} />
+      <ellipse cx={x} cy={44.5} rx={4} ry={3} />
+    </g>
+  );
+}
+
+const DotEye = ({ x }: { x: number }) => (
+  <ellipse cx={x} cy={46} rx={6} ry={7.5} fill={EYE} />
+);
+
+/** 웃어서 감은 눈. */
 const ArcEye = ({ x }: { x: number }) => (
-  <Stroke d={`M${x - 7} -3 Q${x} -12 ${x + 7} -3`} width={3.4} />
+  <Stroke d={`M${x - 7} 49 Q${x} 39 ${x + 7} 49`} width={4} />
 );
 
 const SleepyEye = ({ x }: { x: number }) => (
-  <Stroke d={`M${x - 7} -5 Q${x} 2 ${x + 7} -5`} width={3.4} />
+  <Stroke d={`M${x - 7} 43 Q${x} 51 ${x + 7} 43`} width={4} />
 );
 
 const StarEye = ({ x }: { x: number }) => (
-  <path d={`M${x} -11 ${STAR}`} fill={INK} />
+  <path
+    d={`M${x} 38 l2.6 5.4 5.9 .7 -4.4 4 1.2 5.8 -5.3 -3 -5.3 3 1.2 -5.8 -4.4 -4 5.9 -.7z`}
+    fill={EYE}
+  />
 );
 
-/** 눈꼬리를 올린 눈. dir이 1이면 왼쪽, -1이면 오른쪽. */
+/** 눈꼬리를 올린 눈. dir이 -1이면 왼쪽, 1이면 오른쪽. */
 function SharpEye({ x, dir }: { x: number; dir: 1 | -1 }) {
   return (
     <>
-      <Stroke d={`M${x - 7 * dir} -9 L${x + 6 * dir} -4`} />
-      <circle cx={x + dir} cy={1} r={4.6} fill={INK} />
+      <Stroke d={`M${x + 7 * dir} 34 L${x - 6 * dir} 39`} width={3.4} />
+      <ellipse cx={x} cy={48} rx={5.4} ry={6.6} fill={EYE} />
     </>
   );
 }
 
-// 고양이 입(ω).
-const CatMouth = () => <Stroke d="M-7 12 Q-3.5 17 0 12 Q3.5 17 7 12" width={3} />;
+/** 눈꼬리를 내린 눈. */
+function SadEye({ x, dir }: { x: number; dir: 1 | -1 }) {
+  return (
+    <>
+      <Stroke d={`M${x + 7 * dir} 37 L${x - 6 * dir} 34`} width={3.2} />
+      <ellipse cx={x} cy={48} rx={5.6} ry={7} fill={EYE} />
+    </>
+  );
+}
+
+// 작은 ✕ 입. 이 캐릭터의 기본 표정이다.
+const XMouth = () => (
+  <>
+    <Stroke d="M57 55 L63 59" width={3.2} />
+    <Stroke d="M63 55 L57 59" width={3.2} />
+  </>
+);
+
+const CatMouth = () => (
+  <Stroke d="M54 55 Q57 60 60 55 Q63 60 66 55" width={3.2} />
+);
+
+const WavyMouth = () => (
+  <Stroke d="M54 58 Q57 54 60 57 Q63 60 66 56" width={3.2} />
+);
+
+const FrownMouth = () => <Stroke d="M55 61 Q60 55 65 61" width={3.2} />;
 
 function OpenMouth() {
   return (
     <>
-      <path d="M-6.5 10 Q0 21 6.5 10 Z" fill={INK} />
-      <path
-        d="M-3 14.5 Q0 17 3 14.5"
-        stroke="#ff8fb0"
-        strokeWidth={2.4}
-        fill="none"
-        strokeLinecap="round"
-      />
+      <ellipse cx={60} cy={58} rx={7} ry={8.5} fill={EYE} />
+      <ellipse cx={60} cy={63} rx={4} ry={3} fill="#ff8fb0" />
     </>
   );
 }
 
-/** 표정마다 얼굴(머리 좌표계)과 소품(전체 좌표계)을 따로 둔다. */
+function Spark({ x, y, s, fill }: { x: number; y: number; s: number; fill: string }) {
+  const m = s * 0.28;
+
+  return (
+    <path
+      d={`M${x} ${y - s} L${x + m} ${y - m} L${x + s} ${y} L${x + m} ${y + m} L${x} ${y + s} L${x - m} ${y + m} L${x - s} ${y} L${x - m} ${y - m} Z`}
+      fill={fill}
+    />
+  );
+}
+
+/** 표정마다 얼굴, 팔 자세, 앞뒤 소품을 따로 둔다. */
 const LOOKS: Record<
   DoriMood,
-  { face: ReactNode; props?: ReactNode; behind?: ReactNode }
+  { face: ReactNode; arms?: Arms; props?: ReactNode; behind?: ReactNode }
 > = {
   happy: {
     face: (
       <>
-        <DotEye x={-14} />
-        <DotEye x={14} />
-        <CatMouth />
+        <DotEye x={46} />
+        <DotEye x={74} />
+        <XMouth />
       </>
     ),
   },
   like: {
+    arms: "wave",
     face: (
       <>
-        <DotEye x={-14} />
-        <ArcEye x={14} />
+        <ArcEye x={46} />
+        <ArcEye x={74} />
         <CatMouth />
       </>
     ),
     props: (
       <path
-        d="M96 26 c-4.5 -8 -15.5 -3.5 -12 5.5 l12 12 l12 -12 c3.5 -9 -7.5 -13.5 -12 -5.5z"
-        fill="#ff5f8f"
+        d="M100 14 c-4.2 -7.4 -14.4 -3.2 -11.2 5.1 L100 30 l11.2 -10.9 c3.2 -8.3 -7 -12.5 -11.2 -5.1z"
+        fill="#ff6f95"
       />
     ),
   },
   fire: {
     face: (
       <>
-        <SharpEye x={-14} dir={1} />
-        <SharpEye x={14} dir={-1} />
+        <SharpEye x={46} dir={-1} />
+        <SharpEye x={74} dir={1} />
         <OpenMouth />
       </>
     ),
     behind: (
       <>
         <path
-          d="M60 4 C71 15 75 22 71 33 C69 26 65 24 63 24 C67 33 60 39 53 37 C47 35 47 26 51 20 C49 26 53 28 55 26 C53 17 55 11 60 4Z"
-          fill="#ff8a3d"
+          d="M102 6 C112 18 115 28 110 38 C108 31 105 29 103 29 C107 38 100 45 93 42 C87 39 88 30 92 24 C90 30 94 32 96 30 C94 20 97 13 102 6Z"
+          fill="#ff9a4d"
         />
-        <path d="M60 19 C65 25 64 32 60 34 C56 33 55 29 58 25Z" fill="#ffd166" />
+        <path
+          d="M102 22 C107 28 106 35 102 37 C98 35 97 31 100 27Z"
+          fill="#ffd166"
+        />
       </>
     ),
   },
   clap: {
+    arms: "up",
     face: (
       <>
-        <StarEye x={-14} />
-        <StarEye x={14} />
+        <StarEye x={46} />
+        <StarEye x={74} />
         <OpenMouth />
       </>
     ),
     props: (
       <>
-        <path d="M14 20 l2.6 6 6 2.6 -6 2.6 -2.6 6 -2.6 -6 -6 -2.6 6 -2.6z" fill="#ffc83d" />
-        <path d="M104 44 l2 5 5 2 -5 2 -2 5 -2 -5 -5 -2 5 -2z" fill="#ffc83d" />
-        <path d="M100 14 l1.6 3.8 3.8 1.6 -3.8 1.6 -1.6 3.8 -1.6 -3.8 -3.8 -1.6 3.8 -1.6z" fill="#8b7bff" />
+        <Spark x={14} y={22} s={6} fill="#ffc83d" />
+        <Spark x={108} y={26} s={5} fill="#ffc83d" />
+        <Spark x={110} y={62} s={4} fill="#8b7bff" />
       </>
     ),
   },
   party: {
     face: (
       <>
-        <ArcEye x={-14} />
-        <ArcEye x={14} />
+        <ArcEye x={46} />
+        <ArcEye x={74} />
         <OpenMouth />
       </>
     ),
     props: (
       <>
-        {/* 고깔은 한쪽 귀에만 씌운다. 가운데에 씌우면 귀가 다 가려져 실루엣이 흐려진다. */}
-        <g transform="rotate(-10 46 30)">
-          <path d="M30 30 L46 0 L62 30 Z" fill="#8b7bff" />
-          <path d="M36 18 L56 18" stroke="#ffd166" strokeWidth={3.4} />
-          <circle cx={46} cy={0} r={5} fill="#ffd166" />
-        </g>
-        <rect x={10} y={28} width={7} height={7} rx={2} fill="#ff6b9a" transform="rotate(20 13 31)" />
-        <rect x={104} y={30} width={7} height={7} rx={2} fill="#ffc83d" transform="rotate(-25 107 33)" />
-        <circle cx={108} cy={62} r={3.4} fill={BODY} />
-        <circle cx={10} cy={60} r={3.4} fill="#8b7bff" />
+        {/* 고깔은 한쪽 귀에만 씌운다. 가운데에 씌우면 두 귀가 다 가려져 실루엣이 흐려진다. */}
+        <path d="M70 26 L82 8 L94 26 Z" fill="#8b7bff" />
+        <path d="M74 18 L90 18" stroke="#ffd166" strokeWidth={3.4} />
+        <circle cx={82} cy={8} r={4.5} fill="#ffd166" />
+        <rect
+          x={12}
+          y={30}
+          width={7}
+          height={7}
+          rx={2}
+          fill="#ff6b9a"
+          transform="rotate(20 15 33)"
+        />
+        <rect
+          x={102}
+          y={60}
+          width={7}
+          height={7}
+          rx={2}
+          fill="#ffc83d"
+          transform="rotate(-25 105 63)"
+        />
+        <circle cx={108} cy={36} r={3.4} fill="#4d9bff" />
+        <circle cx={13} cy={62} r={3.4} fill="#8b7bff" />
       </>
     ),
   },
   calm: {
     face: (
       <>
-        <SleepyEye x={-14} />
-        <SleepyEye x={14} />
+        <SleepyEye x={46} />
+        <SleepyEye x={74} />
         <CatMouth />
       </>
     ),
     props: (
       <>
-        <text x={92} y={30} fontSize={16} fontWeight={800} fill={HINT} fontFamily="sans-serif">
-          z
-        </text>
-        <text x={102} y={18} fontSize={11} fontWeight={800} fill="#b9d3f2" fontFamily="sans-serif">
-          z
-        </text>
+        <Stroke d="M92 18 L104 18 L92 32 L104 32" width={4} color={HINT} />
+        <Stroke d="M106 6 L114 6 L106 15 L114 15" width={3.2} color="#c4cfe4" />
       </>
     ),
   },
   sad: {
     face: (
       <>
-        <Stroke d="M-21 -9 Q-14 -13 -7 -9" />
-        <Stroke d="M7 -9 Q14 -13 21 -9" />
-        <circle cx={-14} cy={-1} r={5.4} fill={INK} />
-        <circle cx={14} cy={-1} r={5.4} fill={INK} />
-        <Stroke d="M-6 16 Q0 10 6 16" width={3} />
+        <SadEye x={46} dir={-1} />
+        <SadEye x={74} dir={1} />
+        <FrownMouth />
+        <path d="M46 58 q-4.5 6.5 0 9 q4.5 -2.5 0 -9z" fill="#7cc8ff" />
       </>
     ),
-    props: <path d="M40 74 q-4 6.5 0 8.5 q4 -2 0 -8.5z" fill="#7cc8ff" />,
   },
   confused: {
     face: (
       <>
-        <DotEye x={-14} />
-        <circle cx={14} cy={-4} r={3.4} fill={INK} />
-        <Stroke d="M-7 13 Q-3.5 10 0 13 Q3.5 16 7 13" width={3} />
+        <DotEye x={46} />
+        <ellipse cx={74} cy={46} rx={3.4} ry={4.2} fill={EYE} />
+        <WavyMouth />
       </>
     ),
     props: (
-      <text x={92} y={34} fontSize={30} fontWeight={800} fill={HINT} fontFamily="sans-serif">
-        ?
-      </text>
+      <>
+        <Stroke
+          d="M95 22 C95 13 104 11 109 16 C113 21 108 26 104 29 L104 33"
+          width={4.5}
+          color={HINT}
+        />
+        <circle cx={104} cy={40} r={2.8} fill={HINT} />
+      </>
     ),
   },
   hello: {
+    arms: "wave",
     face: (
       <>
-        <ArcEye x={-14} />
-        <ArcEye x={14} />
+        <DotEye x={46} />
+        <DotEye x={74} />
         <OpenMouth />
       </>
     ),
-    props: (
-      <>
-        {/* 흔드는 앞발. 얼굴을 가리지 않게 머리 오른쪽 바깥에 둔다. */}
-        <g transform="translate(103 50) rotate(18)">
-          <rect x={-8} y={0} width={16} height={30} rx={8} fill={SHADE} />
-          <rect x={-8} y={0} width={16} height={22} rx={8} fill={BODY} />
-          <circle cx={-3.5} cy={5} r={2.2} fill={EAR} />
-          <circle cx={3.5} cy={5} r={2.2} fill={EAR} />
-          <circle cx={0} cy={11} r={3} fill={EAR} />
-        </g>
-        <Stroke d="M112 34 q5 -5 9 0 M110 26 q7 -7 13 0" width={2.6} />
-      </>
-    ),
+    props: <Stroke d="M94 27 q6 -6 12 0" width={3} color={HINT} />,
   },
 };
 
@@ -256,6 +369,7 @@ export function Dori({
   className?: string;
 }) {
   const look = LOOKS[mood];
+  const arms = look.arms ?? "rest";
 
   return (
     <svg
@@ -268,20 +382,50 @@ export function Dori({
       className={className}
     >
       {look.behind}
-      <g transform="translate(60 66)">
-        <path d="M-34 -18 L-30 -46 L-8 -32 Z" fill={SHADE} />
-        <path d="M34 -18 L30 -46 L8 -32 Z" fill={SHADE} />
-        <path d="M-29 -22 L-27 -38 L-14 -30 Z" fill={EAR} />
-        <path d="M29 -22 L27 -38 L14 -30 Z" fill={EAR} />
 
-        <circle cx={0} cy={2} r={36} fill={SHADE} />
-        <circle cx={0} cy={0} r={35} fill={BODY} />
-        <ellipse cx={0} cy={14} rx={20} ry={14} fill={MUZZLE} />
-        <ellipse cx={-13} cy={-16} rx={8} ry={5} fill="#fff" opacity={0.45} transform="rotate(-25 -13 -16)" />
-        <ellipse cx={-22} cy={9} rx={6.5} ry={4} fill={CHEEK} opacity={0.8} />
-        <ellipse cx={22} cy={9} rx={6.5} ry={4} fill={CHEEK} opacity={0.8} />
-        {look.face}
-      </g>
+      <Outlined>
+        <Body arms={arms} />
+      </Outlined>
+
+      {arms !== "rest" && (
+        <>
+          <Outlined>
+            <RaisedArm dir={1} />
+          </Outlined>
+          <PawPads x={101} />
+        </>
+      )}
+      {arms === "up" && (
+        <>
+          <Outlined>
+            <RaisedArm dir={-1} />
+          </Outlined>
+          <PawPads x={19} />
+        </>
+      )}
+
+      <ellipse
+        cx={44}
+        cy={19}
+        rx={4.5}
+        ry={5.5}
+        fill={EAR}
+        transform="rotate(-20 44 19)"
+      />
+      <ellipse
+        cx={76}
+        cy={19}
+        rx={4.5}
+        ry={5.5}
+        fill={EAR}
+        transform="rotate(20 76 19)"
+      />
+      <ellipse cx={42} cy={60} rx={9.5} ry={7.5} fill={BLUSH} />
+      <ellipse cx={78} cy={60} rx={9.5} ry={7.5} fill={BLUSH} />
+      {/* 두 발 사이 틈. 없으면 아래가 통짜 덩어리로 보인다. */}
+      <Stroke d="M60 103 L60 109" width={4} color={INK} />
+
+      {look.face}
       {look.props}
     </svg>
   );

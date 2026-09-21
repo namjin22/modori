@@ -179,7 +179,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   // Credentials 프로바이더는 DB 세션 전략을 지원하지 않는다.
   // 평소에는 DB 세션(서버에서 강제 로그아웃 가능), 우회 모드일 때만 JWT.
   session: { strategy: isMockAuth ? "jwt" : "database" },
-  pages: { signIn: "/login" },
+  // 오류도 로그인 화면에서 받는다. 기본 오류 화면은 영어로 "Server error"만 뜬다.
+  // /login은 로그인을 요구하지 않으므로 되돌기 고리가 생기지 않는다.
+  pages: { signIn: "/login", error: "/login" },
   callbacks: {
     session({ session, user, token }) {
       // DB 전략은 user, JWT 전략은 token으로 들어온다.
