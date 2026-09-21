@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { deleteTodo, restoreTodo, updateTodo } from "@/app/(tabs)/actions";
+import { Modal } from "@/components/modal";
 import { TodoCheckbox } from "@/components/todo-checkbox";
 import { UndoableDeleteButton } from "@/components/undoable-delete-button";
 
@@ -15,68 +16,62 @@ type Todo = {
 };
 
 /**
- * 할 일 한 줄. "수정"을 누르면 글자를 고치거나 지울 수 있다.
+ * 할 일 한 줄. 글자를 누르면 창이 떠서 그 글자를 바로 고친다.
  * 색은 카테고리를 따라가므로 여기서 고르지 않는다.
  */
 export function TodoRow({ todo }: { todo: Todo }) {
   const [open, setOpen] = useState(false);
 
   return (
-    <div className="flex items-start gap-3 py-3 pr-3">
+    <div className="flex items-center gap-3 py-2.5 pr-3">
       <TodoCheckbox
         id={todo.id}
         done={todo.done}
         color={todo.color ?? todo.category?.color}
       />
 
-      <details
-        className="group min-w-0 flex-1"
-        open={open}
-        onToggle={(event) => setOpen(event.currentTarget.open)}
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className={`min-w-0 flex-1 truncate text-left transition-colors ${
+          todo.done ? "text-muted line-through" : ""
+        }`}
       >
-        <summary className="flex cursor-pointer list-none items-center gap-2 [&::-webkit-details-marker]:hidden">
-          <span
-            className={`min-w-0 flex-1 truncate transition-colors ${
-              todo.done ? "text-muted line-through" : ""
-            }`}
-          >
-            {todo.content}
-          </span>
-          <span className="shrink-0 text-xs text-muted group-open:text-brand lg:opacity-0 lg:group-hover/row:opacity-100 lg:group-open:opacity-100">
-            수정
-          </span>
-        </summary>
+        {todo.content}
+      </button>
 
-        <div className="flex flex-col gap-3 pb-1 pt-3">
-          <form action={updateTodo} className="flex gap-2">
-            <input type="hidden" name="id" value={todo.id} />
-            <input
-              name="content"
-              defaultValue={todo.content}
-              maxLength={200}
-              required
-              aria-label={open ? "할 일 내용 수정" : undefined}
-              className="h-11 min-w-0 flex-1 rounded-xl bg-surface-hover px-3 outline-none focus:ring-2 focus:ring-brand"
-            />
-            <button
-              type="submit"
-              className="h-11 shrink-0 rounded-xl bg-surface-hover px-4 text-sm font-medium"
-            >
-              저장
-            </button>
-          </form>
+      <Modal open={open} onClose={() => setOpen(false)} title="할 일">
+        {/* 저장 버튼을 두지 않는다. 글자를 고치고 Enter를 누르면 저장된다. */}
+        <form
+          action={async (formData: FormData) => {
+            await updateTodo(formData);
+            setOpen(false);
+          }}
+        >
+          <input type="hidden" name="id" value={todo.id} />
+          <input
+            name="content"
+            defaultValue={todo.content}
+            maxLength={200}
+            required
+            autoFocus
+            aria-label="할 일 내용 수정"
+            className="h-12 w-full rounded-xl bg-surface-hover px-4 text-[15px] outline-none focus:ring-2 focus:ring-brand"
+          />
+        </form>
 
-          <div className="flex justify-end">
-            <UndoableDeleteButton
-              id={todo.id}
-              remove={deleteTodo}
-              restore={restoreTodo}
-              message="할 일을 지웠어요"
-              className="h-9 rounded-xl px-3 text-sm text-red-500"
-            />
-          </div>
+        <div className="flex items-center justify-between">
+          <p className="text-xs text-muted">Enter로 저장돼요.</p>
+          <UndoableDeleteButton
+            id={todo.id}
+            remove={deleteTodo}
+            restore={restoreTodo}
+            message="할 일을 지웠어요"
+            onDone={() => setOpen(false)}
+            className="h-10 rounded-xl px-3 text-sm font-medium text-red-500"
+          />
         </div>
-      </details>
+      </Modal>
     </div>
   );
 }

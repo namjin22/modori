@@ -337,6 +337,22 @@ export default async function FeedPage({
           </div>
         )}
 
+        {categories.length === 0 && (
+          // 카테고리 칩이 곧 할 일을 적는 자리다. 하나도 없으면 적을 곳이 없어진다.
+          <div className="flex flex-col items-start gap-2 rounded-2xl bg-surface p-5">
+            <p className="text-sm font-medium">카테고리를 먼저 만들어주세요</p>
+            <p className="text-sm text-muted">
+              할 일은 카테고리 안에 적어요. 하나만 만들어도 바로 쓸 수 있어요.
+            </p>
+            <Link
+              href="/categories"
+              className="mt-1 flex h-10 items-center rounded-xl bg-brand px-4 text-sm font-semibold text-brand-contrast"
+            >
+              카테고리 만들기
+            </Link>
+          </div>
+        )}
+
         <TodoProgress key={formatKST(date)} total={todos.length} done={doneCount}>
           {todoGroups.map((group) => (
             <section key={group.key} className="flex flex-col gap-1">
@@ -368,12 +384,12 @@ export default async function FeedPage({
           ))}
         </TodoProgress>
 
-        {todos.length === 0 && scheduled.length === 0 && (
+        {categories.length > 0 && todos.length === 0 && scheduled.length === 0 && (
           <div className="flex flex-col items-center gap-1 py-2 text-center">
             <Dori mood="calm" size={80} />
             <p className="text-sm text-muted">아직 할 일이 없어요</p>
             <p className="text-xs text-muted">
-              카테고리 옆 +를 눌러 적어보세요.{" "}
+              카테고리 이름을 눌러 적어보세요.{" "}
               <Link href="/routines" className="text-brand">
                 반복되는 일이라면 루틴으로 →
               </Link>

@@ -14,12 +14,15 @@ export function UndoableDeleteButton<Snapshot>({
   remove,
   restore,
   message,
+  onDone,
   className,
 }: {
   id: string;
   remove: (id: string) => Promise<Snapshot | null>;
   restore: (snapshot: Snapshot) => Promise<void>;
   message: string;
+  // 떠 있는 창 안에서 지웠으면 그 창도 닫아야 한다.
+  onDone?: () => void;
   className?: string;
 }) {
   const toast = useToast();
@@ -39,6 +42,8 @@ export function UndoableDeleteButton<Snapshot>({
       } catch (error) {
         console.error("[delete] 지우지 못했다.", error);
         toast({ message: "지우지 못했어요. 다시 시도해주세요." });
+      } finally {
+        onDone?.();
       }
     });
   }
