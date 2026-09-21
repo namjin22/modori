@@ -14,9 +14,11 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/session";
 
 // 빈 화면으로 시작하면 무엇부터 해야 할지 모른다. 지우거나 바꿀 수 있는 기본값을 준다.
+// 색으로 구분하는 서비스라 기본값부터 서로 뚜렷하게 다른 색을 쓴다.
+// 브랜드 파랑과 겹치면 카테고리 색인지 버튼 색인지 구분이 안 된다.
 const DEFAULT_CATEGORIES = [
-  { name: "공부", color: "#2563eb" },
-  { name: "운동", color: "#3b82f6" },
+  { name: "공부", color: "#8b5cf6" },
+  { name: "운동", color: "#00b26a" },
   { name: "생활", color: "#f59e0b" },
 ];
 
