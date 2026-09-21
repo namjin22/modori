@@ -2,6 +2,8 @@ import { expect, test as base, type Page } from "@playwright/test";
 
 import { prisma } from "@/lib/prisma";
 
+import { addTodo, homeReady } from "./todo-helpers";
+
 const test = base.extend<{ email: string }>({
   email: async ({}, provide, testInfo) => {
     const email = `e2e-reorder-${testInfo.testId}@modori.test`;
@@ -17,13 +19,7 @@ async function signInAndOnboard(page: Page, email: string, nickname: string) {
   await page.getByRole("button", { name: "테스트 로그인" }).click();
   await page.getByPlaceholder("닉네임").fill(nickname);
   await page.getByRole("button", { name: "시작하기" }).click();
-  await expect(page.getByLabel("할 일 내용", { exact: true })).toBeVisible();
-}
-
-async function addTodo(page: Page, content: string) {
-  await page.getByLabel("할 일 내용", { exact: true }).fill(content);
-  await page.getByRole("button", { name: "추가" }).click();
-  await expect(page.getByText(content)).toBeVisible();
+  await expect(homeReady(page)).toBeVisible();
 }
 
 test.afterAll(async () => {
@@ -91,7 +87,7 @@ test("같은 닉네임은 다른 사람이 가져갈 수 없다", async ({ page 
     // 다른 이름으로는 들어간다
     await page.getByPlaceholder("닉네임").fill(`${nickname}2`);
     await page.getByRole("button", { name: "시작하기" }).click();
-    await expect(page.getByLabel("할 일 내용", { exact: true })).toBeVisible();
+    await expect(homeReady(page)).toBeVisible();
   } finally {
     await prisma.user.deleteMany({ where: { email: { in: [first, second] } } });
   }

@@ -2,6 +2,8 @@ import { expect, test as base, type Page } from "@playwright/test";
 
 import { prisma } from "@/lib/prisma";
 
+import { addTodo, FIRST_CATEGORY, homeReady } from "./todo-helpers";
+
 const test = base.extend<{ email: string }>({
   email: async ({}, provide, testInfo) => {
     const email = `e2e-undo-${testInfo.testId}@modori.test`;
@@ -17,7 +19,7 @@ async function signInAndOnboard(page: Page, email: string, nickname: string) {
   await page.getByRole("button", { name: "테스트 로그인" }).click();
   await page.getByPlaceholder("닉네임").fill(nickname);
   await page.getByRole("button", { name: "시작하기" }).click();
-  await expect(page.getByLabel("할 일 내용", { exact: true })).toBeVisible();
+  await expect(homeReady(page)).toBeVisible();
 }
 
 // 브라우저 기본 확인창이 뜨면 바로 실패시킨다. 이제 확인 없이 지운다.
@@ -45,9 +47,7 @@ test("할 일은 확인 없이 지워지고 되돌리기로 살아난다", async
   failOnDialog(page);
   await signInAndOnboard(page, email, `되돌${testInfo.testId.slice(-6)}`);
 
-  await page.getByLabel("할 일 내용", { exact: true }).fill("잠깐 지울 일");
-  await page.getByLabel("카테고리", { exact: true }).selectOption({ label: "공부" });
-  await page.getByRole("button", { name: "추가" }).click();
+  await addTodo(page, "잠깐 지울 일");
   await page.getByRole("button", { name: "완료", exact: true }).click();
   await expect(page.getByRole("button", { name: "완료 취소" })).toBeVisible();
 
@@ -66,7 +66,7 @@ test("할 일은 확인 없이 지워지고 되돌리기로 살아난다", async
   const restored = page.getByRole("listitem").filter({ hasText: "잠깐 지울 일" });
   await expect(restored).toBeVisible();
   await expect(restored.getByRole("button", { name: "완료 취소" })).toBeVisible();
-  await expect(page.locator('section span:text-is("공부")')).toBeVisible();
+  await expect(page.locator(`section span:text-is("${FIRST_CATEGORY}")`)).toBeVisible();
 
   // 새로고침해도 남아 있어야 진짜 되살린 것이다.
   await page.reload();

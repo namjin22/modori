@@ -2,6 +2,8 @@ import { expect, test as base } from "@playwright/test";
 
 import { prisma } from "@/lib/prisma";
 
+import { homeReady } from "./todo-helpers";
+
 const test = base.extend<{ email: string }>({
   email: async ({}, provide, testInfo) => {
     const email = `e2e-stale-${testInfo.testId}@modori.test`;
@@ -23,7 +25,7 @@ test("계정이 사라진 세션이면 로그인 화면에 멈춘다", async ({ 
   await page.getByRole("button", { name: "테스트 로그인" }).click();
   await page.getByPlaceholder("닉네임").fill(`유령${testInfo.testId.slice(-6)}`);
   await page.getByRole("button", { name: "시작하기" }).click();
-  await expect(page.getByLabel("할 일 내용", { exact: true })).toBeVisible();
+  await expect(homeReady(page)).toBeVisible();
 
   await prisma.user.deleteMany({ where: { email } });
 

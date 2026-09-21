@@ -2,6 +2,8 @@ import { expect, test, type Page } from "@playwright/test";
 
 import { prisma } from "@/lib/prisma";
 
+import { addCategory, addTodo, FIRST_CATEGORY } from "./todo-helpers";
+
 const TEST_EMAIL = "e2e-todo@modori.test";
 
 async function removeTestUser() {
@@ -28,16 +30,14 @@ test.afterAll(async () => {
 });
 
 test("할 일을 추가하면 목록에 보인다", async ({ page }) => {
-  await page.getByLabel("할 일 내용").fill("자료구조 과제");
-  await page.getByRole("button", { name: "추가" }).click();
+  await addTodo(page, "자료구조 과제");
 
   await expect(page.getByText("자료구조 과제")).toBeVisible();
   await expect(page.getByText("1개 중 0개 완료")).toBeVisible();
 });
 
 test("완료 표시를 하면 완료 개수가 올라간다", async ({ page }) => {
-  await page.getByLabel("할 일 내용").fill("러닝 3km");
-  await page.getByRole("button", { name: "추가" }).click();
+  await addTodo(page, "러닝 3km");
 
   await page.getByRole("button", { name: "완료", exact: true }).click();
 
@@ -48,8 +48,7 @@ test("완료 표시를 하면 완료 개수가 올라간다", async ({ page }) =
 test("할 일을 연달아 완료해도 완료 개수가 즉시 맞는다", async ({ page }) => {
   const contents = ["첫 번째 일", "두 번째 일"];
   for (const content of contents) {
-    await page.getByLabel("할 일 내용").fill(content);
-    await page.getByRole("button", { name: "추가" }).click();
+    await addTodo(page, content);
     await expect(page.getByRole("listitem").filter({ hasText: content })).toBeVisible();
   }
 
@@ -70,8 +69,7 @@ test("할 일을 연달아 완료해도 완료 개수가 즉시 맞는다", asyn
 });
 
 test("삭제하면 목록에서 사라진다", async ({ page }) => {
-  await page.getByLabel("할 일 내용").fill("지울 할 일");
-  await page.getByRole("button", { name: "추가" }).click();
+  await addTodo(page, "지울 할 일");
 
   // 삭제는 확인창을 띄운다. Playwright는 기본적으로 닫아버리므로 수락해준다.
   page.on("dialog", (dialog) => dialog.accept());
@@ -84,8 +82,7 @@ test("삭제하면 목록에서 사라진다", async ({ page }) => {
 });
 
 test("할 일은 날짜별로 따로 쌓인다", async ({ page }) => {
-  await page.getByLabel("할 일 내용").fill("오늘의 할 일");
-  await page.getByRole("button", { name: "추가" }).click();
+  await addTodo(page, "오늘의 할 일");
   await expect(page.getByText("오늘의 할 일")).toBeVisible();
 
   await page.getByLabel("다음 날").click();
@@ -104,24 +101,25 @@ test("기본 카테고리가 만들어지고 새 카테고리를 추가할 수 �
   // 피드 화면에도 카테고리 칩이 있어서, 화면이 넘어간 뒤에 찾아야 한다.
   await expect(page).toHaveURL(/\/categories$/);
 
-  await expect(page.getByText("공부")).toBeVisible();
-  await expect(page.getByText("운동")).toBeVisible();
-  await expect(page.getByText("생활")).toBeVisible();
+  // 처음에는 하나만 만들어진다. 쓰지도 않는 칸으로 화면을 채우지 않는다.
+  // 아래 탭도 목록이라 "수정"이 붙은 카테고리 줄만 센다.
+  await expect(page.getByText(FIRST_CATEGORY, { exact: true })).toBeVisible();
+  await expect(page.locator("li", { hasText: "수정" })).toHaveCount(1);
 
   await page.getByLabel("새 카테고리 이름").fill("동아리");
-  await page.getByRole("button", { name: "추가" }).click();
+  await page.getByRole("button", { name: "추가", exact: true }).click();
 
   await expect(page.getByText("동아리")).toBeVisible();
 
   await page.getByRole("link", { name: "피드", exact: true }).click();
   await expect(page).toHaveURL("/");
-  await expect(page.getByLabel("카테고리", { exact: true })).toContainText(
-    "동아리",
-  );
+  await expect(
+    page.getByRole("button", { name: "동아리에 할 일 쓰기" }),
+  ).toBeVisible();
 });
 
 test("보관한 카테고리는 할 일 추가 목록에서 빠진다", async ({ page }) => {
-  await page.goto("/settings/categories");
+  await addCategory(page, "운동");
 
   await page
     .locator("li", { hasText: "운동" })
@@ -133,7 +131,7 @@ test("보관한 카테고리는 할 일 추가 목록에서 빠진다", async ({
 
   await page.getByRole("link", { name: "피드", exact: true }).click();
   await expect(page).toHaveURL("/");
-  await expect(page.getByLabel("카테고리", { exact: true })).not.toContainText(
-    "운동",
-  );
+  await expect(
+    page.getByRole("button", { name: "운동에 할 일 쓰기" }),
+  ).toHaveCount(0);
 });

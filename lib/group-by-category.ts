@@ -17,6 +17,8 @@ export type CategoryGroup<T> = {
   // 카테고리를 고르지 않은 묶음은 색이 없다. 화면에서 회색 칩으로 그린다.
   color: string | null;
   isPublic: boolean;
+  // 보관한 카테고리. 지난 할 일은 이름을 달고 남지만 새로 적을 수는 없다.
+  archived: boolean;
   items: T[];
 };
 
@@ -47,6 +49,7 @@ export function groupByCategory<T extends WithCategory>(
         name: category.name,
         color: category.color,
         isPublic: category.isPublic ?? true,
+        archived: false,
         rank: index,
         items: [],
       });
@@ -66,6 +69,7 @@ export function groupByCategory<T extends WithCategory>(
         name: item.category?.name ?? "카테고리 없음",
         color: item.category?.color ?? null,
         isPublic: known?.isPublic ?? true,
+        archived: Boolean(item.category) && !known,
         rank: item.category
           ? (rankById.get(item.category.id) ?? ARCHIVED_RANK)
           : NO_CATEGORY_RANK,

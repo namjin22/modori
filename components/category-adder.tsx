@@ -16,6 +16,7 @@ export function CategoryAdder({
   isPublic,
   date,
   count,
+  archived = false,
 }: {
   categoryId: string | null;
   name: string;
@@ -23,15 +24,16 @@ export function CategoryAdder({
   isPublic: boolean;
   date: string;
   count: string | null;
+  archived?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-3">
       <div className="flex items-center gap-2">
         <span
-          className="flex items-center gap-1.5 rounded-full bg-surface py-1 pl-3 pr-1 text-sm font-semibold"
+          className={`flex items-center gap-1.5 rounded-full bg-surface py-1 pl-3 text-sm font-semibold ${archived ? "pr-3" : "pr-1"}`}
           style={color ? { color } : undefined}
         >
           {!isPublic && (
@@ -40,18 +42,21 @@ export function CategoryAdder({
             </span>
           )}
           <span className={color ? "" : "text-muted"}>{name}</span>
-          <button
-            type="button"
-            // 이름에 "추가"를 넣지 않는다. 아래 공용 폼의 "추가" 버튼과 섞인다.
-            aria-label={`${name}에 할 일 쓰기`}
-            aria-expanded={open}
-            onClick={() => setOpen((value) => !value)}
-            className={`flex size-6 items-center justify-center rounded-full text-base leading-none transition-transform ${
-              open ? "rotate-45 bg-foreground text-background" : "bg-surface-hover text-foreground"
-            }`}
-          >
-            +
-          </button>
+          {/* 보관한 카테고리에는 새로 적을 수 없다. 지난 할 일만 이름을 달고 남는다. */}
+          {!archived && (
+            <button
+              type="button"
+              // 이름에 "추가"를 넣지 않는다. 카테고리 만들기의 "추가" 버튼과 섞인다.
+              aria-label={`${name}에 할 일 쓰기`}
+              aria-expanded={open}
+              onClick={() => setOpen((value) => !value)}
+              className={`flex size-6 items-center justify-center rounded-full text-base leading-none transition-transform ${
+                open ? "rotate-45 bg-foreground text-background" : "bg-surface-hover text-foreground"
+              }`}
+            >
+              +
+            </button>
+          )}
         </span>
         {count && <span className="text-xs text-muted">{count}</span>}
       </div>

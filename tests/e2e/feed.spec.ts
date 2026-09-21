@@ -2,6 +2,8 @@ import { expect, test as base, type Page } from "@playwright/test";
 
 import { prisma } from "@/lib/prisma";
 
+import { addTodo, FIRST_CATEGORY, homeReady } from "./todo-helpers";
+
 type Account = { email: string; nickname: string };
 
 // 피드는 두 사람이 있어야 확인할 수 있다. 테스트마다 계정 두 개를 따로 만든다.
@@ -31,12 +33,12 @@ async function signIn(page: Page, account: Account) {
   // 로그인 직후 "/"로 갔다가 온보딩으로 다시 튕기므로 URL로 판단하면 안 된다.
   // 둘 중 어느 화면이 떴는지 요소로 기다린다.
   const nickname = page.getByPlaceholder("닉네임");
-  await expect(nickname.or(page.getByLabel("할 일 내용", { exact: true })).first()).toBeVisible();
+  await expect(nickname.or(homeReady(page)).first()).toBeVisible();
 
   if (await nickname.isVisible()) {
     await nickname.fill(account.nickname);
     await page.getByRole("button", { name: "시작하기" }).click();
-    await expect(page.getByLabel("할 일 내용", { exact: true })).toBeVisible();
+    await expect(homeReady(page)).toBeVisible();
   }
 }
 
@@ -46,11 +48,9 @@ async function signOut(page: Page) {
   await expect(page).toHaveURL(/\/login$/);
 }
 
-async function addDoneTodo(page: Page, content: string, category = "공부") {
+async function addDoneTodo(page: Page, content: string, category = FIRST_CATEGORY) {
   await page.goto("/");
-  await page.getByLabel("할 일 내용").fill(content);
-  await page.getByLabel("카테고리", { exact: true }).selectOption({ label: category });
-  await page.getByRole("button", { name: "추가" }).click();
+  await addTodo(page, content, category);
   await page.getByRole("button", { name: "완료", exact: true }).click();
   await expect(page.getByRole("button", { name: "완료 취소" })).toBeVisible();
 }
@@ -92,8 +92,7 @@ test("완료하지 않은 할 일은 피드에 보이지 않는다", async ({
 }) => {
   await signIn(page, accounts.friend);
   await page.goto("/");
-  await page.getByLabel("할 일 내용").fill("아직 안 한 일");
-  await page.getByRole("button", { name: "추가" }).click();
+  await addTodo(page, "아직 안 한 일");
   await expect(page.getByText("1개 중 0개 완료")).toBeVisible();
   await signOut(page);
 
@@ -110,14 +109,14 @@ test("비공개 카테고리의 할 일은 피드에 보이지 않는다", async
 }) => {
   await signIn(page, accounts.friend);
 
-  // 공부 카테고리를 비공개로 바꾼다.
+  // 기본 카테고리를 비공개로 바꾼다.
   // 접힌 수정 폼도 DOM에 있으므로 해당 항목 안에서만 찾는다.
   await page.goto("/settings/categories");
-  const 공부 = page.getByRole("listitem").filter({ hasText: "공부" });
-  await 공부.getByText("수정").click();
-  await 공부.getByLabel("친구 피드에 보이기").uncheck();
-  await 공부.getByRole("button", { name: "저장" }).click();
-  await expect(공부.getByText("비공개")).toBeVisible();
+  const 카테고리 = page.getByRole("listitem").filter({ hasText: FIRST_CATEGORY });
+  await 카테고리.getByText("수정").click();
+  await 카테고리.getByLabel("친구 피드에 보이기").uncheck();
+  await 카테고리.getByRole("button", { name: "저장" }).click();
+  await expect(카테고리.getByText("비공개")).toBeVisible();
 
   await addDoneTodo(page, "비밀 공부");
   await signOut(page);

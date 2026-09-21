@@ -2,6 +2,8 @@ import { expect, test as base, type Page } from "@playwright/test";
 
 import { prisma } from "@/lib/prisma";
 
+import { homeReady } from "./todo-helpers";
+
 const test = base.extend<{ email: string }>({
   email: async ({}, provide, testInfo) => {
     const email = `e2e-profile-${testInfo.testId}@modori.test`;
@@ -17,7 +19,7 @@ async function signInAndOnboard(page: Page, email: string) {
   await page.getByRole("button", { name: "테스트 로그인" }).click();
   await page.getByPlaceholder("닉네임").fill("처음닉네임");
   await page.getByRole("button", { name: "시작하기" }).click();
-  await expect(page.getByLabel("할 일 내용")).toBeVisible();
+  await expect(homeReady(page)).toBeVisible();
 }
 
 test.beforeEach(async ({ page, email }) => {
@@ -28,28 +30,57 @@ test.afterAll(async () => {
   await prisma.$disconnect();
 });
 
-test("닉네임과 이모지를 바꿀 수 있다", async ({ page }) => {
+test("닉네임을 바꿀 수 있다", async ({ page }) => {
   await page.goto("/settings");
   await page.getByRole("link", { name: /프로필 수정/ }).click();
 
   await page.getByLabel("닉네임").fill("바꾼닉네임");
-  await page.getByRole("button", { name: "🔥 고르기" }).click();
   await page.getByRole("button", { name: "저장" }).click();
 
   await expect(page.getByText("저장했어요.")).toBeVisible();
 
   await page.goto("/settings");
   await expect(page.getByText("바꾼닉네임")).toBeVisible();
-  await expect(page.getByText("🔥")).toBeVisible();
 });
 
-test("이모지가 아닌 값은 거절하고 이유를 알려준다", async ({ page }) => {
+test("올린 사진이 프로필에 남는다", async ({ page, email }) => {
   await page.goto("/settings/profile");
 
-  await page.getByLabel("프로필 이모지").fill("안녕");
-  await page.getByRole("button", { name: "저장" }).click();
+  // 버튼으로 고른다. 숨은 입력칸에 파일만 꽂으면 아직 붙지 않은 onChange를
+  // 놓쳐서 아무 일도 일어나지 않는다. 버튼이 열리는 것은 붙었다는 뜻이다.
+  const chooser = page.waitForEvent("filechooser");
+  await page.getByRole("button", { name: "사진 고르기" }).click();
+  // 1×1 빨간 점 PNG. 브라우저가 128×128 JPEG로 줄여서 보낸다.
+  await (
+    await chooser
+  ).setFiles({
+    name: "profile.png",
+    mimeType: "image/png",
+    buffer: Buffer.from(
+      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+      "base64",
+    ),
+  });
+  // 줄이는 일이 끝나야 값이 폼에 붙는다. 미리보기가 바뀌는 것을 기다린다.
+  await expect(page.locator("fieldset img")).toBeVisible();
 
-  await expect(page.getByText("프로필은 이모지 한 개로 정해주세요.")).toBeVisible();
+  await page.getByRole("button", { name: "저장" }).click();
+  await expect(page.getByText("저장했어요.")).toBeVisible();
+
+  const saved = await prisma.user.findUniqueOrThrow({ where: { email } });
+  expect(saved.profileImage).toMatch(/^data:image\/jpeg;base64,/);
+
+  // 목록에도 그 사진이 나온다.
+  await page.goto("/settings");
+  await expect(page.locator(`img[src="${saved.profileImage}"]`)).toBeVisible();
+});
+
+test("사진을 올리지 않으면 도리 얼굴을 쓴다", async ({ page, email }) => {
+  const saved = await prisma.user.findUniqueOrThrow({ where: { email } });
+  expect(saved.profileImage).toBeNull();
+
+  await page.goto("/settings");
+  await expect(page.locator("a[href='/settings/profile'] svg")).toBeVisible();
 });
 
 test("빈 닉네임은 거절한다", async ({ page }) => {

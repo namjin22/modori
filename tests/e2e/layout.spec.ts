@@ -2,6 +2,8 @@ import { expect, test as base, type Page } from "@playwright/test";
 
 import { prisma } from "@/lib/prisma";
 
+import { homeReady } from "./todo-helpers";
+
 const test = base.extend<{ email: string }>({
   email: async ({}, provide, testInfo) => {
     const email = `e2e-layout-${testInfo.testId}@modori.test`;
@@ -17,7 +19,7 @@ async function signInAndOnboard(page: Page, email: string, nickname: string) {
   await page.getByRole("button", { name: "테스트 로그인" }).click();
   await page.getByPlaceholder("닉네임").fill(nickname);
   await page.getByRole("button", { name: "시작하기" }).click();
-  await expect(page.getByLabel("할 일 내용", { exact: true })).toBeVisible();
+  await expect(homeReady(page)).toBeVisible();
 }
 
 test.afterAll(async () => {
