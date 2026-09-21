@@ -19,7 +19,7 @@ export default async function ReactionsPage() {
     orderBy: { createdAt: "desc" },
     take: MAX_ITEMS,
     include: {
-      user: { select: { nickname: true, profileEmoji: true } },
+      user: { select: { nickname: true, profileImage: true } },
       todo: { select: { content: true, date: true } },
     },
   });
@@ -33,7 +33,7 @@ export default async function ReactionsPage() {
   });
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-6">
       <header className="flex items-center gap-3">
         <Link href="/feed" aria-label="소셜로" className="text-muted">
           ←
@@ -47,14 +47,14 @@ export default async function ReactionsPage() {
           <p className="text-sm text-muted">아직 받은 반응이 없어요</p>
         </div>
       ) : (
-        <ul className="flex flex-col gap-2">
+        <ul className="flex flex-col gap-3">
           {reactions.map((reaction) => {
             const isNew = reaction.createdAt > lastSeenAt;
 
             return (
               <li
                 key={reaction.id}
-                className={`flex items-center gap-3 rounded-2xl p-3 ${
+                className={`flex items-center gap-3 rounded-2xl p-4 ${
                   isNew ? "bg-brand-subtle" : "bg-surface"
                 }`}
               >
@@ -66,7 +66,7 @@ export default async function ReactionsPage() {
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm">
                     <span className="font-semibold">
-                      {reaction.user.profileEmoji} {reaction.user.nickname}
+                      {reaction.user.nickname}
                     </span>
                     <span className="text-muted"> · {reaction.todo.content}</span>
                   </p>

@@ -11,14 +11,12 @@ import {
   validateNickname,
 } from "@/lib/nickname";
 import { prisma } from "@/lib/prisma";
+import { isProfileImage } from "@/lib/profile-image";
 import { requireUser } from "@/lib/session";
 
 const MAX_BIO_LENGTH = 100;
 
 export type ProfileFormState = { message: string } | null;
-
-// 이모지 하나인지 본다. 사람 이름 자리에 문장이 들어가면 목록이 망가진다.
-const SINGLE_EMOJI = /^\p{Extended_Pictographic}(\p{Emoji_Modifier}|️|‍\p{Extended_Pictographic})*$/u;
 
 export async function updateProfile(
   _previous: ProfileFormState,
@@ -27,7 +25,7 @@ export async function updateProfile(
   const user = await requireUser();
 
   const nickname = normalizeNickname(formData.get("nickname"));
-  const profileEmoji = String(formData.get("profileEmoji") ?? "").trim();
+  const profileImage = String(formData.get("profileImage") ?? "").trim();
   const bio = String(formData.get("bio") ?? "").trim();
 
   const valid = validateNickname(nickname);
@@ -39,8 +37,11 @@ export async function updateProfile(
           : `닉네임은 1~${MAX_NICKNAME_LENGTH}자로 적어주세요.`,
     };
   }
-  if (!SINGLE_EMOJI.test(profileEmoji)) {
-    return { message: "프로필은 이모지 한 개로 정해주세요." };
+  if (formData.get("profileImageBusy")) {
+    return { message: "사진을 줄이는 중이에요. 잠깐 뒤에 저장해주세요." };
+  }
+  if (profileImage && !isProfileImage(profileImage)) {
+    return { message: "사진을 올리지 못했어요. 다른 파일로 해보세요." };
   }
   if (bio.length > MAX_BIO_LENGTH) {
     return { message: `소개는 ${MAX_BIO_LENGTH}자까지 쓸 수 있어요.` };
@@ -53,7 +54,7 @@ export async function updateProfile(
   try {
     await prisma.user.update({
       where: { id: user.id },
-      data: { nickname, profileEmoji, bio: bio || null },
+      data: { nickname, profileImage: profileImage || null, bio: bio || null },
     });
   } catch (error) {
     // 같은 순간에 같은 이름으로 둘이 저장하면 여기서 걸린다.
