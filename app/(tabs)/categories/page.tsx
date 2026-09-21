@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+import { ColorSwatches } from "@/components/color-swatches";
+import { PALETTE } from "@/lib/colors";
 import { SubmitButton } from "@/components/submit-button";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
@@ -12,14 +14,8 @@ import {
   updateCategory,
 } from "./actions";
 
-const DEFAULT_NEW_COLOR = "#2563eb";
-
-// 브라우저 기본 색 입력은 회색 테두리 안에 네모가 들어 있어 거칠어 보인다.
-// 테두리와 안쪽 여백을 걷어내고 둥근 견본 하나로 만든다.
-const COLOR_SWATCH =
-  "size-10 shrink-0 cursor-pointer appearance-none self-center rounded-full border-0 bg-transparent p-0 " +
-  "[&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:rounded-full [&::-webkit-color-swatch]:border-0 " +
-  "[&::-moz-color-swatch]:rounded-full [&::-moz-color-swatch]:border-0";
+// 브랜드 파랑을 기본값으로 두면 새 카테고리가 버튼 색과 구분되지 않는다.
+const DEFAULT_NEW_COLOR = PALETTE[0].value;
 
 export default async function CategoriesPage() {
   const user = await requireUser();
@@ -43,29 +39,29 @@ export default async function CategoriesPage() {
 
       <form
         action={createCategory}
-        className="flex gap-2 rounded-2xl bg-surface p-3"
+        className="flex flex-col gap-3 rounded-2xl bg-surface p-3"
       >
-        <input
-          name="name"
-          required
-          maxLength={20}
-          placeholder="새 카테고리"
-          aria-label="새 카테고리 이름"
-          className="h-11 min-w-0 flex-1 rounded-xl bg-surface-hover px-3"
-        />
-        <input
-          type="color"
+        <div className="flex gap-2">
+          <input
+            name="name"
+            required
+            maxLength={20}
+            placeholder="새 카테고리"
+            aria-label="새 카테고리 이름"
+            className="h-11 min-w-0 flex-1 rounded-xl bg-surface-hover px-3"
+          />
+          <SubmitButton
+            pendingLabel="추가 중"
+            className="h-11 rounded-xl bg-brand px-4 text-sm font-semibold text-brand-contrast"
+          >
+            추가
+          </SubmitButton>
+        </div>
+        <ColorSwatches
           name="color"
+          legend="색"
           defaultValue={DEFAULT_NEW_COLOR}
-          aria-label="새 카테고리 색"
-          className={COLOR_SWATCH}
         />
-        <SubmitButton
-          pendingLabel="추가 중"
-          className="h-11 rounded-xl bg-brand px-4 text-sm font-semibold text-brand-contrast"
-        >
-          추가
-        </SubmitButton>
       </form>
 
       {active.length === 0 ? (
@@ -101,23 +97,21 @@ export default async function CategoriesPage() {
                 <div className="flex flex-col gap-3 px-3 pb-3">
                   <form action={updateCategory} className="flex flex-col gap-2">
                     <input type="hidden" name="id" value={category.id} />
-                    <div className="flex gap-2">
-                      <input
-                        name="name"
-                        defaultValue={category.name}
-                        maxLength={20}
-                        required
-                        aria-label={`${category.name} 이름`}
-                        className="h-10 min-w-0 flex-1 rounded-xl bg-surface-hover px-3"
-                      />
-                      <input
-                        type="color"
-                        name="color"
-                        defaultValue={category.color}
-                        aria-label={`${category.name} 색`}
-                        className={COLOR_SWATCH}
-                      />
-                    </div>
+                    <input
+                      name="name"
+                      defaultValue={category.name}
+                      maxLength={20}
+                      required
+                      aria-label={`${category.name} 이름`}
+                      className="h-10 rounded-xl bg-surface-hover px-3"
+                    />
+                    {/* 펼친 카테고리 안이라 이름을 또 붙이지 않는다. 붙이면 목록의
+                        카테고리 이름과 같은 글이 두 번 나온다. */}
+                    <ColorSwatches
+                      name="color"
+                      legend="색"
+                      defaultValue={category.color}
+                    />
                     <label className="flex items-center gap-2 text-sm text-muted">
                       <input
                         type="checkbox"
