@@ -9,11 +9,11 @@ const baseURL = `http://localhost:${PORT}`;
 export default defineConfig({
   testDir: "tests/e2e",
   fullyParallel: false,
-  // 파일끼리도 동시에 돌리지 않는다. fullyParallel: false는 한 파일 안에서만
-  // 순서를 지켜줄 뿐이라, 기본값(코어 수의 절반)이면 스펙 파일 열한 개가 같은
-  // DB와 같은 서버를 동시에 두들긴다. 커넥션 풀이 마르고, 고정 닉네임을 쓰는
-  // 파일끼리 서로의 계정을 지운다. 느려도 결과가 믿을 만한 쪽을 택한다.
-  workers: 1,
+  // 파일은 같이, 파일 안은 차례대로. fullyParallel: false라 한 파일 안의 순서는
+  // 지켜진다. 예전에는 파일끼리도 막아 뒀는데, 계정 이름이 파일마다 고정이라
+  // 서로의 계정을 지웠기 때문이다. 이제 이름에 실행 꼬리표(run-tag.ts)와
+  // 테스트 번호가 들어가서 겹치지 않는다. 한 번 도는 데 걸리는 시간이 크게 준다.
+  workers: process.env.CI ? 2 : 4,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? "github" : "list",

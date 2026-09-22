@@ -4,9 +4,11 @@ import { prisma } from "@/lib/prisma";
 
 import { addCategory, FIRST_CATEGORY, homeReady } from "./todo-helpers";
 
+import { RUN_TAG } from "./run-tag";
+
 const test = base.extend<{ email: string }>({
   email: async ({}, provide, testInfo) => {
-    const email = `e2e-catadd-${testInfo.testId}@modori.test`;
+    const email = `e2e-catadd-${testInfo.testId}-${RUN_TAG}@modori.test`;
     await prisma.user.deleteMany({ where: { email } });
     await provide(email);
     await prisma.user.deleteMany({ where: { email } });
@@ -27,7 +29,7 @@ test.afterAll(async () => {
 });
 
 test("카테고리 옆 +로 그 카테고리에 연달아 적는다", async ({ page, email }, testInfo) => {
-  await signInAndOnboard(page, email, `칩${testInfo.testId.slice(-6)}`);
+  await signInAndOnboard(page, email, `칩${testInfo.testId.slice(-6)}${RUN_TAG}`);
 
   // 할 일이 없어도 카테고리 칩은 보인다.
   await expect(

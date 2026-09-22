@@ -4,9 +4,11 @@ import { prisma } from "@/lib/prisma";
 
 import { homeReady } from "./todo-helpers";
 
+import { RUN_TAG } from "./run-tag";
+
 const test = base.extend<{ email: string }>({
   email: async ({}, provide, testInfo) => {
-    const email = `e2e-profile-${testInfo.testId}@modori.test`;
+    const email = `e2e-profile-${testInfo.testId}-${RUN_TAG}@modori.test`;
     await prisma.user.deleteMany({ where: { email } });
     await provide(email);
     await prisma.user.deleteMany({ where: { email } });

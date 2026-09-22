@@ -4,9 +4,11 @@ import { prisma } from "@/lib/prisma";
 
 import { addTodo, homeReady } from "./todo-helpers";
 
+import { RUN_TAG } from "./run-tag";
+
 const test = base.extend<{ email: string }>({
   email: async ({}, provide, testInfo) => {
-    const email = `e2e-kbd-${testInfo.testId}@modori.test`;
+    const email = `e2e-kbd-${testInfo.testId}-${RUN_TAG}@modori.test`;
     await prisma.user.deleteMany({ where: { email } });
     await provide(email);
     await prisma.user.deleteMany({ where: { email } });
@@ -28,7 +30,7 @@ test.afterAll(async () => {
 
 // 화살표 버튼을 없앴으므로 키보드로 옮기는 길이 막히면 안 된다.
 test("손잡이에서 키보드로 순서를 바꾼다", async ({ page, email }, testInfo) => {
-  await signInAndOnboard(page, email, `키보${testInfo.testId.slice(-6)}`);
+  await signInAndOnboard(page, email, `키보${testInfo.testId.slice(-6)}${RUN_TAG}`);
 
   for (const content of ["하나", "둘", "셋"]) {
     await addTodo(page, content);

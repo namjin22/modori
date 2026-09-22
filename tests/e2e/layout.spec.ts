@@ -4,9 +4,11 @@ import { prisma } from "@/lib/prisma";
 
 import { homeReady } from "./todo-helpers";
 
+import { RUN_TAG } from "./run-tag";
+
 const test = base.extend<{ email: string }>({
   email: async ({}, provide, testInfo) => {
-    const email = `e2e-layout-${testInfo.testId}@modori.test`;
+    const email = `e2e-layout-${testInfo.testId}-${RUN_TAG}@modori.test`;
     await prisma.user.deleteMany({ where: { email } });
     await provide(email);
     await prisma.user.deleteMany({ where: { email } });
@@ -27,7 +29,7 @@ test.afterAll(async () => {
 });
 
 test("탭은 피드, 소셜, 설정 셋이고 카테고리와 루틴은 피드에 속한다", async ({ page, email }, testInfo) => {
-  await signInAndOnboard(page, email, `탭${testInfo.testId.slice(-6)}`);
+  await signInAndOnboard(page, email, `탭${testInfo.testId.slice(-6)}${RUN_TAG}`);
 
   const tabs = page.getByRole("navigation").last().getByRole("link");
   await expect(tabs).toHaveText(["피드", "소셜", "설정"]);
@@ -54,7 +56,7 @@ test("탭은 피드, 소셜, 설정 셋이고 카테고리와 루틴은 피드�
 });
 
 test("예전 주소로 들어와도 옮긴 화면으로 간다", async ({ page, email }, testInfo) => {
-  await signInAndOnboard(page, email, `옛${testInfo.testId.slice(-6)}`);
+  await signInAndOnboard(page, email, `옛${testInfo.testId.slice(-6)}${RUN_TAG}`);
 
   await page.goto("/calendar");
   await expect(page).toHaveURL(/\/$/);
@@ -68,7 +70,7 @@ test.describe("좁은 화면", () => {
   test.use({ viewport: { width: 390, height: 844 } });
 
   test("달력은 눌렀을 때만 펼친다", async ({ page, email }, testInfo) => {
-    await signInAndOnboard(page, email, `좁${testInfo.testId.slice(-6)}`);
+    await signInAndOnboard(page, email, `좁${testInfo.testId.slice(-6)}${RUN_TAG}`);
 
     const monthDay = page.getByRole("link", { name: /일, 완료 (있음|없음)$/ }).first();
     await expect(monthDay).toBeHidden();

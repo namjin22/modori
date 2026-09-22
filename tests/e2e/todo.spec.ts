@@ -4,7 +4,9 @@ import { prisma } from "@/lib/prisma";
 
 import { addCategory, addTodo, FIRST_CATEGORY, openTodo } from "./todo-helpers";
 
-const TEST_EMAIL = "e2e-todo@modori.test";
+import { RUN_TAG } from "./run-tag";
+
+const TEST_EMAIL = `e2e-todo-${RUN_TAG}@modori.test`;
 
 async function removeTestUser() {
   await prisma.user.deleteMany({ where: { email: TEST_EMAIL } });
@@ -14,7 +16,7 @@ async function signInAndOnboard(page: Page) {
   await page.goto("/login");
   await page.getByLabel("테스트 이메일").fill(TEST_EMAIL);
   await page.getByRole("button", { name: "테스트 로그인" }).click();
-  await page.getByPlaceholder("닉네임").fill("할일테스터");
+  await page.getByPlaceholder("닉네임").fill(`할일${RUN_TAG}`);
   await page.getByRole("button", { name: "시작하기" }).click();
   await expect(page).toHaveURL("/");
 }

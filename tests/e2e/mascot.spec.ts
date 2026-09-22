@@ -4,9 +4,11 @@ import { prisma } from "@/lib/prisma";
 
 import { addTodo, homeReady } from "./todo-helpers";
 
+import { RUN_TAG } from "./run-tag";
+
 const test = base.extend<{ email: string }>({
   email: async ({}, provide, testInfo) => {
-    const email = `e2e-dori-${testInfo.testId}@modori.test`;
+    const email = `e2e-dori-${testInfo.testId}-${RUN_TAG}@modori.test`;
     await prisma.user.deleteMany({ where: { email } });
     await provide(email);
     await prisma.user.deleteMany({ where: { email } });
@@ -27,7 +29,7 @@ test.afterAll(async () => {
 });
 
 test("그날 할 일을 다 끝내면 도리가 축하한다", async ({ page, email }, testInfo) => {
-  await signInAndOnboard(page, email, `도리${testInfo.testId.slice(-6)}`);
+  await signInAndOnboard(page, email, `도리${testInfo.testId.slice(-6)}${RUN_TAG}`);
 
   const banner = page.getByText("오늘 할 일을 다 끝냈어요");
   await addTodo(page, "물 마시기");

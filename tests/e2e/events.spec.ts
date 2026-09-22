@@ -5,9 +5,11 @@ import { prisma } from "@/lib/prisma";
 
 import { addEvent, addTodo, homeReady, openEvent } from "./todo-helpers";
 
+import { RUN_TAG } from "./run-tag";
+
 const test = base.extend<{ email: string }>({
   email: async ({}, provide, testInfo) => {
-    const email = `e2e-event-${testInfo.testId}@modori.test`;
+    const email = `e2e-event-${testInfo.testId}-${RUN_TAG}@modori.test`;
     await prisma.user.deleteMany({ where: { email } });
     await provide(email);
     await prisma.user.deleteMany({ where: { email } });
@@ -35,7 +37,7 @@ test.afterAll(async () => {
 });
 
 test("일정은 달력에 이름으로 뜨고, 할 일은 색으로만 남는다", async ({ page, email }, testInfo) => {
-  await signInAndOnboard(page, email, `일정${testInfo.testId.slice(-6)}`);
+  await signInAndOnboard(page, email, `일정${testInfo.testId.slice(-6)}${RUN_TAG}`);
   const today = todayKST();
 
   await addEvent(page, "중간고사");
@@ -53,7 +55,7 @@ test("일정은 달력에 이름으로 뜨고, 할 일은 색으로만 남는다
 });
 
 test("여러 날 일정은 그 기간의 모든 날에 뜬다", async ({ page, email }, testInfo) => {
-  await signInAndOnboard(page, email, `기간${testInfo.testId.slice(-6)}`);
+  await signInAndOnboard(page, email, `기간${testInfo.testId.slice(-6)}${RUN_TAG}`);
   const today = todayKST();
   const third = addDays(today, 2);
 
@@ -70,7 +72,7 @@ test("여러 날 일정은 그 기간의 모든 날에 뜬다", async ({ page, e
 });
 
 test("일정을 지우면 되돌릴 수 있다", async ({ page, email }, testInfo) => {
-  await signInAndOnboard(page, email, `취소${testInfo.testId.slice(-6)}`);
+  await signInAndOnboard(page, email, `취소${testInfo.testId.slice(-6)}${RUN_TAG}`);
 
   await addEvent(page, "동아리 발표");
 

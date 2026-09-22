@@ -4,9 +4,11 @@ import { prisma } from "@/lib/prisma";
 
 import { FIRST_CATEGORY, addTodo, homeReady, openTodo } from "./todo-helpers";
 
+import { RUN_TAG } from "./run-tag";
+
 const test = base.extend<{ email: string }>({
   email: async ({}, provide, testInfo) => {
-    const email = `e2e-undo-${testInfo.testId}@modori.test`;
+    const email = `e2e-undo-${testInfo.testId}-${RUN_TAG}@modori.test`;
     await prisma.user.deleteMany({ where: { email } });
     await provide(email);
     await prisma.user.deleteMany({ where: { email } });
@@ -45,7 +47,7 @@ test.afterAll(async () => {
 
 test("할 일은 확인 없이 지워지고 되돌리기로 살아난다", async ({ page, email }, testInfo) => {
   failOnDialog(page);
-  await signInAndOnboard(page, email, `되돌${testInfo.testId.slice(-6)}`);
+  await signInAndOnboard(page, email, `되돌${testInfo.testId.slice(-6)}${RUN_TAG}`);
 
   await addTodo(page, "잠깐 지울 일");
   await page.getByRole("button", { name: "완료", exact: true }).click();
@@ -75,7 +77,7 @@ test("할 일은 확인 없이 지워지고 되돌리기로 살아난다", async
 
 test("루틴이 만든 오늘 할 일은 지우면 다시 생기지 않는다", async ({ page, email }, testInfo) => {
   failOnDialog(page);
-  await signInAndOnboard(page, email, `건너${testInfo.testId.slice(-6)}`);
+  await signInAndOnboard(page, email, `건너${testInfo.testId.slice(-6)}${RUN_TAG}`);
   await createDailyRoutine(page, "물 두 잔");
 
   await page.goto("/");
@@ -97,7 +99,7 @@ test("루틴이 만든 오늘 할 일은 지우면 다시 생기지 않는다", 
 
 test("지운 루틴을 되돌리면 만들어 둔 할 일과 다시 이어진다", async ({ page, email }, testInfo) => {
   failOnDialog(page);
-  await signInAndOnboard(page, email, `루되${testInfo.testId.slice(-6)}`);
+  await signInAndOnboard(page, email, `루되${testInfo.testId.slice(-6)}${RUN_TAG}`);
   await createDailyRoutine(page, "일기 쓰기");
 
   // 오늘 화면을 열어 루틴 할 일을 만든다.
