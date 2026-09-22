@@ -5,6 +5,8 @@ import { todayKST } from "@/lib/date";
 
 import { homeReady } from "./todo-helpers";
 
+import { RUN_TAG } from "./run-tag";
+
 // 50개를 넘겨야 다음 쪽이 생긴다. 화면으로 50번 넣으면 너무 느려서 DB에 바로 넣는다.
 const FEED_SIZE = 50;
 
@@ -14,10 +16,10 @@ const test = base.extend<{ accounts: { me: Account; friend: Account } }>({
   accounts: async ({}, provide, testInfo) => {
     const tag = testInfo.testId.slice(-6);
     const accounts = {
-      me: { email: `e2e-paging-me-${tag}@modori.test`, nickname: `나${tag}` },
+      me: { email: `e2e-paging-me-${tag}-${RUN_TAG}@modori.test`, nickname: `나${tag}${RUN_TAG}` },
       friend: {
-        email: `e2e-paging-you-${tag}@modori.test`,
-        nickname: `친구${tag}`,
+        email: `e2e-paging-you-${tag}-${RUN_TAG}@modori.test`,
+        nickname: `친구${tag}${RUN_TAG}`,
       },
     };
     const emails = [accounts.me.email, accounts.friend.email];

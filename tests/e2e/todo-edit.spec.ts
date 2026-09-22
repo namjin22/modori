@@ -4,9 +4,11 @@ import { prisma } from "@/lib/prisma";
 
 import { addTodo, homeReady, openTodo } from "./todo-helpers";
 
+import { RUN_TAG } from "./run-tag";
+
 const test = base.extend<{ email: string }>({
   email: async ({}, provide, testInfo) => {
-    const email = `e2e-edit-${testInfo.testId}@modori.test`;
+    const email = `e2e-edit-${testInfo.testId}-${RUN_TAG}@modori.test`;
     await prisma.user.deleteMany({ where: { email } });
     await provide(email);
     await prisma.user.deleteMany({ where: { email } });
@@ -27,7 +29,7 @@ test.afterAll(async () => {
 });
 
 test("할 일 글자를 누르면 바로 고칠 수 있다", async ({ page, email }, testInfo) => {
-  await signInAndOnboard(page, email, `수정${testInfo.testId.slice(-6)}`);
+  await signInAndOnboard(page, email, `수정${testInfo.testId.slice(-6)}${RUN_TAG}`);
 
   await addTodo(page, "우유 사기");
 

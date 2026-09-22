@@ -3,12 +3,14 @@ import { expect, test as base, type Page } from "@playwright/test";
 import { addDays, formatKST, todayKST } from "@/lib/date";
 import { prisma } from "@/lib/prisma";
 
+import { RUN_TAG } from "./run-tag";
+
 // 테스트마다 계정을 따로 쓴다. 같은 이메일을 공유하면 병렬 실행에서
 // 서로의 계정을 지워버린다.
 const test = base.extend<{ email: string }>({
   // 인자 이름을 use로 두면 eslint가 React 훅으로 오해한다.
   email: async ({}, provide, testInfo) => {
-    const email = `e2e-routine-${testInfo.testId}@modori.test`;
+    const email = `e2e-routine-${testInfo.testId}-${RUN_TAG}@modori.test`;
     await prisma.user.deleteMany({ where: { email } });
     await provide(email);
     await prisma.user.deleteMany({ where: { email } });
@@ -19,7 +21,7 @@ async function signInAndOnboard(page: Page, email: string) {
   await page.goto("/login");
   await page.getByLabel("테스트 이메일").fill(email);
   await page.getByRole("button", { name: "테스트 로그인" }).click();
-  await page.getByPlaceholder("닉네임").fill("루틴테스터");
+  await page.getByPlaceholder("닉네임").fill(`루틴${RUN_TAG}`);
   await page.getByRole("button", { name: "시작하기" }).click();
   await expect(page).toHaveURL("/");
 }

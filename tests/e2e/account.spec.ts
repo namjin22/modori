@@ -4,9 +4,11 @@ import { prisma } from "@/lib/prisma";
 
 import { addTodo, homeReady } from "./todo-helpers";
 
+import { RUN_TAG } from "./run-tag";
+
 const test = base.extend<{ email: string }>({
   email: async ({}, provide, testInfo) => {
-    const email = `e2e-account-${testInfo.testId}@modori.test`;
+    const email = `e2e-account-${testInfo.testId}-${RUN_TAG}@modori.test`;
     await prisma.user.deleteMany({ where: { email } });
     await provide(email);
     await prisma.user.deleteMany({ where: { email } });
@@ -27,7 +29,7 @@ test.afterAll(async () => {
 });
 
 test("닉네임을 그대로 적어야 계정이 지워진다", async ({ page, email }, testInfo) => {
-  const nickname = `탈퇴${testInfo.testId.slice(-6)}`;
+  const nickname = `탈퇴${testInfo.testId.slice(-6)}${RUN_TAG}`;
   await signInAndOnboard(page, email, nickname);
 
   await addTodo(page, "지워질 할 일");

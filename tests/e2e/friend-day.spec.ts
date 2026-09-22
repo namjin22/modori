@@ -4,16 +4,18 @@ import { prisma } from "@/lib/prisma";
 
 import { addTodo, homeReady } from "./todo-helpers";
 
+import { RUN_TAG } from "./run-tag";
+
 type Account = { email: string; nickname: string };
 
 const test = base.extend<{ accounts: { me: Account; friend: Account } }>({
   accounts: async ({}, provide, testInfo) => {
     const tag = testInfo.testId.slice(-6);
     const accounts = {
-      me: { email: `e2e-friendday-me-${tag}@modori.test`, nickname: `나${tag}` },
+      me: { email: `e2e-friendday-me-${tag}-${RUN_TAG}@modori.test`, nickname: `나${tag}${RUN_TAG}` },
       friend: {
-        email: `e2e-friendday-you-${tag}@modori.test`,
-        nickname: `친구${tag}`,
+        email: `e2e-friendday-you-${tag}-${RUN_TAG}@modori.test`,
+        nickname: `친구${tag}${RUN_TAG}`,
       },
     };
     const emails = [accounts.me.email, accounts.friend.email];

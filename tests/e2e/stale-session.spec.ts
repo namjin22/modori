@@ -4,9 +4,11 @@ import { prisma } from "@/lib/prisma";
 
 import { homeReady } from "./todo-helpers";
 
+import { RUN_TAG } from "./run-tag";
+
 const test = base.extend<{ email: string }>({
   email: async ({}, provide, testInfo) => {
-    const email = `e2e-stale-${testInfo.testId}@modori.test`;
+    const email = `e2e-stale-${testInfo.testId}-${RUN_TAG}@modori.test`;
     await prisma.user.deleteMany({ where: { email } });
     await provide(email);
     await prisma.user.deleteMany({ where: { email } });
@@ -23,7 +25,7 @@ test("계정이 사라진 세션이면 로그인 화면에 멈춘다", async ({ 
   await page.goto("/login");
   await page.getByLabel("테스트 이메일").fill(email);
   await page.getByRole("button", { name: "테스트 로그인" }).click();
-  await page.getByPlaceholder("닉네임").fill(`유령${testInfo.testId.slice(-6)}`);
+  await page.getByPlaceholder("닉네임").fill(`유령${testInfo.testId.slice(-6)}${RUN_TAG}`);
   await page.getByRole("button", { name: "시작하기" }).click();
   await expect(homeReady(page)).toBeVisible();
 

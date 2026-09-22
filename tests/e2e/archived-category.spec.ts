@@ -4,9 +4,11 @@ import { prisma } from "@/lib/prisma";
 
 import { addTodo, FIRST_CATEGORY, homeReady } from "./todo-helpers";
 
+import { RUN_TAG } from "./run-tag";
+
 const test = base.extend<{ email: string }>({
   email: async ({}, provide, testInfo) => {
-    const email = `e2e-archived-${testInfo.testId}@modori.test`;
+    const email = `e2e-archived-${testInfo.testId}-${RUN_TAG}@modori.test`;
     await prisma.user.deleteMany({ where: { email } });
     await provide(email);
     await prisma.user.deleteMany({ where: { email } });
@@ -30,7 +32,7 @@ test("카테고리를 보관해도 그 카테고리의 할 일은 이름을 달�
   page,
   email,
 }, testInfo) => {
-  await signInAndOnboard(page, email, `보관${testInfo.testId.slice(-6)}`);
+  await signInAndOnboard(page, email, `보관${testInfo.testId.slice(-6)}${RUN_TAG}`);
 
   await addTodo(page, "보관 전에 만든 일");
   await expect(page.getByText("보관 전에 만든 일")).toBeVisible();

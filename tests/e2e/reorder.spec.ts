@@ -4,9 +4,11 @@ import { prisma } from "@/lib/prisma";
 
 import { addTodo, homeReady } from "./todo-helpers";
 
+import { RUN_TAG } from "./run-tag";
+
 const test = base.extend<{ email: string }>({
   email: async ({}, provide, testInfo) => {
-    const email = `e2e-reorder-${testInfo.testId}@modori.test`;
+    const email = `e2e-reorder-${testInfo.testId}-${RUN_TAG}@modori.test`;
     await prisma.user.deleteMany({ where: { email } });
     await provide(email);
     await prisma.user.deleteMany({ where: { email } });
@@ -27,7 +29,7 @@ test.afterAll(async () => {
 });
 
 test("드래그로 할 일 순서를 바꾼다", async ({ page, email }, testInfo) => {
-  await signInAndOnboard(page, email, `정렬${testInfo.testId.slice(-6)}`);
+  await signInAndOnboard(page, email, `정렬${testInfo.testId.slice(-6)}${RUN_TAG}`);
 
   await addTodo(page, "첫째");
   await addTodo(page, "둘째");
@@ -62,9 +64,9 @@ test("드래그로 할 일 순서를 바꾼다", async ({ page, email }, testInf
 
 test("같은 닉네임은 다른 사람이 가져갈 수 없다", async ({ page }, testInfo) => {
   const tag = testInfo.testId.slice(-6);
-  const first = `e2e-nick-a-${tag}@modori.test`;
-  const second = `e2e-nick-b-${tag}@modori.test`;
-  const nickname = `겹치는${tag}`;
+  const first = `e2e-nick-a-${tag}-${RUN_TAG}@modori.test`;
+  const second = `e2e-nick-b-${tag}-${RUN_TAG}@modori.test`;
+  const nickname = `겹치는${tag}${RUN_TAG}`;
 
   await prisma.user.deleteMany({ where: { email: { in: [first, second] } } });
 
