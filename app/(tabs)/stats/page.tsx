@@ -138,14 +138,17 @@ export default async function StatsPage({
                     aria-label={`${category.name} ${category.total}개 중 ${category.done}개 완료`}
                     className="h-2 overflow-hidden rounded-full bg-surface-hover"
                   >
-                    <div
-                      className="color-edge h-full rounded-full transition-[width]"
-                      style={{
-                        width: `${(category.done / category.total) * 100}%`,
-                        backgroundColor:
-                          category.color ?? "var(--color-foreground)",
-                      }}
-                    />
+                    {/* 0%면 그리지 않는다. 가장자리 선은 폭이 0이어도 그려져서 점이 남는다. */}
+                    {category.done > 0 && (
+                      <div
+                        className="color-edge h-full rounded-full transition-[width]"
+                        style={{
+                          width: `${(category.done / category.total) * 100}%`,
+                          backgroundColor:
+                            category.color ?? "var(--color-foreground)",
+                        }}
+                      />
+                    )}
                   </div>
                 </li>
               ))}
