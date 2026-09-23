@@ -5,7 +5,7 @@ import { useOptimistic } from "react";
 import { useCompletionCount } from "@/components/todo-progress";
 
 import { toggleTodo } from "@/app/(tabs)/actions";
-import { contrastTextColor } from "@/lib/colors";
+import { onColorText } from "@/lib/colors";
 
 // 서버 왕복을 기다렸다가 체크 표시를 바꾸면 손가락보다 화면이 한참 늦다.
 // 먼저 바꿔 보여주고, 서버 응답이 오면 진짜 값으로 맞춰진다.
@@ -40,7 +40,7 @@ export function TodoCheckbox({
         // 투두메이트처럼 둥근 네모. 안 한 일은 회색으로 채우고, 한 일은 카테고리 색으로 채운다.
         style={
           color && optimisticDone
-            ? { backgroundColor: color, color: contrastTextColor(color) }
+            ? { backgroundColor: color, color: onColorText(color) }
             : undefined
         }
         className={`flex size-[22px] shrink-0 items-center justify-center rounded-[7px] color-edge text-xs font-bold text-white transition-all duration-150 active:scale-90 ${

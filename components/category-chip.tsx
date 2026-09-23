@@ -1,4 +1,4 @@
-import { contrastTextColor } from "@/lib/colors";
+import { onColorText } from "@/lib/colors";
 
 /**
  * 카테고리 이름을 그 색으로 칠한 칩.
@@ -21,7 +21,7 @@ export function CategoryChip({
       }`}
       style={
         color
-          ? { backgroundColor: color, color: contrastTextColor(color) }
+          ? { backgroundColor: color, color: onColorText(color) }
           : undefined
       }
     >

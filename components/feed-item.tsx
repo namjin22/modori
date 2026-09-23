@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 import { ReactionBar } from "@/components/reaction-bar";
-import { contrastTextColor } from "@/lib/colors";
+import { onColorText } from "@/lib/colors";
 import { summarizeReactions } from "@/lib/reactions";
 
 import { Avatar } from "@/components/avatar";
@@ -38,7 +38,7 @@ export function FeedItem({
           aria-hidden
           className="color-edge flex size-[18px] shrink-0 items-center justify-center rounded-[6px] bg-brand text-[10px] font-bold"
           style={
-            color ? { backgroundColor: color, color: contrastTextColor(color) } : { color: "#fff" }
+            color ? { backgroundColor: color, color: onColorText(color) } : { color: "#fff" }
           }
         >
           ✓
