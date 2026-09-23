@@ -41,7 +41,7 @@ export function ColorSwatches({
         {legacy && (
           <label
             title="지금 쓰는 색"
-            className="relative flex size-7 cursor-pointer items-center justify-center rounded-full border border-border ring-offset-2 ring-offset-surface has-[:checked]:ring-2 has-[:checked]:ring-foreground"
+            className="color-edge relative flex size-7 cursor-pointer items-center justify-center rounded-full ring-offset-2 ring-offset-surface has-[:checked]:ring-2 has-[:checked]:ring-foreground"
             style={{ backgroundColor: legacy }}
           >
             <input
@@ -58,7 +58,7 @@ export function ColorSwatches({
           <label
             key={color.value}
             title={color.name}
-            className="relative flex size-7 cursor-pointer items-center justify-center rounded-full ring-offset-2 ring-offset-surface has-[:checked]:ring-2 has-[:checked]:ring-foreground has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-brand"
+            className="color-edge relative flex size-7 cursor-pointer items-center justify-center rounded-full ring-offset-2 ring-offset-surface has-[:checked]:ring-2 has-[:checked]:ring-foreground has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-brand"
             style={{ backgroundColor: color.value }}
           >
             <input

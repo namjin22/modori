@@ -24,6 +24,7 @@ import { Dori } from "@/components/dori";
 import { FeedItem } from "@/components/feed-item";
 import { MonthCalendar, type DaySummary } from "@/components/month-calendar";
 import { WeekStrip } from "@/components/week-strip";
+import { BackLink } from "@/components/back-link";
 
 const WEEKDAY_NAMES = ["일", "월", "화", "수", "목", "금", "토"];
 
@@ -159,9 +160,7 @@ export default async function FriendDayPage({
     <div className="flex flex-col gap-6 lg:grid lg:grid-cols-2 lg:items-start lg:gap-10">
       <div className="flex flex-col gap-6 lg:sticky lg:top-6">
         <div className="flex items-center gap-3">
-          <Link href="/feed" aria-label="소셜로" className="shrink-0 text-muted">
-            ←
-          </Link>
+          <BackLink href="/feed" label="소셜로" />
           <Avatar src={friend.profileImage} size={48} />
           <div className="min-w-0">
             <h1 className="truncate text-xl font-bold">{friend.nickname}</h1>

@@ -8,6 +8,7 @@ import { SubmitButton } from "@/components/submit-button";
 import { followUser, unfollowUser } from "../actions";
 
 import { Avatar } from "@/components/avatar";
+import { BackLink } from "@/components/back-link";
 
 const MAX_RESULTS = 20;
 
@@ -42,10 +43,8 @@ export default async function SearchPage({
 
   return (
     <div className="flex flex-col gap-6">
-      <header className="flex items-center gap-3">
-        <Link href="/feed" aria-label="소셜로" className="text-muted">
-          ←
-        </Link>
+      <header className="flex items-center gap-1">
+        <BackLink href="/feed" label="소셜로" />
         <h1 className="text-2xl font-bold">친구 찾기</h1>
       </header>
 

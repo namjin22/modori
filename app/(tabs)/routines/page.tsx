@@ -14,6 +14,7 @@ import {
   restoreRoutine,
   toggleRoutinePause,
 } from "./actions";
+import { BackLink } from "@/components/back-link";
 
 const WEEKDAY_NAMES = ["일", "월", "화", "수", "목", "금", "토"];
 
@@ -57,10 +58,8 @@ export default async function RoutinesPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <header className="flex items-center gap-3">
-        <Link href="/" aria-label="피드로" className="text-muted">
-          ←
-        </Link>
+      <header className="flex items-center gap-1">
+        <BackLink href="/" label="피드로" />
         <h1 className="text-2xl font-bold">루틴</h1>
       </header>
 

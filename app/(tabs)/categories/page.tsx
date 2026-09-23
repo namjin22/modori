@@ -1,5 +1,3 @@
-import Link from "next/link";
-
 import { ColorSwatches } from "@/components/color-swatches";
 import { PALETTE } from "@/lib/colors";
 import { SubmitButton } from "@/components/submit-button";
@@ -13,6 +11,7 @@ import {
   restoreCategory,
   updateCategory,
 } from "./actions";
+import { BackLink } from "@/components/back-link";
 
 // 브랜드 파랑을 기본값으로 두면 새 카테고리가 버튼 색과 구분되지 않는다.
 const DEFAULT_NEW_COLOR = PALETTE[0].value;
@@ -30,10 +29,8 @@ export default async function CategoriesPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <header className="flex items-center gap-3">
-        <Link href="/" aria-label="피드로" className="text-muted">
-          ←
-        </Link>
+      <header className="flex items-center gap-1">
+        <BackLink href="/" label="피드로" />
         <h1 className="text-2xl font-bold">카테고리</h1>
       </header>
 
@@ -78,7 +75,7 @@ export default async function CategoriesPage() {
                 <summary className="flex cursor-pointer list-none items-center gap-3 p-3 [&::-webkit-details-marker]:hidden">
                   <span
                     aria-hidden
-                    className="size-4 shrink-0 rounded-full border border-border"
+                    className="size-4 shrink-0 color-edge rounded-full"
                     style={{ backgroundColor: category.color }}
                   />
                   <span className="flex-1 truncate font-medium">
@@ -184,7 +181,7 @@ export default async function CategoriesPage() {
               >
                 <span
                   aria-hidden
-                  className="size-4 shrink-0 rounded-full border border-border opacity-40"
+                  className="size-4 shrink-0 color-edge rounded-full opacity-40"
                   style={{ backgroundColor: category.color }}
                 />
                 <span className="flex-1 truncate text-muted">{category.name}</span>
