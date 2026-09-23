@@ -24,10 +24,22 @@ function readInstant(value: string | null, fallback: Date): Date {
   return Number.isNaN(parsed.getTime()) ? fallback : parsed;
 }
 
-/** 할 일마다 고른 색. 고르지 않았으면 null이고, 그때는 카테고리 색을 쓴다. */
 function readId(formData: FormData, key: string): string {
   const raw = formData.get(key);
   return typeof raw === "string" ? raw : "";
+}
+
+/**
+ * 폼에서 온 날짜. 읽을 수 없으면 null이다. parseKSTDate는 잘못된 값에 예외를 던져서,
+ * 그대로 쓰면 오래 열어 둔 폼 하나가 오류 화면을 띄운다.
+ */
+function readDay(value: string): Date | null {
+  try {
+    return parseKSTDate(value);
+  } catch (error) {
+    console.warn("[todo] 날짜를 읽지 못했다.", value, error);
+    return null;
+  }
 }
 
 export async function addTodo(formData: FormData) {
@@ -35,13 +47,15 @@ export async function addTodo(formData: FormData) {
   const content = readContent(formData);
   if (!content) return;
 
-  const date = parseKSTDate(readId(formData, "date"));
+  const date = readDay(readId(formData, "date"));
+  if (!date) return;
   const categoryId = readId(formData, "categoryId") || null;
 
-  // 남의 카테고리 id를 끼워 넣어도 붙지 않게 한다.
+  // 남의 카테고리 id를 끼워 넣어도 붙지 않게 한다. 보관한 카테고리에도 새로 적지 않는다.
+  // 다른 탭에서 보관하기 전에 열어 둔 입력칸이 남아 있을 수 있다.
   if (categoryId) {
     const owned = await prisma.category.findFirst({
-      where: { id: categoryId, userId: user.id },
+      where: { id: categoryId, userId: user.id, archivedAt: null },
       select: { id: true },
     });
     if (!owned) return;
@@ -165,7 +179,8 @@ export async function restoreTodo(snapshot: DeletedTodo) {
   const content = snapshot.content.trim().slice(0, MAX_CONTENT_LENGTH);
   if (!content) return;
 
-  const date = parseKSTDate(snapshot.date);
+  const date = readDay(snapshot.date);
+  if (!date) return;
 
   const [category, routine] = await Promise.all([
     snapshot.categoryId
@@ -232,7 +247,8 @@ export async function restoreTodo(snapshot: DeletedTodo) {
 export async function completeScheduledRoutine(formData: FormData) {
   const user = await requireUser();
   const routineId = readId(formData, "routineId");
-  const date = parseKSTDate(readId(formData, "date"));
+  const date = readDay(readId(formData, "date"));
+  if (!date) return;
 
   const routine = await prisma.routine.findFirst({
     where: { id: routineId, userId: user.id },
@@ -291,8 +307,8 @@ export async function completeScheduledRoutine(formData: FormData) {
  */
 export async function reorderTodos(date: string, orderedIds: string[]) {
   const user = await requireUser();
-  const day = parseKSTDate(date);
-  if (orderedIds.length === 0) return;
+  const day = readDay(date);
+  if (!day || orderedIds.length === 0) return;
 
   // 남의 할 일이나 다른 날짜의 id가 섞여 들어오면 전부 무시한다.
   const owned = await prisma.todo.findMany({
