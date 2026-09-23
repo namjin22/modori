@@ -1,30 +1,8 @@
-<!-- 탭 아이콘. components/dori.tsx의 도리를 그대로 쓰고 보이는 데만 잘라낸다.
-     따로 그리면 몸이 있는 도리와 달라 보여서 다른 캐릭터가 된다.
-     머리와 어깨까지 담아야 16px에서도 도리인 줄 안다. -->
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="20 3 80 80" width="64" height="64">
-  <rect x="20" y="3" width="80" height="80" rx="18" fill="#2563eb"/>
-
-  <g fill="#6e82ad" stroke="#6e82ad" stroke-width="8" stroke-linejoin="round">
-    <path d="M40 25 L35 9 Q48 11 55 21 Z"/>
-    <path d="M80 25 L85 9 Q72 11 65 21 Z"/>
-    <circle cx="60" cy="46" r="32"/>
-    <rect x="34" y="58" width="52" height="38" rx="16"/>
-  </g>
-  <g fill="#fdfbf7">
-    <path d="M40 25 L35 9 Q48 11 55 21 Z"/>
-    <path d="M80 25 L85 9 Q72 11 65 21 Z"/>
-    <circle cx="60" cy="46" r="32"/>
-    <rect x="34" y="58" width="52" height="38" rx="16"/>
-  </g>
-
-  <ellipse cx="44" cy="18" rx="4.5" ry="5.5" fill="#ffd0dc" transform="rotate(-20 44 18)"/>
-  <ellipse cx="76" cy="18" rx="4.5" ry="5.5" fill="#ffd0dc" transform="rotate(20 76 18)"/>
-  <ellipse cx="42" cy="59" rx="9.5" ry="7.5" fill="#ffdbe4"/>
-  <ellipse cx="78" cy="59" rx="9.5" ry="7.5" fill="#ffdbe4"/>
-  <ellipse cx="46" cy="46" rx="6" ry="7.5" fill="#5d6f96"/>
-  <ellipse cx="74" cy="46" rx="6" ry="7.5" fill="#5d6f96"/>
-  <g stroke="#5d6f96" stroke-width="3.2" stroke-linecap="round">
-    <path d="M57 55 L63 59"/>
-    <path d="M63 55 L57 59"/>
-  </g>
+<!-- 탭 아이콘. 모도리의 M 한 글자만 둔다. components/logo.tsx와 같은 그림이다.
+     글꼴로 쓰지 않고 선으로 그린다. 글꼴이 없는 환경에서도 그려져야 하고,
+     16px까지 줄어들기 때문에 획이 굵고 단순해야 한다. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <rect width="64" height="64" rx="16" fill="#2563eb"/>
+  <path d="M19 44 V20 L32 35 L45 20 V44" fill="none" stroke="#ffffff"
+        stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>
