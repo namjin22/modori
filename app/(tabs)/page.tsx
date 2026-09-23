@@ -300,6 +300,12 @@ export default async function FeedPage({
           >
             루틴
           </Link>
+          <Link
+            href="/stats"
+            className="flex h-8 items-center rounded-full bg-surface px-3.5 text-sm text-muted hover:text-foreground"
+          >
+            기록
+          </Link>
           {!isToday && (
             <Link
               href={monthOpen ? "/?view=month" : "/"}
