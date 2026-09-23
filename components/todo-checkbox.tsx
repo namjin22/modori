@@ -43,7 +43,7 @@ export function TodoCheckbox({
             ? { backgroundColor: color, color: contrastTextColor(color) }
             : undefined
         }
-        className={`flex size-[22px] shrink-0 items-center justify-center rounded-[7px] border border-border text-xs font-bold text-white transition-all duration-150 active:scale-90 ${
+        className={`flex size-[22px] shrink-0 items-center justify-center rounded-[7px] color-edge text-xs font-bold text-white transition-all duration-150 active:scale-90 ${
           optimisticDone ? "bg-brand" : "bg-border hover:brightness-95"
         }`}
       >

@@ -17,7 +17,7 @@ export function CategoryChip({
   return (
     <span
       className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
-        color ? "" : "bg-surface text-muted"
+        color ? "color-edge" : "bg-surface text-muted"
       }`}
       style={
         color

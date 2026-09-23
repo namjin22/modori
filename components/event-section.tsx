@@ -112,7 +112,7 @@ export function EventSection({
                 >
                   <span
                     aria-hidden
-                    className="size-2 shrink-0 rounded-full"
+                    className="color-edge size-2 shrink-0 rounded-full"
                     style={{ backgroundColor: event.color }}
                   />
                   <span className="min-w-0 flex-1 truncate">{event.title}</span>

@@ -38,7 +38,7 @@ export function ScheduledRoutineRow({
         {color && (
           <span
             aria-hidden
-            className="size-2.5 shrink-0 rounded-full"
+            className="color-edge size-2.5 shrink-0 rounded-full"
             style={{ backgroundColor: color }}
           />
         )}

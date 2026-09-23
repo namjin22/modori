@@ -14,6 +14,7 @@ import {
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 import { countByCategory, countByWeekday, streakDays } from "@/lib/stats";
+import { BackLink } from "@/components/back-link";
 
 const WEEKDAY_NAMES = ["일", "월", "화", "수", "목", "금", "토"];
 
@@ -69,10 +70,8 @@ export default async function StatsPage({
 
   return (
     <div className="flex flex-col gap-6">
-      <header className="flex items-center gap-3">
-        <Link href="/" aria-label="피드로" className="text-muted">
-          ←
-        </Link>
+      <header className="flex items-center gap-1">
+        <BackLink href="/" label="피드로" />
         <h1 className="text-2xl font-bold">기록</h1>
       </header>
 
@@ -122,7 +121,7 @@ export default async function StatsPage({
                   <div className="flex items-center gap-2 text-sm">
                     <span
                       aria-hidden
-                      className="size-3 shrink-0 rounded-full border border-border"
+                      className="size-3 shrink-0 color-edge rounded-full"
                       style={{
                         backgroundColor: category.color ?? "var(--color-border)",
                       }}

@@ -49,7 +49,7 @@ export function CategoryAdder({
         {archived ? (
           <span
             className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold ${
-              color ? "" : "bg-surface text-muted"
+              color ? "color-edge" : "bg-surface text-muted"
             }`}
             style={color ? chipStyle(color) : undefined}
           >
@@ -62,7 +62,7 @@ export function CategoryAdder({
             aria-expanded={open}
             onClick={() => setOpen((value) => !value)}
             className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold transition-opacity ${
-              color ? "hover:opacity-80" : "bg-surface text-muted hover:bg-surface-hover"
+              color ? "color-edge hover:opacity-80" : "bg-surface text-muted hover:bg-surface-hover"
             } ${open ? "ring-2 ring-foreground ring-offset-2 ring-offset-background" : ""}`}
             style={color ? chipStyle(color) : undefined}
           >
