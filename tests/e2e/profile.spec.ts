@@ -82,7 +82,10 @@ test("사진을 올리지 않으면 도리 얼굴을 쓴다", async ({ page, ema
   expect(saved.profileImage).toBeNull();
 
   await page.goto("/settings");
-  await expect(page.locator("a[href='/settings/profile'] svg")).toBeVisible();
+  // 링크 안에는 꺾쇠 아이콘도 있다. 도리 얼굴(viewBox로 구분)만 집는다.
+  await expect(
+    page.locator("a[href='/settings/profile'] svg[viewBox='20 3 80 80']"),
+  ).toBeVisible();
 });
 
 test("빈 닉네임은 거절한다", async ({ page }) => {

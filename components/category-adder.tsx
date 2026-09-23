@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 
 import { addTodo } from "@/app/(tabs)/actions";
-import { contrastTextColor } from "@/lib/colors";
+import { onColorText } from "@/lib/colors";
 
 /**
  * 카테고리 칩. 이름을 누르면 칩 바로 아래에 입력칸이 열린다.
@@ -117,5 +117,5 @@ export function CategoryAdder({
 
 /** 색을 배경으로 쓰고 글씨는 대비가 큰 쪽으로 고른다. 흰색·검정도 읽힌다. */
 function chipStyle(color: string) {
-  return { backgroundColor: color, color: contrastTextColor(color) };
+  return { backgroundColor: color, color: onColorText(color) };
 }

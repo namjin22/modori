@@ -85,8 +85,23 @@ export default async function RoutinesPage() {
       /* 일정과 같은 방식으로 맞춘다. 한 줄짜리 제목에 큰 동그라미와 넓은 카드를
          두면 아래 목록보다 무거워 보인다. */
       <details className="group">
-        <summary className="w-fit cursor-pointer list-none text-sm font-semibold [&::-webkit-details-marker]:hidden">
+        {/* 제목과 같은 글씨면 누를 수 있는 줄 모른다. 브랜드 색과 펼침 표시를 단다. */}
+        <summary className="flex w-fit cursor-pointer list-none items-center gap-1 text-sm font-semibold text-brand [&::-webkit-details-marker]:hidden">
           루틴 만들기
+          <svg
+            aria-hidden
+            width={16}
+            height={16}
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={2.4}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="transition-transform group-open:rotate-180"
+          >
+            <path d="M6 9 L12 15 L18 9" />
+          </svg>
         </summary>
         <div className="mt-3 rounded-2xl bg-surface p-4">
           <RoutineForm categories={categories} today={formatKST(todayKST())} />

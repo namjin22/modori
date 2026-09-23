@@ -19,7 +19,22 @@ export default async function SettingsPage() {
       >
         <Avatar src={user.profileImage} size={48} />
         <p className="flex-1 text-base font-semibold">{user.nickname}</p>
-        <span className="text-sm text-muted">프로필 수정 →</span>
+        <span className="flex items-center gap-0.5 text-sm text-muted">
+          프로필 수정
+          <svg
+            aria-hidden
+            width={16}
+            height={16}
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={2.2}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M9 5 L16 12 L9 19" />
+          </svg>
+        </span>
       </Link>
 
       <section className="flex flex-col gap-4 rounded-2xl bg-surface p-5">

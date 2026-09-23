@@ -139,7 +139,7 @@ export default async function StatsPage({
                     className="h-2 overflow-hidden rounded-full bg-surface-hover"
                   >
                     <div
-                      className="h-full rounded-full transition-[width]"
+                      className="color-edge h-full rounded-full transition-[width]"
                       style={{
                         width: `${(category.done / category.total) * 100}%`,
                         backgroundColor:

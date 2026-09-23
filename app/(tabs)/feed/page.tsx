@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+import { Avatar } from "@/components/avatar";
+
 import { formatMonthDayKST } from "@/lib/date";
 import { prisma } from "@/lib/prisma";
 import { countUnreadReactions, requireUser } from "@/lib/session";
@@ -125,21 +127,42 @@ export default async function FeedPage({
           )}
         </div>
       ) : (
+        // 같은 사람이 같은 날 끝낸 일은 카드 한 장에 한 줄씩 묶는다. 할 일마다
+        // 카드를 따로 쓰면 이름과 날짜가 줄마다 반복되고 한 화면에 서너 개밖에 안 보인다.
         <ul className="flex flex-col gap-3">
-          {todos.map((todo) => (
-            <FeedItem
-              key={todo.id}
-              todo={{
-                id: todo.id,
-                content: todo.content,
-                date: formatMonthDayKST(todo.date),
-                user: todo.user,
-                color: todo.color,
-                category: todo.category,
-                reactions: todo.reactions,
-              }}
-              viewerId={user.id}
-            />
+          {groupByAuthorAndDay(todos).map((group) => (
+            <li key={group.key} className="rounded-2xl bg-surface px-4 pb-1 pt-3.5">
+              <div className="flex items-center gap-2">
+                <Link
+                  href={`/feed/u/${group.user.id}`}
+                  className="flex min-w-0 items-center gap-2"
+                >
+                  <Avatar src={group.user.profileImage} size={28} />
+                  <span className="truncate text-sm font-semibold">
+                    {group.user.nickname}
+                  </span>
+                </Link>
+                <span className="text-xs text-muted">{group.date}</span>
+              </div>
+              <ul className="divide-y divide-border">
+                {group.items.map((todo) => (
+                  <FeedItem
+                    key={todo.id}
+                    compact
+                    todo={{
+                      id: todo.id,
+                      content: todo.content,
+                      date: group.date,
+                      user: todo.user,
+                      color: todo.color,
+                      category: todo.category,
+                      reactions: todo.reactions,
+                    }}
+                    viewerId={user.id}
+                  />
+                ))}
+              </ul>
+            </li>
           ))}
         </ul>
       )}
@@ -165,4 +188,23 @@ export default async function FeedPage({
       )}
     </div>
   );
+}
+
+/** 피드는 끝낸 시각 순서다. 그 순서를 지키면서, 붙어 있는 같은 사람·같은 날끼리만 묶는다. */
+function groupByAuthorAndDay<T extends { date: Date; user: { id: string } }>(
+  todos: T[],
+): { key: string; date: string; user: T["user"]; items: T[] }[] {
+  const groups: { key: string; date: string; user: T["user"]; items: T[] }[] = [];
+
+  for (const todo of todos) {
+    const date = formatMonthDayKST(todo.date);
+    const last = groups.at(-1);
+    if (last && last.user.id === todo.user.id && last.date === date) {
+      last.items.push(todo);
+    } else {
+      groups.push({ key: `${todo.user.id}-${todo.date.getTime()}-${groups.length}`, date, user: todo.user, items: [todo] });
+    }
+  }
+
+  return groups;
 }

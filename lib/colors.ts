@@ -23,19 +23,37 @@ export function isPaletteColor(value: string): boolean {
   return PALETTE.some((color) => color.value === value);
 }
 
-/** 색상 위에 올릴 글자 중 대비가 더 큰 색을 고른다. 사용자 색상도 안전하게 처리한다. */
-export function contrastTextColor(background: string): "#ffffff" | "#191f28" {
-  const match = /^#([0-9a-f]{6})$/i.exec(background);
-  if (!match) return "#191f28";
+/** 색의 상대 휘도(WCAG). 읽을 수 없는 값이면 null. */
+function luminance(color: string): number | null {
+  const match = /^#([0-9a-f]{6})$/i.exec(color);
+  if (!match) return null;
 
-  const channels = [0, 2, 4].map((offset) => Number.parseInt(match[1].slice(offset, offset + 2), 16) / 255);
-  const linearChannels = channels.map((channel) => {
-    const linear = channel <= 0.03928 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
-    return linear;
-  });
-  const relativeLuminance =
-    0.2126 * linearChannels[0] + 0.7152 * linearChannels[1] + 0.0722 * linearChannels[2];
-  const whiteContrast = 1.05 / (relativeLuminance + 0.05);
-  const darkContrast = (relativeLuminance + 0.05) / 0.05;
+  const channels = [0, 2, 4].map(
+    (offset) => Number.parseInt(match[1].slice(offset, offset + 2), 16) / 255,
+  );
+  const [r, g, b] = channels.map((channel) =>
+    channel <= 0.03928 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4,
+  );
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+
+/**
+ * 색 칩·완료 체크처럼 굵은 글씨나 아이콘을 색 위에 올릴 때 쓴다.
+ * 흰 글씨와 3:1 이상 벌어지면 흰색을 쓴다. 파랑·빨강·보라에 대비만 보고 검정을
+ * 올리면 탁해 보인다. 노랑·초록·주황·흰색처럼 밝은 색에만 어두운 글씨를 쓴다.
+ */
+export function onColorText(background: string): "#ffffff" | "#191f28" {
+  const value = luminance(background);
+  if (value === null) return "#191f28";
+  return 1.05 / (value + 0.05) >= 3 ? "#ffffff" : "#191f28";
+}
+
+/** 색상 위에 올릴 글자 중 대비가 더 큰 색을 고른다. 작은 글씨처럼 대비가 꼭 필요할 때 쓴다. */
+export function contrastTextColor(background: string): "#ffffff" | "#191f28" {
+  const value = luminance(background);
+  if (value === null) return "#191f28";
+
+  const whiteContrast = 1.05 / (value + 0.05);
+  const darkContrast = (value + 0.05) / 0.05;
   return whiteContrast >= darkContrast ? "#ffffff" : "#191f28";
 }
