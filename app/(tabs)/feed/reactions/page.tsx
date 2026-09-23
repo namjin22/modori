@@ -1,10 +1,9 @@
-import Link from "next/link";
-
 import { Dori } from "@/components/dori";
 import { formatMonthDayKST } from "@/lib/date";
 import { labelOfReaction } from "@/lib/reactions";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
+import { BackLink } from "@/components/back-link";
 
 const MAX_ITEMS = 50;
 
@@ -34,10 +33,8 @@ export default async function ReactionsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <header className="flex items-center gap-3">
-        <Link href="/feed" aria-label="소셜로" className="text-muted">
-          ←
-        </Link>
+      <header className="flex items-center gap-1">
+        <BackLink href="/feed" label="소셜로" />
         <h1 className="text-2xl font-bold">받은 반응</h1>
       </header>
 
