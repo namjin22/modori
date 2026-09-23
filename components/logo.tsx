@@ -1,8 +1,9 @@
 /**
- * 모도리의 로고. 브랜드 파랑 위에 M 한 글자만 둔다.
+ * 모도리의 로고. 고양이 귀가 달린 체크박스.
+ * 할 일을 체크하는 서비스라는 것과 캐릭터 도리를 한 도형에 담는다.
  *
- * 글꼴로 쓰지 않고 선으로 그린다. 탭 아이콘은 글꼴이 없는 환경에서도 그려져야 하고,
- * 16px까지 줄어들기 때문에 획이 굵고 단순해야 한다.
+ * 탭 아이콘으로 16px까지 줄어들기 때문에 귀 두 개와 체크 하나만 남겼다.
+ * app/icon.svg, app/favicon.ico, public/icons/*.png가 모두 이 그림이다.
  */
 export function Logo({
   size = 96,
@@ -20,12 +21,21 @@ export function Logo({
       aria-label="모도리"
       className={className}
     >
-      <rect width={64} height={64} rx={16} fill="#2563eb" />
+      <g
+        fill="#2563eb"
+        stroke="#2563eb"
+        strokeWidth={4}
+        strokeLinejoin="round"
+      >
+        <path d="M11 22 L15 5 L28 15 Z" />
+        <path d="M53 22 L49 5 L36 15 Z" />
+        <rect x={6} y={14} width={52} height={46} rx={15} />
+      </g>
       <path
-        d="M19 44 V20 L32 35 L45 20 V44"
+        d="M20 37 L28.5 45.5 L44 29"
         fill="none"
         stroke="#ffffff"
-        strokeWidth={7}
+        strokeWidth={6.5}
         strokeLinecap="round"
         strokeLinejoin="round"
       />
