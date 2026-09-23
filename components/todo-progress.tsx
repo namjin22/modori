@@ -38,8 +38,9 @@ export function TodoProgress({
 
   return (
     <CompletionContext.Provider value={changeDone}>
-      {total > 0 && (
-        <div className="flex flex-col gap-1">
+      {/* 할 일이 없어도 자리를 지킨다. 첫 할 일을 적는 순간 막대가 생기면
+          화면이 한 번 밀리고, 무엇이 늘었는지도 알아채기 어렵다. */}
+      <div className="flex flex-col gap-1">
           <p aria-live="polite" className="text-sm text-muted">
             {total}개 중 {optimisticDone}개 완료
           </p>
@@ -47,17 +48,18 @@ export function TodoProgress({
             role="progressbar"
             aria-label="오늘 완료율"
             aria-valuemin={0}
-            aria-valuemax={total}
+            aria-valuemax={Math.max(total, 1)}
             aria-valuenow={optimisticDone}
             className="h-1.5 overflow-hidden rounded-full bg-border"
           >
             <div
               className="h-full rounded-full bg-brand transition-[width] duration-300"
-              style={{ width: `${Math.round((optimisticDone / total) * 100)}%` }}
+              style={{
+                width: `${total === 0 ? 0 : Math.round((optimisticDone / total) * 100)}%`,
+              }}
             />
           </div>
-        </div>
-      )}
+      </div>
       {children}
     </CompletionContext.Provider>
   );

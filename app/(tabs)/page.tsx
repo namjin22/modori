@@ -348,16 +348,12 @@ export default async function FeedPage({
           today={formatKST(today)}
         />
 
-        <h2 className="-mb-2 text-sm font-semibold">할 일</h2>
-
         {todos.length > 0 && doneCount === todos.length && (
           // 다 끝낸 날은 알아봐 준다. 마지막 하나를 체크할 동기가 된다.
           <div className="flex items-center gap-3 rounded-2xl bg-brand-subtle px-4 py-3">
             <Dori mood="party" size={56} />
             <div>
-              <p className="font-semibold text-brand">
-                {isToday ? "오늘" : "이 날"} 할 일을 다 끝냈어요
-              </p>
+              <p className="font-semibold text-brand">할 일을 다 끝냈어요</p>
               <p className="text-xs text-muted">도리가 대신 박수 쳐줄게요</p>
             </div>
           </div>
