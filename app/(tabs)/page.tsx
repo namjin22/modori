@@ -164,8 +164,16 @@ export default async function FeedPage({
 
   const monthEnd = endOfMonthKST(monthStart);
 
-  const [todos, categories, scheduled, weekTodos, monthTodos, dayEvents, monthEvents] =
-    await Promise.all([
+  const [
+    todos,
+    categories,
+    scheduled,
+    weekTodos,
+    monthTodos,
+    dayEvents,
+    monthEvents,
+    upcomingEvents,
+  ] = await Promise.all([
       prisma.todo.findMany({
         where: { userId: user.id, date },
         orderBy: { order: "asc" },
@@ -207,6 +215,13 @@ export default async function FeedPage({
         },
         orderBy: [{ startDate: "asc" }, { createdAt: "asc" }],
         select: EVENT_SELECT,
+      }),
+      // 아직 오지 않은 일정. 그 날짜를 열어보지 않아도 시험이 며칠 남았는지 보인다.
+      prisma.event.findMany({
+        where: { userId: user.id, startDate: { gt: date } },
+        orderBy: [{ startDate: "asc" }, { createdAt: "asc" }],
+        select: EVENT_SELECT,
+        take: 3,
       }),
     ]);
 
@@ -326,7 +341,12 @@ export default async function FeedPage({
           </Link>
         </nav>
 
-        <EventSection events={dayEvents} date={formatKST(date)} />
+        <EventSection
+          events={dayEvents}
+          upcoming={upcomingEvents}
+          date={formatKST(date)}
+          today={formatKST(today)}
+        />
 
         <h2 className="-mb-2 text-sm font-semibold">할 일</h2>
 

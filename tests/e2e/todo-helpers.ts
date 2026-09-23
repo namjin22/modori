@@ -44,7 +44,8 @@ export async function openTodo(page: Page, content: string) {
 
 /** 일정 이름을 눌러 고치는 창을 연다. */
 export async function openEvent(page: Page, title: string) {
-  await page.getByRole("button", { name: title, exact: true }).click();
+  // 줄 안에 남은 날(D-7 같은 것)이 함께 들어가므로 이름을 통째로 맞추지 않는다.
+  await page.getByRole("button", { name: title }).click();
   await expect(page.getByLabel("일정 이름", { exact: true })).toBeVisible();
 }
 
