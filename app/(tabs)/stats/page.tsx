@@ -122,7 +122,7 @@ export default async function StatsPage({
                   <div className="flex items-center gap-2 text-sm">
                     <span
                       aria-hidden
-                      className="size-3 shrink-0 rounded-full"
+                      className="size-3 shrink-0 rounded-full border border-border"
                       style={{
                         backgroundColor: category.color ?? "var(--color-border)",
                       }}

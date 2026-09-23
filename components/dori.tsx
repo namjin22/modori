@@ -100,11 +100,9 @@ function Body() {
       <circle cx={60} cy={46} r={32} />
       {/* 몸통 바닥을 평평하게 둔다. 둥근 바닥에 발을 붙이면 발끼리 너무 벌어져
           이음매가 꺾이고, 좁히면 발 사이 홈이 테두리에 메워진다. */}
-      <rect x={34} y={58} width={52} height={38} rx={16} />
-      <ellipse cx={48} cy={94} rx={8.5} ry={8} />
-      <ellipse cx={72} cy={94} rx={8.5} ry={8} />
-      {/* 꼬리. 옆선이 밋밋하면 어느 쪽이 앞인지 덜 읽힌다. */}
-      <ellipse cx={26} cy={82} rx={11} ry={5.5} transform="rotate(-30 26 82)" />
+      <rect x={38} y={58} width={44} height={38} rx={15} />
+      <ellipse cx={50} cy={94} rx={8} ry={7.5} />
+      <ellipse cx={70} cy={94} rx={8} ry={7.5} />
     </>
   );
 }
@@ -283,9 +281,9 @@ const LOOKS: Record<
     props: (
       <>
         {/* 고깔은 한쪽 귀에만 씌운다. 가운데에 씌우면 두 귀가 다 가려져 실루엣이 흐려진다. */}
-        <path d="M70 26 L82 8 L94 26 Z" fill="#8b7bff" />
-        <path d="M74 18 L90 18" stroke="#ffd166" strokeWidth={3.4} />
-        <circle cx={82} cy={8} r={4.5} fill="#ffd166" />
+        <path d="M64 24 L76 6 L88 24 Z" fill="#8b7bff" />
+        <path d="M68 16 L84 16" stroke="#ffd166" strokeWidth={3.4} />
+        <circle cx={76} cy={6} r={4.5} fill="#ffd166" />
         <rect
           x={12}
           y={30}
@@ -414,23 +412,23 @@ export function Dori({
       <ellipse
         cx={44}
         cy={18}
-        rx={4.5}
-        ry={5.5}
+        rx={5}
+        ry={6}
         fill={EAR}
         transform="rotate(-20 44 18)"
       />
       <ellipse
         cx={76}
         cy={18}
-        rx={4.5}
-        ry={5.5}
+        rx={5}
+        ry={6}
         fill={EAR}
         transform="rotate(20 76 18)"
       />
       {/* 배를 살짝 밝게 두면 몸이 납작해 보이지 않는다. */}
-      <ellipse cx={60} cy={84} rx={14} ry={10} fill="#fff" opacity={0.28} />
-      <ellipse cx={42} cy={59} rx={9.5} ry={7.5} fill={BLUSH} />
-      <ellipse cx={78} cy={59} rx={9.5} ry={7.5} fill={BLUSH} />
+      <ellipse cx={60} cy={84} rx={12} ry={9} fill="#fff" opacity={0.28} />
+      <ellipse cx={40} cy={59} rx={8} ry={6} fill={BLUSH} />
+      <ellipse cx={80} cy={59} rx={8} ry={6} fill={BLUSH} />
 
       {look.face}
       {look.props}

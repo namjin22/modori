@@ -1,21 +1,23 @@
-import type { CSSProperties } from "react";
-
 /**
- * 일정과 할 일에 고를 수 있는 색. 아무 색이나 받으면 글자가 안 읽히는 조합이
- * 생기므로, 흰 글씨와 옅은 배경 양쪽에서 읽히는 색만 둔다.
+ * 카테고리에 고를 수 있는 색. 무지개 순서대로 두고 흰색과 검정을 끝에 붙인다.
+ * 색이 많으면 무엇을 골랐는지 기억하지 못하고, 비슷한 색끼리 구별도 안 된다.
+ *
+ * 흰색과 검정은 화면 배경과 같아질 수 있다. 색을 그리는 곳에는 얇은 테두리를
+ * 둘러서 배경에 묻히지 않게 한다.
  */
 export const PALETTE = [
-  { value: "#00b26a", name: "초록" },
-  { value: "#3b82f6", name: "파랑" },
-  { value: "#f59e0b", name: "주황" },
   { value: "#ef4444", name: "빨강" },
-  { value: "#ec4899", name: "분홍" },
+  { value: "#f97316", name: "주황" },
+  { value: "#facc15", name: "노랑" },
+  { value: "#22c55e", name: "초록" },
+  { value: "#3b82f6", name: "파랑" },
   { value: "#8b5cf6", name: "보라" },
-  { value: "#14b8a6", name: "청록" },
-  { value: "#64748b", name: "회색" },
+  { value: "#ffffff", name: "흰색" },
+  { value: "#111827", name: "검정" },
 ] as const;
 
-export const DEFAULT_EVENT_COLOR = PALETTE[1].value;
+/** 일정은 색을 고르지 않는다. 달력에서 이름으로 알아보므로 파랑으로 고정한다. */
+export const DEFAULT_EVENT_COLOR = "#3b82f6";
 
 export function isPaletteColor(value: string): boolean {
   return PALETTE.some((color) => color.value === value);

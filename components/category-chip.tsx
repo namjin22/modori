@@ -1,4 +1,12 @@
-/** 카테고리 이름을 그 색으로 옅게 깐 칩. 목록의 묶음 머리에 쓴다. */
+import { contrastTextColor } from "@/lib/colors";
+
+/**
+ * 카테고리 이름을 그 색으로 칠한 칩.
+ *
+ * 예전에는 색을 글씨에 쓰고 배경만 옅게 깔았는데, 팔레트에 흰색과 검정이 들어오면서
+ * 한쪽 테마에서 글씨가 배경과 같아진다. 색을 배경으로 쓰고 글씨는 대비가 큰 쪽으로
+ * 고른다. 카테고리 색이 더 잘 보이기도 한다.
+ */
 export function CategoryChip({
   name,
   color,
@@ -13,8 +21,7 @@ export function CategoryChip({
       }`}
       style={
         color
-          ? // 색 값 뒤 1a는 10% 투명도다. 글씨는 원래 색 그대로 둔다.
-            { color, backgroundColor: `${color}1a` }
+          ? { backgroundColor: color, color: contrastTextColor(color) }
           : undefined
       }
     >
