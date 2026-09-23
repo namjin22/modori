@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 
 import { addTodo } from "@/app/(tabs)/actions";
+import { contrastTextColor } from "@/lib/colors";
 
 /**
  * 카테고리 칩. 이름을 누르면 칩 바로 아래에 입력칸이 열린다.
@@ -37,7 +38,7 @@ export function CategoryAdder({
           🔒
         </span>
       )}
-      <span className={color ? "" : "text-muted"}>{name}</span>
+      <span>{name}</span>
     </>
   );
 
@@ -47,8 +48,10 @@ export function CategoryAdder({
         {/* 보관한 카테고리에는 새로 적을 수 없다. 지난 할 일만 이름을 달고 남는다. */}
         {archived ? (
           <span
-            className="flex items-center gap-1.5 rounded-full bg-surface px-3 py-1.5 text-sm font-semibold"
-            style={color ? { color } : undefined}
+            className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold ${
+              color ? "" : "bg-surface text-muted"
+            }`}
+            style={color ? chipStyle(color) : undefined}
           >
             {chip}
           </span>
@@ -58,10 +61,10 @@ export function CategoryAdder({
             aria-label={`${name}에 할 일 쓰기`}
             aria-expanded={open}
             onClick={() => setOpen((value) => !value)}
-            className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold transition-colors ${
-              open ? "bg-surface-hover" : "bg-surface hover:bg-surface-hover"
-            }`}
-            style={color ? { color } : undefined}
+            className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold transition-opacity ${
+              color ? "hover:opacity-80" : "bg-surface text-muted hover:bg-surface-hover"
+            } ${open ? "ring-2 ring-foreground ring-offset-2 ring-offset-background" : ""}`}
+            style={color ? chipStyle(color) : undefined}
           >
             {chip}
           </button>
@@ -110,4 +113,9 @@ export function CategoryAdder({
       )}
     </div>
   );
+}
+
+/** 색을 배경으로 쓰고 글씨는 대비가 큰 쪽으로 고른다. 흰색·검정도 읽힌다. */
+function chipStyle(color: string) {
+  return { backgroundColor: color, color: contrastTextColor(color) };
 }

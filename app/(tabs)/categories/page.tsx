@@ -78,7 +78,7 @@ export default async function CategoriesPage() {
                 <summary className="flex cursor-pointer list-none items-center gap-3 p-3 [&::-webkit-details-marker]:hidden">
                   <span
                     aria-hidden
-                    className="size-4 shrink-0 rounded-full"
+                    className="size-4 shrink-0 rounded-full border border-border"
                     style={{ backgroundColor: category.color }}
                   />
                   <span className="flex-1 truncate font-medium">
@@ -184,7 +184,7 @@ export default async function CategoriesPage() {
               >
                 <span
                   aria-hidden
-                  className="size-4 shrink-0 rounded-full opacity-40"
+                  className="size-4 shrink-0 rounded-full border border-border opacity-40"
                   style={{ backgroundColor: category.color }}
                 />
                 <span className="flex-1 truncate text-muted">{category.name}</span>
