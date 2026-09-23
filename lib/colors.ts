@@ -37,27 +37,3 @@ export function contrastTextColor(background: string): "#ffffff" | "#191f28" {
   const darkContrast = (relativeLuminance + 0.05) / 0.05;
   return whiteContrast >= darkContrast ? "#ffffff" : "#191f28";
 }
-
-/**
- * 완료한 할 일만큼 날짜 칸을 아래부터 채운다. 할 일 하나가 칸의 1/전체 만큼이고,
- * 그 할 일의 색으로 칠한다. 다 끝내면 칸이 꽉 찬다.
- * 색은 아주 옅게 깔아서 날짜 숫자와 일정 칩이 묻히지 않게 한다. 진하게 깔면
- * 칸 안에 칩이 하나 더 있는 것처럼 보인다.
- */
-export function dayFillStyle(
-  doneColors: string[],
-  total: number,
-): CSSProperties | undefined {
-  if (total === 0 || doneColors.length === 0) return undefined;
-
-  const step = 100 / total;
-  const stops = doneColors.map(
-    (color, index) =>
-      `${color}3d ${(index * step).toFixed(2)}% ${((index + 1) * step).toFixed(2)}%`,
-  );
-  const filled = (doneColors.length * step).toFixed(2);
-
-  return {
-    backgroundImage: `linear-gradient(to top, ${stops.join(", ")}, transparent ${filled}%)`,
-  };
-}

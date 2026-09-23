@@ -10,7 +10,7 @@ import {
   parseKSTDate,
   weekdayKST,
 } from "@/lib/date";
-import { contrastTextColor, dayFillStyle } from "@/lib/colors";
+import { contrastTextColor } from "@/lib/colors";
 
 const WEEKDAY_NAMES = ["일", "월", "화", "수", "목", "금", "토"];
 // 한 칸에 이름을 몇 개까지 보여줄지. 넘치면 "+n"으로 접는다.
@@ -138,7 +138,6 @@ export function MonthCalendar({
                 aria-label={`${day.getUTCDate()}일, 완료 ${doneColors.length > 0 ? "있음" : "없음"}`}
                 aria-describedby={events.length ? `calendar-events-${key}` : undefined}
                 aria-current={isSelected ? "date" : undefined}
-                style={dayFillStyle(doneColors, summary?.total ?? 0)}
                 className="flex min-h-16 flex-col items-center gap-0.5 rounded-lg px-0.5 py-1 transition-colors hover:bg-surface-hover"
               >
                 <span

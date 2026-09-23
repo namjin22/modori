@@ -48,9 +48,8 @@ test("일정은 달력에 이름으로 뜨고, 할 일은 색으로만 남는다
   // 할 일은 이름이 달력에 나오지 않는다.
   await addTodo(page, "숨은 할 일");
   await page.getByRole("button", { name: "완료", exact: true }).click();
-  // 한 일은 이름이 아니라 칸 색으로만 남는다.
+  // 달력에는 일정만 이름으로 남는다. 할 일은 이름이 나오지 않는다.
   await expect(dayCell(page, today)).toHaveAttribute("aria-label", /완료 있음/);
-  await expect(dayCell(page, today)).toHaveAttribute("style", /linear-gradient/);
   await expect(dayCell(page, today)).not.toContainText("숨은 할 일");
 });
 

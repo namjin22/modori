@@ -1,6 +1,5 @@
 import Link from "next/link";
 
-import { dayFillStyle } from "@/lib/colors";
 import { formatKST, weekdayKST } from "@/lib/date";
 
 const WEEKDAY_NAMES = ["일", "월", "화", "수", "목", "금", "토"];
@@ -49,8 +48,6 @@ export function WeekStrip({
             prefetch={false}
             aria-label={`${Number(key.slice(5, 7))}월 ${Number(key.slice(8))}일`}
             aria-current={isSelected ? "date" : undefined}
-            // 달력 칸과 같이, 완료한 할 일의 색으로 아래부터 채운다.
-            style={dayFillStyle(day.doneColors, day.total)}
             className="flex flex-1 flex-col items-center gap-1 rounded-xl py-2 transition-colors hover:bg-surface-hover"
           >
             <span
