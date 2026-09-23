@@ -57,3 +57,9 @@ export async function addEvent(page: Page, title: string, endDate?: string) {
   await page.getByLabel("새 일정 이름").press("Enter");
   await expect(page.getByRole("listitem").filter({ hasText: title })).toBeVisible();
 }
+
+/** 카테고리 관리 화면에서 카테고리 줄을 눌러 고치는 창을 연다. */
+export async function openCategory(page: Page, name: string) {
+  await page.getByRole("button", { name: `${name} 고치기` }).click();
+  await expect(page.getByLabel("카테고리 이름", { exact: true })).toBeVisible();
+}

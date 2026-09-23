@@ -19,10 +19,14 @@ import {
 export function ReactionBar({
   todoId,
   summary,
+  compact = false,
 }: {
   todoId: string;
   summary: ReactionSummary[];
+  // 할 일과 같은 줄에 붙일 때는 칩을 작게 한다.
+  compact?: boolean;
 }) {
+  const chip = compact ? "h-6 px-1.5 text-xs" : "h-7 px-2 text-sm";
   const [picking, setPicking] = useState(false);
   const [, startTransition] = useTransition();
 
@@ -57,7 +61,9 @@ export function ReactionBar({
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-1">
+    <div
+      className={`flex flex-wrap items-center gap-1 ${compact ? "shrink-0 justify-end" : ""}`}
+    >
       {optimistic.map(({ emoji, count, mine }) => (
         <button
           key={emoji}
@@ -65,7 +71,7 @@ export function ReactionBar({
           onClick={() => send(emoji)}
           aria-label={`${labelOfReaction(emoji)} 반응${mine ? " 취소" : ""}`}
           aria-pressed={mine}
-          className={`flex h-7 items-center gap-1 rounded-full px-2 text-sm transition-colors active:scale-90 ${
+          className={`flex ${chip} items-center gap-1 rounded-full transition-colors active:scale-90 ${
             mine
               ? "bg-brand-subtle text-brand ring-1 ring-brand/40"
               : "bg-surface-hover text-muted"
@@ -80,7 +86,7 @@ export function ReactionBar({
         type="button"
         onClick={() => setPicking(true)}
         aria-label="반응 보내기"
-        className="flex h-7 items-center rounded-full bg-surface-hover px-2.5 text-sm text-muted transition-colors hover:text-foreground active:scale-90"
+        className={`flex ${chip} items-center rounded-full bg-surface-hover text-muted transition-colors hover:text-foreground active:scale-90 ${compact ? "px-2" : "px-2.5"}`}
       >
         ♡
       </button>

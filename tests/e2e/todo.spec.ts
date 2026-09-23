@@ -2,7 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 
 import { prisma } from "@/lib/prisma";
 
-import { addCategory, addTodo, FIRST_CATEGORY, openTodo } from "./todo-helpers";
+import { FIRST_CATEGORY, addCategory, addTodo, openCategory, openTodo } from "./todo-helpers";
 
 import { RUN_TAG } from "./run-tag";
 
@@ -101,9 +101,9 @@ test("기본 카테고리가 만들어지고 새 카테고리를 추가할 수 �
   await expect(page).toHaveURL(/\/categories$/);
 
   // 처음에는 하나만 만들어진다. 쓰지도 않는 칸으로 화면을 채우지 않는다.
-  // 아래 탭도 목록이라 "수정"이 붙은 카테고리 줄만 센다.
+  // 카테고리 줄은 "고치기" 버튼이다. 아래 탭도 목록이라 줄 수로 세지 않는다.
   await expect(page.getByText(FIRST_CATEGORY, { exact: true })).toBeVisible();
-  await expect(page.locator("li", { hasText: "수정" })).toHaveCount(1);
+  await expect(page.getByRole("button", { name: / 고치기$/ })).toHaveCount(1);
 
   await page.getByLabel("새 카테고리 이름").fill("동아리");
   await page.getByRole("button", { name: "추가", exact: true }).click();
@@ -120,10 +120,7 @@ test("기본 카테고리가 만들어지고 새 카테고리를 추가할 수 �
 test("보관한 카테고리는 할 일 추가 목록에서 빠진다", async ({ page }) => {
   await addCategory(page, "운동");
 
-  await page
-    .locator("li", { hasText: "운동" })
-    .getByText("수정")
-    .click();
+  await openCategory(page, "운동");
   await page.getByRole("button", { name: "보관하기" }).click();
 
   await expect(page.getByText("보관함")).toBeVisible();

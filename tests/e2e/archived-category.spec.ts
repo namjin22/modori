@@ -2,7 +2,7 @@ import { expect, test as base, type Page } from "@playwright/test";
 
 import { prisma } from "@/lib/prisma";
 
-import { addTodo, FIRST_CATEGORY, homeReady } from "./todo-helpers";
+import { FIRST_CATEGORY, addTodo, homeReady, openCategory } from "./todo-helpers";
 
 import { RUN_TAG } from "./run-tag";
 
@@ -42,10 +42,9 @@ test("카테고리를 보관해도 그 카테고리의 할 일은 이름을 달�
   await expect(group.locator(`span:text-is("${FIRST_CATEGORY}")`)).toBeVisible();
 
   await page.goto("/categories");
-  const row = page.getByRole("listitem").filter({ hasText: FIRST_CATEGORY });
-  // 보관하기는 "수정"을 펼쳐야 나온다.
-  await row.getByText("수정").click();
-  await row.getByRole("button", { name: "보관하기" }).click();
+  // 보관하기는 카테고리 줄을 눌러 뜬 창 안에 있다.
+  await openCategory(page, FIRST_CATEGORY);
+  await page.getByRole("button", { name: "보관하기" }).click();
   await expect(page.getByText("보관함")).toBeVisible();
 
   await page.goto("/");

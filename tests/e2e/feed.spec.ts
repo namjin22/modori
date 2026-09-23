@@ -2,7 +2,7 @@ import { expect, test as base, type Page } from "@playwright/test";
 
 import { prisma } from "@/lib/prisma";
 
-import { addTodo, FIRST_CATEGORY, homeReady } from "./todo-helpers";
+import { FIRST_CATEGORY, addTodo, homeReady, openCategory } from "./todo-helpers";
 
 import { RUN_TAG } from "./run-tag";
 
@@ -111,14 +111,15 @@ test("비공개 카테고리의 할 일은 피드에 보이지 않는다", async
 }) => {
   await signIn(page, accounts.friend);
 
-  // 기본 카테고리를 비공개로 바꾼다.
-  // 접힌 수정 폼도 DOM에 있으므로 해당 항목 안에서만 찾는다.
-  await page.goto("/settings/categories");
-  const 카테고리 = page.getByRole("listitem").filter({ hasText: FIRST_CATEGORY });
-  await 카테고리.getByText("수정").click();
-  await 카테고리.getByLabel("친구 피드에 보이기").uncheck();
-  await 카테고리.getByRole("button", { name: "저장" }).click();
-  await expect(카테고리.getByText("비공개")).toBeVisible();
+  // 기본 카테고리를 비공개로 바꾼다. 저장 버튼 없이 끄는 순간 저장된다.
+  await page.goto("/categories");
+  await openCategory(page, FIRST_CATEGORY);
+  await page.getByLabel("친구 피드에 보이기").uncheck();
+  await expect(page.getByText("저장했어요")).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(
+    page.getByRole("button", { name: `${FIRST_CATEGORY} 고치기` }),
+  ).toContainText("비공개");
 
   await addDoneTodo(page, "비밀 공부");
   await signOut(page);
