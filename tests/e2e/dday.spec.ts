@@ -81,3 +81,48 @@ test("끝난 일정에는 남은 날을 붙이지 않는다", async ({ page, ema
   await expect(page.getByRole("button", { name: /지난 일정/ })).toBeVisible();
   await expect(page.getByText("D-", { exact: false })).toHaveCount(0);
 });
+
+test("지난 날짜를 열어도 다가오는 일정은 오늘 기준이다", async ({ page, email }, testInfo) => {
+  await signInAndOnboard(page, email, `기준${testInfo.testId.slice(-6)}${RUN_TAG}`);
+
+  const user = await prisma.user.findUniqueOrThrow({ where: { email } });
+  const today = todayKST();
+  await prisma.event.createMany({
+    data: [
+      // 열어 볼 날짜보다는 뒤지만 오늘 기준으로는 이미 끝난 일정
+      {
+        userId: user.id,
+        title: "이미 끝난 발표",
+        startDate: addDays(today, -3),
+        endDate: addDays(today, -3),
+        color: "#3b82f6",
+      },
+      {
+        userId: user.id,
+        title: "다음 주 시험",
+        startDate: addDays(today, 7),
+        endDate: addDays(today, 7),
+        color: "#3b82f6",
+      },
+    ],
+  });
+
+  await page.goto(`/?date=${formatKST(addDays(today, -10))}`);
+
+  await expect(page.getByRole("button", { name: /다음 주 시험/ })).toContainText("D-7");
+  await expect(page.getByRole("button", { name: /이미 끝난 발표/ })).toHaveCount(0);
+});
+
+test("앞날짜의 일정은 그 날 목록에만 한 번 나온다", async ({ page, email }, testInfo) => {
+  await signInAndOnboard(page, email, `중복${testInfo.testId.slice(-6)}${RUN_TAG}`);
+
+  const user = await prisma.user.findUniqueOrThrow({ where: { email } });
+  const day = addDays(todayKST(), 4);
+  await prisma.event.create({
+    data: { userId: user.id, title: "동아리 발표", startDate: day, endDate: day, color: "#3b82f6" },
+  });
+
+  await page.goto(`/?date=${formatKST(day)}`);
+
+  await expect(page.getByRole("button", { name: /동아리 발표/ })).toHaveCount(1);
+});
