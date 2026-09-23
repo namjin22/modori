@@ -12,8 +12,11 @@ export default defineConfig({
   // 파일은 같이, 파일 안은 차례대로. fullyParallel: false라 한 파일 안의 순서는
   // 지켜진다. 예전에는 파일끼리도 막아 뒀는데, 계정 이름이 파일마다 고정이라
   // 서로의 계정을 지웠기 때문이다. 이제 이름에 실행 꼬리표(run-tag.ts)와
-  // 테스트 번호가 들어가서 겹치지 않는다. 한 번 도는 데 걸리는 시간이 크게 준다.
-  workers: process.env.CI ? 2 : 4,
+  // 테스트 번호가 들어가서 겹치지 않는다. 개발 PC에서 13분이 3분으로 준다.
+  //
+  // CI는 하나로 둔다. 러너가 작아서 둘만 돌려도 Next 서버와 서로 CPU를 뺏느라
+  // page.goto가 30초를 넘긴다. 실제로 그렇게 네 개가 깨졌다.
+  workers: process.env.CI ? 1 : 4,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? "github" : "list",
