@@ -1,5 +1,7 @@
 "use server";
 
+import { Prisma } from "@prisma/client";
+
 import { revalidatePath } from "next/cache";
 
 import { prisma } from "@/lib/prisma";
@@ -69,10 +71,22 @@ export async function toggleReaction(formData: FormData) {
     select: { id: true },
   });
 
-  if (existing) {
-    await prisma.reaction.delete({ where: { id: existing.id } });
-  } else {
-    await prisma.reaction.create({ data: { userId: user.id, todoId, emoji } });
+  try {
+    if (existing) {
+      await prisma.reaction.deleteMany({ where: { id: existing.id } });
+    } else {
+      await prisma.reaction.create({ data: { userId: user.id, todoId, emoji } });
+    }
+  } catch (error) {
+    // 같은 순간에 두 번 눌러 먼저 온 요청이 이미 만들었다. 결과는 같으니 넘긴다.
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2002"
+    ) {
+      console.warn("[reaction] 이미 남긴 반응이다.", todoId, emoji);
+    } else {
+      throw error;
+    }
   }
 
   // 반응 수는 피드와 친구 화면 양쪽에 보인다. /feed 아래를 통째로 다시 그린다.
