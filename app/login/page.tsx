@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 
-import { Dori } from "@/components/dori";
+import { Logo } from "@/components/logo";
 import { isDataGSMConfigured, isMockAuth, signIn } from "@/lib/auth";
 import { getCurrentUser } from "@/lib/session";
 
@@ -32,7 +32,7 @@ export default async function LoginPage({
     // 아래는 누를 것을 둔다. 손가락이 닿는 곳에 버튼이 오는 배치이기도 하다.
     <main className="mx-auto flex min-h-screen w-full max-w-sm flex-col px-6 pb-10">
       <div className="flex flex-1 flex-col items-center justify-center gap-4 text-center">
-        <Dori mood="hello" size={120} />
+        <Logo size={104} />
         <div>
           <h1 className="text-3xl font-bold tracking-tight">모도리</h1>
           <p className="mt-2 text-muted">오늘 할 일을 색으로 남겨요</p>

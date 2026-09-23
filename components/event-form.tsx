@@ -25,10 +25,13 @@ export function EventForm({
   event,
   defaultDate,
   onSaved,
+  onCancel,
 }: {
   event?: EditingEvent;
   defaultDate: string;
   onSaved: () => void;
+  // 자리에서 바로 열릴 때는 닫을 길이 있어야 한다. 창으로 열리면 창이 닫아 준다.
+  onCancel?: () => void;
 }) {
   const [state, action] = useActionState<EventFormState, FormData>(
     event ? updateEvent : createEvent,
@@ -53,6 +56,9 @@ export function EventForm({
         autoFocus
         placeholder="예: 중간고사, 동아리 발표"
         aria-label={`${label} 이름`}
+        onKeyDown={(keyEvent) => {
+          if (keyEvent.key === "Escape") onCancel?.();
+        }}
         className="h-12 w-full rounded-xl bg-surface-hover px-4 text-[15px] outline-none placeholder:text-muted focus:ring-2 focus:ring-brand"
       />
 
@@ -85,6 +91,19 @@ export function EventForm({
           {state.message}
         </p>
       )}
+
+      <div className="flex items-center justify-between">
+        <p className="text-xs text-muted">Enter로 저장돼요.</p>
+        {onCancel && (
+          <button
+            type="button"
+            onClick={onCancel}
+            className="h-9 rounded-xl px-3 text-sm text-muted"
+          >
+            닫기
+          </button>
+        )}
+      </div>
 
       {/* 화면에는 두지 않는다. 날짜 칸에서 Enter를 눌러도 저장되게 하는 버튼이다. */}
       <button type="submit" className="sr-only">

@@ -30,9 +30,6 @@ export default async function ProfilePage() {
         />
       </section>
 
-      <p className="text-xs text-muted">
-        닉네임과 사진은 친구에게 보여요.
-      </p>
     </div>
   );
 }
