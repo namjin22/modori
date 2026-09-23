@@ -103,6 +103,8 @@ function Body() {
       <rect x={34} y={58} width={52} height={38} rx={16} />
       <ellipse cx={48} cy={94} rx={8.5} ry={8} />
       <ellipse cx={72} cy={94} rx={8.5} ry={8} />
+      {/* 꼬리. 옆선이 밋밋하면 어느 쪽이 앞인지 덜 읽힌다. */}
+      <ellipse cx={26} cy={82} rx={11} ry={5.5} transform="rotate(-30 26 82)" />
     </>
   );
 }
@@ -119,7 +121,11 @@ function PawPads({ x }: { x: number }) {
 }
 
 const DotEye = ({ x }: { x: number }) => (
-  <ellipse cx={x} cy={46} rx={6} ry={7.5} fill={EYE} />
+  <>
+    <ellipse cx={x} cy={46} rx={6} ry={7.5} fill={EYE} />
+    {/* 반짝임 하나로 눈이 살아난다. 없으면 인형 눈처럼 멍해 보인다. */}
+    <circle cx={x + 2} cy={42.5} r={2.1} fill="#fff" />
+  </>
 );
 
 /** 웃어서 감은 눈. */
@@ -144,6 +150,7 @@ function SharpEye({ x, dir }: { x: number; dir: 1 | -1 }) {
     <>
       <Stroke d={`M${x + 7 * dir} 34 L${x - 6 * dir} 39`} width={3.4} />
       <ellipse cx={x} cy={48} rx={5.4} ry={6.6} fill={EYE} />
+      <circle cx={x + 1.8} cy={45} r={1.9} fill="#fff" />
     </>
   );
 }
@@ -154,6 +161,7 @@ function SadEye({ x, dir }: { x: number; dir: 1 | -1 }) {
     <>
       <Stroke d={`M${x + 7 * dir} 37 L${x - 6 * dir} 34`} width={3.2} />
       <ellipse cx={x} cy={48} rx={5.6} ry={7} fill={EYE} />
+      <circle cx={x + 1.8} cy={45} r={1.9} fill="#fff" />
     </>
   );
 }
@@ -419,6 +427,8 @@ export function Dori({
         fill={EAR}
         transform="rotate(20 76 18)"
       />
+      {/* 배를 살짝 밝게 두면 몸이 납작해 보이지 않는다. */}
+      <ellipse cx={60} cy={84} rx={14} ry={10} fill="#fff" opacity={0.28} />
       <ellipse cx={42} cy={59} rx={9.5} ry={7.5} fill={BLUSH} />
       <ellipse cx={78} cy={59} rx={9.5} ry={7.5} fill={BLUSH} />
 
