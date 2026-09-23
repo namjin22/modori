@@ -10,7 +10,9 @@ import { usePathname } from "next/navigation";
  */
 export function PageFrame({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const width = pathname === "/" ? "max-w-lg lg:max-w-5xl" : "max-w-lg";
+  // 왼쪽 달력, 오른쪽 목록으로 펼치는 화면만 넓게 쓴다.
+  const twoColumn = pathname === "/" || pathname.startsWith("/feed/u/");
+  const width = twoColumn ? "max-w-lg lg:max-w-5xl" : "max-w-lg";
 
   return (
     <main className={`mx-auto w-full flex-1 px-5 pb-12 pt-8 ${width}`}>
