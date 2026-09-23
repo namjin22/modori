@@ -2,7 +2,7 @@ import Link from "next/link";
 
 import { Dori } from "@/components/dori";
 import { formatMonthDayKST } from "@/lib/date";
-import { lookOfReaction } from "@/lib/reactions";
+import { labelOfReaction } from "@/lib/reactions";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 
@@ -58,11 +58,13 @@ export default async function ReactionsPage() {
                   isNew ? "bg-brand-subtle" : "bg-surface"
                 }`}
               >
-                <Dori
-                  mood={lookOfReaction(reaction.emoji).mood}
-                  size={40}
-                  label={lookOfReaction(reaction.emoji).label}
-                />
+                <span
+                  role="img"
+                  aria-label={labelOfReaction(reaction.emoji)}
+                  className="flex size-10 shrink-0 items-center justify-center rounded-full bg-surface-hover text-xl"
+                >
+                  {reaction.emoji}
+                </span>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm">
                     <span className="font-semibold">

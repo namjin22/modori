@@ -142,11 +142,16 @@ test("반응을 누르면 개수가 오르고 다시 누르면 취소된다", as
   await follow(page, accounts.friend.nickname);
   await page.goto("/feed");
 
-  await page.getByRole("button", { name: "👍 반응" }).click();
-  await expect(page.getByRole("button", { name: "👍 반응 취소" })).toBeVisible();
+  // 보낼 때는 창에서 고른다. 열둘을 늘 늘어놓으면 할 일보다 반응 줄이 길어진다.
+  await page.getByRole("button", { name: "반응 보내기" }).click();
+  await page.getByRole("button", { name: "좋아요", exact: true }).click();
+  await expect(page.getByRole("button", { name: "좋아요 반응 취소" })).toBeVisible();
 
-  await page.getByRole("button", { name: "👍 반응 취소" }).click();
-  await expect(page.getByRole("button", { name: "👍 반응", exact: true })).toBeVisible();
+  // 다시 누르면 취소되고, 아무도 안 누른 반응은 줄에서 빠진다.
+  await page.getByRole("button", { name: "좋아요 반응 취소" }).click();
+  await expect(
+    page.getByRole("button", { name: /좋아요 반응/ }),
+  ).toHaveCount(0);
 });
 
 test("받은 반응은 뱃지로 알리고 받은 반응 화면을 열면 사라진다", async ({
@@ -160,8 +165,9 @@ test("받은 반응은 뱃지로 알리고 받은 반응 화면을 열면 사라
   await signIn(page, accounts.friend);
   await follow(page, accounts.me.nickname);
   await page.goto("/feed");
-  await page.getByRole("button", { name: "🔥 반응" }).click();
-  await expect(page.getByRole("button", { name: "🔥 반응 취소" })).toBeVisible();
+  await page.getByRole("button", { name: "반응 보내기" }).click();
+  await page.getByRole("button", { name: "불타요", exact: true }).click();
+  await expect(page.getByRole("button", { name: "불타요 반응 취소" })).toBeVisible();
   await signOut(page);
 
   await signIn(page, accounts.me);
