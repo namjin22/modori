@@ -5,7 +5,8 @@ import { useState } from "react";
 import { EventForm } from "@/components/event-form";
 import { Modal } from "@/components/modal";
 import { UndoableDeleteButton } from "@/components/undoable-delete-button";
-import { formatKST, formatMonthDayKST, isSameKSTDate } from "@/lib/date";
+import { formatKST, formatMonthDayKST, isSameKSTDate, parseKSTDate } from "@/lib/date";
+import { ddayLabel } from "@/lib/dday";
 
 import { deleteEvent, restoreEvent } from "@/app/(tabs)/events/actions";
 
@@ -20,16 +21,24 @@ export type DayEvent = {
 /**
  * 고른 날의 일정. 할 일과 달리 체크가 없고, 달력에 이름으로 보인다.
  * "일정"을 누르면 만들고, 일정 이름을 누르면 고친다. 둘 다 떠 있는 창에서 한다.
+ *
+ * 아직 오지 않은 일정도 몇 개 같이 보여준다. 그 날짜를 열어보지 않아도
+ * 시험이 며칠 남았는지 알 수 있어야 한다.
  */
 export function EventSection({
   events,
+  upcoming,
   date,
+  today,
 }: {
   events: DayEvent[];
+  upcoming: DayEvent[];
   date: string;
+  today: string;
 }) {
   const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState<DayEvent | null>(null);
+  const todayDate = parseKSTDate(today);
 
   return (
     <section aria-label="일정" className="flex flex-col gap-3">
@@ -48,6 +57,7 @@ export function EventSection({
         <ul className="flex flex-col gap-2">
           {events.map((event) => {
             const multiDay = !isSameKSTDate(event.startDate, event.endDate);
+            const dday = ddayLabel(event.startDate, event.endDate, todayDate);
 
             return (
               <li
@@ -69,6 +79,7 @@ export function EventSection({
                       {formatMonthDayKST(event.endDate)}
                     </span>
                   )}
+                  {dday && <Dday label={dday} />}
                 </button>
               </li>
             );
@@ -76,11 +87,36 @@ export function EventSection({
         </ul>
       )}
 
-      <Modal
-        open={creating}
-        onClose={() => setCreating(false)}
-        title="새 일정"
-      >
+      {upcoming.length > 0 && (
+        <ul className="flex flex-col gap-1">
+          {upcoming.map((event) => {
+            const dday = ddayLabel(event.startDate, event.endDate, todayDate);
+
+            return (
+              <li key={event.id}>
+                <button
+                  type="button"
+                  onClick={() => setEditing(event)}
+                  className="flex w-full items-center gap-2.5 rounded-xl px-1 py-1.5 text-left text-sm text-muted hover:bg-surface"
+                >
+                  <span
+                    aria-hidden
+                    className="size-2 shrink-0 rounded-full"
+                    style={{ backgroundColor: event.color }}
+                  />
+                  <span className="min-w-0 flex-1 truncate">{event.title}</span>
+                  <span className="shrink-0 text-xs">
+                    {formatMonthDayKST(event.startDate)}
+                  </span>
+                  {dday && <Dday label={dday} />}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+
+      <Modal open={creating} onClose={() => setCreating(false)} title="새 일정">
         <EventForm defaultDate={date} onSaved={() => setCreating(false)} />
         <p className="text-xs text-muted">Enter로 저장돼요.</p>
       </Modal>
@@ -117,5 +153,20 @@ export function EventSection({
         )}
       </Modal>
     </section>
+  );
+}
+
+/** 오늘과 그 앞뒤는 눈에 띄어야 하고, 먼 일정은 조용해야 한다. */
+function Dday({ label }: { label: string }) {
+  const soon = label === "D-DAY" || label === "진행 중";
+
+  return (
+    <span
+      className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-bold ${
+        soon ? "bg-brand text-brand-contrast" : "bg-surface-hover text-muted"
+      }`}
+    >
+      {label}
+    </span>
   );
 }
