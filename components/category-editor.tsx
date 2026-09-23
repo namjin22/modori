@@ -29,7 +29,7 @@ export function CategoryEditor({
   isLast: boolean;
 }) {
   const [open, setOpen] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const [status, setStatus] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const formRef = useRef<HTMLFormElement>(null);
   const lastName = useRef(category.name);
@@ -39,14 +39,17 @@ export function CategoryEditor({
     if (!form) return;
     const formData = new FormData(form);
     lastName.current = String(formData.get("name") ?? "");
-    setSaved(false);
+    setStatus(null);
     startTransition(async () => {
-      await updateCategory(formData);
-      setSaved(true);
+      const result = await updateCategory(formData);
+      setStatus(result.ok ? "저장했어요" : result.message);
     });
   }
 
-  function run(action: (formData: FormData) => Promise<void>, extra: Record<string, string> = {}) {
+  function run(
+    action: (formData: FormData) => Promise<unknown>,
+    extra: Record<string, string> = {},
+  ) {
     const formData = new FormData();
     formData.set("id", category.id);
     for (const [key, value] of Object.entries(extra)) formData.set(key, value);
@@ -117,7 +120,7 @@ export function CategoryEditor({
             required
             aria-label="카테고리 이름"
             onBlur={(event) => {
-              if (event.target.value.trim() && event.target.value !== lastName.current) save();
+              if (event.target.value !== lastName.current) save();
             }}
             className="h-12 w-full rounded-xl bg-surface-hover px-4 text-[15px] font-medium outline-none focus:ring-2 focus:ring-brand"
           />
@@ -159,8 +162,13 @@ export function CategoryEditor({
             >
               ↓
             </button>
-            <span aria-live="polite" className="ml-2 text-xs text-muted">
-              {pending ? "저장 중" : saved ? "저장했어요" : ""}
+            <span
+              aria-live="polite"
+              className={`ml-2 text-xs ${
+                status && status !== "저장했어요" ? "text-red-500" : "text-muted"
+              }`}
+            >
+              {pending ? "저장 중" : status}
             </span>
           </div>
 
