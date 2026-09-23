@@ -217,11 +217,13 @@ export default async function FeedPage({
         select: EVENT_SELECT,
       }),
       // 아직 오지 않은 일정. 그 날짜를 열어보지 않아도 시험이 며칠 남았는지 보인다.
+      // 보고 있는 날짜가 아니라 오늘을 기준으로 센다. 지난 날짜를 열었을 때 이미 끝난
+      // 일정이 "다가오는" 쪽에 뜨면 안 된다. 그 날 목록과 겹치는 것은 아래에서 뺀다.
       prisma.event.findMany({
-        where: { userId: user.id, startDate: { gt: date } },
+        where: { userId: user.id, startDate: { gt: today } },
         orderBy: [{ startDate: "asc" }, { createdAt: "asc" }],
         select: EVENT_SELECT,
-        take: 3,
+        take: 6,
       }),
     ]);
 
@@ -344,12 +346,15 @@ export default async function FeedPage({
 
         <EventSection
           events={dayEvents}
-          upcoming={upcomingEvents}
+          upcoming={upcomingEvents
+            .filter((event) => !dayEvents.some((day) => day.id === event.id))
+            .slice(0, 3)}
           date={formatKST(date)}
           today={formatKST(today)}
         />
 
-        {todos.length > 0 && doneCount === todos.length && (
+        {/* 앞날짜에 아직 "예정"인 루틴이 남아 있으면 다 끝낸 게 아니다. */}
+        {todos.length > 0 && doneCount === todos.length && scheduled.length === 0 && (
           // 다 끝낸 날은 알아봐 준다. 마지막 하나를 체크할 동기가 된다.
           <div className="flex items-center gap-3 rounded-2xl bg-brand-subtle px-4 py-3">
             <Dori mood="party" size={56} />
