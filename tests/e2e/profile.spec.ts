@@ -19,7 +19,7 @@ async function signInAndOnboard(page: Page, email: string) {
   await page.goto("/login");
   await page.getByLabel("테스트 이메일").fill(email);
   await page.getByRole("button", { name: "테스트 로그인" }).click();
-  await page.getByPlaceholder("닉네임").fill("처음닉네임");
+  await page.getByPlaceholder("닉네임").fill(`처음${RUN_TAG}`);
   await page.getByRole("button", { name: "시작하기" }).click();
   await expect(homeReady(page)).toBeVisible();
 }
@@ -36,13 +36,13 @@ test("닉네임을 바꿀 수 있다", async ({ page }) => {
   await page.goto("/settings");
   await page.getByRole("link", { name: /프로필 수정/ }).click();
 
-  await page.getByLabel("닉네임").fill("바꾼닉네임");
+  await page.getByLabel("닉네임").fill(`바꾼${RUN_TAG}`);
   await page.getByRole("button", { name: "저장" }).click();
 
   await expect(page.getByText("저장했어요.")).toBeVisible();
 
   await page.goto("/settings");
-  await expect(page.getByText("바꾼닉네임")).toBeVisible();
+  await expect(page.getByText(`바꾼${RUN_TAG}`)).toBeVisible();
 });
 
 test("올린 사진이 프로필에 남는다", async ({ page, email }) => {
