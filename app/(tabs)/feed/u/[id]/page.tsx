@@ -168,6 +168,21 @@ export default async function FriendDayPage({
               <p className="truncate text-sm text-muted">{friend.bio}</p>
             )}
           </div>
+          {/* 좁은 화면에서 달력 버튼 하나가 한 줄을 차지하지 않게 이름 옆에 둔다. */}
+          <Link
+            href={
+              monthOpen
+                ? `${basePath}?date=${formatKST(date)}`
+                : `${basePath}?date=${formatKST(date)}&view=month`
+            }
+            aria-label={monthOpen ? "달력 접기" : "달력 펼치기"}
+            className={`ml-auto flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3 text-sm lg:hidden ${
+              monthOpen ? "bg-brand-subtle text-brand" : "bg-surface text-muted"
+            }`}
+          >
+            <CalendarIcon active={monthOpen} />
+            달력
+          </Link>
         </div>
 
         <div className={monthOpen ? "" : "hidden lg:block"}>
@@ -219,30 +234,14 @@ export default async function FriendDayPage({
           </div>
         )}
 
-        <nav aria-label="보기" className="flex items-center gap-2">
-          {!isToday && (
-            <Link
-              href={basePath}
-              className="flex h-8 items-center rounded-full px-3 text-sm text-brand hover:bg-surface-hover"
-            >
-              오늘로 돌아가기
-            </Link>
-          )}
+        {!isToday && (
           <Link
-            href={
-              monthOpen
-                ? `${basePath}?date=${formatKST(date)}`
-                : `${basePath}?date=${formatKST(date)}&view=month`
-            }
-            aria-label={monthOpen ? "달력 접기" : "달력 펼치기"}
-            className={`ml-auto flex h-8 items-center gap-1.5 rounded-full px-3 text-sm lg:hidden ${
-              monthOpen ? "bg-brand-subtle text-brand" : "bg-surface text-muted"
-            }`}
+            href={basePath}
+            className="-mt-3 flex h-8 w-fit items-center rounded-full px-3 text-sm text-brand hover:bg-surface-hover"
           >
-            <CalendarIcon active={monthOpen} />
-            달력
+            오늘로 돌아가기
           </Link>
-        </nav>
+        )}
 
         {todos.length === 0 ? (
           <div className="flex flex-col items-center gap-2 py-8 text-center">
