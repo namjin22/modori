@@ -73,9 +73,15 @@ test("팔로우한 친구의 하루를 열어본다", async ({ page, accounts })
   await page.getByRole("button", { name: "팔로우", exact: true }).click();
   await expect(page.getByRole("button", { name: "팔로우 중" })).toBeVisible();
 
-  // 피드에서 이름을 누르면 그 사람 화면으로 간다.
-  await page.goto("/feed");
+  // 친구 찾기에서 이름을 눌러도 그 사람 화면으로 간다.
   await page.getByRole("link", { name: accounts.friend.nickname }).click();
   await expect(page).toHaveURL(new RegExp(`/feed/u/${friendId}$`));
   await expect(page.getByText("친구가 한 일")).toBeVisible();
+
+  // 피드에서 눌러도 같은 곳으로 간다.
+  await page.goto("/feed");
+  const author = page.getByRole("link", { name: accounts.friend.nickname });
+  await expect(author).toBeVisible();
+  await author.click();
+  await expect(page).toHaveURL(new RegExp(`/feed/u/${friendId}$`));
 });
