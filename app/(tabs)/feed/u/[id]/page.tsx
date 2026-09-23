@@ -172,6 +172,7 @@ export default async function FriendDayPage({
 
         <div className={monthOpen ? "" : "hidden lg:block"}>
           <MonthCalendar
+            compact
             monthStart={monthStart}
             selected={date}
             today={today}
@@ -251,15 +252,16 @@ export default async function FriendDayPage({
         ) : (
           // 내 화면과 같이 카테고리로 묶는다. 쭉 나열하면 무엇을 하는 사람인지 안 보인다.
           groups.map((group) => (
-            <section key={group.key} className="flex flex-col gap-3">
+            <section key={group.key} className="flex flex-col gap-2">
               <div className="flex items-center gap-2">
                 <CategoryChip name={group.name} color={group.color} />
                 <span className="text-xs text-muted">{group.items.length}개</span>
               </div>
 
-              <ul className="flex flex-col gap-3">
+              <ul className="flex flex-col divide-y divide-border rounded-2xl bg-surface px-4">
                 {group.items.map((todo) => (
                   <FeedItem
+                    compact
                     key={todo.id}
                     todo={{
                       id: todo.id,

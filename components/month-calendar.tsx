@@ -39,7 +39,10 @@ export function MonthCalendar({
   eventsByDate,
   dayHref,
   monthHref,
+  compact = false,
 }: {
+  // 친구 화면처럼 일정 이름이 들어가지 않는 곳에서는 칸을 낮춰 한눈에 보이게 한다.
+  compact?: boolean;
   monthStart: Date;
   selected: Date;
   today: Date;
@@ -138,7 +141,7 @@ export function MonthCalendar({
                 aria-label={`${day.getUTCDate()}일, 완료 ${doneColors.length > 0 ? "있음" : "없음"}`}
                 aria-describedby={events.length ? `calendar-events-${key}` : undefined}
                 aria-current={isSelected ? "date" : undefined}
-                className="flex min-h-16 flex-col items-center gap-0.5 rounded-lg px-0.5 py-1 transition-colors hover:bg-surface-hover"
+                className={`flex flex-col items-center gap-0.5 rounded-lg px-0.5 py-1 transition-colors hover:bg-surface-hover ${compact ? "min-h-10" : "min-h-16"}`}
               >
                 <span
                   className={`flex size-6 items-center justify-center rounded-full text-xs ${

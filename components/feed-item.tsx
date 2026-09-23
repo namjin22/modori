@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { ReactionBar } from "@/components/reaction-bar";
+import { contrastTextColor } from "@/lib/colors";
 import { summarizeReactions } from "@/lib/reactions";
 
 import { Avatar } from "@/components/avatar";
@@ -19,12 +20,39 @@ export function FeedItem({
   todo,
   viewerId,
   showAuthor = true,
+  compact = false,
 }: {
   todo: FeedTodo;
   viewerId: string;
   // 그 사람 화면에서는 이름과 날짜가 이미 위에 있다. 줄마다 반복하지 않는다.
   showAuthor?: boolean;
+  // 친구 화면처럼 카테고리로 이미 묶인 곳에서는 한 줄로 줄여 한눈에 많이 보이게 한다.
+  compact?: boolean;
 }) {
+  const color = todo.color ?? todo.category?.color;
+
+  if (compact) {
+    return (
+      <li className="flex items-center gap-2.5 py-2.5">
+        <span
+          aria-hidden
+          className="color-edge flex size-[18px] shrink-0 items-center justify-center rounded-[6px] bg-brand text-[10px] font-bold"
+          style={
+            color ? { backgroundColor: color, color: contrastTextColor(color) } : { color: "#fff" }
+          }
+        >
+          ✓
+        </span>
+        <span className="min-w-0 flex-1 truncate text-[15px]">{todo.content}</span>
+        <ReactionBar
+          todoId={todo.id}
+          summary={summarizeReactions(todo.reactions, viewerId)}
+          compact
+        />
+      </li>
+    );
+  }
+
   return (
     <li className="flex flex-col gap-4 rounded-2xl bg-surface p-4">
       {showAuthor && (
