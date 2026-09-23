@@ -56,22 +56,47 @@ function Stroke({
   );
 }
 
-/** 위로 든 앞발. dir이 1이면 오른쪽, -1이면 왼쪽. */
+/**
+ * 머리를 줄이고 위로 올리는 변환. 얼굴 좌표는 머리 크기가 32일 때 짜 두었다.
+ * 좌표를 전부 다시 적는 대신 머리 묶음째 줄여서, 표정은 그대로 두고 몸만 드러낸다.
+ */
+const HEAD_SCALE = 0.84;
+const HEAD = `translate(60 38) scale(${HEAD_SCALE}) translate(-60 -46)`;
+
+/** 들어 올린 앞발. dir이 1이면 오른쪽, -1이면 왼쪽. 어깨는 몸 뒤에 숨는다. */
 function RaisedArm({ dir }: { dir: 1 | -1 }) {
-  const pivotX = 60 + dir * 33;
-  const pawX = 60 + dir * 40;
+  const midX = 60 + dir * 25;
 
   return (
     <>
       <rect
-        x={pivotX - 7}
-        y={46}
-        width={14}
-        height={40}
-        rx={7}
-        transform={`rotate(${dir * 18} ${pivotX} 63)`}
+        x={midX - 5.5}
+        y={38}
+        width={11}
+        height={30}
+        rx={5.5}
+        transform={`rotate(${dir * 35} ${midX} 53)`}
       />
-      <circle cx={pawX} cy={44} r={8.5} />
+      <circle cx={60 + dir * 34} cy={40} r={7.5} />
+    </>
+  );
+}
+
+/** 내린 팔. 몸 옆구리 뒤에서 나와 살짝 벌어진다. */
+function RestArm({ dir }: { dir: 1 | -1 }) {
+  const midX = 60 + dir * 22.5;
+
+  return (
+    <>
+      <rect
+        x={midX - 6}
+        y={66}
+        width={12}
+        height={18}
+        rx={6}
+        transform={`rotate(${-dir * 28} ${midX} 75)`}
+      />
+      <circle cx={60 + dir * 27} cy={83} r={6.5} />
     </>
   );
 }
@@ -92,28 +117,33 @@ function Outlined({ children }: { children: ReactNode }) {
   );
 }
 
+/**
+ * 머리·몸통·발. 한 덩어리로 그려야 이음매에 선이 생기지 않는다.
+ * 머리는 줄였으므로 테두리가 같은 굵기로 보이게 선도 그만큼 굵게 준다.
+ */
 function Body() {
   return (
     <>
-      <path d="M40 25 L35 9 Q48 11 55 21 Z" />
-      <path d="M80 25 L85 9 Q72 11 65 21 Z" />
-      <circle cx={60} cy={46} r={32} />
-      {/* 몸통 바닥을 평평하게 둔다. 둥근 바닥에 발을 붙이면 발끼리 너무 벌어져
-          이음매가 꺾이고, 좁히면 발 사이 홈이 테두리에 메워진다. */}
-      <rect x={38} y={58} width={44} height={38} rx={15} />
-      <ellipse cx={50} cy={94} rx={8} ry={7.5} />
-      <ellipse cx={70} cy={94} rx={8} ry={7.5} />
+      {/* 짜리몽땅하게: 머리 하나에 몸 하나, 두 등신 남짓이다. */}
+      <rect x={39} y={56} width={42} height={38} rx={17} />
+      <ellipse cx={50} cy={95} rx={8.5} ry={6.5} />
+      <ellipse cx={70} cy={95} rx={8.5} ry={6.5} />
+      <g transform={HEAD} strokeWidth={OUTLINE / HEAD_SCALE}>
+        <path d="M40 25 L35 9 Q48 11 55 21 Z" />
+        <path d="M80 25 L85 9 Q72 11 65 21 Z" />
+        <circle cx={60} cy={46} r={32} />
+      </g>
     </>
   );
 }
 
-function PawPads({ x }: { x: number }) {
+function PawPads({ x, y = 40 }: { x: number; y?: number }) {
   return (
     <g fill={PAD}>
-      <circle cx={x - 3.4} cy={41} r={1.8} />
-      <circle cx={x + 0.4} cy={39.8} r={1.8} />
-      <circle cx={x + 4} cy={41.4} r={1.8} />
-      <ellipse cx={x} cy={46.5} rx={3.5} ry={2.7} />
+      <circle cx={x - 3} cy={y - 3} r={1.6} />
+      <circle cx={x + 0.3} cy={y - 4.1} r={1.6} />
+      <circle cx={x + 3.5} cy={y - 2.7} r={1.6} />
+      <ellipse cx={x} cy={y + 2} rx={3.1} ry={2.4} />
     </g>
   );
 }
@@ -227,7 +257,7 @@ const LOOKS: Record<
     ),
     props: (
       <path
-        d="M100 14 c-4.2 -7.4 -14.4 -3.2 -11.2 5.1 L100 30 l11.2 -10.9 c3.2 -8.3 -7 -12.5 -11.2 -5.1z"
+        d="M96 10 c-4.2 -7.4 -14.4 -3.2 -11.2 5.1 L96 26 l11.2 -10.9 c3.2 -8.3 -7 -12.5 -11.2 -5.1z"
         fill="#ff6f95"
       />
     ),
@@ -276,14 +306,14 @@ const LOOKS: Record<
         <ArcEye x={46} />
         <ArcEye x={74} />
         <OpenMouth />
-      </>
-    ),
-    props: (
-      <>
         {/* 고깔은 한쪽 귀에만 씌운다. 가운데에 씌우면 두 귀가 다 가려져 실루엣이 흐려진다. */}
         <path d="M64 24 L76 6 L88 24 Z" fill="#8b7bff" />
         <path d="M68 16 L84 16" stroke="#ffd166" strokeWidth={3.4} />
         <circle cx={76} cy={6} r={4.5} fill="#ffd166" />
+      </>
+    ),
+    props: (
+      <>
         <rect
           x={12}
           y={30}
@@ -360,7 +390,7 @@ const LOOKS: Record<
         <OpenMouth />
       </>
     ),
-    props: <Stroke d="M94 27 q6 -6 12 0" width={3} color={HINT} />,
+    props: <Stroke d="M88 25 q6 -6 12 0" width={3} color={HINT} />,
   },
 };
 
@@ -391,6 +421,11 @@ export function Dori({
     >
       {look.behind}
 
+      {/* 팔은 몸 뒤에 그린다. 어깨가 옆구리에 숨어 몸에서 뻗어 나온 것처럼 보인다. */}
+      <Outlined>
+        {arms !== "up" && <RestArm dir={-1} />}
+        {arms === "rest" && <RestArm dir={1} />}
+      </Outlined>
       {arms !== "rest" && (
         <Outlined>
           <RaisedArm dir={1} />
@@ -406,31 +441,34 @@ export function Dori({
         <Body />
       </Outlined>
 
-      {arms !== "rest" && <PawPads x={100} />}
-      {arms === "up" && <PawPads x={20} />}
+      {arms !== "rest" && <PawPads x={94} />}
+      {arms === "up" && <PawPads x={26} />}
 
-      <ellipse
-        cx={44}
-        cy={18}
-        rx={5}
-        ry={6}
-        fill={EAR}
-        transform="rotate(-20 44 18)"
-      />
-      <ellipse
-        cx={76}
-        cy={18}
-        rx={5}
-        ry={6}
-        fill={EAR}
-        transform="rotate(20 76 18)"
-      />
       {/* 배를 살짝 밝게 두면 몸이 납작해 보이지 않는다. */}
-      <ellipse cx={60} cy={84} rx={12} ry={9} fill="#fff" opacity={0.28} />
-      <ellipse cx={40} cy={59} rx={8} ry={6} fill={BLUSH} />
-      <ellipse cx={80} cy={59} rx={8} ry={6} fill={BLUSH} />
+      <ellipse cx={60} cy={79} rx={12} ry={9} fill="#fff" opacity={0.28} />
 
-      {look.face}
+      <g transform={HEAD}>
+        <ellipse
+          cx={44}
+          cy={18}
+          rx={5}
+          ry={6}
+          fill={EAR}
+          transform="rotate(-20 44 18)"
+        />
+        <ellipse
+          cx={76}
+          cy={18}
+          rx={5}
+          ry={6}
+          fill={EAR}
+          transform="rotate(20 76 18)"
+        />
+        <ellipse cx={40} cy={59} rx={8} ry={6} fill={BLUSH} />
+        <ellipse cx={80} cy={59} rx={8} ry={6} fill={BLUSH} />
+        {look.face}
+      </g>
+
       {look.props}
     </svg>
   );
