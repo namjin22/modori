@@ -20,7 +20,9 @@ export type DayEvent = {
 
 /**
  * 고른 날의 일정. 할 일과 달리 체크가 없고, 달력에 이름으로 보인다.
- * "일정"을 누르면 만들고, 일정 이름을 누르면 고친다. 둘 다 떠 있는 창에서 한다.
+ *
+ * 만들 때는 "일정" 아래에 입력칸이 바로 열린다. 고칠 때는 날짜까지 손봐야 해서
+ * 목록 한가운데가 밀리지 않도록 떠 있는 창에서 한다.
  *
  * 아직 오지 않은 일정도 몇 개 같이 보여준다. 그 날짜를 열어보지 않아도
  * 시험이 며칠 남았는지 알 수 있어야 한다.
@@ -39,19 +41,28 @@ export function EventSection({
   const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState<DayEvent | null>(null);
   const todayDate = parseKSTDate(today);
+  const empty = events.length === 0 && upcoming.length === 0;
 
   return (
     <section aria-label="일정" className="flex flex-col gap-3">
       <button
         type="button"
-        onClick={() => setCreating(true)}
-        className="flex w-fit items-center gap-1.5 text-sm font-semibold text-foreground"
+        aria-expanded={creating}
+        onClick={() => setCreating((value) => !value)}
+        className="w-fit text-sm font-semibold text-foreground"
       >
         일정
-        <span aria-hidden className="text-muted">
-          +
-        </span>
       </button>
+
+      {creating && (
+        <div className="rounded-2xl bg-surface p-4">
+          <EventForm
+            defaultDate={date}
+            onSaved={() => setCreating(false)}
+            onCancel={() => setCreating(false)}
+          />
+        </div>
+      )}
 
       {events.length > 0 && (
         <ul className="flex flex-col gap-2">
@@ -68,7 +79,7 @@ export function EventSection({
                 <button
                   type="button"
                   onClick={() => setEditing(event)}
-                  className="flex w-full cursor-pointer items-center gap-3 py-3 pl-4 pr-4 text-left"
+                  className="flex w-full cursor-pointer items-center gap-3 px-4 py-3 text-left"
                 >
                   <span className="min-w-0 flex-1 truncate font-medium">
                     {event.title}
@@ -116,10 +127,16 @@ export function EventSection({
         </ul>
       )}
 
-      <Modal open={creating} onClose={() => setCreating(false)} title="새 일정">
-        <EventForm defaultDate={date} onSaved={() => setCreating(false)} />
-        <p className="text-xs text-muted">Enter로 저장돼요.</p>
-      </Modal>
+      {/* 제목만 있으면 누를 수 있는 곳인지 모른다. 비어 있을 때만 자리를 만들어 준다. */}
+      {empty && !creating && (
+        <button
+          type="button"
+          onClick={() => setCreating(true)}
+          className="rounded-xl border border-dashed border-border py-3 text-sm text-muted hover:bg-surface"
+        >
+          시험이나 행사 적어두기
+        </button>
+      )}
 
       <Modal
         open={editing !== null}
@@ -138,8 +155,7 @@ export function EventSection({
               }}
               onSaved={() => setEditing(null)}
             />
-            <div className="flex items-center justify-between">
-              <p className="text-xs text-muted">Enter로 저장돼요.</p>
+            <div className="flex justify-end">
               <UndoableDeleteButton
                 id={editing.id}
                 remove={deleteEvent}

@@ -83,18 +83,13 @@ export default async function RoutinesPage() {
           </Link>
         </div>
       ) : (
-      /* 브라우저 기본 삼각형 대신 + 표시를 쓰고, 열리면 ×로 돌린다. */
-      <details className="group rounded-2xl bg-surface">
-        <summary className="flex cursor-pointer list-none items-center gap-2 p-4 font-medium [&::-webkit-details-marker]:hidden">
-          <span
-            aria-hidden
-            className="flex size-6 items-center justify-center rounded-full bg-brand text-brand-contrast transition-transform group-open:rotate-45"
-          >
-            +
-          </span>
+      /* 일정과 같은 방식으로 맞춘다. 한 줄짜리 제목에 큰 동그라미와 넓은 카드를
+         두면 아래 목록보다 무거워 보인다. */
+      <details className="group">
+        <summary className="w-fit cursor-pointer list-none text-sm font-semibold [&::-webkit-details-marker]:hidden">
           루틴 만들기
         </summary>
-        <div className="px-4 pb-4">
+        <div className="mt-3 rounded-2xl bg-surface p-4">
           <RoutineForm categories={categories} today={formatKST(todayKST())} />
         </div>
       </details>
