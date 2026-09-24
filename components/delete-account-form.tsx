@@ -8,10 +8,11 @@ import {
   deleteAccount,
   type DeleteAccountState,
 } from "@/app/(tabs)/settings/account/actions";
+import { orSaveFailure } from "@/components/use-save-failure";
 
 export function DeleteAccountForm({ nickname }: { nickname: string }) {
   const [state, action] = useActionState<DeleteAccountState, FormData>(
-    deleteAccount,
+    orSaveFailure(deleteAccount),
     null,
   );
 

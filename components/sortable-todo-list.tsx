@@ -24,6 +24,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 
 import { reorderTodos } from "@/app/(tabs)/actions";
+import { useSaveFailure } from "@/components/use-save-failure";
 
 export type SortableItem = {
   id: string;
@@ -76,6 +77,7 @@ export function SortableTodoList({
   const [order, setOrder] = useState(ids);
   const [serverKey, setServerKey] = useState(key);
   const [isSaving, startTransition] = useTransition();
+  const saveFailed = useSaveFailure();
 
   // 서버에서 새 목록이 오면(추가·삭제·날짜 이동) 그것을 따른다.
   // effect가 아니라 렌더 중에 맞춘다. 한 박자 늦게 그려지지 않는다.
@@ -100,7 +102,15 @@ export function SortableTodoList({
 
     const next = arrayMove(order, from, to);
     setOrder(next);
-    startTransition(() => reorderTodos(date, next));
+    startTransition(async () => {
+      try {
+        await reorderTodos(date, next);
+      } catch (error) {
+        // 저장되지 않은 순서를 그대로 두면 새로 고칠 때 순서가 튄다. 서버 순서로 되돌린다.
+        setOrder(ids);
+        saveFailed(error);
+      }
+    });
   }
 
   const byId = new Map(items.map((item) => [item.id, item.node]));

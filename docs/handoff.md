@@ -766,3 +766,32 @@ viewBox로 좁혔다.
 실제로 128px 그림을 받아 그리는지로 바꿨다.
 
 검증: `npm run verify` 통과 — 단위 70×3, E2E 65/65.
+
+### 루프 8 — 연결이 끊겼을 때
+
+**재현:** 오프라인으로 바꾼 뒤 할 일을 적거나 체크하면 화면 전체가 `app/error.tsx`
+("잠깐 문제가 생겼어요")로 바뀌고 적던 글자도 사라졌다. 학생들이 지하철·복도에서
+쓰는 앱이라 흔한 상황이다.
+
+- `components/use-save-failure.ts`
+  - `useSaveFailure()`: 실패를 잡아 알림(토스트) "저장하지 못했어요. 연결을 확인하고
+    다시 해주세요."를 띄운다. 할 일 추가·체크·수정, 반응, 순서 바꾸기, 카테고리 수정에 썼다.
+  - `orSaveFailure(action)`: useActionState 폼(일정, 루틴, 프로필, 닉네임, 계정 삭제)용.
+    실패하면 폼의 안내 문구로 알린다.
+  - 세션이 끊겨 서버가 `redirect("/login")`하면 클라이언트에서도 예외로 넘어온다
+    (`server-action-reducer.js`에서 redirect 오류로 reject). 삼키지 않도록
+    `unstable_rethrow`(next/navigation, 번들 문서 확인)로 Next에 돌려준다.
+- 할 일 추가·수정 폼은 `<form action>` 대신 `onSubmit` + `useTransition`으로 바꿨다.
+  React는 form action이면 성공·실패와 상관없이 입력칸을 비운다
+  (`startHostTransition`이 액션 전에 `requestFormReset`을 예약한다). 이제 성공했을 때만 비운다.
+- 순서 바꾸기가 실패하면 화면 순서를 서버 순서로 되돌린다.
+- 체크·반응은 useOptimistic이라 실패하면 저절로 원래대로 돌아간다.
+
+**재확인:** `tests/e2e/offline.spec.ts` 3개 — 끊긴 채 적기(글자 유지, 다시 연결 후 Enter로
+저장), 끊긴 채 체크(체크·개수 복귀), 끊긴 채 고치기(창과 글자 유지). stale-session 테스트로
+세션 만료 이동도 그대로인지 확인.
+
+남은 한계: useActionState 폼(일정·루틴 등)은 React가 입력칸을 비우는 건 그대로다. 문구로는
+알리지만 적던 글자는 다시 적어야 한다.
+
+검증: `npm run verify` 통과 — 단위 70×3, E2E 68/68.

@@ -9,6 +9,7 @@ import {
 } from "@/app/(tabs)/categories/actions";
 import { ColorSwatches } from "@/components/color-swatches";
 import { Modal } from "@/components/modal";
+import { useSaveFailure } from "@/components/use-save-failure";
 
 type Category = { id: string; name: string; color: string; isPublic: boolean };
 
@@ -31,6 +32,7 @@ export function CategoryEditor({
   const [open, setOpen] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const saveFailed = useSaveFailure();
   const formRef = useRef<HTMLFormElement>(null);
   const lastName = useRef(category.name);
 
@@ -41,8 +43,13 @@ export function CategoryEditor({
     lastName.current = String(formData.get("name") ?? "");
     setStatus(null);
     startTransition(async () => {
-      const result = await updateCategory(formData);
-      setStatus(result.ok ? "저장했어요" : result.message);
+      try {
+        const result = await updateCategory(formData);
+        setStatus(result.ok ? "저장했어요" : result.message);
+      } catch (error) {
+        setStatus("저장하지 못했어요");
+        saveFailed(error);
+      }
     });
   }
 
@@ -54,7 +61,11 @@ export function CategoryEditor({
     formData.set("id", category.id);
     for (const [key, value] of Object.entries(extra)) formData.set(key, value);
     startTransition(async () => {
-      await action(formData);
+      try {
+        await action(formData);
+      } catch (error) {
+        saveFailed(error);
+      }
     });
   }
 

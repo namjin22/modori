@@ -7,10 +7,11 @@ import {
   type OnboardingState,
 } from "@/app/onboarding/actions";
 import { SubmitButton } from "@/components/submit-button";
+import { orSaveFailure } from "@/components/use-save-failure";
 
 export function OnboardingForm() {
   const [state, formAction] = useActionState<OnboardingState, FormData>(
-    saveNickname,
+    orSaveFailure(saveNickname),
     null,
   );
 

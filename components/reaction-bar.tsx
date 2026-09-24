@@ -4,6 +4,7 @@ import { useOptimistic, useState, useTransition } from "react";
 
 import { toggleReaction } from "@/app/(tabs)/feed/actions";
 import { Modal } from "@/components/modal";
+import { useSaveFailure } from "@/components/use-save-failure";
 import {
   labelOfReaction,
   REACTIONS,
@@ -29,6 +30,7 @@ export function ReactionBar({
   const chip = compact ? "h-6 px-1.5 text-xs" : "h-7 px-2 text-sm";
   const [picking, setPicking] = useState(false);
   const [, startTransition] = useTransition();
+  const saveFailed = useSaveFailure();
 
   const [optimistic, apply] = useOptimistic(
     summary,
@@ -56,7 +58,11 @@ export function ReactionBar({
       const formData = new FormData();
       formData.set("todoId", todoId);
       formData.set("emoji", emoji);
-      await toggleReaction(formData);
+      try {
+        await toggleReaction(formData);
+      } catch (error) {
+        saveFailed(error);
+      }
     });
   }
 

@@ -7,6 +7,7 @@ import {
   type EventFormState,
   updateEvent,
 } from "@/app/(tabs)/events/actions";
+import { orSaveFailure } from "@/components/use-save-failure";
 
 type EditingEvent = {
   id: string;
@@ -34,7 +35,7 @@ export function EventForm({
   onCancel?: () => void;
 }) {
   const [state, action] = useActionState<EventFormState, FormData>(
-    event ? updateEvent : createEvent,
+    orSaveFailure(event ? updateEvent : createEvent),
     null,
   );
   // 만들기 창과 고치기 창이 한 화면에 여럿 떠 있을 수 있다. 이름표를 구분한다.

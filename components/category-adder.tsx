@@ -1,8 +1,9 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useTransition } from "react";
 
 import { addTodo } from "@/app/(tabs)/actions";
+import { useSaveFailure } from "@/components/use-save-failure";
 import { onColorText } from "@/lib/colors";
 
 /**
@@ -30,6 +31,8 @@ export function CategoryAdder({
   const [open, setOpen] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const [, startTransition] = useTransition();
+  const saveFailed = useSaveFailure();
 
   const chip = (
     <>
@@ -76,11 +79,21 @@ export function CategoryAdder({
       {open && (
         <form
           ref={formRef}
-          action={async (formData: FormData) => {
-            await addTodo(formData);
-            formRef.current?.reset();
-            // 비우기만 하면 커서가 사라진다. 바로 다음 것을 적게 다시 잡아 준다.
-            inputRef.current?.focus();
+          // form action을 쓰지 않는다. React는 action이 실패해도 입력칸을 비워서,
+          // 연결이 끊기면 적던 글자가 사라진다. 성공했을 때만 직접 비운다.
+          onSubmit={(event) => {
+            event.preventDefault();
+            const formData = new FormData(event.currentTarget);
+            startTransition(async () => {
+              try {
+                await addTodo(formData);
+                formRef.current?.reset();
+              } catch (error) {
+                saveFailed(error);
+              }
+              // 비우기만 하면 커서가 사라진다. 바로 다음 것을 적게 다시 잡아 준다.
+              inputRef.current?.focus();
+            });
           }}
           className="flex items-center gap-2 border-b-2 pb-1 pl-1"
           style={{ borderColor: color ?? "var(--color-border)" }}
