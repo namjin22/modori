@@ -1,23 +1,21 @@
 "use client";
 
-import { useActionState } from "react";
-
 import { SubmitButton } from "@/components/submit-button";
 
 import {
   deleteAccount,
   type DeleteAccountState,
 } from "@/app/(tabs)/settings/account/actions";
-import { orSaveFailure } from "@/components/use-save-failure";
+import { useFormAction } from "@/components/use-form-action";
 
 export function DeleteAccountForm({ nickname }: { nickname: string }) {
-  const [state, action] = useActionState<DeleteAccountState, FormData>(
-    orSaveFailure(deleteAccount),
+  const [state, action, pending] = useFormAction<DeleteAccountState>(
+    deleteAccount,
     null,
   );
 
   return (
-    <form action={action} className="flex flex-col gap-4">
+    <form onSubmit={action} className="flex flex-col gap-4">
       <label htmlFor="confirm" className="text-sm text-muted">
         확인을 위해 지금 닉네임 <b className="text-foreground">{nickname}</b>을(를)
         그대로 입력해주세요.
@@ -38,6 +36,7 @@ export function DeleteAccountForm({ nickname }: { nickname: string }) {
       )}
 
       <SubmitButton
+        pending={pending}
         pendingLabel="지우는 중"
         className="h-11 rounded-xl bg-red-600 text-sm font-semibold text-white"
       >

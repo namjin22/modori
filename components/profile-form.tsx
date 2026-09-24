@@ -1,14 +1,12 @@
 "use client";
 
-import { useActionState } from "react";
-
 import {
   updateProfile,
   type ProfileFormState,
 } from "@/app/(tabs)/settings/profile/actions";
 import { ProfileImageField } from "@/components/profile-image-field";
 import { SubmitButton } from "@/components/submit-button";
-import { orSaveFailure } from "@/components/use-save-failure";
+import { useFormAction } from "@/components/use-form-action";
 
 export function ProfileForm({
   nickname,
@@ -19,12 +17,12 @@ export function ProfileForm({
   profileImage: string | null;
   bio: string;
 }) {
-  const [state, formAction] = useActionState<ProfileFormState, FormData>(
-    orSaveFailure(updateProfile),
+  const [state, formAction, pending] = useFormAction<ProfileFormState>(
+    updateProfile,
     null,
   );
   return (
-    <form action={formAction} className="flex flex-col gap-5">
+    <form onSubmit={formAction} className="flex flex-col gap-5">
       <label className="flex flex-col gap-1 text-xs text-muted">
         닉네임
         <input
@@ -63,6 +61,7 @@ export function ProfileForm({
       )}
 
       <SubmitButton
+        pending={pending}
         pendingLabel="저장 중"
         className="h-12 rounded-xl bg-brand text-sm font-semibold text-brand-contrast"
       >
