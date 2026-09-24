@@ -49,7 +49,7 @@ export function EventSection({
         type="button"
         aria-expanded={creating}
         onClick={() => setCreating((value) => !value)}
-        className="w-fit text-sm font-semibold text-foreground"
+        className="-mx-1.5 -my-1.5 w-fit px-1.5 py-1.5 text-sm font-semibold text-foreground"
       >
         일정
       </button>
@@ -162,7 +162,7 @@ export function EventSection({
                 restore={restoreEvent}
                 message="일정을 지웠어요"
                 onDone={() => setEditing(null)}
-                className="h-10 rounded-xl px-3 text-sm font-medium text-red-500"
+                className="h-10 rounded-xl px-3 text-sm font-medium text-danger"
               />
             </div>
           </>

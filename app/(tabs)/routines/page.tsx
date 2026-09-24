@@ -138,10 +138,10 @@ export default async function RoutinesPage() {
                     {routine.endDate && ` · ${formatKST(routine.endDate)}까지`}
                   </p>
 
-                  <div className="mt-2 flex gap-3">
+                  <div className="-mx-2 mt-1 flex">
                     <form action={toggleRoutinePause}>
                       <input type="hidden" name="id" value={routine.id} />
-                      <button type="submit" className="text-xs text-muted">
+                      <button type="submit" className="h-8 rounded-lg px-2 text-xs text-muted hover:bg-surface-hover">
                         {routine.pausedAt ? "다시 시작" : "잠시 멈춤"}
                       </button>
                     </form>
@@ -149,7 +149,7 @@ export default async function RoutinesPage() {
                     {!routine.endDate && (
                       <form action={endRoutineToday}>
                         <input type="hidden" name="id" value={routine.id} />
-                        <button type="submit" className="text-xs text-muted">
+                        <button type="submit" className="h-8 rounded-lg px-2 text-xs text-muted hover:bg-surface-hover">
                           오늘까지만
                         </button>
                       </form>
@@ -161,7 +161,7 @@ export default async function RoutinesPage() {
                       remove={deleteRoutine}
                       restore={restoreRoutine}
                       message="루틴을 지웠어요. 만들어진 할 일은 남아요"
-                      className="text-xs text-red-500"
+                      className="h-8 rounded-lg px-2 text-xs text-danger hover:bg-surface-hover"
                     />
                   </div>
                 </li>
