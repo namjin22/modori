@@ -131,3 +131,20 @@ test("보관한 카테고리는 할 일 추가 목록에서 빠진다", async ({
     page.getByRole("button", { name: "운동에 할 일 쓰기" }),
   ).toHaveCount(0);
 });
+
+test("완료 체크는 네모 바깥 조금을 눌러도 된다", async ({ page }) => {
+  await addTodo(page, "손가락으로 누를 일");
+  // 방금 적은 입력칸의 포커스가 남아 있지 않게 새로 연다.
+  await page.reload();
+
+  const box = await page
+    .getByRole("button", { name: "완료", exact: true })
+    .boundingBox();
+  if (!box) throw new Error("완료 버튼을 찾지 못했다");
+
+  // 보이는 네모는 22px이다. 오른쪽 가장자리에서 8px 바깥을 누른다.
+  // 누르는 동안 줄어드는 효과가 누르는 영역까지 줄이면 여기서 실패한다.
+  await page.mouse.click(box.x + box.width + 8, box.y + box.height / 2);
+
+  await expect(page.getByRole("button", { name: "완료 취소" })).toBeVisible();
+});
