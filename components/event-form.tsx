@@ -1,13 +1,13 @@
 "use client";
 
-import { useActionState, useEffect } from "react";
+import { useEffect } from "react";
 
 import {
   createEvent,
   type EventFormState,
   updateEvent,
 } from "@/app/(tabs)/events/actions";
-import { orSaveFailure } from "@/components/use-save-failure";
+import { useFormAction } from "@/components/use-form-action";
 
 type EditingEvent = {
   id: string;
@@ -34,8 +34,8 @@ export function EventForm({
   // 자리에서 바로 열릴 때는 닫을 길이 있어야 한다. 창으로 열리면 창이 닫아 준다.
   onCancel?: () => void;
 }) {
-  const [state, action] = useActionState<EventFormState, FormData>(
-    orSaveFailure(event ? updateEvent : createEvent),
+  const [state, action] = useFormAction<EventFormState>(
+    event ? updateEvent : createEvent,
     null,
   );
   // 만들기 창과 고치기 창이 한 화면에 여럿 떠 있을 수 있다. 이름표를 구분한다.
@@ -46,7 +46,7 @@ export function EventForm({
   }, [state, onSaved]);
 
   return (
-    <form action={action} className="flex flex-col gap-4">
+    <form onSubmit={action} className="flex flex-col gap-4">
       {event && <input type="hidden" name="id" value={event.id} />}
 
       <input

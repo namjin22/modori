@@ -24,6 +24,9 @@ export default defineConfig({
   // 기본 5초는 이 앱에 빠듯하다. DB가 싱가포르에 있어 개발 PC에서는 질의 하나가
   // 90ms, 한 화면이 대여섯 번 오간다. 무엇을 확인하는지는 그대로 두고 여유만 준다.
   expect: { timeout: 10_000 },
+  // 두 계정을 오가는 테스트는 개발 PC에서도 13~17초다. CI 러너는 미국에 있어 DB(싱가포르)
+  // 왕복이 더 길고, 같은 테스트가 기본 30초를 넘겨 계속 깨졌다. 확인하는 내용은 그대로다.
+  timeout: process.env.CI ? 60_000 : 30_000,
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
   webServer: {
     command: `npx next build && npx next start --port ${PORT}`,

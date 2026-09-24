@@ -41,7 +41,7 @@ function readDate(formData: FormData, key: string): Date | null {
   }
 }
 
-export type RoutineFormState = { message: string } | null;
+export type RoutineFormState = { message: string; ok?: boolean } | null;
 
 export async function createRoutine(
   _previous: RoutineFormState,
@@ -104,7 +104,7 @@ export async function createRoutine(
   revalidatePath("/routines");
   revalidatePath("/");
 
-  return { message: "루틴을 만들었어요." };
+  return { message: "루틴을 만들었어요.", ok: true };
 }
 
 /** 일시정지하면 다음 조회부터 새 할 일이 생기지 않는다. 이미 만든 것은 남는다. */

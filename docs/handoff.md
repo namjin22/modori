@@ -814,3 +814,30 @@ viewBox로 좁혔다.
 숨김 요소뿐이라 오탐이다.
 
 검증: `npm run verify` 통과 — 단위 70×3, E2E 69/69.
+
+### 루프 10 — CI 재확인, 폼이 입력을 잃는 문제
+
+**CI:** 최근 main CI가 계속 실패하고 있었다(배포는 Vercel이 따로 해서 성공). 실패는 매번
+두 계정을 오가는 테스트(feed 반응, friend-day)의 `page.goto: Test timeout of 30000ms`.
+같은 테스트가 개발 PC에서도 13~17초이고, CI는 러너(미국)↔DB(싱가포르) 왕복이 길어 전체가
+2배 넘게 느리다(63개 16.8분). 앱 버그가 아니라 시간 예산 문제라 `playwright.config.ts`에서
+**CI에서만** 테스트 제한 시간을 60초로 늘렸다. 확인하는 내용은 그대로다.
+대기 중인 CI 실행이 "cancelled"로 보이는 건 `concurrency` 그룹이 대기열을 하나만 두기
+때문이다(설정대로다).
+
+**폼:** 루프 8에서 남긴 한계를 파다가 더 흔한 버그를 찾았다. `useActionState` + `<form action>`
+폼은 **서버가 입력을 거절해도** React가 입력칸을 모두 처음 값으로 되돌린다. 루틴에서 요일을
+안 고르고 추가하면 "요일을 골라주세요"와 함께 적은 내용이 사라졌고, 일정도 종료일이 잘못되면
+이름이 사라졌다(임시 테스트로 재현: 입력값 `""`).
+
+- `components/use-form-action.ts`의 `useFormAction(action, null)`: onSubmit으로 보내고,
+  서버가 `ok: true`를 줄 때만 비운다. 연결 실패는 `orSaveFailure`로 문구를 띄우고,
+  보내는 중 Enter를 또 누르면 무시한다.
+- 일정·루틴·프로필·닉네임·계정 삭제 폼 5개에 적용. 루틴 성공 응답에 `ok: true` 추가.
+- `SubmitButton`에 `pending` prop — onSubmit 폼은 `useFormStatus`가 보내는 중을 모른다.
+
+**재확인:** `tests/e2e/form-keeps-input.spec.ts` — 루틴 거절 후 내용 유지 → 요일 고르고
+다시 누르면 만들어지고 비워짐, 일정 날짜 오류 후 이름 유지. 기존 루틴·일정·프로필·계정·
+로그인 테스트도 전부 통과.
+
+검증: `npm run verify` 통과 — 단위 70×3, E2E 71/71.
