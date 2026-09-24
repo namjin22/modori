@@ -76,7 +76,7 @@ export default async function StatsPage({
       </header>
 
       <nav aria-label="달 고르기" className="flex items-center justify-between">
-        <Link
+        <Link prefetch={false}
           href={`/stats?month=${formatMonthKST(addMonths(monthStart, -1))}`}
           aria-label="이전 달"
           className="flex size-9 items-center justify-center rounded-full text-muted hover:bg-surface-hover"
@@ -90,7 +90,7 @@ export default async function StatsPage({
           // 아직 오지 않은 달에는 아무것도 없다. 갈 수 있는 것처럼 보이지 않게 한다.
           <span aria-hidden className="size-9" />
         ) : (
-          <Link
+          <Link prefetch={false}
             href={`/stats?month=${formatMonthKST(addMonths(monthStart, 1))}`}
             aria-label="다음 달"
             className="flex size-9 items-center justify-center rounded-full text-muted hover:bg-surface-hover"

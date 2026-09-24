@@ -86,7 +86,7 @@ export default async function FeedPage({
       <header className="flex flex-col gap-4">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold">소셜</h1>
-          <Link
+          <Link prefetch={false}
             href="/feed/search"
             className="h-9 rounded-full bg-brand px-4 text-sm font-semibold leading-9 text-brand-contrast"
           >
@@ -95,7 +95,7 @@ export default async function FeedPage({
         </div>
 
         <div className="flex gap-2">
-          <Link
+          <Link prefetch={false}
             href="/feed/reactions"
             className="flex h-9 items-center gap-1.5 rounded-full bg-surface px-4 text-sm text-muted"
           >
@@ -106,7 +106,7 @@ export default async function FeedPage({
               </span>
             )}
           </Link>
-          <Link
+          <Link prefetch={false}
             href="/feed/following"
             className="flex h-9 items-center rounded-full bg-surface px-4 text-sm text-muted"
           >
@@ -126,7 +126,7 @@ export default async function FeedPage({
                 : "친구들이 아직 끝낸 할 일이 없어요"}
           </p>
           {followingCount === 0 && (
-            <Link
+            <Link prefetch={false}
               href="/feed/search"
               className="mt-3 inline-block text-sm text-brand"
             >
@@ -141,7 +141,7 @@ export default async function FeedPage({
           {groupByAuthorAndDay(todos).map((group) => (
             <li key={group.key} className="rounded-2xl bg-surface px-4 pb-1 pt-3.5">
               <div className="flex items-center gap-2">
-                <Link
+                <Link prefetch={false}
                   href={`/feed/u/${group.user.id}`}
                   className="flex min-w-0 items-center gap-2"
                 >
@@ -178,14 +178,14 @@ export default async function FeedPage({
       {(nextCursor || after) && (
         <div className="flex items-center justify-between">
           {after ? (
-            <Link href="/feed" className="text-sm text-muted">
+            <Link prefetch={false} href="/feed" className="text-sm text-muted">
               ↑ 최근으로
             </Link>
           ) : (
             <span />
           )}
           {nextCursor && (
-            <Link
+            <Link prefetch={false}
               href={`/feed?after=${nextCursor}`}
               className="text-sm font-medium text-brand"
             >

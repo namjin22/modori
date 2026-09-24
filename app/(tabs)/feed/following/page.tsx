@@ -32,7 +32,7 @@ export default async function FollowingPage() {
       {following.length === 0 ? (
         <div className="rounded-2xl bg-surface p-10 text-center">
           <p className="text-sm text-muted">아직 팔로우한 친구가 없어요</p>
-          <Link
+          <Link prefetch={false}
             href="/feed/search"
             className="mt-3 inline-block text-sm text-brand"
           >
@@ -46,7 +46,7 @@ export default async function FollowingPage() {
               key={person.id}
               className="flex items-center gap-3 rounded-2xl bg-surface p-4"
             >
-              <Link
+              <Link prefetch={false}
                 href={`/feed/u/${person.id}`}
                 className="flex min-w-0 flex-1 items-center gap-3"
               >

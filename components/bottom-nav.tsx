@@ -47,6 +47,9 @@ export function BottomNav({ unreadReactions }: { unreadReactions: number }) {
 
           return (
             <li key={href} className="flex-1">
+              {/* 미리 불러오기는 탭 바에만 켠다. 가장 자주 오가는 세 곳이다. 다른 링크까지
+                  켜 두면 화면 하나 열 때 서버가 14~21번 돌아서 Vercel 한도를 먼저 다 쓴다
+                  (docs/capacity.md). */}
               <Link
                 href={href}
                 aria-current={isActive ? "page" : undefined}

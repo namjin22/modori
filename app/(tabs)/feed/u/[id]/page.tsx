@@ -170,7 +170,7 @@ export default async function FriendDayPage({
             )}
           </div>
           {/* 좁은 화면에서 달력 버튼 하나가 한 줄을 차지하지 않게 이름 옆에 둔다. */}
-          <Link
+          <Link prefetch={false}
             href={
               monthOpen
                 ? `${basePath}?date=${formatKST(date)}`
@@ -202,7 +202,7 @@ export default async function FriendDayPage({
 
       <div className="flex flex-col gap-6">
         <header className="flex items-center justify-between">
-          <Link
+          <Link prefetch={false}
             href={`${basePath}?date=${formatKST(addDays(date, -1))}${viewQuery}`}
             aria-label="이전 날"
             className="flex size-9 items-center justify-center rounded-full text-lg text-muted hover:bg-surface-hover"
@@ -215,7 +215,7 @@ export default async function FriendDayPage({
             </p>
             <h2 className="text-lg font-bold">{formatHeading(date)}</h2>
           </div>
-          <Link
+          <Link prefetch={false}
             href={`${basePath}?date=${formatKST(addDays(date, 1))}${viewQuery}`}
             aria-label="다음 날"
             className="flex size-9 items-center justify-center rounded-full text-lg text-muted hover:bg-surface-hover"
@@ -236,7 +236,7 @@ export default async function FriendDayPage({
         )}
 
         {!isToday && (
-          <Link
+          <Link prefetch={false}
             href={basePath}
             className="-mt-3 flex h-8 w-fit items-center rounded-full px-3 text-sm text-brand hover:bg-surface-hover"
           >

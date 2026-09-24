@@ -249,7 +249,7 @@ export default async function FeedPage({
     // 넓은 화면에서는 왼쪽에 프로필과 달력, 오른쪽에 고른 날의 목록을 둔다.
     <div className="flex flex-col gap-6 lg:grid lg:grid-cols-2 lg:items-start lg:gap-10">
       <div className="flex flex-col gap-6 lg:sticky lg:top-6">
-        <Link href="/settings/profile" className="flex items-center gap-3">
+        <Link prefetch={false} href="/settings/profile" className="flex items-center gap-3">
           <Avatar src={avatarUrl(user)} size={48} />
           <span className="min-w-0">
             <span className="block truncate font-bold">{user.nickname}</span>
@@ -274,7 +274,7 @@ export default async function FeedPage({
 
       <div className="flex flex-col gap-6">
         <header className="flex items-center justify-between">
-          <Link
+          <Link prefetch={false}
             href={`/?date=${formatKST(addDays(date, -1))}${viewQuery}`}
             aria-label="이전 날"
             className="flex size-9 items-center justify-center rounded-full text-lg text-muted hover:bg-surface-hover"
@@ -289,7 +289,7 @@ export default async function FeedPage({
             <h1 className="text-lg font-bold">{formatHeading(date)}</h1>
           </div>
 
-          <Link
+          <Link prefetch={false}
             href={`/?date=${formatKST(addDays(date, 1))}${viewQuery}`}
             aria-label="다음 날"
             className="flex size-9 items-center justify-center rounded-full text-lg text-muted hover:bg-surface-hover"
@@ -307,33 +307,33 @@ export default async function FeedPage({
         {/* 카테고리와 루틴은 할 일을 적다가 바로 손보는 것이라 설정이 아니라 여기 둔다. */}
         {/* 가장 좁은 폰(320px)에서 달력 버튼만 다음 줄로 떨어지지 않게 여백을 줄인다. */}
         <nav aria-label="할 일 관리" className="flex flex-wrap items-center gap-1.5 min-[360px]:gap-2">
-          <Link
+          <Link prefetch={false}
             href="/categories"
             className="flex h-8 items-center rounded-full bg-surface px-3 text-sm text-muted hover:text-foreground min-[360px]:px-3.5"
           >
             카테고리
           </Link>
-          <Link
+          <Link prefetch={false}
             href="/routines"
             className="flex h-8 items-center rounded-full bg-surface px-3 text-sm text-muted hover:text-foreground min-[360px]:px-3.5"
           >
             루틴
           </Link>
-          <Link
+          <Link prefetch={false}
             href="/stats"
             className="flex h-8 items-center rounded-full bg-surface px-3 text-sm text-muted hover:text-foreground min-[360px]:px-3.5"
           >
             기록
           </Link>
           {!isToday && (
-            <Link
+            <Link prefetch={false}
               href={monthOpen ? "/?view=month" : "/"}
               className="flex h-8 items-center rounded-full px-3 text-sm text-brand hover:bg-surface-hover"
             >
               오늘로 돌아가기
             </Link>
           )}
-          <Link
+          <Link prefetch={false}
             href={toggleHref}
             aria-label={monthOpen ? "달력 접기" : "달력 펼치기"}
             className={`ml-auto flex h-8 items-center gap-1.5 rounded-full px-2.5 text-sm lg:hidden min-[360px]:px-3 ${
@@ -373,7 +373,7 @@ export default async function FeedPage({
             <p className="text-sm text-muted">
               할 일은 카테고리 안에 적어요. 하나만 만들어도 바로 쓸 수 있어요.
             </p>
-            <Link
+            <Link prefetch={false}
               href="/categories"
               className="mt-1 flex h-10 items-center rounded-xl bg-brand px-4 text-sm font-semibold text-brand-contrast"
             >
@@ -419,7 +419,7 @@ export default async function FeedPage({
             <p className="text-sm text-muted">아직 할 일이 없어요</p>
             <p className="text-xs text-muted">
               카테고리 이름을 눌러 적어보세요.{" "}
-              <Link href="/routines" className="text-brand">
+              <Link prefetch={false} href="/routines" className="text-brand">
                 반복되는 일이라면 루틴으로 →
               </Link>
             </p>

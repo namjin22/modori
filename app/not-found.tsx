@@ -13,7 +13,7 @@ export default function NotFound() {
         </p>
       </div>
 
-      <Link
+      <Link prefetch={false}
         href="/"
         className="flex h-12 w-full items-center justify-center rounded-2xl bg-brand text-sm font-semibold text-brand-contrast"
       >

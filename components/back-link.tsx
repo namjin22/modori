@@ -10,7 +10,7 @@ import Link from "next/link";
  */
 export function BackLink({ href, label }: { href: string; label: string }) {
   return (
-    <Link
+    <Link prefetch={false}
       href={href}
       aria-label={label}
       className="-ml-2 flex size-10 shrink-0 items-center justify-center rounded-full text-foreground transition-colors hover:bg-surface-hover active:scale-95"

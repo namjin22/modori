@@ -71,21 +71,21 @@ export function MonthCalendar({
         </h2>
         <div className="flex items-center gap-1">
           {!isThisMonth && (
-            <Link
+            <Link prefetch={false}
               href={monthHref(formatMonthKST(today))}
               className="rounded-full px-3 py-1 text-xs text-brand hover:bg-surface-hover"
             >
               이번 달
             </Link>
           )}
-          <Link
+          <Link prefetch={false}
             href={monthHref(formatMonthKST(addMonths(monthStart, -1)))}
             aria-label="이전 달"
             className="flex size-8 items-center justify-center rounded-full text-muted hover:bg-surface-hover"
           >
             ‹
           </Link>
-          <Link
+          <Link prefetch={false}
             href={monthHref(formatMonthKST(addMonths(monthStart, 1)))}
             aria-label="다음 달"
             className="flex size-8 items-center justify-center rounded-full text-muted hover:bg-surface-hover"
