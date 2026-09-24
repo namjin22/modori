@@ -59,7 +59,7 @@ export default async function SettingsPage() {
       {/* 눈에 잘 띄지 않게 맨 아래에 작게 둔다. 실수로 누를 자리가 아니다. */}
       <Link
         href="/settings/account"
-        className="text-center text-xs text-muted underline underline-offset-4"
+        className="mx-auto py-2 text-center text-xs text-muted underline underline-offset-4"
       >
         계정 지우기
       </Link>

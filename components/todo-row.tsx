@@ -68,7 +68,7 @@ export function TodoRow({ todo }: { todo: Todo }) {
             restore={restoreTodo}
             message="할 일을 지웠어요"
             onDone={() => setOpen(false)}
-            className="h-10 rounded-xl px-3 text-sm font-medium text-red-500"
+            className="h-10 rounded-xl px-3 text-sm font-medium text-danger"
           />
         </div>
       </Modal>

@@ -27,7 +27,7 @@ export function OnboardingForm() {
       />
 
       {state && (
-        <p role="status" className="text-sm text-red-500">
+        <p role="status" className="text-sm text-danger">
           {state.message}
         </p>
       )}

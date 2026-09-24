@@ -102,9 +102,9 @@ export function MonthCalendar({
               key={name}
               className={`py-2 ${
                 index === 0
-                  ? "text-red-400"
+                  ? "text-danger"
                   : index === 6
-                    ? "text-blue-400"
+                    ? "text-brand"
                     : "text-muted"
               }`}
             >

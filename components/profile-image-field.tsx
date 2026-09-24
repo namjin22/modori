@@ -77,7 +77,7 @@ export function ProfileImageField({ defaultValue }: { defaultValue: string | nul
       {busy && <input type="hidden" name="profileImageBusy" value="1" />}
 
       {problem && (
-        <p role="alert" className="text-sm text-red-500">
+        <p role="alert" className="text-sm text-danger">
           {problem}
         </p>
       )}

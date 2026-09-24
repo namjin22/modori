@@ -34,20 +34,30 @@ export function TodoCheckbox({
       className="flex"
     >
       <input type="hidden" name="id" value={id} />
+      {/* 누르는 영역(버튼)과 보이는 네모(안쪽)를 나눈다. 누르는 동안 줄어드는 효과를
+          버튼에 주면 넓혀 둔 영역까지 같이 줄어서, 가장자리를 누르면 손을 뗄 때 영역
+          밖이 되어 클릭이 되지 않는다. */}
       <button
         type="submit"
         aria-label={optimisticDone ? "완료 취소" : "완료"}
-        // 투두메이트처럼 둥근 네모. 안 한 일은 회색으로 채우고, 한 일은 카테고리 색으로 채운다.
-        style={
-          color && optimisticDone
-            ? { backgroundColor: color, color: onColorText(color) }
-            : undefined
-        }
-        className={`flex size-[22px] shrink-0 items-center justify-center rounded-[7px] color-edge text-xs font-bold text-white transition-all duration-150 active:scale-90 ${
-          optimisticDone ? "bg-brand" : "bg-border hover:brightness-95"
-        }`}
+        // 보이는 크기는 22px, 누르는 영역은 가상 요소로 42px까지 넓힌다. 가장 자주
+        // 누르는 곳인데 22px이면 손가락으로 옆 줄을 누르기 쉽다.
+        className="group relative flex size-[22px] shrink-0 items-center justify-center after:absolute after:-inset-2.5 after:content-['']"
       >
-        {optimisticDone ? "✓" : ""}
+        <span
+          aria-hidden
+          // 투두메이트처럼 둥근 네모. 안 한 일은 회색으로 채우고, 한 일은 카테고리 색으로 채운다.
+          style={
+            color && optimisticDone
+              ? { backgroundColor: color, color: onColorText(color) }
+              : undefined
+          }
+          className={`flex size-[22px] items-center justify-center rounded-[7px] color-edge text-xs font-bold text-white transition-all duration-150 group-active:scale-90 ${
+            optimisticDone ? "bg-brand" : "bg-border group-hover:brightness-95"
+          }`}
+        >
+          {optimisticDone ? "✓" : ""}
+        </span>
       </button>
     </form>
   );

@@ -31,14 +31,14 @@ export function DeleteAccountForm({ nickname }: { nickname: string }) {
       />
 
       {state?.message && (
-        <p role="alert" className="text-sm text-red-500">
+        <p role="alert" className="text-sm text-danger">
           {state.message}
         </p>
       )}
 
       <SubmitButton
         pendingLabel="지우는 중"
-        className="h-11 rounded-xl bg-red-500 text-sm font-semibold text-white"
+        className="h-11 rounded-xl bg-red-600 text-sm font-semibold text-white"
       >
         계정 지우기
       </SubmitButton>

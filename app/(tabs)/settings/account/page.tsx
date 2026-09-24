@@ -58,7 +58,7 @@ export default async function AccountPage() {
 
       <DeleteAccountForm nickname={user.nickname ?? ""} />
 
-      <Link href="/settings" className="text-center text-sm text-brand">
+      <Link href="/settings" className="py-2 text-center text-sm text-brand">
         그냥 두기
       </Link>
     </div>

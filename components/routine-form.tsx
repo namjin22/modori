@@ -147,7 +147,7 @@ export function RoutineForm({
           className={`text-sm ${
             state.message === "루틴을 만들었어요."
               ? "text-brand"
-              : "text-red-500"
+              : "text-danger"
           }`}
         >
           {state.message}

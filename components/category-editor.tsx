@@ -165,7 +165,7 @@ export function CategoryEditor({
             <span
               aria-live="polite"
               className={`ml-2 text-xs ${
-                status && status !== "저장했어요" ? "text-red-500" : "text-muted"
+                status && status !== "저장했어요" ? "text-danger" : "text-muted"
               }`}
             >
               {pending ? "저장 중" : status}
@@ -178,7 +178,7 @@ export function CategoryEditor({
               run(archiveCategory);
               setOpen(false);
             }}
-            className="h-9 rounded-xl px-3 text-sm text-red-500 hover:bg-surface-hover"
+            className="h-9 rounded-xl px-3 text-sm text-danger hover:bg-surface-hover"
           >
             보관하기
           </button>

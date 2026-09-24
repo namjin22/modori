@@ -105,7 +105,7 @@ export function CategoryAdder({
             type="button"
             onClick={() => setOpen(false)}
             aria-label="닫기"
-            className="shrink-0 px-2 text-sm text-muted"
+            className="flex size-8 shrink-0 items-center justify-center rounded-full text-sm text-muted hover:bg-surface-hover"
           >
             ✕
           </button>
