@@ -85,7 +85,7 @@ export default async function SearchPage({
               >
                 {/* 팔로우한 사람만 하루를 열어볼 수 있다. 아직이면 누를 것이 없다. */}
                 {isFollowing ? (
-                  <Link
+                  <Link prefetch={false}
                     href={`/feed/u/${person.id}`}
                     className="flex min-w-0 flex-1 items-center gap-3"
                   >

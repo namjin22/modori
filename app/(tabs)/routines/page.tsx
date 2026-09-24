@@ -74,7 +74,7 @@ export default async function RoutinesPage() {
           <p className="text-sm text-muted">
             루틴은 카테고리 안에 들어가요. 하나만 만들어도 바로 쓸 수 있어요.
           </p>
-          <Link
+          <Link prefetch={false}
             href="/categories"
             className="mt-1 flex h-10 items-center rounded-xl bg-brand px-4 text-sm font-semibold text-brand-contrast"
           >

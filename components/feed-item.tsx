@@ -58,7 +58,7 @@ export function FeedItem({
     <li className="flex flex-col gap-4 rounded-2xl bg-surface p-4">
       {showAuthor && (
         <div className="flex items-center gap-2">
-          <Link
+          <Link prefetch={false}
             href={`/feed/u/${todo.user.id}`}
             className="flex min-w-0 items-center gap-2"
           >

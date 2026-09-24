@@ -14,7 +14,7 @@ export default async function SettingsPage() {
     <div className="flex flex-col gap-6">
       <h1 className="text-2xl font-bold">설정</h1>
 
-      <Link
+      <Link prefetch={false}
         href="/settings/profile"
         className="flex items-center gap-3 rounded-2xl bg-surface p-5"
       >
@@ -58,7 +58,7 @@ export default async function SettingsPage() {
       </form>
 
       {/* 눈에 잘 띄지 않게 맨 아래에 작게 둔다. 실수로 누를 자리가 아니다. */}
-      <Link
+      <Link prefetch={false}
         href="/settings/account"
         className="mx-auto py-2 text-center text-xs text-muted underline underline-offset-4"
       >
