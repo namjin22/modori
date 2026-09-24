@@ -43,7 +43,11 @@ const findDueRoutinesCached = cache(async (userId: string, dateKey: string) => {
       userId,
       pausedAt: null,
       startDate: { lte: date },
-      OR: [{ endDate: null }, { endDate: { gte: date } }],
+      AND: [
+        { OR: [{ endDate: null }, { endDate: { gte: date } }] },
+        // 보관한 카테고리에는 새로 적을 수 없다. 루틴도 그동안 쉬고, 되살리면 다시 돈다.
+        { OR: [{ categoryId: null }, { category: { archivedAt: null } }] },
+      ],
       // 사용자가 그 날의 할 일을 지웠으면 다시 만들지 않는다.
       skips: { none: { date } },
     },

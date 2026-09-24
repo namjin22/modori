@@ -128,8 +128,12 @@ export default async function RoutinesPage() {
                     <span className="flex-1 truncate font-medium">
                       {routine.content}
                     </span>
-                    {routine.pausedAt && (
+                    {routine.pausedAt ? (
                       <span className="text-xs text-muted">멈춤</span>
+                    ) : (
+                      group.archived && (
+                        <span className="text-xs text-muted">카테고리 보관 중</span>
+                      )
                     )}
                   </div>
 

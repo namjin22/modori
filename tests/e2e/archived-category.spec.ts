@@ -1,5 +1,6 @@
 import { expect, test as base, type Page } from "@playwright/test";
 
+import { todayKST } from "@/lib/date";
 import { prisma } from "@/lib/prisma";
 
 import { FIRST_CATEGORY, addTodo, homeReady, openCategory } from "./todo-helpers";
@@ -57,4 +58,46 @@ test("카테고리를 보관해도 그 카테고리의 할 일은 이름을 달�
   await expect(
     page.getByRole("button", { name: `${FIRST_CATEGORY}에 할 일 쓰기` }),
   ).toHaveCount(0);
+});
+
+test("카테고리를 보관하는 동안 그 카테고리의 루틴은 할 일을 만들지 않는다", async ({
+  page,
+  email,
+}, testInfo) => {
+  await signInAndOnboard(page, email, `루틴${testInfo.testId.slice(-6)}${RUN_TAG}`);
+
+  const user = await prisma.user.findUniqueOrThrow({ where: { email } });
+  const category = await prisma.category.findFirstOrThrow({ where: { userId: user.id } });
+  const second = await prisma.category.create({
+    data: { userId: user.id, name: "남는 칸", color: "#22c55e", order: 1 },
+  });
+  const today = todayKST();
+  await prisma.routine.create({
+    data: {
+      userId: user.id,
+      categoryId: category.id,
+      content: "매일 단어 외우기",
+      freq: "DAILY",
+      byWeekday: [],
+      byMonthday: [],
+      startDate: today,
+      order: 0,
+    },
+  });
+  await prisma.category.update({ where: { id: category.id }, data: { archivedAt: new Date() } });
+
+  await page.goto("/");
+  await expect(page.getByRole("button", { name: `${second.name}에 할 일 쓰기` })).toBeVisible();
+  await expect(page.getByText("매일 단어 외우기")).toHaveCount(0);
+
+  // 루틴 화면에서는 왜 멈췄는지 보인다.
+  await page.goto("/routines");
+  await expect(page.getByText("카테고리 보관 중")).toBeVisible();
+
+  // 되살리면 다시 돈다.
+  await page.goto("/categories");
+  await page.getByRole("button", { name: "되돌리기" }).click();
+  await expect(page.getByRole("button", { name: `${FIRST_CATEGORY} 고치기` })).toBeVisible();
+  await page.goto("/");
+  await expect(page.getByRole("button", { name: "매일 단어 외우기", exact: true })).toBeVisible();
 });
