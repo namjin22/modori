@@ -31,7 +31,7 @@ export function Avatar({
   return <DoriFace size={size} className={`${round} ${className}`} />;
 }
 
-/** 탭 아이콘(app/icon.svg)과 같은 그림. 도리를 머리와 어깨까지 잘라 담는다. */
+/** 기본 프로필 그림. 도리 얼굴을 파란 바탕 가운데에 담는다. */
 export function DoriFace({
   size = 40,
   className = "",
@@ -53,13 +53,11 @@ export function DoriFace({
         <path d="M40 25 L35 9 Q48 11 55 21 Z" />
         <path d="M80 25 L85 9 Q72 11 65 21 Z" />
         <circle cx={60} cy={46} r={32} />
-        <rect x={34} y={58} width={52} height={38} rx={16} />
       </g>
       <g fill="#fdfbf7">
         <path d="M40 25 L35 9 Q48 11 55 21 Z" />
         <path d="M80 25 L85 9 Q72 11 65 21 Z" />
         <circle cx={60} cy={46} r={32} />
-        <rect x={34} y={58} width={52} height={38} rx={16} />
       </g>
 
       <ellipse cx={44} cy={18} rx={4.5} ry={5.5} fill="#ffd0dc" transform="rotate(-20 44 18)" />

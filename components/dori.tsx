@@ -1,11 +1,13 @@
-// 모도리의 캐릭터 "도리". 크림색 몸에 파르스름한 굵은 테두리를 두른 작은 고양이다.
+// 모도리의 캐릭터 "도리". 크림색 얼굴에 파르스름한 굵은 테두리를 두른 고양이 얼굴이다.
+// 몸통을 붙이면 작게 줄였을 때 비율이 어색해져서 얼굴만 그린다. 표정은 눈·입과
+// 둘레의 소품으로만 전한다.
 // 직접 그린 그림이라 외부 저작권이나 표기 의무가 없다.
 //
 // 테두리는 도형마다 그리지 않는다. 같은 실루엣을 두 번 그려서 아래 겹은 굵은 선으로
 // 부풀리고 위 겹을 크림색으로 덮는다. 이렇게 해야 도형이 겹치는 안쪽에는 선이 남지
 // 않고 바깥 윤곽만 고르게 두꺼워진다.
 //
-// 몸이 크림색이라 파랑 버튼 옆에 두어도 브랜드 색과 싸우지 않고, 다크 모드에서도
+// 얼굴이 크림색이라 파랑 버튼 옆에 두어도 브랜드 색과 싸우지 않고, 다크 모드에서도
 // 배경에서 떠오른다. 24px(반응 줄)까지 줄어들기 때문에 눈·입은 크고 단순하게 그린다.
 // 서버 컴포넌트에서도 쓰므로 상태나 훅을 두지 않는다.
 
@@ -27,13 +29,10 @@ const BODY = "#fdfbf7";
 const EYE = "#5d6f96";
 const EAR = "#ffd0dc";
 const BLUSH = "#ffdbe4";
-const PAD = "#ffc3d2";
 const HINT = "#a8b6d1";
 
 /** 실루엣 바깥으로 번지는 테두리 두께. 위아래 두 겹이 같은 값을 쓴다. */
 const OUTLINE = 8;
-
-type Arms = "rest" | "wave" | "up";
 
 function Stroke({
   d,
@@ -57,54 +56,15 @@ function Stroke({
 }
 
 /**
- * 머리를 줄이고 위로 올리는 변환. 얼굴 좌표는 머리 크기가 32일 때 짜 두었다.
- * 좌표를 전부 다시 적는 대신 머리 묶음째 줄여서, 표정은 그대로 두고 몸만 드러낸다.
+ * 얼굴을 키워 가운데로 옮기는 변환. 얼굴 좌표는 머리 반지름이 32일 때 짜 두었다.
+ * 좌표를 전부 다시 적는 대신 묶음째 키운다. 둘레에 소품 자리를 남긴다.
  */
-const HEAD_SCALE = 0.84;
-const HEAD = `translate(60 38) scale(${HEAD_SCALE}) translate(-60 -46)`;
-
-/** 들어 올린 앞발. dir이 1이면 오른쪽, -1이면 왼쪽. 어깨는 몸 뒤에 숨는다. */
-function RaisedArm({ dir }: { dir: 1 | -1 }) {
-  const midX = 60 + dir * 25;
-
-  return (
-    <>
-      <rect
-        x={midX - 5.5}
-        y={38}
-        width={11}
-        height={30}
-        rx={5.5}
-        transform={`rotate(${dir * 35} ${midX} 53)`}
-      />
-      <circle cx={60 + dir * 34} cy={40} r={7.5} />
-    </>
-  );
-}
-
-/** 내린 팔. 몸 옆구리 뒤에서 나와 살짝 벌어진다. */
-function RestArm({ dir }: { dir: 1 | -1 }) {
-  const midX = 60 + dir * 22.5;
-
-  return (
-    <>
-      <rect
-        x={midX - 6}
-        y={66}
-        width={12}
-        height={18}
-        rx={6}
-        transform={`rotate(${-dir * 28} ${midX} 75)`}
-      />
-      <circle cx={60 + dir * 27} cy={83} r={6.5} />
-    </>
-  );
-}
+const HEAD_SCALE = 1.1;
+const HEAD = `translate(60 66) scale(${HEAD_SCALE}) translate(-60 -46)`;
 
 /**
  * 도형 묶음에 바깥 테두리만 두른다. 같은 그림을 굵은 선으로 한 번, 크림색으로 한 번
- * 그린다. 묶음끼리는 테두리가 따로 생기므로, 들어 올린 앞발처럼 몸 위에 겹쳐야
- * 하는 부분은 몸과 다른 묶음으로 그린다.
+ * 그린다. 귀와 얼굴이 만나는 곳에 선이 남지 않는다.
  */
 function Outlined({ children }: { children: ReactNode }) {
   return (
@@ -117,33 +77,13 @@ function Outlined({ children }: { children: ReactNode }) {
   );
 }
 
-/**
- * 머리·몸통·발. 한 덩어리로 그려야 이음매에 선이 생기지 않는다.
- * 머리는 줄였으므로 테두리가 같은 굵기로 보이게 선도 그만큼 굵게 준다.
- */
-function Body() {
+/** 귀와 얼굴. 키운 만큼 선을 가늘게 줘서 테두리 굵기를 다른 그림과 맞춘다. */
+function Head() {
   return (
-    <>
-      {/* 짜리몽땅하게: 머리 하나에 몸 하나, 두 등신 남짓이다. */}
-      <rect x={39} y={56} width={42} height={38} rx={17} />
-      <ellipse cx={50} cy={95} rx={8.5} ry={6.5} />
-      <ellipse cx={70} cy={95} rx={8.5} ry={6.5} />
-      <g transform={HEAD} strokeWidth={OUTLINE / HEAD_SCALE}>
-        <path d="M40 25 L35 9 Q48 11 55 21 Z" />
-        <path d="M80 25 L85 9 Q72 11 65 21 Z" />
-        <circle cx={60} cy={46} r={32} />
-      </g>
-    </>
-  );
-}
-
-function PawPads({ x, y = 40 }: { x: number; y?: number }) {
-  return (
-    <g fill={PAD}>
-      <circle cx={x - 3} cy={y - 3} r={1.6} />
-      <circle cx={x + 0.3} cy={y - 4.1} r={1.6} />
-      <circle cx={x + 3.5} cy={y - 2.7} r={1.6} />
-      <ellipse cx={x} cy={y + 2} rx={3.1} ry={2.4} />
+    <g transform={HEAD} strokeWidth={OUTLINE / HEAD_SCALE}>
+      <path d="M40 25 L35 9 Q48 11 55 21 Z" />
+      <path d="M80 25 L85 9 Q72 11 65 21 Z" />
+      <circle cx={60} cy={46} r={32} />
     </g>
   );
 }
@@ -232,10 +172,10 @@ function Spark({ x, y, s, fill }: { x: number; y: number; s: number; fill: strin
   );
 }
 
-/** 표정마다 얼굴, 팔 자세, 앞뒤 소품을 따로 둔다. */
+/** 표정마다 얼굴과 앞뒤 소품을 따로 둔다. */
 const LOOKS: Record<
   DoriMood,
-  { face: ReactNode; arms?: Arms; props?: ReactNode; behind?: ReactNode }
+  { face: ReactNode; props?: ReactNode; behind?: ReactNode }
 > = {
   happy: {
     face: (
@@ -247,7 +187,6 @@ const LOOKS: Record<
     ),
   },
   like: {
-    arms: "wave",
     face: (
       <>
         <ArcEye x={46} />
@@ -257,7 +196,7 @@ const LOOKS: Record<
     ),
     props: (
       <path
-        d="M96 10 c-4.2 -7.4 -14.4 -3.2 -11.2 5.1 L96 26 l11.2 -10.9 c3.2 -8.3 -7 -12.5 -11.2 -5.1z"
+        d="M105 12 c-4.2 -7.4 -14.4 -3.2 -11.2 5.1 L105 28 l11.2 -10.9 c3.2 -8.3 -7 -12.5 -11.2 -5.1z"
         fill="#ff6f95"
       />
     ),
@@ -270,8 +209,9 @@ const LOOKS: Record<
         <OpenMouth />
       </>
     ),
+    // 귀에 닿지 않게 오른쪽 위 모서리로 민다.
     behind: (
-      <>
+      <g transform="translate(5 2)">
         <path
           d="M102 6 C112 18 115 28 110 38 C108 31 105 29 103 29 C107 38 100 45 93 42 C87 39 88 30 92 24 C90 30 94 32 96 30 C94 20 97 13 102 6Z"
           fill="#ff9a4d"
@@ -280,11 +220,10 @@ const LOOKS: Record<
           d="M102 22 C107 28 106 35 102 37 C98 35 97 31 100 27Z"
           fill="#ffd166"
         />
-      </>
+      </g>
     ),
   },
   clap: {
-    arms: "up",
     face: (
       <>
         <StarEye x={46} />
@@ -347,8 +286,8 @@ const LOOKS: Record<
     ),
     props: (
       <>
-        <Stroke d="M92 18 L104 18 L92 32 L104 32" width={4} color={HINT} />
-        <Stroke d="M106 6 L114 6 L106 15 L114 15" width={3.2} color="#c4cfe4" />
+        <Stroke d="M99 22 L111 22 L99 36 L111 36" width={4} color={HINT} />
+        <Stroke d="M108 7 L116 7 L108 16 L116 16" width={3.2} color="#c4cfe4" />
       </>
     ),
   },
@@ -373,16 +312,15 @@ const LOOKS: Record<
     props: (
       <>
         <Stroke
-          d="M95 22 C95 13 104 11 109 16 C113 21 108 26 104 29 L104 33"
+          d="M99 20 C99 11 108 9 113 14 C117 19 112 24 108 27 L108 31"
           width={4.5}
           color={HINT}
         />
-        <circle cx={104} cy={40} r={2.8} fill={HINT} />
+        <circle cx={108} cy={38} r={2.8} fill={HINT} />
       </>
     ),
   },
   hello: {
-    arms: "wave",
     face: (
       <>
         <DotEye x={46} />
@@ -390,7 +328,22 @@ const LOOKS: Record<
         <OpenMouth />
       </>
     ),
-    props: <Stroke d="M88 25 q6 -6 12 0" width={3} color={HINT} />,
+    // 몸은 없어도 흔드는 앞발 하나면 인사로 읽힌다. 얼굴 옆 볼 높이에 띄운다.
+    props: (
+      <>
+        <Outlined>
+          <ellipse cx={104} cy={70} rx={9} ry={10} transform="rotate(20 104 70)" />
+        </Outlined>
+        <g fill={EAR}>
+          <circle cx={100} cy={66} r={1.9} />
+          <circle cx={104} cy={64.5} r={1.9} />
+          <circle cx={108} cy={66.5} r={1.9} />
+          <ellipse cx={104} cy={72} rx={3.6} ry={2.8} />
+        </g>
+        <Stroke d="M106 49 q5 3 6 9" width={3} color={HINT} />
+        <Stroke d="M110 44 q6 5 6 13" width={3} color={HINT} />
+      </>
+    ),
   },
 };
 
@@ -407,7 +360,6 @@ export function Dori({
   className?: string;
 }) {
   const look = LOOKS[mood];
-  const arms = look.arms ?? "rest";
 
   return (
     <svg
@@ -421,31 +373,9 @@ export function Dori({
     >
       {look.behind}
 
-      {/* 팔은 몸 뒤에 그린다. 어깨가 옆구리에 숨어 몸에서 뻗어 나온 것처럼 보인다. */}
       <Outlined>
-        {arms !== "up" && <RestArm dir={-1} />}
-        {arms === "rest" && <RestArm dir={1} />}
+        <Head />
       </Outlined>
-      {arms !== "rest" && (
-        <Outlined>
-          <RaisedArm dir={1} />
-        </Outlined>
-      )}
-      {arms === "up" && (
-        <Outlined>
-          <RaisedArm dir={-1} />
-        </Outlined>
-      )}
-
-      <Outlined>
-        <Body />
-      </Outlined>
-
-      {arms !== "rest" && <PawPads x={94} />}
-      {arms === "up" && <PawPads x={26} />}
-
-      {/* 배를 살짝 밝게 두면 몸이 납작해 보이지 않는다. */}
-      <ellipse cx={60} cy={79} rx={12} ry={9} fill="#fff" opacity={0.28} />
 
       <g transform={HEAD}>
         <ellipse
