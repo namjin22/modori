@@ -42,7 +42,7 @@ export default async function LoginPage({
       {message && (
         <p
           role="alert"
-          className="mb-4 rounded-2xl bg-surface p-4 text-center text-sm text-red-500"
+          className="mb-4 rounded-2xl bg-surface p-4 text-center text-sm text-danger"
         >
           {message}
         </p>

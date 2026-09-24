@@ -7,12 +7,15 @@
   --light-surface: #ffffff;
   --light-surface-hover: #f2f4f6;
   --light-foreground: #191f28;
-  --light-muted: #8b95a1;
+  /* 본문 글씨 대비 4.5:1을 넘기는 가장 옅은 회색. #8b95a1은 배경에서 2.9:1이었다. */
+  --light-muted: #667080;
   --light-border: #e8ebed;
   --light-brand: #2563eb;
   --light-brand-hover: #1d4ed8;
   --light-brand-subtle: #eff6ff;
   --light-brand-contrast: #ffffff;
+  /* 삭제·오류 글씨. red-500은 흰 바탕에서 3.8:1이라 한 단계 진하게 쓴다. */
+  --light-danger: #dc2626;
 
   --dark-background: #0e1013;
   --dark-surface: #17191d;
@@ -24,6 +27,7 @@
   --dark-brand-hover: #93c5fd;
   --dark-brand-subtle: #172554;
   --dark-brand-contrast: #08152d;
+  --dark-danger: #f87171;
 }
 
 /* 기본값은 라이트 */
@@ -38,6 +42,7 @@
   --brand-hover: var(--light-brand-hover);
   --brand-subtle: var(--light-brand-subtle);
   --brand-contrast: var(--light-brand-contrast);
+  --danger: var(--light-danger);
 
   color-scheme: light;
 }
@@ -55,6 +60,7 @@
     --brand-hover: var(--dark-brand-hover);
     --brand-subtle: var(--dark-brand-subtle);
     --brand-contrast: var(--dark-brand-contrast);
+    --danger: var(--dark-danger);
 
     color-scheme: dark;
   }
@@ -72,6 +78,7 @@
   --brand-hover: var(--dark-brand-hover);
   --brand-subtle: var(--dark-brand-subtle);
   --brand-contrast: var(--dark-brand-contrast);
+  --danger: var(--dark-danger);
 
   color-scheme: dark;
 }
@@ -88,6 +95,7 @@
   --color-brand-hover: var(--brand-hover);
   --color-brand-subtle: var(--brand-subtle);
   --color-brand-contrast: var(--brand-contrast);
+  --color-danger: var(--danger);
 
   --font-sans: "Pretendard Variable", Pretendard, -apple-system,
     BlinkMacSystemFont, system-ui, "Apple SD Gothic Neo", "Malgun Gothic",

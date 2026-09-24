@@ -87,7 +87,7 @@ export function EventForm({
       </div>
 
       {state?.message && !state.ok && (
-        <p role="alert" className="text-sm text-red-500">
+        <p role="alert" className="text-sm text-danger">
           {state.message}
         </p>
       )}

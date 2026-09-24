@@ -54,7 +54,7 @@ export function ProfileForm({
         <p
           role="status"
           className={`text-sm ${
-            state.message === "저장했어요." ? "text-brand" : "text-red-500"
+            state.message === "저장했어요." ? "text-brand" : "text-danger"
           }`}
         >
           {state.message}

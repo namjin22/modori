@@ -53,9 +53,9 @@ export function WeekStrip({
             <span
               className={`text-[11px] ${
                 weekday === 0
-                  ? "text-red-400"
+                  ? "text-danger"
                   : weekday === 6
-                    ? "text-blue-400"
+                    ? "text-brand"
                     : "text-muted"
               }`}
             >
