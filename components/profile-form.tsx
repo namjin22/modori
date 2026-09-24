@@ -8,6 +8,7 @@ import {
 } from "@/app/(tabs)/settings/profile/actions";
 import { ProfileImageField } from "@/components/profile-image-field";
 import { SubmitButton } from "@/components/submit-button";
+import { orSaveFailure } from "@/components/use-save-failure";
 
 export function ProfileForm({
   nickname,
@@ -19,7 +20,7 @@ export function ProfileForm({
   bio: string;
 }) {
   const [state, formAction] = useActionState<ProfileFormState, FormData>(
-    updateProfile,
+    orSaveFailure(updateProfile),
     null,
   );
   return (

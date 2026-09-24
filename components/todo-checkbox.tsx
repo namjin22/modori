@@ -3,6 +3,7 @@
 import { useOptimistic } from "react";
 
 import { useCompletionCount } from "@/components/todo-progress";
+import { useSaveFailure } from "@/components/use-save-failure";
 
 import { toggleTodo } from "@/app/(tabs)/actions";
 import { onColorText } from "@/lib/colors";
@@ -21,6 +22,7 @@ export function TodoCheckbox({
 }) {
   const [optimisticDone, setOptimisticDone] = useOptimistic(done);
   const changeDone = useCompletionCount();
+  const saveFailed = useSaveFailure();
 
   return (
     <form
@@ -29,7 +31,12 @@ export function TodoCheckbox({
         setOptimisticDone(next);
         // 완료 개수도 같은 액션 안에서 움직여야 둘이 따로 놀지 않는다.
         changeDone?.(next ? 1 : -1);
-        await toggleTodo(formData);
+        // 실패하면 액션이 끝나면서 체크와 개수가 원래대로 돌아간다. 알림만 띄운다.
+        try {
+          await toggleTodo(formData);
+        } catch (error) {
+          saveFailed(error);
+        }
       }}
       className="flex"
     >

@@ -7,6 +7,7 @@ import {
   type RoutineFormState,
 } from "@/app/(tabs)/routines/actions";
 import { SubmitButton } from "@/components/submit-button";
+import { orSaveFailure } from "@/components/use-save-failure";
 
 const WEEKDAY_NAMES = ["일", "월", "화", "수", "목", "금", "토"];
 const MONTH_DAYS = Array.from({ length: 31 }, (_, index) => index + 1);
@@ -31,7 +32,7 @@ export function RoutineForm({
 
   // 서버가 거른 이유를 화면에 보여준다. 아무 일도 안 일어나면 고장 난 줄 안다.
   const [state, formAction] = useActionState<RoutineFormState, FormData>(
-    createRoutine,
+    orSaveFailure(createRoutine),
     null,
   );
 

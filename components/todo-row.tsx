@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 
 import { deleteTodo, restoreTodo, updateTodo } from "@/app/(tabs)/actions";
 import { Modal } from "@/components/modal";
 import { TodoCheckbox } from "@/components/todo-checkbox";
 import { UndoableDeleteButton } from "@/components/undoable-delete-button";
+import { useSaveFailure } from "@/components/use-save-failure";
 
 type Todo = {
   id: string;
@@ -21,6 +22,8 @@ type Todo = {
  */
 export function TodoRow({ todo }: { todo: Todo }) {
   const [open, setOpen] = useState(false);
+  const [, startTransition] = useTransition();
+  const saveFailed = useSaveFailure();
 
   return (
     <div className="flex items-center gap-3 py-2.5 pr-3">
@@ -43,9 +46,19 @@ export function TodoRow({ todo }: { todo: Todo }) {
       <Modal open={open} onClose={() => setOpen(false)} title="할 일">
         {/* 저장 버튼을 두지 않는다. 글자를 고치고 Enter를 누르면 저장된다. */}
         <form
-          action={async (formData: FormData) => {
-            await updateTodo(formData);
-            setOpen(false);
+          // 실패하면 창을 열어 둔 채 고친 글자를 남긴다. form action은 실패해도
+          // 입력칸을 처음 값으로 되돌려서 onSubmit으로 보낸다.
+          onSubmit={(event) => {
+            event.preventDefault();
+            const formData = new FormData(event.currentTarget);
+            startTransition(async () => {
+              try {
+                await updateTodo(formData);
+                setOpen(false);
+              } catch (error) {
+                saveFailed(error);
+              }
+            });
           }}
         >
           <input type="hidden" name="id" value={todo.id} />
