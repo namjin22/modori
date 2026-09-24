@@ -5,6 +5,7 @@ import { signOut } from "@/lib/auth";
 import { requireUser } from "@/lib/session";
 
 import { Avatar } from "@/components/avatar";
+import { avatarUrl } from "@/lib/avatar";
 
 export default async function SettingsPage() {
   const user = await requireUser();
@@ -17,7 +18,7 @@ export default async function SettingsPage() {
         href="/settings/profile"
         className="flex items-center gap-3 rounded-2xl bg-surface p-5"
       >
-        <Avatar src={user.profileImage} size={48} />
+        <Avatar src={avatarUrl(user)} size={48} />
         <p className="flex-1 text-base font-semibold">{user.nickname}</p>
         <span className="flex items-center gap-0.5 text-sm text-muted">
           프로필 수정

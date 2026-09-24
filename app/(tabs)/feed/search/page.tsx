@@ -9,6 +9,7 @@ import { followUser, unfollowUser } from "../actions";
 
 import { Avatar } from "@/components/avatar";
 import { BackLink } from "@/components/back-link";
+import { avatarUrl } from "@/lib/avatar";
 
 const MAX_RESULTS = 20;
 
@@ -88,14 +89,14 @@ export default async function SearchPage({
                     href={`/feed/u/${person.id}`}
                     className="flex min-w-0 flex-1 items-center gap-3"
                   >
-                    <Avatar src={person.profileImage} size={36} />
+                    <Avatar src={avatarUrl(person)} size={36} />
                     <span className="truncate font-medium">
                       {person.nickname}
                     </span>
                   </Link>
                 ) : (
                   <>
-                    <Avatar src={person.profileImage} size={36} />
+                    <Avatar src={avatarUrl(person)} size={36} />
                     <span className="flex-1 truncate font-medium">
                       {person.nickname}
                     </span>

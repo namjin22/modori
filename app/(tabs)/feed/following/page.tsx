@@ -9,6 +9,7 @@ import { unfollowUser } from "../actions";
 
 import { Avatar } from "@/components/avatar";
 import { BackLink } from "@/components/back-link";
+import { avatarUrl } from "@/lib/avatar";
 
 export default async function FollowingPage() {
   const user = await requireUser();
@@ -49,7 +50,7 @@ export default async function FollowingPage() {
                 href={`/feed/u/${person.id}`}
                 className="flex min-w-0 flex-1 items-center gap-3"
               >
-                <Avatar src={person.profileImage} size={36} />
+                <Avatar src={avatarUrl(person)} size={36} />
                 <span className="truncate font-medium">{person.nickname}</span>
               </Link>
 

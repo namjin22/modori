@@ -72,9 +72,14 @@ test("올린 사진이 프로필에 남는다", async ({ page, email }) => {
   const saved = await prisma.user.findUniqueOrThrow({ where: { email } });
   expect(saved.profileImage).toMatch(/^data:image\/jpeg;base64,/);
 
-  // 목록에도 그 사진이 나온다.
+  // 목록에도 그 사진이 나온다. 사진은 data URL이 아니라 주소로 내려준다.
+  // data URL을 그대로 넣으면 아바타마다 HTML에 9KB씩 실린다.
   await page.goto("/settings");
-  await expect(page.locator(`img[src="${saved.profileImage}"]`)).toBeVisible();
+  const avatar = page.locator(`img[src^="/api/avatar/${saved.id}?v="]`);
+  await expect(avatar).toBeVisible();
+  // 브라우저가 그 주소로 실제 그림을 받아 그렸는지 본다.
+  expect(await avatar.evaluate((img: HTMLImageElement) => img.naturalWidth)).toBe(128);
+  expect(await page.content()).not.toContain("data:image/jpeg;base64");
 });
 
 test("사진을 올리지 않으면 도리 얼굴을 쓴다", async ({ page, email }) => {

@@ -8,6 +8,7 @@ import { countUnreadReactions, requireUser } from "@/lib/session";
 
 import { Dori } from "@/components/dori";
 import { FeedItem } from "@/components/feed-item";
+import { avatarUrl } from "@/lib/avatar";
 
 const FEED_SIZE = 50;
 
@@ -57,7 +58,7 @@ export default async function FeedPage({
       // 한 개 더 불러서 다음 쪽이 있는지 본다. 전체 개수를 세는 것보다 싸다.
       take: FEED_SIZE + 1,
       include: {
-        user: { select: { id: true, nickname: true, profileImage: true } },
+        user: { select: { id: true, nickname: true } },
         category: { select: { name: true, color: true } },
         reactions: { select: { emoji: true, userId: true } },
       },
@@ -70,6 +71,13 @@ export default async function FeedPage({
   const hasMore = page.length > FEED_SIZE;
   const todos = hasMore ? page.slice(0, FEED_SIZE) : page;
   const nextCursor = hasMore ? writeCursor(todos[todos.length - 1]) : null;
+
+  // 할 일마다 사진(약 9KB)을 끌어오면 같은 사람 사진을 수십 번 읽는다. 사람마다 한 번.
+  const authors = await prisma.user.findMany({
+    where: { id: { in: [...new Set(todos.map((todo) => todo.user.id))] } },
+    select: { id: true, profileImage: true },
+  });
+  const avatars = new Map(authors.map((author) => [author.id, avatarUrl(author)]));
 
   return (
     <div className="flex flex-col gap-6">
@@ -137,7 +145,7 @@ export default async function FeedPage({
                   href={`/feed/u/${group.user.id}`}
                   className="flex min-w-0 items-center gap-2"
                 >
-                  <Avatar src={group.user.profileImage} size={28} />
+                  <Avatar src={avatars.get(group.user.id) ?? null} size={28} />
                   <span className="truncate text-sm font-semibold">
                     {group.user.nickname}
                   </span>
