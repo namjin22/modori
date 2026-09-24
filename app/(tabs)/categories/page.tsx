@@ -93,7 +93,7 @@ export default async function CategoriesPage() {
                 <span className="flex-1 truncate text-muted">{category.name}</span>
                 <form action={restoreCategory}>
                   <input type="hidden" name="id" value={category.id} />
-                  <button type="submit" className="text-xs text-brand">
+                  <button type="submit" className="h-8 rounded-lg px-2 text-xs font-medium text-brand hover:bg-surface-hover">
                     되돌리기
                   </button>
                 </form>
