@@ -390,7 +390,7 @@ export default async function FeedPage({
                 name={group.name}
                 color={group.color}
                 isPublic={group.isPublic}
-                archived={group.archived}
+                archived={group.archived || group.categoryId === null}
                 date={formatKST(date)}
                 count={
                   group.items.length > 0
