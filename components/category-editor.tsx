@@ -3,12 +3,13 @@
 import { useRef, useState, useTransition } from "react";
 
 import {
-  archiveCategory,
-  moveCategory,
+  deleteCategory,
+  undoDeleteCategory,
   updateCategory,
 } from "@/app/(tabs)/categories/actions";
 import { ColorSwatches } from "@/components/color-swatches";
 import { Modal } from "@/components/modal";
+import { UndoableDeleteButton } from "@/components/undoable-delete-button";
 import { useSaveFailure } from "@/components/use-save-failure";
 
 type Category = { id: string; name: string; color: string; isPublic: boolean };
@@ -20,15 +21,7 @@ type Category = { id: string; name: string; color: string; isPublic: boolean };
  * 이름은 Enter를 누르거나 칸을 벗어나면 저장된다. 고친 것을 저장까지 한 번 더
  * 눌러야 하면, 누르지 않고 닫았을 때 바꾼 게 사라진 줄 모른다.
  */
-export function CategoryEditor({
-  category,
-  isFirst,
-  isLast,
-}: {
-  category: Category;
-  isFirst: boolean;
-  isLast: boolean;
-}) {
+export function CategoryEditor({ category }: { category: Category }) {
   const [open, setOpen] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -48,22 +41,6 @@ export function CategoryEditor({
         setStatus(result.ok ? "저장했어요" : result.message);
       } catch (error) {
         setStatus("저장하지 못했어요");
-        saveFailed(error);
-      }
-    });
-  }
-
-  function run(
-    action: (formData: FormData) => Promise<unknown>,
-    extra: Record<string, string> = {},
-  ) {
-    const formData = new FormData();
-    formData.set("id", category.id);
-    for (const [key, value] of Object.entries(extra)) formData.set(key, value);
-    startTransition(async () => {
-      try {
-        await action(formData);
-      } catch (error) {
         saveFailed(error);
       }
     });
@@ -154,45 +131,24 @@ export function CategoryEditor({
         </form>
 
         <div className="flex items-center justify-between border-t border-border pt-4">
-          <div className="flex items-center gap-1">
-            <button
-              type="button"
-              aria-label="위로"
-              disabled={isFirst || pending}
-              onClick={() => run(moveCategory, { direction: "up" })}
-              className="flex size-9 items-center justify-center rounded-full text-muted hover:bg-surface-hover disabled:opacity-30"
-            >
-              ↑
-            </button>
-            <button
-              type="button"
-              aria-label="아래로"
-              disabled={isLast || pending}
-              onClick={() => run(moveCategory, { direction: "down" })}
-              className="flex size-9 items-center justify-center rounded-full text-muted hover:bg-surface-hover disabled:opacity-30"
-            >
-              ↓
-            </button>
-            <span
-              aria-live="polite"
-              className={`ml-2 text-xs ${
-                status && status !== "저장했어요" ? "text-danger" : "text-muted"
-              }`}
-            >
-              {pending ? "저장 중" : status}
-            </span>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => {
-              run(archiveCategory);
-              setOpen(false);
-            }}
-            className="h-9 rounded-xl px-3 text-sm text-danger hover:bg-surface-hover"
+          <span
+            aria-live="polite"
+            className={`text-xs ${
+              status && status !== "저장했어요" ? "text-danger" : "text-muted"
+            }`}
           >
-            보관하기
-          </button>
+            {pending ? "저장 중" : status}
+          </span>
+
+          {/* 할 일은 "카테고리 없음"으로 남는다. 지운 직후 알림에서 되돌릴 수 있다. */}
+          <UndoableDeleteButton
+            id={category.id}
+            remove={deleteCategory}
+            restore={undoDeleteCategory}
+            message="카테고리를 지웠어요. 할 일은 남아요"
+            onDone={() => setOpen(false)}
+            className="h-9 rounded-xl px-3 text-sm text-danger hover:bg-surface-hover"
+          />
         </div>
       </Modal>
     </li>

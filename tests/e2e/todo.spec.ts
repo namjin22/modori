@@ -117,13 +117,13 @@ test("기본 카테고리가 만들어지고 새 카테고리를 추가할 수 �
   ).toBeVisible();
 });
 
-test("보관한 카테고리는 할 일 추가 목록에서 빠진다", async ({ page }) => {
+test("지운 카테고리는 할 일 추가 목록에서 빠진다", async ({ page }) => {
   await addCategory(page, "운동");
 
   await openCategory(page, "운동");
-  await page.getByRole("button", { name: "보관하기" }).click();
+  await page.getByRole("button", { name: "삭제" }).click();
 
-  await expect(page.getByText("보관함")).toBeVisible();
+  await expect(page.getByRole("button", { name: "운동 고치기" })).toHaveCount(0);
 
   await page.getByRole("link", { name: "피드", exact: true }).click();
   await expect(page).toHaveURL("/");

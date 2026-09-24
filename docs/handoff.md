@@ -841,3 +841,18 @@ viewBox로 좁혔다.
 로그인 테스트도 전부 통과.
 
 검증: `npm run verify` 통과 — 단위 70×3, E2E 71/71.
+
+## 2026-09-24 — 카테고리 삭제 (사용자 요청)
+
+- 카테고리 창의 "보관하기" → "삭제", ↑↓ 화살표 제거. 결정은 `docs/decisions.md`의
+  "카테고리는 보관 대신 삭제한다".
+- `deleteCategory(id)` / `undoDeleteCategory(snapshot)` (`app/(tabs)/categories/actions.ts`).
+  `archiveCategory`, `moveCategory`는 쓰는 곳이 없어져 지웠다. `restoreCategory`는 예전 보관함용으로 남김.
+- 테스트: 보관 UI를 누르던 두 테스트는 기능이 없어져 바꿨다 — `todo.spec.ts`는 같은 확인(추가
+  목록에서 빠짐)을 삭제로, `archived-category.spec.ts` 첫 테스트는 보관 상태를 DB로 만들어 확인.
+  `category-edit.spec.ts`에 삭제→할 일 남음·루틴 멈춤→되돌리기로 다시 이어짐 테스트 추가.
+- 첫 verify에서 `friend-day.spec.ts`가 `/feed` 이동 30초 초과로 실패. 배포된 원래 코드로 돌려도
+  다른 지점에서 실패해서 이번 변경과는 무관한 기존 불안정성이다(테스트 DB 첫 응답 943ms 등).
+  다시 돌린 전체 verify는 통과.
+
+검증: `npm run verify` 통과 — 단위 70×3, E2E 72/72.

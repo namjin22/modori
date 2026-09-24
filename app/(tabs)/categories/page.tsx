@@ -62,13 +62,8 @@ export default async function CategoriesPage() {
         </p>
       ) : (
         <ul className="flex flex-col gap-3">
-          {active.map((category, index) => (
-            <CategoryEditor
-              key={category.id}
-              category={category}
-              isFirst={index === 0}
-              isLast={index === active.length - 1}
-            />
+          {active.map((category) => (
+            <CategoryEditor key={category.id} category={category} />
           ))}
         </ul>
       )}
