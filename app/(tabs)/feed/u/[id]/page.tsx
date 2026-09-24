@@ -25,6 +25,7 @@ import { FeedItem } from "@/components/feed-item";
 import { MonthCalendar, type DaySummary } from "@/components/month-calendar";
 import { WeekStrip } from "@/components/week-strip";
 import { BackLink } from "@/components/back-link";
+import { avatarUrl } from "@/lib/avatar";
 
 const WEEKDAY_NAMES = ["일", "월", "화", "수", "목", "금", "토"];
 
@@ -102,7 +103,7 @@ export default async function FriendDayPage({
       where: { ...visible, date },
       orderBy: { order: "asc" },
       include: {
-        user: { select: { id: true, nickname: true, profileImage: true } },
+        user: { select: { id: true, nickname: true } },
         category: { select: { id: true, name: true, color: true } },
         reactions: { select: { emoji: true, userId: true } },
       },
@@ -161,7 +162,7 @@ export default async function FriendDayPage({
       <div className="flex flex-col gap-6 lg:sticky lg:top-6">
         <div className="flex items-center gap-3">
           <BackLink href="/feed" label="소셜로" />
-          <Avatar src={friend.profileImage} size={48} />
+          <Avatar src={avatarUrl(friend)} size={48} />
           <div className="min-w-0">
             <h1 className="truncate text-xl font-bold">{friend.nickname}</h1>
             {friend.bio && (

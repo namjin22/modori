@@ -18,7 +18,7 @@ export default async function ReactionsPage() {
     orderBy: { createdAt: "desc" },
     take: MAX_ITEMS,
     include: {
-      user: { select: { nickname: true, profileImage: true } },
+      user: { select: { nickname: true } },
       todo: { select: { content: true, date: true } },
     },
   });

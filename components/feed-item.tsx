@@ -10,7 +10,8 @@ type FeedTodo = {
   id: string;
   content: string;
   date: string;
-  user: { id: string; nickname: string | null; profileImage: string | null };
+  // 사진은 주소(avatarUrl)로 받는다. 한 줄 모양에서는 그리지 않아서 없어도 된다.
+  user: { id: string; nickname: string | null; avatar?: string | null };
   color: string | null;
   category: { name: string; color: string } | null;
   reactions: { emoji: string; userId: string }[];
@@ -61,7 +62,7 @@ export function FeedItem({
             href={`/feed/u/${todo.user.id}`}
             className="flex min-w-0 items-center gap-2"
           >
-            <Avatar src={todo.user.profileImage} size={32} />
+            <Avatar src={todo.user.avatar ?? null} size={32} />
             <span className="truncate text-sm font-semibold">
               {todo.user.nickname}
             </span>

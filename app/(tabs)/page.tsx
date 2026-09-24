@@ -35,6 +35,7 @@ import { TodoProgress } from "@/components/todo-progress";
 import { WeekStrip } from "@/components/week-strip";
 
 import { Avatar } from "@/components/avatar";
+import { avatarUrl } from "@/lib/avatar";
 
 
 const WEEKDAY_NAMES = ["일", "월", "화", "수", "목", "금", "토"];
@@ -249,7 +250,7 @@ export default async function FeedPage({
     <div className="flex flex-col gap-6 lg:grid lg:grid-cols-2 lg:items-start lg:gap-10">
       <div className="flex flex-col gap-6 lg:sticky lg:top-6">
         <Link href="/settings/profile" className="flex items-center gap-3">
-          <Avatar src={user.profileImage} size={48} />
+          <Avatar src={avatarUrl(user)} size={48} />
           <span className="min-w-0">
             <span className="block truncate font-bold">{user.nickname}</span>
             <span className="block truncate text-sm text-muted">
