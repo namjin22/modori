@@ -22,7 +22,24 @@ Vercel Hobby + Neon 무료로는 사용자 1000명을 못 버틴다(`docs/capaci
 - Next.js·Postgres·cloudflared를 Docker Compose로 띄운다.
 - DB는 VM 안 Postgres(사용자 결정). Neon은 이관 뒤 **테스트·CI 전용**으로 돌린다. 테스트가 운영 DB를
   같이 쓰는 문제도 함께 풀린다.
-- VM은 `large`(4 vCPU / 8GB / 50GB). Next 빌드에 메모리가 2~3GB 든다.
+- VM은 지금 USER가 고를 수 있는 최대인 standard(2 vCPU / 4GB / 20GB). PROJECT_OWNER를 받으면 키운다.
+  메모리가 4GB라 VM에서 `next build`(2~3GB)와 Postgres·앱을 같이 돌리면 빠듯하다.
+  **이미지는 GitHub Actions에서 만들어 GHCR에 올리고, VM은 받아서 띄우기만 한다.** 스왑 2GB를 둔다.
+
+## VM (2026-09-25 생성, 확인함)
+
+| 항목 | 값 |
+|---|---|
+| 노드 | GSM CPU 2 |
+| OS | Ubuntu 22.04.5 LTS (커널 5.15) |
+| 사양 | vCPU 2, RAM 3.8GiB, 디스크 20GB(사용 1.9GB), 스왑 없음 |
+| 내부 IP | 10.0.0.133 |
+| SSH | `ssh gsmsv-modori` (이 PC `~/.ssh/config`, 키 `~/.ssh/id_ed25519_gsmsv`) |
+| sudo | 비밀번호 없이 됨 |
+| 설치된 것 | Docker·Node 없음 |
+| 바깥 연결 | Google·GitHub·npm·Cloudflare API·GHCR·Neon 모두 됨. Tunnel용 TCP 7844 열림, IPv6 안 됨 |
+
+만료: 만든 지 30일. 만료 15일 전부터 연장 버튼이 켜진다. 사용자가 15일마다 연장한다.
 
 ## 도메인
 
@@ -51,9 +68,9 @@ DigitalPlat은 제3자 무료 서비스라 1년마다 갱신해야 하고, 서�
 
 ## 사용자가 할 일 (계정·비밀 값이 필요해서 대신할 수 없다)
 
-1. GSMSV에서 `large` VM 생성 → SSH 포트 알려주기
-2. 이 PC에서 SSH 키 등록(키 파일은 이 PC에 없다. 순서는 아래 "SSH 키")
-3. DigitalPlat에서 `modori.dpdns.org` 등록, Cloudflare 무료 계정에 그 도메인 추가, DigitalPlat에 Cloudflare 네임서버 입력
+1. ~~VM 생성~~ 완료
+2. ~~SSH 키 등록~~ 완료(이 PC에서 키를 만들어 등록함)
+3. 도메인: 가비아 `modori.site` 검토 중 → 사면 Cloudflare 무료 계정에 추가하고 가비아에서 네임서버를 Cloudflare로 바꾼다
 4. 이관 당일: Google·DataGSM 콘솔에 새 리디렉트 주소 추가
 
 ## SSH 키
