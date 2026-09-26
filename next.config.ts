@@ -7,6 +7,21 @@ const nextConfig: NextConfig = {
   // 쿼리(?month=...)는 그대로 따라간다.
   async redirects() {
     return [
+      // 운영이 GSMSV(modori.site)로 옮겨졌다. 예전 Vercel 주소로 오면 새 주소로 보낸다.
+      // DB도 옮겨서 Vercel 쪽에 남으면 옛 DB에 쓰게 된다. www는 로그인 주소(AUTH_URL)와
+      // 달라 로그인이 깨지므로 역시 넘긴다.
+      {
+        source: "/:path*",
+        has: [{ type: "host", value: "modori.vercel.app" }],
+        destination: "https://modori.site/:path*",
+        permanent: false,
+      },
+      {
+        source: "/:path*",
+        has: [{ type: "host", value: "www.modori.site" }],
+        destination: "https://modori.site/:path*",
+        permanent: true,
+      },
       { source: "/calendar", destination: "/", permanent: false },
       { source: "/settings/categories", destination: "/categories", permanent: false },
       { source: "/settings/routines", destination: "/routines", permanent: false },

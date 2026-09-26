@@ -6,10 +6,14 @@ ENV=/opt/modori/.env
 touch "$ENV"
 chmod 600 "$ENV"
 
+# 작은따옴표로 감싸 쓴다. backup.sh가 bash로 이 파일을 읽는데, Neon 주소의 `&`가
+# 따옴표 밖에 있으면 bash가 명령으로 읽는다. Docker Compose도 따옴표를 벗겨 읽는다.
 set_value() {
   local key=$1 value=$2
+  value=${value#\"}; value=${value%\"}; value=${value#\'}; value=${value%\'}
+  case $value in *\'*) echo "  $key: 값에 작은따옴표가 있어 넣지 않았다" >&2; return ;; esac
   grep -v "^${key}=" "$ENV" > "$ENV.tmp" || true
-  printf '%s=%s\n' "$key" "$value" >> "$ENV.tmp"
+  printf "%s='%s'\n" "$key" "$value" >> "$ENV.tmp"
   mv "$ENV.tmp" "$ENV"
   chmod 600 "$ENV"
 }

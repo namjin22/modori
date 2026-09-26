@@ -880,3 +880,7 @@ viewBox로 좁혔다.
 
 계획은 `docs/gsmsv-migration.md`. 사용자가 VM 생성, SSH 키 등록, 도메인(DigitalPlat + Cloudflare)을
 준비하면 이어서 진행한다. 코드는 아직 바꾸지 않았다.
+
+## 2026-09-26 — GSMSV 배포 준비 완료
+
+자세한 상태와 남은 순서는 `docs/gsmsv-migration.md`의 "진행". VM 첫 배포 성공, 공개 전.

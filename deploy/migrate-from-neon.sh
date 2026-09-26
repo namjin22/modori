@@ -10,7 +10,7 @@ set -a; . ./.env; set +a
 docker compose up -d db
 until docker compose exec -T db pg_isready -U modori -d modori >/dev/null; do sleep 1; done
 
-docker run --rm postgres:17-alpine pg_dump -Fc --no-owner --no-privileges "$OLD_NEON_URL" > backups/neon-before-move.dump
+docker run --rm postgres:18-alpine pg_dump -Fc --no-owner --no-privileges "$OLD_NEON_URL" > backups/neon-before-move.dump
 docker compose exec -T db pg_restore --clean --if-exists --no-owner --no-privileges -U modori -d modori < backups/neon-before-move.dump
 
 docker compose exec -T db psql -U modori -d modori -c 'SELECT (SELECT count(*) FROM "User") AS users, (SELECT count(*) FROM "Todo") AS todos;'
