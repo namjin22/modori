@@ -19,7 +19,7 @@ services:
     # 밖으로 열지 않는다. 앱과 백업만 이 네트워크 안에서 붙는다.
 
   app:
-    image: modori:latest
+    image: ${IMAGE:-modori}:latest
     restart: unless-stopped
     env_file: .env
     environment:
@@ -31,7 +31,7 @@ services:
         condition: service_healthy
     # cloudflared(VM에 직접 설치)만 붙는다. 바깥에서는 Cloudflare Tunnel로만 들어온다.
     ports:
-      - "127.0.0.1:3000:3000"
+      - "127.0.0.1:${APP_PORT:-3000}:3000"
 
 volumes:
   pgdata:
