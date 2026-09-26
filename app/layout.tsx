@@ -5,8 +5,21 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
+  // 미리보기 그림 등 상대 주소를 이 주소 기준으로 채운다.
+  metadataBase: new URL("https://modori.site"),
   title: "모도리",
   description: "오늘 할 일을 색으로 남겨요",
+  // 카카오톡·디스코드에 주소를 붙였을 때 뜨는 미리보기. 홍보할 때 첫인상이다.
+  openGraph: {
+    type: "website",
+    url: "/",
+    siteName: "모도리",
+    title: "모도리",
+    description: "오늘 할 일을 색으로 남겨요",
+    locale: "ko_KR",
+    images: [{ url: "/og.png", width: 1200, height: 630, alt: "모도리" }],
+  },
+  twitter: { card: "summary_large_image" },
   // 홈 화면에 추가했을 때 주소창 없이 열린다.
   appleWebApp: { capable: true, title: "모도리", statusBarStyle: "default" },
   icons: { apple: "/icons/apple-touch-icon.png" },
