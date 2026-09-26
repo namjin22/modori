@@ -6,7 +6,7 @@ cd /opt/modori
 
 gunzip | docker load
 docker compose up -d db
-docker compose run --rm --no-deps app node node_modules/prisma/build/index.js migrate deploy
+docker compose run --rm --no-deps app node /migrate/node_modules/prisma/build/index.js migrate deploy
 docker compose up -d app
 
 # 새 버전이 실제로 응답하는지 확인한다. 안 되면 실패로 끝내 Actions에 빨갛게 남긴다.

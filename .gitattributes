@@ -1,0 +1,4 @@
+# VM(리눅스)에서 도는 파일이다. Windows에서 고쳐도 줄바꿈이 CRLF가 되면 bash가 못 읽는다.
+*.sh text eol=lf
+Dockerfile text eol=lf
+deploy/* text eol=lf

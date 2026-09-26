@@ -16,15 +16,20 @@ COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN npx next build
 
+# 배포할 때 `prisma migrate deploy`를 이 이미지로 돌린다. CLI만 따로 설치한다.
+# node_modules에서 prisma 폴더만 복사하면 딸린 패키지(@prisma/debug 등)가 빠져 돌지 않는다.
+FROM base AS migrator
+WORKDIR /migrate
+COPY package.json /tmp/package.json
+RUN npm install --no-audit --no-fund --no-save "prisma@$(node -p "require('/tmp/package.json').devDependencies.prisma")"
+
 FROM base AS runner
 ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 PORT=3000 HOSTNAME=0.0.0.0
 COPY --from=build /app/.next/standalone ./
 COPY --from=build /app/.next/static ./.next/static
 COPY --from=build /app/public ./public
-# 배포할 때 `prisma migrate deploy`를 이 이미지로 돌린다.
 COPY --from=build /app/prisma ./prisma
-COPY --from=deps /app/node_modules/prisma ./node_modules/prisma
-COPY --from=deps /app/node_modules/@prisma/engines ./node_modules/@prisma/engines
+COPY --from=migrator /migrate/node_modules /migrate/node_modules
 USER node
 EXPOSE 3000
 CMD ["node", "server.js"]
