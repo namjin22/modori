@@ -127,8 +127,9 @@ export async function toggleRoutinePause(formData: FormData) {
   });
   if (!routine) return;
 
-  await prisma.routine.update({
-    where: { id },
+  // 확인과 바꾸기 사이에 지워졌으면 0건으로 넘긴다(update는 오류를 던진다).
+  await prisma.routine.updateMany({
+    where: { id, userId: user.id },
     data: { pausedAt: routine.pausedAt ? null : new Date() },
   });
 
