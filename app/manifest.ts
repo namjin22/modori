@@ -27,9 +27,11 @@ export default function manifest(): MetadataRoute.Manifest {
         type: "image/png",
         purpose: "any",
       },
-      // 안드로이드가 아이콘을 원 모양 등으로 깎을 때 쓴다.
+      // 안드로이드가 아이콘을 원 모양 등으로 깎을 때 쓴다. 투명 배경 아이콘을 그대로 쓰면
+      // 귀 끝과 아래 모서리가 안전 영역(지름 80% 원) 밖이라 잘리고, 투명한 곳은 기기마다 다른 색으로 찬다.
+      // 흰 바탕에 로고를 58%로 줄여 넣은 전용 그림을 쓴다.
       {
-        src: "/icons/icon-512.png",
+        src: "/icons/icon-maskable-512.png",
         sizes: "512x512",
         type: "image/png",
         purpose: "maskable",
