@@ -5,7 +5,7 @@ import {
   addDays,
   addMonths,
   endOfMonthKST,
-  formatKST,
+  formatMonthDayKST,
   formatMonthKST,
   parseKSTMonth,
   startOfMonthKST,
@@ -164,7 +164,13 @@ export default async function StatsPage({
                   key={weekday}
                   className="flex flex-1 flex-col items-center gap-1.5"
                 >
-                  <span className="text-[11px] text-muted">{count}</span>
+                  {/* 숫자와 요일을 따로 읽으면 "1 일"이 되어 "하루"로 들린다. 이어서 읽는 이름을 따로 둔다. */}
+                  <span className="sr-only">
+                    {WEEKDAY_NAMES[weekday]}요일 {count}개
+                  </span>
+                  <span aria-hidden className="text-[11px] text-muted">
+                    {count}
+                  </span>
                   <span
                     aria-hidden
                     className="w-full rounded-t-md bg-brand"
@@ -174,6 +180,7 @@ export default async function StatsPage({
                     }}
                   />
                   <span
+                    aria-hidden
                     className={`text-[11px] ${
                       weekday === 0
                         ? "text-danger"
@@ -192,7 +199,7 @@ export default async function StatsPage({
       )}
 
       <p className="text-xs text-muted">
-        {formatKST(monthStart)}부터 {formatKST(monthEnd)}까지 적어둔 할 일을
+        {formatMonthDayKST(monthStart)}부터 {formatMonthDayKST(monthEnd)}까지 적어둔 할 일을
         셌어요.
       </p>
     </div>

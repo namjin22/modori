@@ -30,8 +30,9 @@ export default async function LoginPage({
   return (
     // 이름만 덩그러니 있으면 첫 화면이 휑하다. 위아래로 갈라서, 가운데는 브랜드,
     // 아래는 누를 것을 둔다. 손가락이 닿는 곳에 버튼이 오는 배치이기도 하다.
-    <main className="mx-auto flex min-h-screen w-full max-w-sm flex-col px-6 pb-10">
-      <div className="flex flex-1 flex-col items-center justify-center gap-4 text-center">
+    // 넓은 화면에는 엄지가 없고 화면이 길어서, 갈라 두면 로고와 버튼이 너무 멀다. 가운데로 모은다.
+    <main className="mx-auto flex min-h-screen w-full max-w-sm flex-col px-6 pb-10 lg:justify-center lg:gap-12 lg:pb-0">
+      <div className="flex flex-1 flex-col items-center justify-center gap-4 text-center lg:flex-none">
         <Logo size={64} />
         <div>
           <h1 className="text-3xl font-bold tracking-tight">모도리</h1>
