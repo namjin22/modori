@@ -30,7 +30,6 @@ export function CategoryAdder({
   archived?: boolean;
 }) {
   const [open, setOpen] = useState(false);
-  const formRef = useRef<HTMLFormElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const [, startTransition] = useTransition();
   const saveFailed = useSaveFailure();
@@ -80,23 +79,34 @@ export function CategoryAdder({
 
       {open && (
         <form
-          ref={formRef}
-          // form action을 쓰지 않는다. React는 action이 실패해도 입력칸을 비워서,
-          // 연결이 끊기면 적던 글자가 사라진다. 성공했을 때만 직접 비운다.
+          // 보내는 순간 입력칸을 비운다. 저장이 끝난 뒤에 비우면 두 가지가 깨졌다.
+          // Enter를 빠르게 두 번 누르면 같은 할 일이 두 개 생기고, 저장되는 동안 다음 것을
+          // 적어 두면 그 글자까지 지워졌다. 비운 칸은 required라 두 번째 Enter는 보내지지 않는다.
+          // form action을 쓰지 않는 것은 React가 실패해도 칸을 비우기 때문이다.
           onSubmit={(event) => {
             event.preventDefault();
             const formData = new FormData(event.currentTarget);
+            const text = String(formData.get("content") ?? "");
+            const input = inputRef.current;
+            if (input) input.value = "";
+
+            // 실패하면 적었던 글자를 되돌린다. 그사이 다음 것을 적고 있었으면 덮지 않는다.
+            const restore = () => {
+              if (input && input.value === "") input.value = text;
+            };
+
             startTransition(async () => {
               try {
                 const result = await addTodo(formData);
-                // 거절되면(하루 상한 등) 적은 글자를 남기고 이유만 알린다.
-                if (result.ok) formRef.current?.reset();
-                else toast({ message: result.message });
+                // 거절되면(하루 상한 등) 이유만 알린다.
+                if (!result.ok) {
+                  restore();
+                  toast({ message: result.message });
+                }
               } catch (error) {
+                restore();
                 saveFailed(error);
               }
-              // 비우기만 하면 커서가 사라진다. 바로 다음 것을 적게 다시 잡아 준다.
-              inputRef.current?.focus();
             });
           }}
           className="flex items-center gap-2 border-b-2 pb-1 pl-1"

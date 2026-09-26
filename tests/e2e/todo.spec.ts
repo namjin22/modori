@@ -148,3 +148,29 @@ test("완료 체크는 네모 바깥 조금을 눌러도 된다", async ({ page 
 
   await expect(page.getByRole("button", { name: "완료 취소" })).toBeVisible();
 });
+
+test("Enter를 빠르게 두 번 눌러도 할 일은 하나만 생긴다", async ({ page }) => {
+  await page.getByRole("button", { name: `${FIRST_CATEGORY}에 할 일 쓰기` }).click();
+  const input = page.getByLabel(`${FIRST_CATEGORY} 할 일`);
+  await input.fill("한 번만 적을 일");
+  await input.press("Enter");
+  await input.press("Enter");
+
+  await expect(page.getByRole("button", { name: "한 번만 적을 일", exact: true })).toBeVisible();
+  const user = await prisma.user.findUniqueOrThrow({ where: { email: TEST_EMAIL } });
+  await expect
+    .poll(() => prisma.todo.count({ where: { userId: user.id, content: "한 번만 적을 일" } }))
+    .toBe(1);
+});
+
+test("저장되는 동안 다음 할 일을 적어도 지워지지 않는다", async ({ page }) => {
+  await page.getByRole("button", { name: `${FIRST_CATEGORY}에 할 일 쓰기` }).click();
+  const input = page.getByLabel(`${FIRST_CATEGORY} 할 일`);
+  await input.fill("첫 번째");
+  await input.press("Enter");
+  // 첫 번째가 저장되기를 기다리지 않고 바로 이어 적는다.
+  await input.pressSequentially("두 번째");
+
+  await expect(page.getByRole("button", { name: "첫 번째", exact: true })).toBeVisible();
+  await expect(input).toHaveValue("두 번째");
+});
