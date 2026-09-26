@@ -1,0 +1,28 @@
+name: health
+
+# 운영 서버(GSMSV)가 죽어도 알려줄 곳이 없다. 15분마다 밖에서 확인하고,
+# 실패하면 GitHub이 이 워크플로를 마지막으로 고친 사람에게 메일을 보낸다.
+# /api/health는 DB까지 조회하므로 앱·DB·Cloudflare Tunnel 중 하나만 멈춰도 걸린다.
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: modori.site 응답 확인
+        run: |
+          # 순간 끊김으로 메일이 오지 않게 세 번까지 다시 본다.
+          for attempt in 1 2 3; do
+            code=$(curl -s -o /dev/null -m 20 -w "%{http_code}" https://modori.site/api/health || true)
+            if [ "$code" = "200" ]; then
+              echo "정상 (${attempt}번째)"
+              exit 0
+            fi
+            echo "응답 ${code} (${attempt}번째)"
+            sleep 30
+          done
+          echo "::error::modori.site/api/health가 세 번 연속 200이 아니다"
+          exit 1
