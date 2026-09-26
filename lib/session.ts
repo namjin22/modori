@@ -48,7 +48,7 @@ export const requireUser = cache(async () => {
 export const countUnreadReactions = cache(async (userId: string, since: Date) => {
   return prisma.reaction.count({
     where: {
-      todo: { userId },
+      todoUserId: userId,
       userId: { not: userId },
       createdAt: { gt: since },
     },
