@@ -94,3 +94,20 @@ Host gsmsv-modori
   User ubuntu
   IdentityFile ~/.ssh/id_ed25519_gsmsv
 ```
+
+## 진행 (2026-09-26)
+
+- 도메인: 사용자가 가비아에서 `modori.site` 1년 구매(자동 갱신 안 함 — 만료일 챙길 것).
+- VM: 스왑 2GB, Docker 29 + Compose, 시간대 Asia/Seoul, cloudflared 설치.
+- `/opt/modori`에 `deploy/` 파일 배치. `.env`에 DB 비밀번호·AUTH_SECRET·AUTH_URL 생성.
+  Google·DataGSM·Neon 값은 아직 비어 있다(사용자가 `set-secrets.sh`로 넣는다).
+- `deploy-gsmsv` 워크플로로 첫 배포 성공(PR #69). 마이그레이션 5개 적용, `/login` 200.
+  아직 Tunnel이 없어 밖에서는 접속할 수 없다. 운영은 여전히 Vercel + Neon.
+- 비밀번호 로그인은 사용자 결정으로 켜 둔다.
+
+남은 순서:
+1. (사용자) Cloudflare에 `modori.site` 추가 → 가비아 네임서버를 Cloudflare 것으로 변경 → Active 확인
+2. (Claude) VM에서 `cloudflared tunnel login` → (사용자) 나온 주소를 브라우저로 열어 승인 → 터널·DNS 연결
+3. (사용자) 백업용 Neon 프로젝트 생성, Google·DataGSM 콘솔에 `https://modori.site/api/auth/callback/...` 추가,
+   VM에서 `bash /opt/modori/set-secrets.sh`로 값 입력
+4. (Claude) 로그인 확인 → 이관 당일 `migrate-from-neon.sh` → 백업 타이머 켜기 → Vercel 주소에서 새 주소로 안내
