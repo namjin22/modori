@@ -5,10 +5,13 @@ import { Prisma, type RoutineFreq } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
 import { formatKST, parseKSTDate, todayKST } from "@/lib/date";
+import { readIdList } from "@/lib/ids";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 
 const MAX_CONTENT_LENGTH = 200;
+// 되돌리기 스냅숏의 id 목록 상한. 몇 년 돈 루틴이어도 이만큼은 안 된다.
+const MAX_SNAPSHOT_IDS = 20_000;
 const FREQS: RoutineFreq[] = ["DAILY", "WEEKLY", "MONTHLY"];
 
 function readText(formData: FormData, key: string): string {
@@ -205,6 +208,8 @@ export async function restoreRoutine(snapshot: DeletedRoutine) {
 
   const [startDate] = toKSTDates([snapshot.startDate]);
   if (!startDate) return;
+  const todoIds = readIdList(snapshot.todoIds, MAX_SNAPSHOT_IDS);
+  if (!todoIds || !Array.isArray(snapshot.skipDates)) return;
   const [endDate] = snapshot.endDate ? toKSTDates([snapshot.endDate]) : [];
 
   const category = snapshot.categoryId
@@ -232,7 +237,7 @@ export async function restoreRoutine(snapshot: DeletedRoutine) {
         },
       }),
       prisma.todo.updateMany({
-        where: { id: { in: snapshot.todoIds }, userId: user.id, routineId: null },
+        where: { id: { in: todoIds }, userId: user.id, routineId: null },
         data: { routineId: snapshot.id },
       }),
       prisma.routineSkip.createMany({

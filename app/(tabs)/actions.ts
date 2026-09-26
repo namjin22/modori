@@ -6,6 +6,7 @@ import { isPaletteColor } from "@/lib/colors";
 import { revalidatePath } from "next/cache";
 
 import { daysBetween, formatKST, parseKSTDate, todayKST } from "@/lib/date";
+import { readIdList } from "@/lib/ids";
 import { prisma } from "@/lib/prisma";
 import { matchesRule } from "@/lib/routine";
 import { requireUser } from "@/lib/session";
@@ -305,10 +306,14 @@ export async function completeScheduledRoutine(formData: FormData) {
  * 그 묶음이 원래 차지하고 있던 자리(order 값)를 그대로 두고 안에서만 다시 배정한다.
  * 그래야 다른 카테고리 할 일들의 위치가 흔들리지 않는다.
  */
-export async function reorderTodos(date: string, orderedIds: string[]) {
+// 하루에 한 카테고리에 이보다 많이 적는 사람은 없다. 넘으면 조작된 요청이다.
+const MAX_REORDER = 500;
+
+export async function reorderTodos(date: string, ids: string[]) {
   const user = await requireUser();
   const day = readDay(date);
-  if (!day || orderedIds.length === 0) return;
+  const orderedIds = readIdList(ids, MAX_REORDER);
+  if (!day || !orderedIds || orderedIds.length === 0) return;
 
   // 남의 할 일이나 다른 날짜의 id가 섞여 들어오면 전부 무시한다.
   const owned = await prisma.todo.findMany({

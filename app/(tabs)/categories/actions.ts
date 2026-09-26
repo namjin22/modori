@@ -3,10 +3,13 @@
 import { revalidatePath } from "next/cache";
 
 import { isPaletteColor } from "@/lib/colors";
+import { readIdList } from "@/lib/ids";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 
 const MAX_NAME_LENGTH = 20;
+// 되돌리기 스냅숏의 id 목록 상한. 한 카테고리에 몇 년치를 적어도 이만큼은 안 된다.
+const MAX_SNAPSHOT_IDS = 20_000;
 const HEX_COLOR = /^#[0-9a-f]{6}$/i;
 
 function readText(formData: FormData, key: string): string {
@@ -140,6 +143,10 @@ export async function undoDeleteCategory(snapshot: DeletedCategory) {
   // 브라우저에서 돌아온 값이라 그대로 믿지 않는다.
   const name = snapshot.name.trim().slice(0, MAX_NAME_LENGTH);
   if (!name || !HEX_COLOR.test(snapshot.color)) return;
+  const todoIds = readIdList(snapshot.todoIds, MAX_SNAPSHOT_IDS);
+  const routineIds = readIdList(snapshot.routineIds, MAX_SNAPSHOT_IDS);
+  const pausedRoutineIds = readIdList(snapshot.pausedRoutineIds, MAX_SNAPSHOT_IDS);
+  if (!todoIds || !routineIds || !pausedRoutineIds) return;
 
   const exists = await prisma.category.findUnique({
     where: { id: snapshot.id },
@@ -160,15 +167,15 @@ export async function undoDeleteCategory(snapshot: DeletedCategory) {
     }),
     // 그 사이 다른 카테고리로 옮긴 것은 건드리지 않는다.
     prisma.todo.updateMany({
-      where: { id: { in: snapshot.todoIds }, userId: user.id, categoryId: null },
+      where: { id: { in: todoIds }, userId: user.id, categoryId: null },
       data: { categoryId: snapshot.id },
     }),
     prisma.routine.updateMany({
-      where: { id: { in: snapshot.routineIds }, userId: user.id, categoryId: null },
+      where: { id: { in: routineIds }, userId: user.id, categoryId: null },
       data: { categoryId: snapshot.id },
     }),
     prisma.routine.updateMany({
-      where: { id: { in: snapshot.pausedRoutineIds }, userId: user.id },
+      where: { id: { in: pausedRoutineIds }, userId: user.id },
       data: { pausedAt: null },
     }),
   ]);
