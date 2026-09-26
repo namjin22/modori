@@ -1,7 +1,7 @@
 # GSMSV VM의 /opt/modori에 두고 쓴다. 앱 이미지(modori:latest)는 deploy.sh가 넣는다.
 services:
   db:
-    image: postgres:17-alpine
+    image: postgres:18-alpine
     restart: unless-stopped
     environment:
       POSTGRES_USER: modori
@@ -9,7 +9,8 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?/opt/modori/.env에 POSTGRES_PASSWORD가 없다}
       TZ: Asia/Seoul
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      # 18부터 데이터 폴더가 버전별 하위 폴더로 바뀌어 상위 폴더를 붙인다.
+      - pgdata:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U modori -d modori"]
       interval: 5s

@@ -12,7 +12,7 @@ docker compose exec -T db pg_dump -U modori -d modori -Fc > "$FILE"
 find backups -name '*.dump' -mtime +7 -delete
 
 if [ -n "${BACKUP_DATABASE_URL:-}" ]; then
-  docker run --rm -i postgres:17-alpine \
+  docker run --rm -i postgres:18-alpine \
     pg_restore --clean --if-exists --no-owner --no-privileges -d "$BACKUP_DATABASE_URL" < "$FILE"
   echo "백업 완료: $FILE → 백업용 Neon"
 else
