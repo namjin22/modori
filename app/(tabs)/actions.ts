@@ -7,6 +7,7 @@ import { revalidatePath } from "next/cache";
 
 import { daysBetween, formatKST, parseKSTDate, todayKST } from "@/lib/date";
 import { readIdList } from "@/lib/ids";
+import { LIMITS } from "@/lib/limits";
 import { prisma } from "@/lib/prisma";
 import { matchesRule } from "@/lib/routine";
 import { requireUser } from "@/lib/session";
@@ -43,13 +44,15 @@ function readDay(value: string): Date | null {
   }
 }
 
-export async function addTodo(formData: FormData) {
+export type TodoAdd = { ok: true } | { ok: false; message: string };
+
+export async function addTodo(formData: FormData): Promise<TodoAdd> {
   const user = await requireUser();
   const content = readContent(formData);
-  if (!content) return;
+  if (!content) return { ok: false, message: "할 일을 적어주세요." };
 
   const date = readDay(readId(formData, "date"));
-  if (!date) return;
+  if (!date) return { ok: false, message: "날짜를 읽지 못했어요. 새로 고쳐 주세요." };
   const categoryId = readId(formData, "categoryId") || null;
 
   // 남의 카테고리 id를 끼워 넣어도 붙지 않게 한다. 보관한 카테고리에도 새로 적지 않는다.
@@ -59,7 +62,12 @@ export async function addTodo(formData: FormData) {
       where: { id: categoryId, userId: user.id, archivedAt: null },
       select: { id: true },
     });
-    if (!owned) return;
+    if (!owned) return { ok: false, message: "이 카테고리에는 적을 수 없어요." };
+  }
+
+  const count = await prisma.todo.count({ where: { userId: user.id, date } });
+  if (count >= LIMITS.todosPerDay) {
+    return { ok: false, message: `하루에 ${LIMITS.todosPerDay}개까지 적을 수 있어요.` };
   }
 
   const last = await prisma.todo.findFirst({
@@ -80,6 +88,7 @@ export async function addTodo(formData: FormData) {
 
 
   revalidatePath("/");
+  return { ok: true };
 }
 
 export async function toggleTodo(formData: FormData) {

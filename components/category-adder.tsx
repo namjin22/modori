@@ -3,6 +3,7 @@
 import { useRef, useState, useTransition } from "react";
 
 import { addTodo } from "@/app/(tabs)/actions";
+import { useToast } from "@/components/toast";
 import { useSaveFailure } from "@/components/use-save-failure";
 import { onColorText } from "@/lib/colors";
 
@@ -33,6 +34,7 @@ export function CategoryAdder({
   const inputRef = useRef<HTMLInputElement>(null);
   const [, startTransition] = useTransition();
   const saveFailed = useSaveFailure();
+  const toast = useToast();
 
   const chip = (
     <>
@@ -86,8 +88,10 @@ export function CategoryAdder({
             const formData = new FormData(event.currentTarget);
             startTransition(async () => {
               try {
-                await addTodo(formData);
-                formRef.current?.reset();
+                const result = await addTodo(formData);
+                // 거절되면(하루 상한 등) 적은 글자를 남기고 이유만 알린다.
+                if (result.ok) formRef.current?.reset();
+                else toast({ message: result.message });
               } catch (error) {
                 saveFailed(error);
               }

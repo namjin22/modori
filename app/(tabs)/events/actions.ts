@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 
 import { DEFAULT_EVENT_COLOR } from "@/lib/colors";
 import { daysBetween, formatKST, parseKSTDate } from "@/lib/date";
+import { LIMITS } from "@/lib/limits";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 
@@ -66,6 +67,11 @@ export async function createEvent(
   const user = await requireUser();
   const input = readEventInput(formData);
   if (typeof input === "string") return { message: input };
+
+  const count = await prisma.event.count({ where: { userId: user.id } });
+  if (count >= LIMITS.events) {
+    return { message: `일정은 ${LIMITS.events}개까지 만들 수 있어요. 지난 일정을 지워주세요.` };
+  }
 
   await prisma.event.create({ data: { ...input, userId: user.id } });
 
