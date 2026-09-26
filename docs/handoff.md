@@ -1029,3 +1029,18 @@ VM에 시험 DB(사용자 1000, 할 일 108만, 반응 24만, 280MB)를 만들�
 - 테스트 2개 추가(`todo.spec.ts`) — 고치기 전 코드로 돌려 둘 다 실패 확인.
 
 검증: `npm run verify` 통과 — 단위 73×3, E2E 79/79.
+
+### 루프 9 — 운영 점검
+
+- 운영 앱 로그 24시간 오류 0. cloudflared 오류 1건은 03:30 Docker 재시작 순간. 04:00 자동 백업 성공(VM + 백업용 Neon).
+  SSH 무차별 로그인 시도 0건(24시간) — fail2ban은 아직 필요 없다고 봤다.
+- **재부팅 시험**: VM 재부팅 뒤 33초 만에 `https://modori.site/api/health` 200. docker·cloudflared·백업 타이머 자동 시작.
+- 발견: 재부팅 전 `/var/run/reboot-required`가 있었다(커널 5.15.0-171→191, libc 보안 업데이트가 설치만 되고 미적용).
+  재부팅으로 적용했고, 앞으로는 필요할 때 05:00 자동 재부팅(`/etc/apt/apt.conf.d/52modori-auto-reboot`).
+- 발견: 링크 미리보기(Open Graph)가 없었다. 홍보할 때 카카오톡·디스코드에 주소를 붙여도 그림·설명이 안 떴다 →
+  `metadataBase`, `openGraph`, `public/og.png`(1200×630), `app/robots.ts`(/api/ 제외).
+- **확인 필요**: 15분마다 도는 `health` 워크플로가 등록 뒤 2시간 넘게 예약 실행되지 않았다(수동 1회만 성공).
+  워크플로는 main에 있고 active다. GitHub 예약 실행이 늦게 시작되는 일이 흔해 루프 10에서 다시 본다.
+- 남은 위험: 백업용 Neon은 매일 통째로 덮어써서 하루 이상 지난 시점으로는 되돌릴 수 없다. 7일치 파일은 VM 안에만 있다.
+
+검증: `npm run verify` 통과 — 단위 73×3, E2E 79/79.
