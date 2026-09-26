@@ -111,3 +111,19 @@ Host gsmsv-modori
 3. (사용자) 백업용 Neon 프로젝트 생성, Google·DataGSM 콘솔에 `https://modori.site/api/auth/callback/...` 추가,
    VM에서 `bash /opt/modori/set-secrets.sh`로 값 입력
 4. (Claude) 로그인 확인 → 이관 당일 `migrate-from-neon.sh` → 백업 타이머 켜기 → Vercel 주소에서 새 주소로 안내
+
+## 이관 완료 (2026-09-27 새벽)
+
+- Cloudflare Tunnel `modori`(http2) → `modori.site`, `www.modori.site` CNAME. cloudflared는 systemd 서비스.
+- 컨테이너 MTU 문제를 고쳤다(`deploy/README.md`의 "겪은 문제").
+- Neon이 Postgres 18이라 VM DB도 `postgres:18-alpine`으로 맞췄다. 빈 17 볼륨은 지우고 새로 만들었다.
+- `migrate-from-neon.sh`로 데이터 복사: 사용자 12명(테스트 계정 포함), 할 일 16개.
+- `modori.vercel.app`은 307로, `www.modori.site`는 308로 `https://modori.site`에 넘긴다(`next.config.ts`).
+- 백업: 매일 04:00 타이머. 이관 직후 한 번 돌려 백업용 Neon(us-east-2)에 들어간 것을 확인.
+
+남은 일:
+- 사용자가 Google·DataGSM으로 `https://modori.site`에 실제 로그인해 본다.
+- 예전 Neon은 이제 테스트·CI 전용이다. 그런데 **실제 사용자 3명의 데이터 사본이 아직 들어 있다.**
+  지울지는 사용자에게 묻는다(데이터 삭제라 승인 필요).
+- `modori-backup` 비밀번호가 채팅에 노출됐다. Neon에서 비밀번호를 바꾸고 `set-secrets.sh`로 다시 넣는다.
+- VM 연장(15일마다), 도메인 만료일(1년, 자동 갱신 없음) 챙기기.
