@@ -101,8 +101,10 @@ export async function toggleTodo(formData: FormData) {
   });
   if (!todo) return;
 
-  await prisma.todo.update({
-    where: { id },
+  // 확인과 바꾸기 사이에 다른 탭에서 지우거나 먼저 바꿨을 수 있다. update는 그때 오류를 던져
+  // "저장하지 못했어요"가 뜬다. 읽은 상태 그대로일 때만 바꾸고, 아니면 0건으로 넘긴다.
+  await prisma.todo.updateMany({
+    where: { id, userId: user.id, done: todo.done },
     // 완료 시각은 캘린더와 피드가 쓰므로 같이 기록한다.
     data: { done: !todo.done, doneAt: todo.done ? null : new Date() },
   });
@@ -337,7 +339,8 @@ export async function reorderTodos(date: string, ids: string[]) {
 
   await prisma.$transaction(
     orderedIds.map((id, index) =>
-      prisma.todo.update({ where: { id }, data: { order: slots[index] } }),
+      // 도중에 다른 탭에서 지운 할 일이 있어도 나머지는 저장한다(update는 트랜잭션 전체를 실패시킨다).
+      prisma.todo.updateMany({ where: { id, userId: user.id }, data: { order: slots[index] } }),
     ),
   );
 

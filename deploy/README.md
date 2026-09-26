@@ -52,3 +52,24 @@ VM이 통째로 사라졌으면: 새 VM에 이 폴더를 다시 만들고, 백�
   `/etc/docker/daemon.json`에 `{ "mtu": 1400 }`, compose 기본 네트워크에도 같은 값을 넣었다.
   VM을 새로 만들면 daemon.json부터 넣는다.
 - **`cloudflared tunnel login`은 링크를 연 뒤 약 8분 안에 승인해야 한다.** 늦으면 인증서를 못 받는다.
+
+## 배포 되돌리기 시험
+
+`deploy.sh`는 새 버전이 60초 안에 `/login`에 응답하지 않으면 직전 이미지(`modori:previous`)로 되돌리고 실패로 끝난다.
+마이그레이션은 되돌리지 않는다(열을 더하는 식으로만 바꾸므로 직전 앱도 돈다).
+
+운영을 멈추지 않고 시험하려면 폴더·포트·이미지 이름을 바꿔 돌린다. 2026-09-27에 이렇게 확인했다.
+
+```bash
+T=/tmp/deploytest; mkdir -p $T; cp deploy.sh docker-compose.yml $T/
+printf "POSTGRES_PASSWORD='x'
+AUTH_SECRET='x'
+AUTH_TRUST_HOST='true'
+IMAGE='modoritest'
+APP_PORT='3999'
+" > $T/.env
+docker tag modori:latest modoritest:latest
+docker save modoritest:latest | gzip | DEPLOY_DIR=$T bash $T/deploy.sh      # 배포 완료
+# 켜자마자 죽는 이미지를 파일로 만든 뒤(로컬 latest는 정상 버전으로 되돌려 두고) 넣으면 → 직전 버전으로 되돌렸다
+cd $T && docker compose down -v; docker rmi modoritest:latest modoritest:previous
+```
