@@ -81,15 +81,16 @@ export function EventSection({
                   onClick={() => setEditing(event)}
                   className="flex w-full cursor-pointer items-center gap-3 px-4 py-3 text-left"
                 >
-                  <span className="min-w-0 flex-1 truncate font-medium">
-                    {event.title}
+                  {/* 기간을 제목 옆에 두면 좁은 폰(320px)에서 제목이 세 글자만 남는다. 아래 줄로 내린다. */}
+                  <span className="flex min-w-0 flex-1 flex-col">
+                    <span className="truncate font-medium">{event.title}</span>
+                    {multiDay && (
+                      <span className="text-xs text-muted">
+                        {formatMonthDayKST(event.startDate)} ~{" "}
+                        {formatMonthDayKST(event.endDate)}
+                      </span>
+                    )}
                   </span>
-                  {multiDay && (
-                    <span className="shrink-0 text-xs text-muted">
-                      {formatMonthDayKST(event.startDate)} ~{" "}
-                      {formatMonthDayKST(event.endDate)}
-                    </span>
-                  )}
                   {dday && <Dday label={dday} />}
                 </button>
               </li>
