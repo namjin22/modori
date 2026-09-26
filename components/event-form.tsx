@@ -55,6 +55,7 @@ export function EventForm({
         maxLength={100}
         defaultValue={event?.title}
         autoFocus
+        data-autofocus
         placeholder="예: 중간고사, 동아리 발표"
         aria-label={`${label} 이름`}
         onKeyDown={(keyEvent) => {
