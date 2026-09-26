@@ -1,0 +1,13 @@
+# 이미지에 시크릿이 들어가면 안 된다. .env는 VM에 따로 둔다.
+.env*
+!.env.example
+node_modules
+.next
+.git
+tests
+test-results
+playwright-report
+shots
+docs
+*.vsix
+tsconfig.tsbuildinfo
