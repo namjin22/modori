@@ -938,3 +938,15 @@ viewBox로 좁혔다.
 - 남긴 것: 테스트 로그에 `No record was found for an update`가 한 번 찍혔다. 루프 5(오류 처리)에서 추적.
 
 검증: `npm run verify` 통과 — 단위 73×3, E2E 73/73.
+
+### 루프 3 — 날짜와 시간대
+
+- `new Date()`는 모두 "지금 시각"을 기록하는 용도(doneAt, pausedAt 등)였다. 로컬 시간 함수(getDate, toLocaleString 등)는
+  lib/date.ts 밖에 하나도 없다. 단위 테스트는 UTC·Asia/Seoul·America/New_York에서 돈다. VM(Asia/Seoul)으로 옮겨도 결과가 같다.
+- 고친 것: 앱을 켜 둔 채 자정을 넘기면 아침에 다시 열어도 어제를 "오늘"로 보여주고, 거기 적은 할 일이 어제 날짜로 들어갔다.
+  `components/day-rollover.tsx` — "오늘"을 보는 홈(주소에 ?date= 없음)에서 화면이 다시 보일 때와 1분마다 날짜를 비교해
+  바뀌었으면 `router.refresh()`. 날짜를 골라 보는 화면에는 붙이지 않는다.
+- `tests/e2e/day-rollover.spec.ts`: 가짜 시계로 하루 앞당기면 새로 그리는 요청이 가는지(고치기 전 코드로 돌려 실패 확인),
+  날짜를 고른 화면은 그대로인지.
+
+검증: `npm run verify` 통과 — 단위 73×3, E2E 75/75.
