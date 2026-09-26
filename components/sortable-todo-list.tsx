@@ -52,7 +52,7 @@ function Row({ id, node }: Omit<SortableItem, "label">) {
           type="button"
           aria-label="순서 바꾸기 손잡이"
           // 넓은 화면에서는 마우스를 올렸을 때만 드러낸다. 손가락에는 올림이 없으니 늘 보인다.
-          className="flex w-6 shrink-0 cursor-grab touch-none justify-center self-start py-2.5 text-muted/60 active:cursor-grabbing lg:opacity-0 lg:group-hover/row:opacity-100 lg:focus-visible:opacity-100"
+          className="flex w-6 shrink-0 cursor-grab touch-none justify-center self-start py-2.5 text-muted active:cursor-grabbing lg:opacity-0 lg:group-hover/row:opacity-100 lg:focus-visible:opacity-100"
           {...attributes}
           {...listeners}
         >
