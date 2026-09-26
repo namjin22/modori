@@ -1,0 +1,33 @@
+name: deploy-gsmsv
+
+# main에 합치면 GSMSV VM에 배포한다. VM은 메모리가 4GB라 이미지는 여기서 만들고
+# SSH로 보낸다. 배포 키는 VM에서 deploy.sh만 실행하도록 묶여 있다(deploy/README.md).
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-gsmsv
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 이미지 만들기
+        run: docker build -t modori:latest .
+
+      - name: VM으로 보내 띄우기
+        env:
+          DEPLOY_KEY: ${{ secrets.GSMSV_DEPLOY_KEY }}
+          KNOWN_HOSTS: ${{ secrets.GSMSV_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/deploy
+          chmod 600 ~/.ssh/deploy
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          docker save modori:latest | gzip -1 | \
+            ssh -i ~/.ssh/deploy -p 24141 ubuntu@ssh.gsmsv.site
