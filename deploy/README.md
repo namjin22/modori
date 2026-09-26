@@ -73,3 +73,16 @@ docker save modoritest:latest | gzip | DEPLOY_DIR=$T bash $T/deploy.sh      # �
 # 켜자마자 죽는 이미지를 파일로 만든 뒤(로컬 latest는 정상 버전으로 되돌려 두고) 넣으면 → 직전 버전으로 되돌렸다
 cd $T && docker compose down -v; docker rmi modoritest:latest modoritest:previous
 ```
+
+## VM 운영 설정 (deploy/ 밖, VM에 직접)
+
+| 설정 | 위치 | 이유 |
+|---|---|---|
+| Docker MTU 1400, 로그 10MB×3 | `/etc/docker/daemon.json` | MTU는 "겪은 문제", 로그는 디스크(20GB) 보호 |
+| 스왑 2GB | `/swapfile` | 메모리 4GB |
+| 보안 업데이트 후 필요하면 05:00 자동 재부팅 | `/etc/apt/apt.conf.d/52modori-auto-reboot` | 커널·libc 업데이트는 재부팅해야 적용된다 |
+| cloudflared 설정 | `/etc/cloudflared/config.yml` | 터널 `modori`, http2 |
+| 백업 타이머 | `/etc/systemd/system/modori-backup.*` | 매일 04:00 |
+
+재부팅 시험(2026-09-27 06:00): 재부팅 명령 뒤 33초 만에 `https://modori.site/api/health` 200.
+docker·cloudflared·백업 타이머 모두 자동 시작, 앱·DB는 `restart: unless-stopped`로 다시 뜬다.
