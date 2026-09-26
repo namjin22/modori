@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 
 import { formatKST, parseKSTDate, todayKST } from "@/lib/date";
 import { readIdList } from "@/lib/ids";
+import { LIMITS } from "@/lib/limits";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 
@@ -82,6 +83,11 @@ export async function createRoutine(
       select: { id: true },
     });
     if (!owned) return { message: "고른 카테고리를 찾을 수 없어요." };
+  }
+
+  const count = await prisma.routine.count({ where: { userId: user.id } });
+  if (count >= LIMITS.routines) {
+    return { message: `루틴은 ${LIMITS.routines}개까지 만들 수 있어요. 안 쓰는 루틴을 지워주세요.` };
   }
 
   const last = await prisma.routine.findFirst({

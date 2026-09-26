@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { isPaletteColor } from "@/lib/colors";
 import { readIdList } from "@/lib/ids";
+import { LIMITS } from "@/lib/limits";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 
@@ -29,6 +30,13 @@ export async function createCategory(formData: FormData) {
   // 새로 만들 때는 팔레트 색만 받는다. 아무 색이나 받으면 흰 배경에서 안 보이는
   // 연한 색이나 글씨와 겹치는 색이 섞여 들어온다.
   if (!name || !color || !isPaletteColor(color)) return;
+
+  // 이 폼은 결과를 받지 않는다. 30개는 화면으로 닿을 일이 없어 기록만 남긴다.
+  const count = await prisma.category.count({ where: { userId: user.id, archivedAt: null } });
+  if (count >= LIMITS.categories) {
+    console.warn("[category] 상한에 닿아 만들지 않았다.", user.id, count);
+    return;
+  }
 
   const last = await prisma.category.findFirst({
     where: { userId: user.id },
