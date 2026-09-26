@@ -45,3 +45,17 @@ test("할 일 글자를 누르면 바로 고칠 수 있다", async ({ page, emai
 
   await expect(page.getByText("우유랑 계란 사기")).toBeVisible();
 });
+
+test("할 일 창을 열면 입력칸에 커서가 글 끝에 있어 바로 이어 쓸 수 있다", async ({ page, email }, testInfo) => {
+  await signInAndOnboard(page, email, `커서${testInfo.testId.slice(-6)}${RUN_TAG}`);
+  await addTodo(page, "우유 사기");
+
+  await openTodo(page, "우유 사기");
+  const input = page.getByLabel("할 일 내용 수정");
+  await expect(input).toBeFocused();
+
+  // 칸을 누르지 않고 바로 친다.
+  await page.keyboard.type(" 두 개");
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("button", { name: "우유 사기 두 개", exact: true })).toBeVisible();
+});

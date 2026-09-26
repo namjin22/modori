@@ -68,6 +68,7 @@ export function TodoRow({ todo }: { todo: Todo }) {
             maxLength={200}
             required
             autoFocus
+            data-autofocus
             aria-label="할 일 내용 수정"
             className="h-12 w-full rounded-xl bg-surface-hover px-4 text-[15px] outline-none focus:ring-2 focus:ring-brand"
           />

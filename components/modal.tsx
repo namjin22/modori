@@ -26,7 +26,18 @@ export function Modal({
     const dialog = ref.current;
     if (!dialog) return;
 
-    if (open && !dialog.open) dialog.showModal();
+    if (open && !dialog.open) {
+      dialog.showModal();
+      // showModal은 첫 버튼(닫기)으로 포커스를 옮긴다. 안쪽 입력칸의 autoFocus는 그보다 먼저
+      // 걸려서 빼앗긴다. 창이 열린 뒤에 "처음 잡을 칸"으로 다시 옮기고 커서를 글 끝에 둔다.
+      const first = dialog.querySelector<HTMLElement>("[data-autofocus]");
+      if (first) {
+        first.focus();
+        if (first instanceof HTMLInputElement) {
+          first.setSelectionRange(first.value.length, first.value.length);
+        }
+      }
+    }
     if (!open && dialog.open) dialog.close();
   }, [open]);
 

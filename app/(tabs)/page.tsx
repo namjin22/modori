@@ -250,6 +250,14 @@ export default async function FeedPage({
     // 넓은 화면에서는 왼쪽에 프로필과 달력, 오른쪽에 고른 날의 목록을 둔다.
     <div className="flex flex-col gap-6 lg:grid lg:grid-cols-2 lg:items-start lg:gap-10">
       {!params.date && <DayRollover day={formatKST(today)} />}
+      {/* 넓은 화면에서는 달력이 먼저 와서 할 일까지 Tab을 서른 번 넘게 눌러야 한다.
+          첫 Tab에 나타나는 건너뛰기 링크를 둔다. */}
+      <a
+        href="#day-list"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-xl focus:bg-brand focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-brand-contrast"
+      >
+        할 일로 건너뛰기
+      </a>
       <div className="flex flex-col gap-6 lg:sticky lg:top-6">
         <Link prefetch={false} href="/settings/profile" className="flex items-center gap-3">
           <Avatar src={avatarUrl(user)} size={48} />
@@ -274,7 +282,7 @@ export default async function FeedPage({
         </div>
       </div>
 
-      <div className="flex flex-col gap-6">
+      <div id="day-list" tabIndex={-1} className="flex flex-col gap-6 outline-none">
         <header className="flex items-center justify-between">
           <Link prefetch={false}
             href={`/?date=${formatKST(addDays(date, -1))}${viewQuery}`}
