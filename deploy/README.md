@@ -44,3 +44,11 @@ VM 안 파일에서: `docker compose exec -T db pg_restore --clean --if-exists -
 
 VM이 통째로 사라졌으면: 새 VM에 이 폴더를 다시 만들고, 백업용 Neon에서
 `pg_dump -Fc "$BACKUP_DATABASE_URL"`로 받아 같은 명령으로 복원한다.
+
+## 겪은 문제
+
+- **컨테이너에서 밖으로 나가는 TLS 연결이 멈춘다** (2026-09-27): VM의 `eth0` MTU가 1400인데 Docker는
+  1500을 쓴다. 작은 응답(Google 404)은 오가지만 Postgres TLS처럼 큰 패킷은 버려져 연결이 멈췄다.
+  `/etc/docker/daemon.json`에 `{ "mtu": 1400 }`, compose 기본 네트워크에도 같은 값을 넣었다.
+  VM을 새로 만들면 daemon.json부터 넣는다.
+- **`cloudflared tunnel login`은 링크를 연 뒤 약 8분 안에 승인해야 한다.** 늦으면 인증서를 못 받는다.

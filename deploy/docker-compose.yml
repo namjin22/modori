@@ -34,3 +34,10 @@ services:
 
 volumes:
   pgdata:
+
+# GSMSV VM의 네트워크 MTU가 1400이다. Docker 기본(1500)으로 두면 큰 패킷이 버려져
+# 컨테이너에서 나가는 TLS 연결(Neon 백업, OAuth 토큰 교환)이 소리 없이 멈춘다.
+networks:
+  default:
+    driver_opts:
+      com.docker.network.driver.mtu: "1400"
