@@ -20,6 +20,7 @@ import {
 import { requireUser } from "@/lib/session";
 
 import { CategoryAdder } from "@/components/category-adder";
+import { DayRollover } from "@/components/day-rollover";
 import { Dori } from "@/components/dori";
 import { type DayEvent, EventSection } from "@/components/event-section";
 import {
@@ -248,6 +249,7 @@ export default async function FeedPage({
   return (
     // 넓은 화면에서는 왼쪽에 프로필과 달력, 오른쪽에 고른 날의 목록을 둔다.
     <div className="flex flex-col gap-6 lg:grid lg:grid-cols-2 lg:items-start lg:gap-10">
+      {!params.date && <DayRollover day={formatKST(today)} />}
       <div className="flex flex-col gap-6 lg:sticky lg:top-6">
         <Link prefetch={false} href="/settings/profile" className="flex items-center gap-3">
           <Avatar src={avatarUrl(user)} size={48} />
