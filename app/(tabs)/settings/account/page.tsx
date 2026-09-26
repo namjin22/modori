@@ -17,7 +17,7 @@ export default async function AccountPage() {
     prisma.routine.count({ where: { userId: user.id } }),
     prisma.event.count({ where: { userId: user.id } }),
     prisma.follow.count({ where: { followerId: user.id } }),
-    prisma.reaction.count({ where: { todo: { userId: user.id } } }),
+    prisma.reaction.count({ where: { todoUserId: user.id } }),
   ]);
 
   const rows = [

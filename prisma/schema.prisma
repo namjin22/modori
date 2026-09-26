@@ -4,8 +4,8 @@ generator client {
 
 datasource db {
   provider  = "postgresql"
-  url       = env("DATABASE_URL")   // 풀링 연결 — 앱에서 사용
-  directUrl = env("DIRECT_URL")     // 직접 연결 — 마이그레이션에서 사용
+  url       = env("DATABASE_URL") // 풀링 연결 — 앱에서 사용
+  directUrl = env("DIRECT_URL") // 직접 연결 — 마이그레이션에서 사용
 }
 
 // ========================================
@@ -47,7 +47,7 @@ model Account {
   id                String  @id @default(cuid())
   userId            String
   type              String
-  provider          String  // "google" | "datagsm"
+  provider          String // "google" | "datagsm"
   providerAccountId String
   refresh_token     String? @db.Text
   access_token      String? @db.Text
@@ -99,17 +99,22 @@ model Follow {
 }
 
 model Reaction {
-  id        String   @id @default(cuid())
-  userId    String // 반응을 누른 사람
-  todoId    String
-  emoji     String
-  createdAt DateTime @default(now())
+  id         String   @id @default(cuid())
+  userId     String // 반응을 누른 사람
+  todoId     String
+  // 반응을 받은 사람(할 일 주인). todo.userId와 같은 값을 따로 들고 있다.
+  // "내가 받은 반응"을 찾을 때 할 일 테이블을 거치면 할 일이 쌓일수록 느려진다.
+  // 할 일의 주인은 바뀌지 않으므로 어긋날 일이 없다.
+  todoUserId String
+  emoji      String
+  createdAt  DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   todo Todo @relation(fields: [todoId], references: [id], onDelete: Cascade)
 
   @@unique([userId, todoId, emoji]) // 같은 이모지 중복 방지
   @@index([todoId])
+  @@index([todoUserId, createdAt]) // 받은 반응 목록과 안 읽은 수
 }
 
 // ========================================

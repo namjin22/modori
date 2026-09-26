@@ -14,7 +14,7 @@ export default async function ReactionsPage() {
   const lastSeenAt = user.lastSeenAt;
 
   const reactions = await prisma.reaction.findMany({
-    where: { todo: { userId: user.id }, userId: { not: user.id } },
+    where: { todoUserId: user.id, userId: { not: user.id } },
     orderBy: { createdAt: "desc" },
     take: MAX_ITEMS,
     include: {

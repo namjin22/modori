@@ -62,7 +62,7 @@ export async function toggleReaction(formData: FormData) {
       category: { isPublic: true },
       user: { followers: { some: { followerId: user.id } } },
     },
-    select: { id: true },
+    select: { id: true, userId: true },
   });
   if (!todo) return;
 
@@ -75,7 +75,9 @@ export async function toggleReaction(formData: FormData) {
     if (existing) {
       await prisma.reaction.deleteMany({ where: { id: existing.id } });
     } else {
-      await prisma.reaction.create({ data: { userId: user.id, todoId, emoji } });
+      await prisma.reaction.create({
+        data: { userId: user.id, todoId, todoUserId: todo.userId, emoji },
+      });
     }
   } catch (error) {
     // 같은 순간에 두 번 눌러 먼저 온 요청이 이미 만들었다. 결과는 같으니 넘긴다.
