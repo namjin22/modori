@@ -1,0 +1,36 @@
+# GSMSV VM의 /opt/modori에 두고 쓴다. 앱 이미지(modori:latest)는 deploy.sh가 넣는다.
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: modori
+      POSTGRES_DB: modori
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?/opt/modori/.env에 POSTGRES_PASSWORD가 없다}
+      TZ: Asia/Seoul
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U modori -d modori"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    # 밖으로 열지 않는다. 앱과 백업만 이 네트워크 안에서 붙는다.
+
+  app:
+    image: modori:latest
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://modori:${POSTGRES_PASSWORD}@db:5432/modori
+      DIRECT_URL: postgresql://modori:${POSTGRES_PASSWORD}@db:5432/modori
+      TZ: Asia/Seoul
+    depends_on:
+      db:
+        condition: service_healthy
+    # cloudflared(VM에 직접 설치)만 붙는다. 바깥에서는 Cloudflare Tunnel로만 들어온다.
+    ports:
+      - "127.0.0.1:3000:3000"
+
+volumes:
+  pgdata:
