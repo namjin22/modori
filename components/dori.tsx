@@ -382,21 +382,21 @@ export function Dori({
       </Outlined>
 
       <g transform={HEAD}>
-        <ellipse
-          cx={44}
-          cy={18}
-          rx={5}
-          ry={6}
+        {/* 귀 안쪽. 귀 삼각형을 가운데로 45% 줄인 모양이다. 타원으로 그리면 귀를 거의 다 덮어
+            귀 전체가 분홍으로 보였다. 모서리는 같은 색 선으로 둥글린다. */}
+        <path
+          d="M41.8 21.3 L39.6 14.1 L48.6 19.5 Z"
           fill={EAR}
-          transform="rotate(-20 44 18)"
+          stroke={EAR}
+          strokeWidth={1.6}
+          strokeLinejoin="round"
         />
-        <ellipse
-          cx={76}
-          cy={18}
-          rx={5}
-          ry={6}
+        <path
+          d="M78.2 21.3 L80.4 14.1 L71.4 19.5 Z"
           fill={EAR}
-          transform="rotate(20 76 18)"
+          stroke={EAR}
+          strokeWidth={1.6}
+          strokeLinejoin="round"
         />
         <ellipse cx={40} cy={59} rx={8} ry={6} fill={BLUSH} />
         <ellipse cx={80} cy={59} rx={8} ry={6} fill={BLUSH} />
