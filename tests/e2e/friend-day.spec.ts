@@ -110,3 +110,27 @@ test("소셜 위쪽 친구 줄에서 친구를 누르면 그 친구 화면으로
   await expect(page.getByRole("link", { name: "1 팔로우" })).toBeVisible();
   await expect(page.getByText("팔로워")).toBeVisible();
 });
+
+test("친구가 20명을 넘으면 친구 줄은 20명과 전체 보기를 보여준다", async ({ page, accounts }) => {
+  await signIn(page, accounts.me);
+  const me = await prisma.user.findUniqueOrThrow({ where: { email: accounts.me.email } });
+  const tag = `${RUN_TAG}${Date.now().toString(36).slice(-3)}`;
+  const many = await prisma.user.createManyAndReturn({
+    data: Array.from({ length: 25 }, (_, index) => ({
+      email: `e2e-many-${index}-${tag}@modori.test`,
+      nickname: `많은${index}${tag}`,
+    })),
+    select: { id: true },
+  });
+  try {
+    await prisma.follow.createMany({ data: many.map((user) => ({ followerId: me.id, followingId: user.id })) });
+
+    await page.goto("/feed");
+    const row = page.getByRole("navigation", { name: "친구" });
+    await expect(row.getByRole("link", { name: /^많은/ })).toHaveCount(20);
+    await row.getByRole("link", { name: "+5 전체 보기" }).click();
+    await expect(page).toHaveURL(/\/feed\/following$/);
+  } finally {
+    await prisma.user.deleteMany({ where: { id: { in: many.map((user) => user.id) } } });
+  }
+});

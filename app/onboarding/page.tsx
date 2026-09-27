@@ -1,14 +1,20 @@
 import { redirect } from "next/navigation";
 
+import { loginHref, safeNext } from "@/lib/next-path";
 import { getCurrentUser } from "@/lib/session";
 
 import { Dori } from "@/components/dori";
 import { OnboardingForm } from "@/components/onboarding-form";
 
-export default async function OnboardingPage() {
+export default async function OnboardingPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ next?: string }>;
+}) {
+  const next = safeNext((await searchParams).next);
   const user = await getCurrentUser();
-  if (!user) redirect("/login");
-  if (user.nickname) redirect("/");
+  if (!user) redirect(loginHref(next));
+  if (user.nickname) redirect(next ?? "/");
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-sm flex-col justify-center gap-10 px-6">
@@ -20,7 +26,7 @@ export default async function OnboardingPage() {
         </p>
       </div>
 
-      <OnboardingForm />
+      <OnboardingForm next={next} />
     </main>
   );
 }

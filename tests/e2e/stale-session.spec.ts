@@ -33,7 +33,8 @@ test("계정이 사라진 세션이면 로그인 화면에 멈춘다", async ({ 
 
   for (const path of ["/settings", "/", "/onboarding", "/login"]) {
     await page.goto(path);
-    await expect(page).toHaveURL(/\/login$/);
+    // 로그인 뒤 돌아갈 곳(?next=)이 붙을 수 있다. 로그인 화면에 멈추는지만 본다.
+    await expect(page).toHaveURL(/\/login(\?next=[^&]*)?$/);
     await expect(page.getByRole("button", { name: "Google로 계속하기" })).toBeVisible();
   }
 

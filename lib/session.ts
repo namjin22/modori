@@ -1,6 +1,9 @@
 import { cache } from "react";
 
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+
+import { loginHref, safeNext } from "@/lib/next-path";
 
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -35,8 +38,12 @@ export const getCurrentUser = cache(async () => {
 
 export const requireUser = cache(async () => {
   const user = await getCurrentUser();
-  if (!user) redirect("/login");
-  if (!user.nickname) redirect("/onboarding");
+  if (!user || !user.nickname) {
+    // 친구가 보낸 링크처럼 로그인 전에 연 화면으로 로그인 뒤 돌아가게 한다(proxy.ts가 주소를 넘긴다).
+    const next = safeNext((await headers()).get("x-modori-path"));
+    if (!user) redirect(loginHref(next));
+    redirect(next ? `/onboarding?next=${encodeURIComponent(next)}` : "/onboarding");
+  }
 
   return { ...user, nickname: user.nickname };
 });

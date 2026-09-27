@@ -7,7 +7,7 @@ import {
 import { SubmitButton } from "@/components/submit-button";
 import { useFormAction } from "@/components/use-form-action";
 
-export function OnboardingForm() {
+export function OnboardingForm({ next }: { next: string | null }) {
   const [state, formAction, pending] = useFormAction<OnboardingState>(
     saveNickname,
     null,
@@ -15,6 +15,7 @@ export function OnboardingForm() {
 
   return (
     <form onSubmit={formAction} className="flex flex-col gap-4">
+      {next && <input type="hidden" name="next" value={next} />}
       <input
         name="nickname"
         type="text"
