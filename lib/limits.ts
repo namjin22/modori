@@ -5,8 +5,8 @@
  * 있어서, 상한이 없으면 한 사람이 할 일 수백만 개로 VM 디스크(20GB)를 채울 수 있다.
  */
 export const LIMITS = {
-  todosPerDay: 100,
-  categories: 30,
+  todosPerDay: 50,
+  categories: 10,
   routines: 50,
   events: 1000,
 } as const;

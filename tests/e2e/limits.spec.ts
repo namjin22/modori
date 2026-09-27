@@ -32,11 +32,11 @@ test.afterAll(async () => {
   await prisma.$disconnect();
 });
 
-test("하루 할 일 상한에 닿으면 이유를 알리고 적은 글자를 남긴다", async ({ page }) => {
+test("하루 할 일 상한(50개)에 닿으면 이유를 알리고 적은 글자를 남긴다", async ({ page }) => {
   const user = await prisma.user.findUniqueOrThrow({ where: { email: TEST_EMAIL } });
   const category = await prisma.category.findFirstOrThrow({ where: { userId: user.id } });
   await prisma.todo.createMany({
-    data: Array.from({ length: 100 }, (_, order) => ({
+    data: Array.from({ length: 50 }, (_, order) => ({
       userId: user.id,
       categoryId: category.id,
       content: `채운 일 ${order}`,
@@ -48,10 +48,27 @@ test("하루 할 일 상한에 닿으면 이유를 알리고 적은 글자를 �
 
   await page.getByRole("button", { name: `${FIRST_CATEGORY}에 할 일 쓰기` }).click();
   const input = page.getByLabel(`${FIRST_CATEGORY} 할 일`);
-  await input.fill("101번째 할 일");
+  await input.fill("51번째 할 일");
   await input.press("Enter");
 
-  await expect(page.getByRole("status", { name: "알림" })).toContainText("하루에 100개까지");
-  await expect(input).toHaveValue("101번째 할 일");
-  expect(await prisma.todo.count({ where: { userId: user.id } })).toBe(100);
+  await expect(page.getByRole("status", { name: "알림" })).toContainText("하루에 50개까지");
+  await expect(input).toHaveValue("51번째 할 일");
+  expect(await prisma.todo.count({ where: { userId: user.id } })).toBe(50);
+});
+
+test("카테고리가 10개면 추가 폼 대신 이유를 보여준다", async ({ page }) => {
+  const user = await prisma.user.findUniqueOrThrow({ where: { email: TEST_EMAIL } });
+  // 가입할 때 생긴 Today's에 더해 9개를 채운다.
+  await prisma.category.createMany({
+    data: Array.from({ length: 9 }, (_, index) => ({
+      userId: user.id,
+      name: `채운 칸 ${index}`,
+      color: "#22c55e",
+      order: index + 1,
+    })),
+  });
+
+  await page.goto("/categories");
+  await expect(page.getByText("카테고리는 10개까지 만들 수 있어요")).toBeVisible();
+  await expect(page.getByLabel("새 카테고리 이름")).toHaveCount(0);
 });

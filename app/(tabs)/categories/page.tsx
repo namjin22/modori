@@ -2,6 +2,7 @@ import { ColorSwatches } from "@/components/color-swatches";
 import { PALETTE } from "@/lib/colors";
 import { SubmitButton } from "@/components/submit-button";
 import { prisma } from "@/lib/prisma";
+import { LIMITS } from "@/lib/limits";
 import { requireUser } from "@/lib/session";
 
 import { createCategory, restoreCategory } from "./actions";
@@ -29,32 +30,39 @@ export default async function CategoriesPage() {
         <h1 className="text-2xl font-bold">카테고리</h1>
       </header>
 
-      <form
-        action={createCategory}
-        className="flex flex-col gap-4 rounded-2xl bg-surface p-4"
-      >
-        <div className="flex gap-2">
-          <input
-            name="name"
-            required
-            maxLength={20}
-            placeholder="새 카테고리"
-            aria-label="새 카테고리 이름"
-            className="h-11 min-w-0 flex-1 rounded-xl bg-surface-hover px-3"
+      {/* 상한에 닿으면 폼 대신 이유를 보여준다. 눌렀는데 아무 일도 없으면 고장 난 줄 안다. */}
+      {active.length >= LIMITS.categories ? (
+        <p className="rounded-2xl bg-surface p-4 text-sm text-muted">
+          카테고리는 {LIMITS.categories}개까지 만들 수 있어요. 안 쓰는 카테고리를 지우면 새로 만들 수 있어요.
+        </p>
+      ) : (
+        <form
+          action={createCategory}
+          className="flex flex-col gap-4 rounded-2xl bg-surface p-4"
+        >
+          <div className="flex gap-2">
+            <input
+              name="name"
+              required
+              maxLength={20}
+              placeholder="새 카테고리"
+              aria-label="새 카테고리 이름"
+              className="h-11 min-w-0 flex-1 rounded-xl bg-surface-hover px-3"
+            />
+            <SubmitButton
+              pendingLabel="추가 중"
+              className="h-11 rounded-xl bg-brand px-4 text-sm font-semibold text-brand-contrast"
+            >
+              추가
+            </SubmitButton>
+          </div>
+          <ColorSwatches
+            name="color"
+            legend="색"
+            defaultValue={DEFAULT_NEW_COLOR}
           />
-          <SubmitButton
-            pendingLabel="추가 중"
-            className="h-11 rounded-xl bg-brand px-4 text-sm font-semibold text-brand-contrast"
-          >
-            추가
-          </SubmitButton>
-        </div>
-        <ColorSwatches
-          name="color"
-          legend="색"
-          defaultValue={DEFAULT_NEW_COLOR}
-        />
-      </form>
+        </form>
+      )}
 
       {active.length === 0 ? (
         <p className="rounded-2xl bg-surface p-10 text-center text-sm text-muted">
