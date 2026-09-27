@@ -2,7 +2,9 @@ import Link from "next/link";
 
 import { ThemeToggle } from "@/components/theme-toggle";
 import { signOut } from "@/lib/auth";
+import { isAdmin } from "@/lib/admin";
 import { prisma } from "@/lib/prisma";
+import { PRIVACY_MANAGER } from "@/lib/privacy";
 import { requireUser } from "@/lib/session";
 
 import { Avatar } from "@/components/avatar";
@@ -10,9 +12,10 @@ import { avatarUrl } from "@/lib/avatar";
 
 export default async function SettingsPage() {
   const user = await requireUser();
-  const [following, followers] = await Promise.all([
+  const [following, followers, admin] = await Promise.all([
     prisma.follow.count({ where: { followerId: user.id } }),
     prisma.follow.count({ where: { followingId: user.id } }),
+    isAdmin(user.id),
   ]);
 
   return (
@@ -45,7 +48,7 @@ export default async function SettingsPage() {
           </span>
         </Link>
 
-        {/* 팔로우는 목록 화면이 있어 누르면 간다. 팔로워는 숫자만 보여준다. */}
+        {/* 누르면 누가 있는지 목록으로 간다. */}
         <div className="grid grid-cols-2 border-t border-border">
           <Link
             prefetch={false}
@@ -55,10 +58,14 @@ export default async function SettingsPage() {
             <span className="text-lg font-bold">{following}</span>
             <span className="text-xs text-muted">팔로우</span>
           </Link>
-          <div className="flex flex-col items-center gap-0.5 border-l border-border py-3.5">
+          <Link
+            prefetch={false}
+            href="/feed/followers"
+            className="flex flex-col items-center gap-0.5 border-l border-border py-3.5 hover:bg-surface-hover"
+          >
             <span className="text-lg font-bold">{followers}</span>
             <span className="text-xs text-muted">팔로워</span>
-          </div>
+          </Link>
         </div>
       </section>
 
@@ -66,6 +73,15 @@ export default async function SettingsPage() {
         <h2 className="text-sm font-semibold text-muted">화면</h2>
         <ThemeToggle />
       </section>
+
+      {/* 출시 초기에 불편한 점과 버그를 모은다. 메일 앱이 제목을 채운 채 열린다. */}
+      <a
+        href={`mailto:${PRIVACY_MANAGER.email}?subject=${encodeURIComponent("[모도리] 의견")}`}
+        className="flex h-14 items-center justify-between rounded-2xl bg-surface px-5 text-sm font-medium"
+      >
+        의견 보내기
+        <span className="text-xs text-muted">불편한 점이나 버그를 알려주세요</span>
+      </a>
 
       <form
         action={async () => {
@@ -96,6 +112,16 @@ export default async function SettingsPage() {
       >
         개인정보처리방침
       </Link>
+      {/* 운영자에게만 보인다. */}
+      {admin && (
+        <Link
+          prefetch={false}
+          href="/admin/errors"
+          className="mx-auto -mt-4 py-2 text-center text-xs text-muted underline underline-offset-4"
+        >
+          오류 기록
+        </Link>
+      )}
     </div>
   );
 }
