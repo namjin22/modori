@@ -40,6 +40,17 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
+const FONT_CSS =
+  "https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css";
+
+// 스크립트가 붙인 스타일시트는 화면 그리기를 막지 않는다.
+const FONT_SCRIPT = `
+var l = document.createElement("link");
+l.rel = "stylesheet";
+l.href = ${JSON.stringify(FONT_CSS)};
+document.head.appendChild(l);
+`;
+
 // 화면이 그려지기 전에 테마를 정해야 라이트로 한 번 번쩍이지 않는다.
 // 그래서 React가 아니라 head의 동기 스크립트로 처리한다.
 const THEME_SCRIPT = `
@@ -59,12 +70,12 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <head>
         {/* 글꼴을 CDN에서 받으므로 연결을 미리 열어둔다. 첫 화면에서 글자가 늦게 뜨는 시간이 줄어든다. */}
         <link rel="preconnect" href="https://cdn.jsdelivr.net" crossOrigin="" />
-        {/* CSS의 @import로 넣으면 Tailwind가 앞에 규칙을 붙이면서
-            @import가 규칙 뒤로 밀려 브라우저가 무시한다. link로 직접 건다. */}
-        <link
-          rel="stylesheet"
-          href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"
-        />
+        {/* 글꼴 CSS를 <link rel="stylesheet">로 걸면 받을 때까지 화면을 그리지 않는다. 다른 도메인이라
+            연결부터 새로 맺어서, 느린 3G에서 첫 화면이 6초 걸렸다. 미리 받기만 걸어 두고 스크립트로 붙여
+            화면은 기본 글꼴로 먼저 그리고 Pretendard가 오면 바꿔 끼운다(글꼴 CSS가 font-display: swap).
+            CSS의 @import는 Tailwind가 규칙을 앞에 붙여 무시되므로 쓰지 않는다. */}
+        <link rel="preload" as="style" href={FONT_CSS} />
+        <script dangerouslySetInnerHTML={{ __html: FONT_SCRIPT }} />
         <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
       </head>
       <body className="flex min-h-full flex-col bg-background text-foreground">
