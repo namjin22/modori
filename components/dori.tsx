@@ -352,12 +352,15 @@ export function Dori({
   size = 96,
   label,
   className,
+  crop = false,
 }: {
   mood?: DoriMood;
   size?: number;
   // 그림이 뜻을 전할 때만 이름을 붙인다. 꾸밈이면 화면 읽기에서 건너뛴다.
   label?: string;
   className?: string;
+  // 프로필 사진처럼 얼굴만 꽉 채울 때. 둘레의 소품 자리를 잘라낸다.
+  crop?: boolean;
 }) {
   const look = LOOKS[mood];
 
@@ -365,7 +368,7 @@ export function Dori({
     <svg
       width={size}
       height={size}
-      viewBox="0 0 120 120"
+      viewBox={crop ? "13 12 94 94" : "0 0 120 120"}
       role={label ? "img" : undefined}
       aria-label={label}
       aria-hidden={label ? undefined : true}
