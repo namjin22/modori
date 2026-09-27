@@ -121,3 +121,46 @@ test("없는 주소는 안내 화면을 보여준다", async ({ page }) => {
   await expect(page.getByText("없는 주소예요")).toBeVisible();
   await expect(page.getByRole("link", { name: "오늘 화면으로" })).toBeVisible();
 });
+
+test("투명 배경 사진은 흰 바탕으로 저장된다", async ({ page }) => {
+  await page.goto("/settings/profile");
+
+  // 가운데만 파란 원이고 나머지는 투명한 PNG를 브라우저에서 만든다.
+  const base64 = await page.evaluate(() => {
+    const canvas = document.createElement("canvas");
+    canvas.width = 200;
+    canvas.height = 200;
+    const context = canvas.getContext("2d")!;
+    context.fillStyle = "#2563eb";
+    context.beginPath();
+    context.arc(100, 100, 50, 0, Math.PI * 2);
+    context.fill();
+    return canvas.toDataURL("image/png").split(",")[1];
+  });
+  // 숨은 입력칸에 바로 꽂으면 onChange가 붙기 전에 지나갈 수 있다. 버튼으로 파일 창을 연다.
+  const chooser = page.waitForEvent("filechooser");
+  await page.getByRole("button", { name: "사진 고르기" }).click();
+  await (await chooser).setFiles({
+    name: "transparent.png",
+    mimeType: "image/png",
+    buffer: Buffer.from(base64, "base64"),
+  });
+  // 버튼 상태는 줄이기 시작 전에도 "사진 고르기"라 기다림 조건이 되지 못한다. 값이 들어올 때까지 본다.
+  const field = page.locator("input[name=profileImage]");
+  await expect(field).toHaveValue(/^data:image\/jpeg;base64,/);
+
+  const saved = await field.inputValue();
+  const corner = await page.evaluate(async (src) => {
+    const image = new Image();
+    image.src = src;
+    await image.decode();
+    const canvas = document.createElement("canvas");
+    canvas.width = image.width;
+    canvas.height = image.height;
+    const context = canvas.getContext("2d")!;
+    context.drawImage(image, 0, 0);
+    return Array.from(context.getImageData(2, 2, 1, 1).data);
+  }, saved);
+  // JPEG라 정확히 255는 아닐 수 있다. 검정(0)이 아니라 흰색에 가까우면 된다.
+  expect(Math.min(corner[0], corner[1], corner[2])).toBeGreaterThan(240);
+});
