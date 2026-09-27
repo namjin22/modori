@@ -10,6 +10,7 @@ import { Dori } from "@/components/dori";
 import { FeedItem } from "@/components/feed-item";
 import { avatarUrl } from "@/lib/avatar";
 
+const FRIEND_ROW_SIZE = 20;
 const FEED_SIZE = 50;
 
 type FeedCursor = { doneAt: Date; id: string };
@@ -36,7 +37,7 @@ export default async function FeedPage({
   const { after } = await searchParams;
   const cursor = readCursor(after);
 
-  const [page, follows, unreadCount] = await Promise.all([
+  const [page, follows, followingCount, unreadCount] = await Promise.all([
     // 팔로우한 사람이 완료한 할 일 중 공개 카테고리만.
     // 카테고리를 고르지 않은 할 일은 공개 여부를 정한 적이 없으므로 내보내지 않는다.
     prisma.todo.findMany({
@@ -63,12 +64,15 @@ export default async function FeedPage({
         reactions: { select: { emoji: true, userId: true } },
       },
     }),
-    // 위쪽 친구 줄에 쓴다. 최근에 팔로우한 사람이 앞에 온다.
+    // 위쪽 친구 줄에 쓴다. 최근에 팔로우한 사람이 앞에 온다. 프로필 사진(한 장 약 9KB)을 같이
+    // 읽으므로 친구가 수백 명이어도 이만큼만 읽는다. 나머지는 "전체 보기"로 팔로우 목록에서 본다.
     prisma.follow.findMany({
       where: { followerId: user.id },
       orderBy: { createdAt: "desc" },
+      take: FRIEND_ROW_SIZE,
       select: { following: { select: { id: true, nickname: true, profileImage: true } } },
     }),
+    prisma.follow.count({ where: { followerId: user.id } }),
     // 레이아웃이 같은 값을 이미 셌다. cache()가 막아주므로 질의는 한 번이다.
     countUnreadReactions(user.id, user.lastSeenAt),
   ]);
@@ -83,7 +87,6 @@ export default async function FeedPage({
     select: { id: true, profileImage: true },
   });
   const friends = follows.map((follow) => follow.following);
-  const followingCount = friends.length;
   const avatars = new Map(authors.map((author) => [author.id, avatarUrl(author)]));
 
   return (
@@ -141,6 +144,20 @@ export default async function FeedPage({
                 </Link>
               </li>
             ))}
+            {followingCount > friends.length && (
+              <li className="shrink-0">
+                <Link
+                  prefetch={false}
+                  href="/feed/following"
+                  className="flex w-16 flex-col items-center gap-1.5"
+                >
+                  <span className="flex size-14 items-center justify-center rounded-full bg-surface text-sm font-semibold text-muted">
+                    +{followingCount - friends.length}
+                  </span>
+                  <span className="w-full truncate text-center text-xs text-muted">전체 보기</span>
+                </Link>
+              </li>
+            )}
           </ul>
         </nav>
       )}
