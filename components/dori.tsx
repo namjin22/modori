@@ -352,15 +352,15 @@ export function Dori({
   size = 96,
   label,
   className,
-  crop = false,
+  avatar = false,
 }: {
   mood?: DoriMood;
   size?: number;
   // 그림이 뜻을 전할 때만 이름을 붙인다. 꾸밈이면 화면 읽기에서 건너뛴다.
   label?: string;
   className?: string;
-  // 프로필 사진처럼 얼굴만 꽉 채울 때. 둘레의 소품 자리를 잘라낸다.
-  crop?: boolean;
+  // 프로필 사진 자리. 얼굴만 둥근 틀 가운데에 작게 두고 둘레 소품은 뺀다.
+  avatar?: boolean;
 }) {
   const look = LOOKS[mood];
 
@@ -368,13 +368,14 @@ export function Dori({
     <svg
       width={size}
       height={size}
-      viewBox={crop ? "13 12 94 94" : "0 0 120 120"}
+      // 얼굴(귀 포함)은 가로 21~99, 세로 17~106이다. 원 안에 60% 남짓 차도록 둘레를 넉넉히 준다.
+      viewBox={avatar ? "-12 -10 144 144" : "0 0 120 120"}
       role={label ? "img" : undefined}
       aria-label={label}
       aria-hidden={label ? undefined : true}
       className={className}
     >
-      {look.behind}
+      {!avatar && look.behind}
 
       <Outlined>
         <Head />
@@ -402,7 +403,7 @@ export function Dori({
         {look.face}
       </g>
 
-      {look.props}
+      {!avatar && look.props}
     </svg>
   );
 }
