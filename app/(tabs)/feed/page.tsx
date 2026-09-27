@@ -36,7 +36,7 @@ export default async function FeedPage({
   const { after } = await searchParams;
   const cursor = readCursor(after);
 
-  const [page, followingCount, unreadCount] = await Promise.all([
+  const [page, follows, unreadCount] = await Promise.all([
     // 팔로우한 사람이 완료한 할 일 중 공개 카테고리만.
     // 카테고리를 고르지 않은 할 일은 공개 여부를 정한 적이 없으므로 내보내지 않는다.
     prisma.todo.findMany({
@@ -63,7 +63,12 @@ export default async function FeedPage({
         reactions: { select: { emoji: true, userId: true } },
       },
     }),
-    prisma.follow.count({ where: { followerId: user.id } }),
+    // 위쪽 친구 줄에 쓴다. 최근에 팔로우한 사람이 앞에 온다.
+    prisma.follow.findMany({
+      where: { followerId: user.id },
+      orderBy: { createdAt: "desc" },
+      select: { following: { select: { id: true, nickname: true, profileImage: true } } },
+    }),
     // 레이아웃이 같은 값을 이미 셌다. cache()가 막아주므로 질의는 한 번이다.
     countUnreadReactions(user.id, user.lastSeenAt),
   ]);
@@ -77,6 +82,8 @@ export default async function FeedPage({
     where: { id: { in: [...new Set(todos.map((todo) => todo.user.id))] } },
     select: { id: true, profileImage: true },
   });
+  const friends = follows.map((follow) => follow.following);
+  const followingCount = friends.length;
   const avatars = new Map(authors.map((author) => [author.id, avatarUrl(author)]));
 
   return (
@@ -114,6 +121,29 @@ export default async function FeedPage({
           </Link>
         </div>
       </header>
+
+      {/* 친구 얼굴을 가로로 늘어놓고 옆으로 넘긴다. 누르면 그 친구 화면으로 간다.
+          화면 가장자리까지 스크롤되게 바깥 여백만큼 넓혔다. */}
+      {friends.length > 0 && (
+        <nav aria-label="친구" className="-mx-5 overflow-x-auto px-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <ul className="flex gap-4">
+            {friends.map((friend) => (
+              <li key={friend.id} className="shrink-0">
+                <Link
+                  prefetch={false}
+                  href={`/feed/u/${friend.id}`}
+                  className="flex w-16 flex-col items-center gap-1.5"
+                >
+                  <Avatar src={avatarUrl(friend)} size={56} />
+                  <span className="w-full truncate text-center text-xs">
+                    {friend.nickname}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      )}
 
       {todos.length === 0 ? (
         <div className="flex flex-col items-center rounded-2xl bg-surface p-8 text-center">

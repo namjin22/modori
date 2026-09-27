@@ -72,7 +72,7 @@ test("로그아웃하면 다시 로그인 화면으로 간다", async ({ page })
   await page.getByPlaceholder("닉네임").fill(`모도리${RUN_TAG}`);
   await page.getByRole("button", { name: "시작하기" }).click();
 
-  await page.getByRole("link", { name: "설정" }).click();
+  await page.getByRole("link", { name: "마이페이지" }).click();
   await page.getByRole("button", { name: "로그아웃" }).click();
 
   await expect(page).toHaveURL(/\/login$/);

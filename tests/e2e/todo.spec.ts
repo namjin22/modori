@@ -174,3 +174,21 @@ test("저장되는 동안 다음 할 일을 적어도 지워지지 않는다", a
   await expect(page.getByRole("button", { name: "첫 번째", exact: true })).toBeVisible();
   await expect(input).toHaveValue("두 번째");
 });
+
+test("빈 칸으로 보내면 브라우저 말풍선 대신 앱 말풍선이 뜬다", async ({ page }) => {
+  await page.getByRole("button", { name: `${FIRST_CATEGORY}에 할 일 쓰기` }).click();
+  const input = page.getByLabel(`${FIRST_CATEGORY} 할 일`);
+  await input.press("Enter");
+  await expect(page.getByRole("alert").filter({ hasText: "내용을 적어주세요" })).toBeVisible();
+
+  // 창 안에서도 창 위에 뜬다.
+  await page.keyboard.press("Escape");
+  await addTodo(page, "고칠 일");
+  await openTodo(page, "고칠 일");
+  const edit = page.getByLabel("할 일 내용 수정");
+  await edit.fill("");
+  await edit.press("Enter");
+  await expect(
+    page.getByRole("dialog").getByRole("alert").filter({ hasText: "내용을 적어주세요" }),
+  ).toBeVisible();
+});
