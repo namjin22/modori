@@ -85,7 +85,10 @@ test("팔로우하면 친구가 완료한 할 일이 피드에 보인다", async
 
   await page.goto("/feed");
   await expect(page.getByText("친구의 공부")).toBeVisible();
-  await expect(page.getByText(accounts.friend.nickname)).toBeVisible();
+  // 위쪽 친구 줄에도 이름이 있다. 할 일이 든 피드 카드 안의 이름을 본다.
+  await expect(
+    page.getByRole("listitem").filter({ hasText: "친구의 공부" }).getByText(accounts.friend.nickname),
+  ).toBeVisible();
 });
 
 test("완료하지 않은 할 일은 피드에 보이지 않는다", async ({

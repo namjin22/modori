@@ -80,8 +80,33 @@ test("팔로우한 친구의 하루를 열어본다", async ({ page, accounts })
 
   // 피드에서 눌러도 같은 곳으로 간다.
   await page.goto("/feed");
-  const author = page.getByRole("link", { name: accounts.friend.nickname });
+  // 위쪽 친구 줄에도 같은 이름 링크가 있다. 피드 카드의 이름(아래쪽)을 누른다.
+  const author = page.getByRole("link", { name: accounts.friend.nickname, exact: true }).last();
   await expect(author).toBeVisible();
   await author.click();
   await expect(page).toHaveURL(new RegExp(`/feed/u/${friendId}$`));
+});
+
+test("소셜 위쪽 친구 줄에서 친구를 누르면 그 친구 화면으로 간다", async ({ page, accounts }) => {
+  await signIn(page, accounts.friend);
+  await signOut(page);
+  await signIn(page, accounts.me);
+
+  const [me, friend] = await Promise.all([
+    prisma.user.findUniqueOrThrow({ where: { email: accounts.me.email } }),
+    prisma.user.findUniqueOrThrow({ where: { email: accounts.friend.email } }),
+  ]);
+  await prisma.follow.create({ data: { followerId: me.id, followingId: friend.id } });
+
+  await page.goto("/feed");
+  const row = page.getByRole("navigation", { name: "친구" });
+  await row.getByRole("link", { name: accounts.friend.nickname }).click();
+  await expect(page).toHaveURL(new RegExp(`/feed/u/${friend.id}$`));
+
+  // 마이페이지에 팔로우·팔로워 수가 보인다. 친구가 나를 팔로우하면 팔로워가 는다.
+  await prisma.follow.create({ data: { followerId: friend.id, followingId: me.id } });
+  await page.goto("/settings");
+  await expect(page.getByRole("heading", { name: "마이페이지" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "1 팔로우" })).toBeVisible();
+  await expect(page.getByText("팔로워")).toBeVisible();
 });
