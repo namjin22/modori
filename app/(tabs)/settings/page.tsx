@@ -89,6 +89,13 @@ export default async function SettingsPage() {
       >
         계정 지우기
       </Link>
+      <Link
+        prefetch={false}
+        href="/privacy"
+        className="mx-auto -mt-4 py-2 text-center text-xs text-muted underline underline-offset-4"
+      >
+        개인정보처리방침
+      </Link>
     </div>
   );
 }

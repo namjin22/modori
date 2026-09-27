@@ -34,13 +34,21 @@ export async function saveNickname(
 
   const valid = validateNickname(nickname);
   if (!valid.ok) return { message: `닉네임은 1~${MAX_NICKNAME_LENGTH}자로 적어주세요.` };
+  // 화면의 체크박스만 믿지 않는다. 동의 없이 가입되면 안 된다.
+  if (formData.get("agree") !== "on") {
+    return { message: "개인정보 수집·이용에 동의해주세요." };
+  }
 
   if (await isNicknameTaken(nickname, userId)) {
     return { message: "이미 쓰고 있는 닉네임이에요. 다른 이름으로 해주세요." };
   }
 
   try {
-    await prisma.user.update({ where: { id: userId }, data: { nickname } });
+    // 언제 동의했는지 남긴다. 방침이 바뀌면 이 시각과 시행일을 견줘 다시 물을 수 있다.
+    await prisma.user.update({
+      where: { id: userId },
+      data: { nickname, privacyAgreedAt: new Date() },
+    });
   } catch (error) {
     // 같은 순간에 같은 이름으로 둘이 저장하면 여기서 걸린다.
     if (

@@ -29,6 +29,7 @@ test("로그인 전에 연 화면으로, 처음 가입해도 닉네임을 정한
   await mockLogin(page);
   await expect(page).toHaveURL(/\/onboarding\?next=/);
   await page.getByPlaceholder("닉네임").fill(`복귀${RUN_TAG}`);
+  await page.getByLabel("개인정보 수집·이용에 동의해요").check();
   await page.getByRole("button", { name: "시작하기" }).click();
 
   await expect(page).toHaveURL(/\/stats\?month=2026-01$/);
@@ -39,6 +40,7 @@ test("이미 가입한 사람은 로그인하면 바로 그 화면으로 간다"
   await page.goto("/login");
   await mockLogin(page);
   await page.getByPlaceholder("닉네임").fill(`복귀${RUN_TAG}`);
+  await page.getByLabel("개인정보 수집·이용에 동의해요").check();
   await page.getByRole("button", { name: "시작하기" }).click();
   await expect(homeReady(page)).toBeVisible();
   await context.clearCookies();
@@ -53,6 +55,7 @@ test("다른 사이트로 보내는 next는 무시하고 홈으로 간다", asyn
   await page.goto("/login");
   await mockLogin(page);
   await page.getByPlaceholder("닉네임").fill(`복귀${RUN_TAG}`);
+  await page.getByLabel("개인정보 수집·이용에 동의해요").check();
   await page.getByRole("button", { name: "시작하기" }).click();
   await expect(homeReady(page)).toBeVisible();
   await page.context().clearCookies();

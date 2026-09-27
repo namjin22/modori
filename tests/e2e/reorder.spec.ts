@@ -20,6 +20,7 @@ async function signInAndOnboard(page: Page, email: string, nickname: string) {
   await page.getByLabel("테스트 이메일").fill(email);
   await page.getByRole("button", { name: "테스트 로그인" }).click();
   await page.getByPlaceholder("닉네임").fill(nickname);
+  await page.getByLabel("개인정보 수집·이용에 동의해요").check();
   await page.getByRole("button", { name: "시작하기" }).click();
   await expect(homeReady(page)).toBeVisible();
 }
@@ -80,6 +81,7 @@ test("같은 닉네임은 다른 사람이 가져갈 수 없다", async ({ page 
     await page.getByLabel("테스트 이메일").fill(second);
     await page.getByRole("button", { name: "테스트 로그인" }).click();
     await page.getByPlaceholder("닉네임").fill(nickname);
+    await page.getByLabel("개인정보 수집·이용에 동의해요").check();
     await page.getByRole("button", { name: "시작하기" }).click();
 
     await expect(
@@ -88,6 +90,7 @@ test("같은 닉네임은 다른 사람이 가져갈 수 없다", async ({ page 
 
     // 다른 이름으로는 들어간다
     await page.getByPlaceholder("닉네임").fill(`${nickname}2`);
+    await page.getByLabel("개인정보 수집·이용에 동의해요").check();
     await page.getByRole("button", { name: "시작하기" }).click();
     await expect(homeReady(page)).toBeVisible();
   } finally {
