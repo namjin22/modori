@@ -23,7 +23,7 @@ const TABS = [
   },
   {
     href: "/settings",
-    label: "설정",
+    label: "마이페이지",
     Icon: SettingsIcon,
     isActive: (path: string) => path.startsWith("/settings"),
   },

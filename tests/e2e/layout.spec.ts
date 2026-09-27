@@ -28,11 +28,11 @@ test.afterAll(async () => {
   await prisma.$disconnect();
 });
 
-test("탭은 피드, 소셜, 설정 셋이고 카테고리와 루틴은 피드에 속한다", async ({ page, email }, testInfo) => {
+test("탭은 피드, 소셜, 마이페이지 셋이고 카테고리와 루틴은 피드에 속한다", async ({ page, email }, testInfo) => {
   await signInAndOnboard(page, email, `탭${testInfo.testId.slice(-6)}${RUN_TAG}`);
 
   const tabs = page.getByRole("navigation").last().getByRole("link");
-  await expect(tabs).toHaveText(["피드", "소셜", "설정"]);
+  await expect(tabs).toHaveText(["피드", "소셜", "마이페이지"]);
 
   // 넓은 화면에서는 달력과 목록이 한 화면에 같이 있다.
   await expect(page.getByRole("link", { name: /일, 완료 (있음|없음)$/ }).first()).toBeVisible();
@@ -44,8 +44,8 @@ test("탭은 피드, 소셜, 설정 셋이고 카테고리와 루틴은 피드�
     "page",
   );
 
-  // 설정에는 더 이상 카테고리·루틴이 없고, 테마는 라이트와 다크뿐이다.
-  await page.getByRole("link", { name: "설정", exact: true }).click();
+  // 마이페이지에는 카테고리·루틴이 없고, 테마는 라이트와 다크뿐이다.
+  await page.getByRole("link", { name: "마이페이지", exact: true }).click();
   await expect(page.getByRole("link", { name: /카테고리 관리|루틴 관리/ })).toHaveCount(0);
   await expect(page.getByRole("radio")).toHaveText(["라이트", "다크"]);
 

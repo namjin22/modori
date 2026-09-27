@@ -32,7 +32,7 @@ export default async function AccountPage() {
   return (
     <div className="flex flex-col gap-6">
       <header className="flex items-center gap-1">
-        <BackLink href="/settings" label="설정으로" />
+        <BackLink href="/settings" label="마이페이지로" />
         <h1 className="text-2xl font-bold">계정 지우기</h1>
       </header>
 
