@@ -1,0 +1,26 @@
+name: errors
+
+# 운영 서버에서 최근 1시간 사이 오류가 났는지 매시간 본다. 있으면 실패로 끝나 GitHub이
+# 메일을 보낸다. 저장소가 공개라 Actions 기록도 공개된다. 그래서 오류 내용은 받지도 찍지도 않고
+# 수만 본다. 내용은 운영자가 https://modori.site/admin/errors 에서 본다.
+on:
+  schedule:
+    # 정각은 예약 실행이 밀린다. health(7·22·37·52분)와도 겹치지 않게 둔다.
+    - cron: "44 * * * *"
+  workflow_dispatch:
+
+jobs:
+  count:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 최근 오류 수 확인
+        env:
+          MONITOR_TOKEN: ${{ secrets.MONITOR_TOKEN }}
+        run: |
+          body=$(curl -fsS -m 20 -H "x-monitor-token: $MONITOR_TOKEN" "https://modori.site/api/errors/summary?minutes=65")
+          count=$(echo "$body" | jq -r .count)
+          echo "최근 65분 오류 ${count}건"
+          if [ "$count" != "0" ]; then
+            echo "::error::최근 65분 사이 오류 ${count}건 — https://modori.site/admin/errors 에서 확인"
+            exit 1
+          fi

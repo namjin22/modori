@@ -220,3 +220,16 @@ model Event {
 
   @@index([userId, startDate])
 }
+
+// 서버·브라우저에서 난 오류. instrumentation.ts와 /api/errors가 쌓고 /admin/errors에서 본다.
+// 30일 지난 것은 지운다(lib/errors.ts). 사용자 입력을 그대로 담지 않도록 내용은 짧게 자른다.
+model ErrorEvent {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  source    String // server | client
+  message   String
+  digest    String?
+  path      String?
+
+  @@index([createdAt])
+}
