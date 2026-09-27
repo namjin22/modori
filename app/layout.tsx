@@ -2,6 +2,8 @@ import type { ReactNode } from "react";
 
 import type { Metadata, Viewport } from "next";
 
+import { ValidationBubble } from "@/components/validation-bubble";
+
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -67,6 +69,8 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       </head>
       <body className="flex min-h-full flex-col bg-background text-foreground">
         {children}
+        {/* 브라우저 기본 입력 말풍선 대신 앱 모양의 말풍선을 띄운다. */}
+        <ValidationBubble />
       </body>
     </html>
   );
