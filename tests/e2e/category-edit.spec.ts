@@ -62,7 +62,7 @@ test("이름을 비운 채 색을 바꾸면 저장하지 않고 이유를 알려
     where: { userId: user.id },
   });
   expect(category.name).toBe(FIRST_CATEGORY);
-  expect(category.color).not.toBe("#ef4444");
+  expect(category.color).not.toBe("#dc2626");
 });
 
 test("카테고리를 지우면 할 일은 남고 루틴은 멈추며, 되돌리면 다시 이어진다", async ({
