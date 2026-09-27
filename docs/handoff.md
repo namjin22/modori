@@ -1187,3 +1187,9 @@ VM에 시험 DB(사용자 1000, 할 일 108만, 반응 24만, 280MB)를 만들�
 - `docs/release-checklist.md` 새로 씀. 남은 P0: 실제 폰 확인, 운영자의 방침 확인.
 
 검증: `npm run verify` 통과 — 단위 80×3, E2E 98/98.
+
+- 겪은 문제: Windows(Git Bash)의 `openssl rand -hex`는 줄 끝에 `
+`을 붙인다. `tr -d "
+"`만 하면 ``이 남아
+  MONITOR_TOKEN이 49자가 되어 GitHub 쪽 값과 달라 404가 났다. `tr -d "
+"`으로 다시 만들어 양쪽에 넣음 → `errors` 워크플로 성공(0건).
