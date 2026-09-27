@@ -97,6 +97,9 @@ async function toSquareDataUrl(file: File): Promise<string> {
   const context = canvas.getContext("2d");
   if (!context) throw new Error("캔버스를 만들지 못했다.");
 
+  // JPEG는 투명을 담지 못해 투명한 곳이 검게 저장된다. 로고·그림 사진이 까매지지 않게 흰 바탕을 먼저 깐다.
+  context.fillStyle = "#ffffff";
+  context.fillRect(0, 0, PROFILE_IMAGE_SIZE, PROFILE_IMAGE_SIZE);
   context.drawImage(
     bitmap,
     (bitmap.width - side) / 2,
