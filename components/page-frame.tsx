@@ -12,7 +12,8 @@ export function PageFrame({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   // 왼쪽 달력, 오른쪽 목록으로 펼치는 화면만 넓게 쓴다.
   const twoColumn = pathname === "/" || pathname.startsWith("/feed/u/");
-  const width = twoColumn ? "max-w-lg lg:max-w-5xl" : "max-w-lg";
+  // 태블릿 세로(768px~)에서 512px로 묶으면 양옆이 휑하다. 한 줄이 너무 길지 않은 672px까지 넓힌다.
+  const width = twoColumn ? "max-w-lg md:max-w-2xl lg:max-w-5xl" : "max-w-lg md:max-w-2xl";
 
   return (
     <main className={`mx-auto w-full flex-1 px-5 pb-12 pt-8 ${width}`}>

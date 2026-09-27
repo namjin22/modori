@@ -36,7 +36,7 @@ export function BottomNav({ unreadReactions }: { unreadReactions: number }) {
     // 홈 화면에 추가해서 전체 화면으로 열면 아이폰 아래 막대가 탭을 가린다.
     // env(safe-area-inset-bottom)만큼 아래를 더 띄운다.
     <nav className="sticky bottom-0 border-t border-border bg-surface pb-[env(safe-area-inset-bottom,0px)]">
-      <ul className="mx-auto flex w-full max-w-lg">
+      <ul className="mx-auto flex w-full max-w-lg md:max-w-2xl">
         {TABS.map(({ href, label, Icon, isActive: matches }) => {
           const isActive = matches(pathname);
           // 받은 반응 화면을 보는 중이면 이미 읽고 있는 것이다. 뱃지를 띄우지 않는다.
