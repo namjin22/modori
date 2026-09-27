@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { Logo } from "@/components/logo";
@@ -44,74 +45,86 @@ export default async function LoginPage({
         </div>
       </div>
 
-      {message && (
-        <p
-          role="alert"
-          className="mb-4 rounded-2xl bg-surface p-4 text-center text-sm text-danger"
-        >
-          {message}
-        </p>
-      )}
+      {/* 버튼들은 한 묶음이다. 넓은 화면의 큰 간격(gap-12)은 로고와 이 묶음 사이에만 들어가야 한다.
+          묶지 않으면 버튼 하나하나 사이까지 48px씩 벌어진다. */}
+      <div className="flex flex-col gap-3">
+        {message && (
+          <p
+            role="alert"
+            className="rounded-2xl bg-surface p-4 text-center text-sm text-danger"
+          >
+            {message}
+          </p>
+        )}
 
-      <form
-        action={async () => {
-          "use server";
-          await signIn("google", { redirectTo: next });
-        }}
-      >
-        <button
-          type="submit"
-          className="h-14 w-full rounded-2xl bg-brand text-base font-semibold text-brand-contrast transition-colors hover:bg-brand-hover active:scale-[0.98]"
-        >
-          Google로 계속하기
-        </button>
-      </form>
-
-      {isDataGSMConfigured && (
         <form
           action={async () => {
             "use server";
-            await signIn("datagsm", { redirectTo: next });
+            await signIn("google", { redirectTo: next });
           }}
-          className="mt-3"
         >
           <button
             type="submit"
-            className="h-14 w-full rounded-2xl bg-surface text-base font-semibold text-foreground transition-colors hover:bg-surface-hover active:scale-[0.98]"
+            className="h-14 w-full rounded-2xl bg-brand text-base font-semibold text-brand-contrast transition-colors hover:bg-brand-hover active:scale-[0.98]"
           >
-            DataGSM으로 계속하기
+            Google로 계속하기
           </button>
         </form>
-      )}
 
-      {isMockAuth && (
-        <form
-          action={async (formData: FormData) => {
-            "use server";
-            await signIn("mock", {
-              email: formData.get("email"),
-              redirectTo: next,
-            });
-          }}
-          className="mt-4 flex flex-col gap-3 rounded-2xl border border-dashed border-border p-4"
-        >
-          <p className="text-sm text-muted">테스트 전용 로그인</p>
-          <input
-            name="email"
-            type="email"
-            required
-            placeholder="email"
-            aria-label="테스트 이메일"
-            className="h-11 rounded-xl bg-surface px-3 outline-none ring-border focus:ring-2"
-          />
-          <button
-            type="submit"
-            className="h-11 rounded-xl bg-surface-hover text-sm font-medium"
+        {isDataGSMConfigured && (
+          <form
+            action={async () => {
+              "use server";
+              await signIn("datagsm", { redirectTo: next });
+            }}
           >
-            테스트 로그인
-          </button>
-        </form>
-      )}
+            <button
+              type="submit"
+              className="h-14 w-full rounded-2xl bg-surface text-base font-semibold text-foreground transition-colors hover:bg-surface-hover active:scale-[0.98]"
+            >
+              DataGSM으로 계속하기
+            </button>
+          </form>
+        )}
+
+        {isMockAuth && (
+          <form
+            action={async (formData: FormData) => {
+              "use server";
+              await signIn("mock", {
+                email: formData.get("email"),
+                redirectTo: next,
+              });
+            }}
+            className="mt-1 flex flex-col gap-3 rounded-2xl border border-dashed border-border p-4"
+          >
+            <p className="text-sm text-muted">테스트 전용 로그인</p>
+            <input
+              name="email"
+              type="email"
+              required
+              placeholder="email"
+              aria-label="테스트 이메일"
+              className="h-11 rounded-xl bg-surface px-3 outline-none ring-border focus:ring-2"
+            />
+            <button
+              type="submit"
+              className="h-11 rounded-xl bg-surface-hover text-sm font-medium"
+            >
+              테스트 로그인
+            </button>
+          </form>
+        )}
+
+        {/* 가입 전에 읽을 수 있어야 한다. */}
+        <Link
+          href="/privacy"
+          prefetch={false}
+          className="mt-3 self-center py-2 text-xs text-muted underline underline-offset-4"
+        >
+          개인정보처리방침
+        </Link>
+      </div>
     </main>
   );
 }

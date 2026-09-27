@@ -35,6 +35,7 @@ async function signIn(page: Page, account: Account) {
 
   if (await nickname.isVisible()) {
     await nickname.fill(account.nickname);
+    await page.getByLabel("개인정보 수집·이용에 동의해요").check();
     await page.getByRole("button", { name: "시작하기" }).click();
     await expect(homeReady(page)).toBeVisible();
   }

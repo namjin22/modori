@@ -34,7 +34,7 @@ export function Avatar({
 }
 
 /**
- * 기본 프로필 그림. 화면 곳곳의 도리와 같은 얼굴을 쓴다.
+ * 기본 프로필 그림. 웃는 눈과 고양이 입의 도리 얼굴을 원 가운데에 작게 둔다.
  * 배경은 테마의 옅은 브랜드색이라 밝은 테마에서는 연한 하늘색, 어두운 테마에서는 짙은 남색이 된다.
  */
 export function DoriFace({
@@ -51,7 +51,7 @@ export function DoriFace({
       className={`inline-flex shrink-0 items-center justify-center overflow-hidden bg-brand-subtle ${className}`}
       style={{ width: size, height: size }}
     >
-      <Dori mood="happy" size={size} crop />
+      <Dori mood="like" size={size} avatar />
     </span>
   );
 }

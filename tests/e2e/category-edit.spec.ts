@@ -19,6 +19,7 @@ async function signInAndOnboard(page: Page, email: string, nickname: string) {
   await page.getByLabel("테스트 이메일").fill(email);
   await page.getByRole("button", { name: "테스트 로그인" }).click();
   await page.getByPlaceholder("닉네임").fill(nickname);
+  await page.getByLabel("개인정보 수집·이용에 동의해요").check();
   await page.getByRole("button", { name: "시작하기" }).click();
   await expect(homeReady(page)).toBeVisible();
 }
