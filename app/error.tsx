@@ -14,6 +14,14 @@ export default function Error({
   useEffect(() => {
     // 화면에는 사람이 읽을 말만 보여주고, 원인은 로그에 남긴다.
     console.error("[error]", error);
+    // 서버에서 난 오류는 digest가 붙어 오고 서버가 이미 기록했다(instrumentation.ts).
+    // 브라우저에서만 난 오류만 보낸다. 페이지를 떠나도 전송되게 sendBeacon을 쓴다.
+    if (!error.digest) {
+      navigator.sendBeacon(
+        "/api/errors",
+        JSON.stringify({ message: `${error.name}: ${error.message}`, path: location.pathname }),
+      );
+    }
   }, [error]);
 
   return (

@@ -33,6 +33,8 @@ export async function followUser(formData: FormData) {
 
   revalidatePath("/feed");
   revalidatePath("/feed/search");
+  revalidatePath("/feed/followers");
+  revalidatePath("/settings");
 }
 
 export async function unfollowUser(formData: FormData) {
@@ -44,6 +46,8 @@ export async function unfollowUser(formData: FormData) {
 
   revalidatePath("/feed");
   revalidatePath("/feed/search");
+  revalidatePath("/feed/followers");
+  revalidatePath("/settings");
 }
 
 export async function toggleReaction(formData: FormData) {

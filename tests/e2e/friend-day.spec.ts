@@ -135,3 +135,27 @@ test("친구가 20명을 넘으면 친구 줄은 20명과 전체 보기를 보�
     await prisma.user.deleteMany({ where: { id: { in: many.map((user) => user.id) } } });
   }
 });
+
+test("마이페이지 팔로워를 누르면 팔로워 목록이 나오고 맞팔로우할 수 있다", async ({ page, accounts }) => {
+  await signIn(page, accounts.friend);
+  await signOut(page);
+  await signIn(page, accounts.me);
+  const [me, friend] = await Promise.all([
+    prisma.user.findUniqueOrThrow({ where: { email: accounts.me.email } }),
+    prisma.user.findUniqueOrThrow({ where: { email: accounts.friend.email } }),
+  ]);
+  // 친구만 나를 팔로우한 상태.
+  await prisma.follow.create({ data: { followerId: friend.id, followingId: me.id } });
+
+  await page.goto("/settings");
+  await page.getByRole("link", { name: "1 팔로워" }).click();
+  await expect(page).toHaveURL(/\/feed\/followers$/);
+  await expect(page.getByRole("heading", { name: "팔로워" })).toBeVisible();
+  // 아직 팔로우하지 않았으니 친구 화면 링크는 없고 맞팔로우 버튼이 있다.
+  await expect(page.getByRole("link", { name: accounts.friend.nickname })).toHaveCount(0);
+  await page.getByRole("button", { name: "맞팔로우" }).click();
+
+  await expect(page.getByText("팔로우 중", { exact: true })).toBeVisible();
+  await page.getByRole("link", { name: accounts.friend.nickname }).click();
+  await expect(page).toHaveURL(new RegExp(`/feed/u/${friend.id}$`));
+});
