@@ -6,18 +6,18 @@
  * 둘러서 배경에 묻히지 않게 한다.
  */
 export const PALETTE = [
-  { value: "#ef4444", name: "빨강" },
+  { value: "#dc2626", name: "빨강" },
   { value: "#f97316", name: "주황" },
   { value: "#facc15", name: "노랑" },
   { value: "#22c55e", name: "초록" },
-  { value: "#3b82f6", name: "파랑" },
-  { value: "#8b5cf6", name: "보라" },
+  { value: "#2563eb", name: "파랑" },
+  { value: "#7c3aed", name: "보라" },
   { value: "#ffffff", name: "흰색" },
   { value: "#111827", name: "검정" },
 ] as const;
 
 /** 일정은 색을 고르지 않는다. 달력에서 이름으로 알아보므로 파랑으로 고정한다. */
-export const DEFAULT_EVENT_COLOR = "#3b82f6";
+export const DEFAULT_EVENT_COLOR = "#2563eb";
 
 export function isPaletteColor(value: string): boolean {
   return PALETTE.some((color) => color.value === value);
@@ -45,7 +45,9 @@ function luminance(color: string): number | null {
 export function onColorText(background: string): "#ffffff" | "#191f28" {
   const value = luminance(background);
   if (value === null) return "#191f28";
-  return 1.05 / (value + 0.05) >= 3 ? "#ffffff" : "#191f28";
+  // 칩 글씨는 14px 안팎이라 작은 글자 기준(4.5:1)을 쓴다. 빨강·파랑·보라는 흰 글씨가 이 기준을
+  // 넘도록 한 단계 진한 색(600)을 팔레트에 둔다.
+  return 1.05 / (value + 0.05) >= 4.5 ? "#ffffff" : "#191f28";
 }
 
 /** 색상 위에 올릴 글자 중 대비가 더 큰 색을 고른다. 작은 글씨처럼 대비가 꼭 필요할 때 쓴다. */
