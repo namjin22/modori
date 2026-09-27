@@ -52,7 +52,6 @@ export function RoutineForm({
         aria-label="루틴 카테고리"
         className="h-12 rounded-xl bg-surface-hover px-3 text-sm"
       >
-        <option value="">카테고리 없음</option>
         {categories.map((category) => (
           <option key={category.id} value={category.id}>
             {category.name}
@@ -121,23 +120,24 @@ export function RoutineForm({
         </fieldset>
       )}
 
+      {/* 날짜 칸은 기본 최소 폭이 있어 가장 좁은 폰(320px)에서 카드 밖으로 밀려났다. min-w-0으로 줄어들게 한다. */}
       <div className="flex gap-2">
-        <label className="flex flex-1 flex-col gap-1 text-xs text-muted">
+        <label className="flex min-w-0 flex-1 flex-col gap-1 text-xs text-muted">
           시작일
           <input
             type="date"
             name="startDate"
             defaultValue={today}
-            className="h-11 rounded-xl bg-surface-hover px-3 text-sm text-foreground"
+            className="h-11 w-full min-w-0 rounded-xl bg-surface-hover px-3 text-sm text-foreground"
           />
         </label>
 
-        <label className="flex flex-1 flex-col gap-1 text-xs text-muted">
+        <label className="flex min-w-0 flex-1 flex-col gap-1 text-xs text-muted">
           종료일 (없으면 계속)
           <input
             type="date"
             name="endDate"
-            className="h-11 rounded-xl bg-surface-hover px-3 text-sm text-foreground"
+            className="h-11 w-full min-w-0 rounded-xl bg-surface-hover px-3 text-sm text-foreground"
           />
         </label>
       </div>

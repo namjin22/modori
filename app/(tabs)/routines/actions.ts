@@ -76,14 +76,15 @@ export async function createRoutine(
     return { message: "종료일이 시작일보다 앞설 수 없어요." };
   }
 
-  const categoryId = readText(formData, "categoryId") || null;
-  if (categoryId) {
-    const owned = await prisma.category.findFirst({
-      where: { id: categoryId, userId: user.id },
-      select: { id: true },
-    });
-    if (!owned) return { message: "고른 카테고리를 찾을 수 없어요." };
-  }
+  // 루틴은 카테고리 안에 들어간다(docs/decisions.md). 카테고리 없는 루틴은 만든 할 일이
+  // 적을 수 없는 "카테고리 없음" 묶음에 쌓인다. 보관한 카테고리에도 새로 만들지 않는다.
+  const categoryId = readText(formData, "categoryId");
+  if (!categoryId) return { message: "카테고리를 골라주세요." };
+  const owned = await prisma.category.findFirst({
+    where: { id: categoryId, userId: user.id, archivedAt: null },
+    select: { id: true },
+  });
+  if (!owned) return { message: "고른 카테고리를 찾을 수 없어요." };
 
   const count = await prisma.routine.count({ where: { userId: user.id } });
   if (count >= LIMITS.routines) {

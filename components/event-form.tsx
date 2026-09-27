@@ -65,7 +65,7 @@ export function EventForm({
       />
 
       <div className="grid grid-cols-2 gap-3">
-        <label className="flex flex-col gap-1.5 text-xs text-muted">
+        <label className="flex min-w-0 flex-col gap-1.5 text-xs text-muted">
           시작일
           <input
             type="date"
@@ -73,17 +73,17 @@ export function EventForm({
             required
             defaultValue={event?.startDate ?? defaultDate}
             aria-label={`${label} 시작일`}
-            className="h-11 rounded-xl bg-surface-hover px-3 text-sm text-foreground"
+            className="h-11 w-full min-w-0 rounded-xl bg-surface-hover px-3 text-sm text-foreground"
           />
         </label>
-        <label className="flex flex-col gap-1.5 text-xs text-muted">
+        <label className="flex min-w-0 flex-col gap-1.5 text-xs text-muted">
           종료일
           <input
             type="date"
             name="endDate"
             defaultValue={event?.endDate ?? defaultDate}
             aria-label={`${label} 종료일`}
-            className="h-11 rounded-xl bg-surface-hover px-3 text-sm text-foreground"
+            className="h-11 w-full min-w-0 rounded-xl bg-surface-hover px-3 text-sm text-foreground"
           />
         </label>
       </div>

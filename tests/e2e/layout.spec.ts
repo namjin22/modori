@@ -85,3 +85,19 @@ test.describe("좁은 화면", () => {
     await expect(monthDay).toBeHidden();
   });
 });
+
+test("가장 좁은 폰(320px)에서 루틴 폼을 열어도 가로로 넘치지 않는다", async ({ page, email }, testInfo) => {
+  await page.setViewportSize({ width: 320, height: 700 });
+  await signInAndOnboard(page, email, `좁폼${testInfo.testId.slice(-6)}${RUN_TAG}`);
+
+  await page.goto("/routines");
+  await page.getByText("루틴 만들기").click();
+  await page.getByRole("radio", { name: "매월" }).click();
+
+  const overflow = await page.evaluate(
+    () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+  );
+  expect(overflow).toBeLessThanOrEqual(0);
+  // 루틴은 카테고리 안에 들어간다. 고르지 않아도 첫 카테고리가 잡혀 있다.
+  await expect(page.getByLabel("루틴 카테고리")).not.toHaveValue("");
+});
