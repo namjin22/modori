@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 
 import { Logo } from "@/components/logo";
 import { isDataGSMConfigured, isMockAuth, signIn } from "@/lib/auth";
+import { safeNext } from "@/lib/next-path";
 import { getCurrentUser } from "@/lib/session";
 
 // Auth.js가 붙여 보내는 오류 코드. 사람이 읽을 말로 바꾼다.
@@ -17,12 +18,15 @@ const ERROR_MESSAGES: Record<string, string> = {
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; next?: string }>;
 }) {
-  // 세션만 보고 보내면, 계정이 사라진 세션에서 탭 화면과 서로 튕겨낸다.
-  if (await getCurrentUser()) redirect("/");
+  const { error, next: rawNext } = await searchParams;
+  // 로그인 뒤에 돌아갈 곳. 친구가 보낸 링크를 로그인 전에 열었으면 그 화면이다.
+  const next = safeNext(rawNext) ?? "/";
 
-  const { error } = await searchParams;
+  // 세션만 보고 보내면, 계정이 사라진 세션에서 탭 화면과 서로 튕겨낸다.
+  if (await getCurrentUser()) redirect(next);
+
   const message = error
     ? (ERROR_MESSAGES[error] ?? "로그인하지 못했어요. 다시 시도해주세요.")
     : null;
@@ -52,7 +56,7 @@ export default async function LoginPage({
       <form
         action={async () => {
           "use server";
-          await signIn("google", { redirectTo: "/" });
+          await signIn("google", { redirectTo: next });
         }}
       >
         <button
@@ -67,7 +71,7 @@ export default async function LoginPage({
         <form
           action={async () => {
             "use server";
-            await signIn("datagsm", { redirectTo: "/" });
+            await signIn("datagsm", { redirectTo: next });
           }}
           className="mt-3"
         >
@@ -86,7 +90,7 @@ export default async function LoginPage({
             "use server";
             await signIn("mock", {
               email: formData.get("email"),
-              redirectTo: "/",
+              redirectTo: next,
             });
           }}
           className="mt-4 flex flex-col gap-3 rounded-2xl border border-dashed border-border p-4"

@@ -4,6 +4,8 @@ import { Prisma } from "@prisma/client";
 
 import { redirect } from "next/navigation";
 
+import { safeNext } from "@/lib/next-path";
+
 import {
   isNicknameTaken,
   normalizeNickname,
@@ -62,5 +64,6 @@ export async function saveNickname(
     });
   }
 
-  redirect("/");
+  // 친구가 보낸 링크로 처음 가입했으면 그 화면으로 보낸다.
+  redirect(safeNext(formData.get("next")) ?? "/");
 }
