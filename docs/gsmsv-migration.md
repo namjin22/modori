@@ -1,7 +1,20 @@
-# GSMSV 이관 계획 (2026-09-25)
+# GSMSV 이관 기록 (2026-09-25 ~ 27)
 
 Vercel Hobby + Neon 무료로는 사용자 1000명을 못 버틴다(`docs/capacity.md`).
-교내 IaaS인 GSMSV의 VM 한 대로 옮긴다. 이 문서는 진행하면서 고친다.
+교내 IaaS인 GSMSV의 VM 한 대로 옮겼다. 아래는 계획부터 끝날 때까지 진행하면서 고친 기록이다.
+
+## 지금 상태 (2026-09-28)
+
+- 운영: https://modori.site → Cloudflare Tunnel → VM의 앱(:3000) → VM 안 Postgres 18. 2026-09-27 새벽에 옮겼다.
+- 배포는 GitHub Actions가 이미지를 만들어 `docker save | ssh`로 보낸다(계획 단계에서 적은 GHCR은 쓰지 않았다).
+- Google·DataGSM 로그인 모두 운영에서 확인했다.
+- 옮긴 뒤 사용자 요청으로 운영 DB의 계정과 기록을 비우고 새로 시작했다(9/27 한 번, 출시 전 9/28 한 번 더).
+  예전 Neon에 남아 있던 실제 사용자 데이터도 지웠다. 예전 Neon은 테스트·CI 전용이다.
+- 백업: 매일 04:00, VM 안 7일 + 백업용 Neon(us-east-2) 최신본 하나. 백업용 Neon만으로 복원하는 훈련을 해 봤다
+  (17초, 표 9개 행 수 일치).
+- 남은 운영 일은 `docs/release-checklist.md`, 명령은 `deploy/README.md`.
+
+---
 
 ## GSMSV 조건 (사용자가 준 공식 문서 기준)
 
@@ -24,7 +37,8 @@ Vercel Hobby + Neon 무료로는 사용자 1000명을 못 버틴다(`docs/capaci
   같이 쓰는 문제도 함께 풀린다.
 - VM은 지금 USER가 고를 수 있는 최대인 standard(2 vCPU / 4GB / 20GB). PROJECT_OWNER를 받으면 키운다.
   메모리가 4GB라 VM에서 `next build`(2~3GB)와 Postgres·앱을 같이 돌리면 빠듯하다.
-  **이미지는 GitHub Actions에서 만들어 GHCR에 올리고, VM은 받아서 띄우기만 한다.** 스왑 2GB를 둔다.
+  **이미지는 GitHub Actions에서 만들고, VM은 받아서 띄우기만 한다.** 스왑 2GB를 둔다.
+  (계획은 GHCR이었지만 실제로는 `docker save | ssh`로 보냈다. 레지스트리 계정과 토큰을 VM에 두지 않아도 된다.)
 
 ## VM (2026-09-25 생성, 확인함)
 
@@ -121,9 +135,8 @@ Host gsmsv-modori
 - `modori.vercel.app`은 307로, `www.modori.site`는 308로 `https://modori.site`에 넘긴다(`next.config.ts`).
 - 백업: 매일 04:00 타이머. 이관 직후 한 번 돌려 백업용 Neon(us-east-2)에 들어간 것을 확인.
 
-남은 일:
-- 사용자가 Google·DataGSM으로 `https://modori.site`에 실제 로그인해 본다.
-- 예전 Neon은 이제 테스트·CI 전용이다. 그런데 **실제 사용자 3명의 데이터 사본이 아직 들어 있다.**
-  지울지는 사용자에게 묻는다(데이터 삭제라 승인 필요).
+남은 일(이후 처리한 것은 줄을 그었다):
+- ~~사용자가 Google·DataGSM으로 `https://modori.site`에 실제 로그인해 본다.~~ 확인함.
+- ~~예전 Neon에 실제 사용자 3명의 데이터 사본이 남아 있다.~~ 사용자 요청으로 지웠다.
 - `modori-backup` 비밀번호가 채팅에 노출됐다. Neon에서 비밀번호를 바꾸고 `set-secrets.sh`로 다시 넣는다.
 - VM 연장(15일마다), 도메인 만료일(1년, 자동 갱신 없음) 챙기기.
