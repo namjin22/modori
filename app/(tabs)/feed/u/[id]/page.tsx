@@ -52,6 +52,21 @@ function readMonth(raw: string | undefined, fallback: Date): Date {
   }
 }
 
+/** 날짜별 요약(전체 수, 끝낸 일의 색). 내 피드 화면과 같은 방식이라 달력이 끝낸 만큼만 찬다. */
+function summarizeByDate(
+  todos: { date: Date; done: boolean; color: string | null; category: { color: string } | null }[],
+): Map<string, DaySummary> {
+  const summaries = new Map<string, DaySummary>();
+  for (const todo of todos) {
+    const key = formatKST(todo.date);
+    const summary = summaries.get(key) ?? { total: 0, doneColors: [] };
+    summary.total += 1;
+    if (todo.done) summary.doneColors.push(todo.color ?? todo.category?.color ?? NO_CATEGORY_COLOR);
+    summaries.set(key, summary);
+  }
+  return summaries;
+}
+
 function formatHeading(date: Date): string {
   const [, month, day] = formatKST(date).split("-");
   return `${Number(month)}월 ${Number(day)}일 ${WEEKDAY_NAMES[weekdayKST(date)]}요일`;
@@ -61,8 +76,8 @@ function formatHeading(date: Date): string {
  * 친구 한 명의 하루. 내 오늘 화면과 같은 구성으로 본다.
  * 프로필, 주간 줄과 달력, 카테고리별로 묶인 할 일.
  *
- * 보이는 범위는 피드와 같다. 팔로우한 사람의, 완료한, 공개 카테고리 할 일만이다.
- * 그래서 남은 개수라는 개념이 없고 일정도 보여주지 않는다.
+ * 팔로우한 사람의 공개 카테고리 할 일은 끝냈든 아니든 다 보인다(투두메이트처럼 무엇을 하려는지까지 본다).
+ * 반응은 끝낸 일에만 보낸다. 소셜 피드는 끝낸 일만 흐르고, 일정은 보여주지 않는다.
  */
 export default async function FriendDayPage({
   params,
@@ -97,7 +112,7 @@ export default async function FriendDayPage({
   const basePath = `/feed/u/${friend.id}`;
   const viewQuery = monthOpen ? "&view=month" : "";
 
-  const visible = { done: true, category: { isPublic: true }, userId: friend.id };
+  const visible = { category: { isPublic: true }, userId: friend.id };
 
   const [todos, weekTodos, monthTodos] = await Promise.all([
     prisma.todo.findMany({
@@ -112,41 +127,28 @@ export default async function FriendDayPage({
     prisma.todo.findMany({
       where: { ...visible, date: { gte: weekStart, lte: weekEnd } },
       orderBy: { order: "asc" },
-      select: { date: true, color: true, category: { select: { color: true } } },
+      select: { date: true, done: true, color: true, category: { select: { color: true } } },
     }),
     prisma.todo.findMany({
       where: { ...visible, date: { gte: monthStart, lte: monthEnd } },
       orderBy: { order: "asc" },
-      select: { date: true, color: true, category: { select: { color: true } } },
+      select: { date: true, done: true, color: true, category: { select: { color: true } } },
     }),
   ]);
 
-  function summarize(rows: typeof weekTodos, day: Date) {
-    const key = formatKST(day);
-    const rowsOfDay = rows.filter((todo) => formatKST(todo.date) === key);
-    // 친구 화면에는 완료한 것만 보이므로 남은 개수라는 개념이 없다. 전부 채운다.
-    return {
-      total: rowsOfDay.length,
-      doneColors: rowsOfDay.map((todo) => todo.color ?? todo.category?.color ?? NO_CATEGORY_COLOR),
-    };
-  }
-
+  const summaries = summarizeByDate(monthTodos);
+  const weekSummaries = summarizeByDate(weekTodos);
   const weekDays = Array.from({ length: 7 }, (_, index) => {
     const day = addDays(weekStart, index);
-    const summary = summarize(weekTodos, day);
-    return { date: day, done: summary.total, ...summary };
+    const summary = weekSummaries.get(formatKST(day)) ?? { total: 0, doneColors: [] };
+    return { date: day, done: summary.doneColors.length, ...summary };
   });
 
-  const summaries = new Map<string, DaySummary>();
-  for (const todo of monthTodos) {
-    const key = formatKST(todo.date);
-    const summary = summaries.get(key) ?? { total: 0, doneColors: [] };
-    summary.total += 1;
-    summary.doneColors.push(todo.color ?? todo.category?.color ?? NO_CATEGORY_COLOR);
-    summaries.set(key, summary);
-  }
-
-  const groups = groupByCategory(todos, []);
+  // 내 화면과 같이 끝낸 일은 묶음 아래로 내린다. sort는 안정 정렬이라 같은 쪽 안의 순서는 그대로다.
+  const groups = groupByCategory(todos, []).map((group) => ({
+    ...group,
+    items: [...group.items].sort((a, b) => Number(a.done) - Number(b.done)),
+  }));
   const isToday = isSameKSTDate(date, today);
   const dayHref = (key: string) =>
     `${basePath}?date=${key}&month=${formatMonthKST(monthStart)}${viewQuery}`;
@@ -247,7 +249,7 @@ export default async function FriendDayPage({
         {todos.length === 0 ? (
           <div className="flex flex-col items-center gap-2 py-8 text-center">
             <Dori mood="calm" size={80} />
-            <p className="text-sm text-muted">끝낸 할 일이 없어요</p>
+            <p className="text-sm text-muted">할 일이 없어요</p>
           </div>
         ) : (
           // 내 화면과 같이 카테고리로 묶는다. 쭉 나열하면 무엇을 하는 사람인지 안 보인다.
@@ -255,7 +257,9 @@ export default async function FriendDayPage({
             <section key={group.key} className="flex flex-col gap-2">
               <div className="flex items-center gap-2">
                 <CategoryChip name={group.name} color={group.color} />
-                <span className="text-xs text-muted">{group.items.length}개</span>
+                <span className="text-xs text-muted">
+                  {group.items.filter((todo) => todo.done).length}/{group.items.length}
+                </span>
               </div>
 
               <ul className="flex flex-col divide-y divide-border rounded-2xl bg-surface px-4">
@@ -271,6 +275,7 @@ export default async function FriendDayPage({
                       color: todo.color,
                       category: todo.category,
                       reactions: todo.reactions,
+                      done: todo.done,
                     }}
                     viewerId={viewer.id}
                     showAuthor={false}
