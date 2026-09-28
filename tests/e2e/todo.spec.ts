@@ -71,6 +71,27 @@ test("할 일을 연달아 완료해도 완료 개수가 즉시 맞는다", asyn
   await expect(page.getByText("2개 중 2개 완료")).toBeVisible();
 });
 
+test("다른 탭에서 먼저 완료한 할 일을 이 탭에서 완료로 눌러도 풀리지 않는다", async ({ page, context }) => {
+  await addTodo(page, "두 탭에서 볼 일");
+
+  // 두 번째 탭에서 먼저 완료한다. 첫 탭은 아직 "완료" 버튼을 보고 있다.
+  const other = await context.newPage();
+  await other.goto("/");
+  await other.getByRole("button", { name: "완료", exact: true }).click();
+  await expect(other.getByRole("button", { name: "완료 취소" })).toBeVisible();
+  await other.close();
+
+  await page.getByRole("button", { name: "완료", exact: true }).click();
+  await expect(page.getByRole("button", { name: "완료 취소" })).toBeVisible();
+
+  await page.reload();
+  await expect(page.getByRole("button", { name: "완료 취소" })).toBeVisible();
+  const todo = await prisma.todo.findFirstOrThrow({
+    where: { content: "두 탭에서 볼 일", user: { email: TEST_EMAIL } },
+  });
+  expect(todo.done).toBe(true);
+});
+
 test("삭제하면 목록에서 사라진다", async ({ page }) => {
   await addTodo(page, "지울 할 일");
 

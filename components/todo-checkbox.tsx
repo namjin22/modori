@@ -28,6 +28,7 @@ export function TodoCheckbox({
     <form
       action={async (formData: FormData) => {
         const next = !optimisticDone;
+        formData.set("done", String(next));
         setOptimisticDone(next);
         // 완료 개수도 같은 액션 안에서 움직여야 둘이 따로 놀지 않는다.
         changeDone?.(next ? 1 : -1);
