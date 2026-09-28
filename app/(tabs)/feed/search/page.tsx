@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { MAX_NICKNAME_LENGTH, normalizeNickname } from "@/lib/nickname";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 
@@ -21,7 +22,8 @@ export default async function SearchPage({
 }) {
   const user = await requireUser();
   const { q } = await searchParams;
-  const query = q?.trim() ?? "";
+  // 닉네임과 같은 규칙으로 정리한다. 맥에서 친 한글(NFD)도 찾히고, 닉네임보다 긴 검색어는 자른다.
+  const query = normalizeNickname(q).slice(0, MAX_NICKNAME_LENGTH);
 
   const [results, following] = await Promise.all([
     query.length > 0
