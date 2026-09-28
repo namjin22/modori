@@ -77,7 +77,17 @@ test("로그아웃하면 다시 로그인 화면으로 간다", async ({ page })
   await page.getByRole("button", { name: "시작하기" }).click();
 
   await page.getByRole("link", { name: "마이페이지" }).click();
+
+  // 잘못 눌렀으면 취소하고 그대로 남는다.
   await page.getByRole("button", { name: "로그아웃" }).click();
+  await expect(page.getByRole("dialog", { name: "로그아웃할까요?" })).toBeVisible();
+  await page.getByRole("button", { name: "취소" }).click();
+  await expect(page.getByRole("dialog")).toBeHidden();
+  await expect(page).toHaveURL(/\/settings$/);
+
+  await page.getByRole("button", { name: "로그아웃" }).click();
+  // 한 번 더 묻는 창에서 확인한다.
+  await page.getByRole("dialog").getByRole("button", { name: "로그아웃" }).click();
 
   await expect(page).toHaveURL(/\/login$/);
 });

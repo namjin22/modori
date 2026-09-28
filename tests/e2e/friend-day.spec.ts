@@ -44,6 +44,8 @@ async function signIn(page: Page, account: Account) {
 async function signOut(page: Page) {
   await page.goto("/settings");
   await page.getByRole("button", { name: "로그아웃" }).click();
+  // 한 번 더 묻는 창에서 확인한다.
+  await page.getByRole("dialog").getByRole("button", { name: "로그아웃" }).click();
   await expect(page).toHaveURL(/\/login$/);
 }
 

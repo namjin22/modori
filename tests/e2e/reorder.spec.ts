@@ -76,6 +76,8 @@ test("같은 닉네임은 다른 사람이 가져갈 수 없다", async ({ page 
 
     await page.goto("/settings");
     await page.getByRole("button", { name: "로그아웃" }).click();
+    // 한 번 더 묻는 창에서 확인한다.
+    await page.getByRole("dialog").getByRole("button", { name: "로그아웃" }).click();
     await expect(page).toHaveURL(/\/login$/);
 
     await page.getByLabel("테스트 이메일").fill(second);

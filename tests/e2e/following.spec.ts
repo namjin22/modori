@@ -50,6 +50,8 @@ test("팔로우한 사람 목록에서 언팔로우할 수 있다", async ({ pag
   await signIn(page, accounts.friend);
   await page.goto("/settings");
   await page.getByRole("button", { name: "로그아웃" }).click();
+  // 한 번 더 묻는 창에서 확인한다.
+  await page.getByRole("dialog").getByRole("button", { name: "로그아웃" }).click();
   await expect(page).toHaveURL(/\/login$/);
 
   await signIn(page, accounts.me);
