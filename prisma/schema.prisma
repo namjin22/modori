@@ -43,6 +43,7 @@ model User {
   following     Follow[]       @relation("follower")
   followers     Follow[]       @relation("following")
   reactions     Reaction[]
+  activeDays    ActiveDay[]
 }
 
 model Account {
@@ -253,4 +254,39 @@ model DesktopLogin {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([expiresAt])
+}
+
+// ========================================
+// 지표 (docs/metrics.md)
+// ========================================
+
+// 그날 모도리를 쓴 사람. 가입을 마친 사람이 로그인한 채 화면을 열거나 무언가를 하면 하루에 한 행(lib/metrics.ts).
+// 활성 사용자와 재방문율을 세는 데만 쓴다. 시각은 두지 않고, 90일 지난 행은 지운다. 계정을 지우면 같이 지워진다.
+model ActiveDay {
+  userId String
+  date   DateTime @db.Date
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, date])
+  @@index([date])
+}
+
+// 하루에 한 번 찍는 합계. 사람을 알 수 없는 숫자만 둔다. 계정·할 일이 나중에 지워지거나 ActiveDay가 90일 뒤
+// 지워져도 그날의 숫자는 남는다. 값은 그날 끝(한국 자정) 기준이다.
+model DailyStat {
+  date             DateTime @id @db.Date
+  accounts         Int // 로그인한 적 있는 계정(닉네임 전 포함)
+  users            Int // 가입을 마친 계정(닉네임 있음)
+  withTodo         Int // 할 일을 하나라도 적은 사람
+  withFollow       Int // 한 명 이상 팔로우한 사람
+  withReaction     Int // 반응을 한 번이라도 보낸 사람
+  dau              Int // 그날 쓴 사람
+  wau              Int // 그날까지 7일 동안 쓴 사람
+  todosCreated     Int // 그날 직접 적은 할 일(루틴이 만든 것 빼고)
+  follows          Int // 팔로우 연결 수
+  reactionsCreated Int // 그날 보낸 반응
+  cohortSize       Int // 7일 전에 가입한 사람
+  cohortReturned   Int // 그 가운데 가입 다음 날부터 7일 안에 다시 쓴 사람
+  createdAt        DateTime @default(now())
 }

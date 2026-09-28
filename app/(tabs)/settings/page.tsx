@@ -106,6 +106,8 @@ export default async function SettingsPage() {
             <>
               <Dot />
               <FooterLink href="/admin/errors">오류 기록</FooterLink>
+              <Dot />
+              <FooterLink href="/admin/metrics">지표</FooterLink>
             </>
           )}
         </nav>

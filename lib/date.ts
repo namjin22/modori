@@ -54,6 +54,14 @@ export function parseKSTDate(s: string): Date {
   return parsed;
 }
 
+/**
+ * KST 날짜가 시작되는 실제 시각(한국 자정 = 전날 15:00Z). createdAt 같은 시각 열을 "그날"로 묶을 때 쓴다.
+ * KST 날짜 표현(UTC 자정)을 그대로 비교하면 9시간이 어긋난다.
+ */
+export function startOfKSTDayInstant(d: Date): Date {
+  return new Date(toKSTDateOnly(d).getTime() - KST_OFFSET_MS);
+}
+
 /** n일 뒤(음수면 앞)의 날짜. 인자로 받은 Date는 바꾸지 않는다. */
 export function addDays(d: Date, n: number): Date {
   const shifted = new Date(d.getTime());
