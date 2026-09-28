@@ -23,10 +23,10 @@
 - **Next.js 16** (App Router) + TypeScript
 - **Tailwind v4** — CSS 우선 설정. `tailwind.config.js`는 없다.
   디자인 토큰은 `app/globals.css`의 `@theme` 블록에 정의한다.
-- **Prisma 6.x** + PostgreSQL (Neon)
+- **Prisma 6.x** + PostgreSQL 18 (GSMSV VM 안 Docker. 백업은 Neon)
 - Auth.js v5 — Google + DataGSM(커스텀 OAuth)
 - shadcn/ui
-- Playwright (테스트), GitHub Actions (CI), Vercel (배포)
+- Playwright (테스트), GitHub Actions (CI·배포), GSMSV VM + Cloudflare Tunnel (운영, `deploy/README.md`)
 
 ## 버전 주의
 

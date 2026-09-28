@@ -4,39 +4,34 @@
 
 ---
 
-## 현재 상태 (2026-09-16)
+## 현재 상태 (2026-09-28, 출시 전날)
 
-**완료**
-- Next.js 16 프로젝트 생성, GitHub 연결, Vercel 배포 (https://modori.vercel.app)
-- 자동 배포 파이프라인 동작 확인 (main에 push하면 재배포)
-- Neon Postgres 프로젝트 생성, `.env`에 DATABASE_URL / DIRECT_URL 작성
-- `prisma/schema.prisma` 배치, `.env.example`, `.gitignore` 정리
-- `package.json`에 `postinstall`, `verify` 스크립트 추가
-- **Day 2** — Prisma CLI/client를 6.19.3으로 고정, `migrate dev --name init` 적용,
-  `lib/prisma.ts` 싱글톤
-- **Day 3** — `lib/date.ts`, `lib/routine.ts`와 유닛 테스트 37개 (vitest,
-  `scripts/test-tz.mjs`가 세 TZ에서 반복 실행)
-- **Day 4** — Auth.js v5 + Google 로그인, 닉네임 온보딩, `AUTH_MODE=mock` 우회 모드,
-  Playwright E2E
-- **Day 5** — 디자인 토큰(CSS 변수 + `@theme`), Pretendard, 하단 탭 네비게이션
-- **Day 6** — 카테고리 CRUD(보관 포함), 날짜별 할 일 CRUD, 다크 모드 수동 토글,
-  GitHub Actions CI
-- **Day 7** — 월간 캘린더. 완료한 할 일의 카테고리 색을 점으로 표시
-- **Day 8** — 루틴. 조회 시점 생성, 미래는 예정 표시, 루틴 관리 화면
-- **Day 9** — 닉네임 검색·팔로우, 피드(공개 카테고리만), 이모지 반응, 안 읽은 반응 뱃지
-- 속도 개선(함수 리전을 DB와 같은 싱가포르로), 화면 전환·누름 피드백
+**운영**: https://modori.site — GSMSV VM(교내) 한 대에 Docker로 앱과 PostgreSQL 18, Cloudflare Tunnel로 HTTPS.
+main에 합치면 GitHub Actions(`deploy-gsmsv`)가 이미지를 만들어 VM에 올리고, 뜨지 않으면 직전 버전으로 되돌린다.
+매일 04:00 백업(VM 안 7일 + 백업용 Neon). 구성과 명령은 `deploy/README.md`, 이관 기록은 `docs/gsmsv-migration.md`.
+예전 주소 modori.vercel.app은 modori.site로 넘긴다(Vercel은 빌드만 계속 돈다).
 
-**진행 중**
-- 없음. 다음은 UI/UX 다듬기와 Day 11 클로즈드 베타.
+**있는 기능**
+- 로그인: Google, DataGSM(학생·교사). 가입할 때 닉네임과 개인정보 수집·이용 필수 동의(`/privacy`)
+- 피드(홈): 날짜별 할 일을 카테고리별로, 체크·수정·드래그 순서·지우기(되돌리기), 내일로 미루기
+- 달력: 넓은 화면은 왼쪽 달력, 좁은 화면은 주간 줄 + "달력" 펼치기. 일정(여러 날) 이름과 할 일 완료 칸 채우기
+- 일정과 D-day, 루틴(매일·요일·날짜, 조회할 때 생성), 카테고리(색 팔레트, 공개/비공개, 최대 10개)
+- 소셜: 닉네임 검색·팔로우, 친구 줄(가로 스크롤)·친구 한 명의 하루, 반응(도리 표정 12 + 이모지 12),
+  받은 반응과 안 읽은 수, 팔로우·팔로워 목록(맞팔로우)
+- 기록: 달별 완료 수·비율·이어온 날, 카테고리별·요일별
+- 마이페이지: 프로필(닉네임·소개·사진), 테마(라이트·다크), 의견 보내기(메일), 계정 지우기, 오류 기록(운영자만)
+- 캐릭터 도리: 표정 12가지(`/dori`에서 한눈에), 기본 프로필 사진
+- 운영 장치: 요청 속도 제한, 개수 상한, 오류 기록과 매시간 알림(`errors`), 상태 감시(`health`)
+
+**남은 것**: `docs/release-checklist.md` 참고(실제 폰 확인, 방침 확인 등). 개선 후보는 `docs/backlog.md`.
 
 **아직 안 함**
-- UI/UX 보강과 디자인 다듬기(기능을 다 만든 뒤 한 번에), 친구 3명 베타,
-  학교 데이터 연동(NEIS)
+- 학교 데이터 연동(NEIS 급식·학사일정) — 아래 "미확정" 참고
 
 ## 브랜치 전략
 
 `main`은 배포 브랜치, `develop`이 통합 브랜치다. 작업은 `develop`에 쌓고,
-`main` 병합은 PR로 한다. main에 들어가는 순간 Vercel Production이 재배포된다.
+`main` 병합은 PR로 한다. main에 들어가는 순간 GSMSV VM에 재배포된다(`deploy-gsmsv`).
 
 ---
 
@@ -186,15 +181,9 @@ await prisma.todo.createMany({
 
 ## 미확정 — 임의로 채우지 말 것
 
-### DataGSM OAuth
-아직 클라이언트를 만들지 않았다. 다음이 확보되기 전까지 `profile` 매핑을
-추측하지 않는다.
-- authorize / token / userinfo URL
-- 스코프 목록
-- **userinfo를 실제로 호출한 응답 JSON**
-
-API 키는 주기적 갱신이 필요하다고 안내되어 있다. 만료되면 신규 로그인이
-전부 막히므로, 만료 30일 전에 알림이 오도록 하는 장치를 나중에 만든다.
+### DataGSM OAuth — 연결 완료, 키 만료일만 남음
+로그인은 운영에서 된다(`lib/auth.ts`). API 키는 주기적 갱신이 필요하다고 안내되어 있다.
+만료되면 DataGSM 로그인이 전부 막히므로 **만료일을 확인해 체크리스트에 적어 둔다**(`docs/release-checklist.md`).
 
 ### NEIS 시간표
 `hisTimetable`이 이 학교 데이터를 주는지 확인되지 않았다.
@@ -210,8 +199,5 @@ https://open.neis.go.kr/hub/hisTimetable?KEY=&Type=json&ATPT_OFCDC_SC_CODE=&SD_S
 급식(`mealServiceDietInfo`)과 학사일정(`SchoolSchedule`)은 어느 학교든
 잘 들어오므로 NEIS 직접 호출로 간다.
 
-### GSMSV 이관
-PROJECT_OWNER 승인 후 검토. 일반 사용자 VM은 30일 뒤 자동 삭제되고
-복구가 불가능하므로 그 전에는 프로덕션을 올리지 않는다.
-HTTPS는 Cloudflare Tunnel로 해결한다 (Public IP 불필요).
-상세 근거는 `docs/decisions.md` 참고.
+### GSMSV 이관 — 완료(2026-09-27)
+`docs/gsmsv-migration.md`와 `docs/decisions.md` "운영을 GSMSV로 옮긴다" 참고.
