@@ -8,9 +8,13 @@ const KEEP_ACTIVE_DAYS = 90;
 // 재시작해서 잊어도 한 번 더 쓰려다 겹쳐 무시될 뿐이다.
 const recordedToday = new Set<string>();
 let currentDay: string | null = null;
+let snapshotCompletedThrough: string | null = null;
+let snapshotInFlight: Promise<void> | null = null;
+let resumeFrom: Date | null = null;
+const MAX_SNAPSHOT_DAYS_PER_RUN = 30;
 
 /**
- * 가입을 마친 사람이 오늘 모도리를 썼다고 적는다(requireUser가 부른다). 전날 합계는 lib/daily.ts가 찍는다.
+ * 가입을 마친 사람이 오늘 모도리를 썼다고 적는다(requireUser가 부른다). 하루 합계는 lib/daily.ts가 시작한다.
  * 지표를 못 적어도 화면은 그대로 떠야 하므로 오류는 기록만 하고 넘긴다.
  */
 export async function recordActiveDay(userId: string): Promise<void> {
@@ -30,15 +34,58 @@ export async function recordActiveDay(userId: string): Promise<void> {
   }
 }
 
-/** 그 날 합계가 없으면 찍고, 90일 지난 쓴 날짜를 지운다. 실패해도 부른 쪽을 망치지 않는다. */
-export async function snapshotIfMissing(day: Date): Promise<void> {
-  try {
-    const exists = await prisma.dailyStat.findUnique({ where: { date: day }, select: { date: true } });
-    if (!exists) await snapshotDay(day);
-    await prisma.activeDay.deleteMany({ where: { date: { lt: addDays(day, -KEEP_ACTIVE_DAYS) } } });
-  } catch (error) {
-    console.error("[metrics] 하루 합계를 찍지 못했다.", error);
+/** 빠진 합계를 한 요청당 최대 30일만 백그라운드에서 복구한다. 성공한 날짜만 건너뛴다. */
+export function ensureSnapshots(yesterday: Date): void {
+  const through = formatKST(yesterday);
+  if (snapshotCompletedThrough !== null && snapshotCompletedThrough >= through) return;
+  if (!snapshotInFlight) {
+    snapshotInFlight = snapshotMissingDays(yesterday)
+      .then((complete) => { if (complete) snapshotCompletedThrough = through; })
+      .catch((error: unknown) => {
+        resumeFrom = null;
+        console.error("[metrics] 하루 합계를 찍지 못했다.", error);
+      })
+      .finally(() => { snapshotInFlight = null; });
   }
+}
+
+async function snapshotMissingDays(yesterday: Date): Promise<boolean> {
+  const [earliest, oldest] = await Promise.all([
+    prisma.dailyStat.findFirst({ orderBy: { date: "asc" }, select: { date: true } }),
+    prisma.activeDay.findFirst({ orderBy: { date: "asc" }, select: { date: true } }),
+  ]);
+  // 이미 찍기 시작한 기간만 확인하되, 아직 남은 원본 기록은 그보다 오래돼도 살린다.
+  const retentionStart = addDays(yesterday, -KEEP_ACTIVE_DAYS);
+  const repairStart = earliest && earliest.date > retentionStart ? earliest.date : retentionStart;
+  const first = resumeFrom ?? (earliest
+    ? oldest && oldest.date < repairStart ? oldest.date : repairStart
+    : oldest && oldest.date < yesterday ? oldest.date : yesterday);
+  const last = addDays(first, MAX_SNAPSHOT_DAYS_PER_RUN - 1);
+  const end = last < yesterday ? last : yesterday;
+  const existing = await prisma.dailyStat.findMany({
+    where: { date: { gte: first, lte: end } },
+    select: { date: true },
+  });
+  const existingDays = new Set(existing.map(({ date }) => date.getTime()));
+  let firstError: unknown;
+  let failed = false;
+  for (let day = first; day <= end; day = addDays(day, 1)) {
+    if (existingDays.has(day.getTime())) continue;
+    try {
+      await snapshotDay(day);
+    } catch (error) {
+      if (!failed) firstError = error;
+      failed = true;
+    }
+  }
+  if (failed) throw firstError;
+  if (end < yesterday) {
+    resumeFrom = addDays(end, 1);
+    return false;
+  }
+  resumeFrom = null;
+  await prisma.activeDay.deleteMany({ where: { date: { lt: addDays(yesterday, -KEEP_ACTIVE_DAYS) } } });
+  return true;
 }
 
 export type Totals = {
