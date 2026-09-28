@@ -110,11 +110,12 @@ export default async function SettingsPage() {
           )}
         </nav>
         {/* 출시 초기에 불편한 점과 버그를 모은다. */}
-        <p>
-          의견·버그 제보
+        {/* 문구와 주소 사이를 확실히 띄운다. 좁으면 주소가 다음 줄로 간다. */}
+        <p className="flex flex-wrap items-center justify-center gap-x-2">
+          <span>의견·버그 제보</span>
           <a
             href={`mailto:${PRIVACY_MANAGER.email}?subject=${encodeURIComponent("[모도리] 의견")}`}
-            className="ml-1 inline-block py-1 font-medium text-foreground/70 hover:text-foreground hover:underline hover:underline-offset-4"
+            className="py-1 font-medium text-foreground/70 hover:text-foreground hover:underline hover:underline-offset-4"
           >
             {PRIVACY_MANAGER.email}
           </a>
