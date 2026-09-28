@@ -205,7 +205,7 @@ export function MonthCalendar({
 
       <p className="text-center text-sm text-muted">이번 달 완료 {doneCount}개</p>
       {editableEvents && days.some((day) => (eventsByDate.get(formatKST(day)) ?? []).length > 0) && (
-        <p className="-mt-2 text-center text-xs text-muted">일정 이름을 다른 날로 끌면 기간이 바뀌어요</p>
+        <p className="-mt-2 text-center text-xs text-muted">일정의 첫날·마지막 날을 끌면 기간이, 가운데를 끌면 날짜가 바뀌어요</p>
       )}
     </section>
   );

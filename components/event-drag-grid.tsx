@@ -88,7 +88,7 @@ export function EventDragGrid({ children, className }: { children: ReactNode; cl
           event.currentTarget.setPointerCapture(event.pointerId);
         }
         if (!current.moved) return;
-        current.range = dragRange(current.start, current.end, day);
+        current.range = dragRange(current.start, current.end, current.origin, day);
         setPreview({ id: current.id, ...current.range });
       }}
       onPointerUp={() => {

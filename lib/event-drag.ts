@@ -1,14 +1,29 @@
+import { addDays, daysBetween, formatKST, parseKSTDate } from "@/lib/date";
+
 /**
- * 달력에서 일정 이름을 끌어 놓은 날로 새 기간을 정한다. 날짜는 "YYYY-MM-DD"라 글자 순서가 곧 날짜 순서다.
+ * 달력에서 일정 이름표를 잡고(origin) 다른 날(day)에 놓았을 때의 새 기간. 날짜는 "YYYY-MM-DD".
  *
- * 시작일보다 앞에 놓으면 시작일을 당기고, 그 밖에는 종료일을 놓은 날로 옮긴다.
- * 28일 하루짜리 일정을 30일로 끌면 28~30일이 되고, 기간 안에 놓으면 그날까지로 줄어든다.
+ * 어느 칸을 잡았는지로 무엇을 움직일지 정한다. 예전에는 잡은 칸과 상관없이 시작일을 고정하고
+ * 종료일만 움직여서, 첫날을 잡고 줄이려 해도 끝이 줄었다.
+ * - 하루짜리: 뒤로 끌면 종료일, 앞으로 끌면 시작일이 늘어난다.
+ * - 첫날을 잡으면 시작일, 마지막 날을 잡으면 종료일을 옮긴다. 반대편을 넘어가면 두 끝이 바뀐다.
+ * - 가운데를 잡으면 길이를 그대로 두고 기간째 옮긴다.
  */
 export function dragRange(
   start: string,
   end: string,
+  origin: string,
   day: string,
 ): { start: string; end: string } {
-  if (day < start) return { start: day, end };
-  return { start, end: day };
+  const sorted = (a: string, b: string) => (a <= b ? { start: a, end: b } : { start: b, end: a });
+
+  if (start === end) return sorted(start, day);
+  if (origin === start) return sorted(day, end);
+  if (origin === end) return sorted(start, day);
+
+  const shift = daysBetween(parseKSTDate(origin), parseKSTDate(day));
+  return {
+    start: formatKST(addDays(parseKSTDate(start), shift)),
+    end: formatKST(addDays(parseKSTDate(end), shift)),
+  };
 }
