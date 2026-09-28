@@ -276,7 +276,9 @@ export default async function FeedPage({
       >
         할 일로 건너뛰기
       </a>
-      <div className="flex flex-col gap-6 lg:sticky lg:top-6">
+      {/* 넓은 화면에서 달력 칸은 제자리에 둔다. 시작 위치(pt-8)와 같은 top-8이라 스크롤을 시작해도 움직이지 않고,
+          창이 달력보다 낮으면(노트북) 칸 안에서만 스크롤해 페이지 끝에서 밀려 올라가지 않는다. */}
+      <div className="flex flex-col gap-6 lg:sticky lg:top-8 lg:max-h-[calc(100dvh-6rem)] lg:overflow-y-auto">
         <Link prefetch={false} href="/settings/profile" className="flex items-center gap-3">
           <Avatar src={avatarUrl(user)} size={48} />
           <span className="min-w-0">
@@ -301,7 +303,8 @@ export default async function FeedPage({
         </div>
       </div>
 
-      <div id="day-list" tabIndex={-1} className="flex flex-col gap-6 outline-none">
+      {/* 아래 여백을 이 칸에 둔다(PageFrame은 두 칸 화면에서 빼 준다). 달력 칸이 머물 수 있는 줄 높이가 페이지 끝까지 닿게. */}
+      <div id="day-list" tabIndex={-1} className="flex flex-col gap-6 outline-none lg:pb-12">
         <header className="flex items-center justify-between">
           <Link prefetch={false}
             href={`/?date=${formatKST(addDays(date, -1))}${viewQuery}`}

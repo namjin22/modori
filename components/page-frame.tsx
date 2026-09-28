@@ -16,7 +16,8 @@ export function PageFrame({ children }: { children: ReactNode }) {
   const width = twoColumn ? "max-w-lg md:max-w-2xl lg:max-w-5xl" : "max-w-lg md:max-w-2xl";
 
   return (
-    <main className={`mx-auto w-full flex-1 px-5 pb-12 pt-8 ${width}`}>
+    // 두 칸 화면은 넓을 때 아래 여백을 목록 칸이 가진다(달력 칸 고정, app/(tabs)/page.tsx).
+    <main className={`mx-auto w-full flex-1 px-5 pb-12 pt-8 ${twoColumn ? "lg:pb-0" : ""} ${width}`}>
       {children}
     </main>
   );
