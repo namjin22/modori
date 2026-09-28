@@ -50,3 +50,16 @@ test("한 사람이 요청을 몰아 보내면 429로 막고, 다른 사람은 �
   await a.close();
   await b.close();
 });
+
+test("프로필 사진은 화면 요청과 따로 세서, 사진이 많은 목록도 깨지지 않는다", async ({ page }) => {
+  await signUp(page, EMAILS[0], `사진a${RUN_TAG}`);
+
+  // 팔로워 목록 하나에 사진 80장이 한꺼번에 오는 경우. 없는 사람이라 404지만 429여서는 안 된다.
+  const responses = await Promise.all(
+    Array.from({ length: 80 }, (_, index) => page.request.get(`/api/avatar/nobody${index}?v=1`)),
+  );
+  expect(responses.filter((response) => response.status() === 429)).toHaveLength(0);
+
+  // 사진 요청이 화면 요청 몫을 쓰지 않았다.
+  expect((await page.request.get("/login", { maxRedirects: 0 })).status()).not.toBe(429);
+});
