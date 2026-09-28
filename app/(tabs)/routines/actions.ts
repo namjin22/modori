@@ -124,14 +124,21 @@ export async function toggleRoutinePause(formData: FormData) {
 
   const routine = await prisma.routine.findFirst({
     where: { id, userId: user.id },
-    select: { pausedAt: true },
+    select: { pausedAt: true, categoryId: true },
   });
   if (!routine) return;
 
+  // 화면이 누른 뒤의 상태를 보낸다. 뒤집기로 처리하면 다른 탭에서 먼저 바꾼 것을 되돌린다.
+  const wanted = readText(formData, "paused");
+  const pause = wanted === "true" || wanted === "false" ? wanted === "true" : !routine.pausedAt;
+
+  // 카테고리를 지워 멈춘 루틴은 다시 돌리지 않는다. 카테고리 없이 돌면 적을 칸이 없다.
+  if (!pause && !routine.categoryId) return;
+
   // 확인과 바꾸기 사이에 지워졌으면 0건으로 넘긴다(update는 오류를 던진다).
   await prisma.routine.updateMany({
-    where: { id, userId: user.id },
-    data: { pausedAt: routine.pausedAt ? null : new Date() },
+    where: { id, userId: user.id, pausedAt: pause ? null : { not: null } },
+    data: { pausedAt: pause ? new Date() : null },
   });
 
   revalidatePath("/routines");

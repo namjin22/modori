@@ -101,6 +101,20 @@ test("멈춘 루틴은 새 할 일을 만들지 않는다", async ({ page }) => 
   await expect(page.getByText("아직 할 일이 없어요")).toBeVisible();
 });
 
+test("카테고리를 지워 멈춘 루틴은 다시 시작할 수 없다", async ({ page, email }) => {
+  await createDailyRoutine(page, "카테고리 잃을 루틴");
+  const user = await prisma.user.findUniqueOrThrow({ where: { email } });
+  const routine = await prisma.routine.findFirstOrThrow({ where: { userId: user.id } });
+  // 카테고리 삭제와 같은 결과: 루틴은 멈추고 카테고리 연결이 끊긴다.
+  await prisma.category.delete({ where: { id: routine.categoryId! } });
+  await prisma.routine.update({ where: { id: routine.id }, data: { pausedAt: new Date() } });
+
+  await page.goto("/routines");
+  const item = page.getByRole("listitem").filter({ hasText: "카테고리 잃을 루틴" });
+  await expect(item.getByText("카테고리를 지워 멈춤")).toBeVisible();
+  await expect(item.getByRole("button", { name: "다시 시작" })).toHaveCount(0);
+});
+
 test("요일을 고르지 않은 매주 루틴은 만들어지지 않는다", async ({ page }) => {
   await page.goto("/settings/routines");
   await page.getByText("루틴 만들기").click();
