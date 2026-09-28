@@ -144,6 +144,11 @@ if (process.env.MODORI_TEST_EXTERNAL) {
   app.setAsDefaultProtocolClient(PROTOCOL);
 }
 
+// 시험은 설치해 쓰는 앱과 데이터 폴더(쿠키·잠금)를 나누지 않으면, 켜 둔 앱 때문에 시험용 앱이 바로 꺼진다.
+if (process.env.MODORI_TEST_EXTERNAL) {
+  app.setPath("userData", path.join(require("node:os").tmpdir(), `modori-desktop-test-${process.pid}`));
+}
+
 // 앱은 하나만 뜬다. Windows는 링크를 누르면 새 프로세스로 오므로, 먼저 뜬 앱이 받아 처리한다.
 if (!app.requestSingleInstanceLock()) {
   app.quit();
