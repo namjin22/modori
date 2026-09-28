@@ -33,15 +33,16 @@ model User {
   privacyAgreedAt DateTime? // 가입할 때 개인정보 수집·이용에 동의한 시각
   createdAt       DateTime  @default(now())
 
-  accounts   Account[]
-  sessions   Session[]
-  categories Category[]
-  todos      Todo[]
-  routines   Routine[]
-  events     Event[]
-  following  Follow[]   @relation("follower")
-  followers  Follow[]   @relation("following")
-  reactions  Reaction[]
+  accounts      Account[]
+  sessions      Session[]
+  desktopLogins DesktopLogin[]
+  categories    Category[]
+  todos         Todo[]
+  routines      Routine[]
+  events        Event[]
+  following     Follow[]       @relation("follower")
+  followers     Follow[]       @relation("following")
+  reactions     Reaction[]
 }
 
 model Account {
@@ -236,4 +237,20 @@ model ErrorEvent {
   path      String?
 
   @@index([createdAt])
+}
+
+// 데스크톱 앱 로그인에 한 번 쓰는 코드. 브라우저에서 로그인한 사람에게 발급하고(app/desktop/login),
+// 앱이 처음 만든 비밀값(verifier)과 함께 바꿔 세션을 받는다(app/api/desktop/exchange). 쓰면 지우고 2분 뒤에는 못 쓴다.
+// 코드는 해시로만 둔다. challenge는 verifier의 SHA-256(base64url)이다(PKCE, RFC 7636).
+model DesktopLogin {
+  id        String   @id @default(cuid())
+  codeHash  String   @unique
+  challenge String
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([expiresAt])
 }
