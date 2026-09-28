@@ -23,7 +23,7 @@ export const getCurrentUser = cache(async () => {
 
   return prisma.user.findUnique({
     where: { id },
-    // createdAt은 루틴을 과거 어디까지 만들지, lastSeenAt은 안 읽은 반응을
+    // createdAt은 루틴을 과거 어디까지 만들지, lastSeenAt은 안 읽은 알림을
     // 세는 데 쓴다.
     select: {
       id: true,
@@ -49,15 +49,19 @@ export const requireUser = cache(async () => {
 });
 
 /**
- * 안 읽은 반응 수. 하단 탭의 뱃지와 피드 화면이 같은 값을 쓰는데,
+ * 안 읽은 알림 수(받은 반응 + 나를 새로 팔로우한 사람). 하단 탭의 뱃지와 소셜 화면이 같은 값을 쓰는데,
  * cache()로 감싸두면 한 요청 안에서 두 번 부르더라도 질의는 한 번만 나간다.
  */
-export const countUnreadReactions = cache(async (userId: string, since: Date) => {
-  return prisma.reaction.count({
-    where: {
-      todoUserId: userId,
-      userId: { not: userId },
-      createdAt: { gt: since },
-    },
-  });
+export const countUnreadNotifications = cache(async (userId: string, since: Date) => {
+  const [reactions, follows] = await Promise.all([
+    prisma.reaction.count({
+      where: {
+        todoUserId: userId,
+        userId: { not: userId },
+        createdAt: { gt: since },
+      },
+    }),
+    prisma.follow.count({ where: { followingId: userId, createdAt: { gt: since } } }),
+  ]);
+  return reactions + follows;
 });

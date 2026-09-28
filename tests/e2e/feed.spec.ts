@@ -200,12 +200,37 @@ test("받은 반응은 뱃지로 알리고 받은 반응 화면을 열면 사라
   await signOut(page);
 
   await signIn(page, accounts.me);
-  await expect(page.getByLabel("안 읽은 반응 1개")).toBeVisible();
+  // 친구가 나를 팔로우한 것도 알림이라 반응과 합쳐 둘이다.
+  await expect(page.getByLabel("안 읽은 알림 2개")).toBeVisible();
 
   await page.goto("/feed/reactions");
   await expect(page.getByText("칭찬 받을 일")).toBeVisible();
-  await expect(page.getByText("NEW")).toBeVisible();
+  await expect(page.getByText("NEW", { exact: true })).toHaveCount(2);
 
   await page.goto("/feed");
-  await expect(page.getByLabel("안 읽은 반응 1개")).toBeHidden();
+  await expect(page.getByLabel(/안 읽은 알림/)).toHaveCount(0);
+});
+
+test("누가 나를 팔로우하면 알림으로 오고, 거기서 맞팔로우한다", async ({ page, accounts }) => {
+  await signIn(page, accounts.me);
+  await signOut(page);
+
+  await signIn(page, accounts.friend);
+  await follow(page, accounts.me.nickname);
+  await signOut(page);
+
+  await signIn(page, accounts.me);
+  await expect(page.getByLabel("안 읽은 알림 1개")).toBeVisible();
+  await page.goto("/feed/reactions");
+  await expect(page.getByRole("heading", { name: "알림" })).toBeVisible();
+  const item = page.getByRole("listitem").filter({ hasText: "님이 나를 팔로우했어요" });
+  await expect(item).toContainText(accounts.friend.nickname);
+  await expect(item).toContainText("NEW");
+
+  await item.getByRole("button", { name: "맞팔로우" }).click();
+  await expect(item.getByRole("button", { name: "맞팔로우" })).toHaveCount(0);
+
+  // 알림 화면을 열었으니 뱃지는 사라진다.
+  await page.goto("/feed");
+  await expect(page.getByLabel(/안 읽은 알림/)).toHaveCount(0);
 });
