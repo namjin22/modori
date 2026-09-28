@@ -14,7 +14,7 @@ export function DoriMessage({
   children: ReactNode;
 }) {
   return (
-    <div className="flex flex-col items-center gap-2 rounded-2xl bg-surface px-6 py-8 text-center text-sm text-muted">
+    <div className="flex flex-col items-center gap-2 rounded-2xl bg-surface px-6 py-8 text-center text-sm text-balance text-muted">
       <Dori mood={mood} size={72} />
       {children}
     </div>

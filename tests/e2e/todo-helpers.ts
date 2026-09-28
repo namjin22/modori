@@ -54,7 +54,7 @@ export async function addEvent(page: Page, title: string, endDate?: string) {
   await page.getByRole("button", { name: "일정", exact: true }).click();
   await page.getByLabel("새 일정 이름").fill(title);
   if (endDate) await page.getByLabel("새 일정 종료일").fill(endDate);
-  await page.getByLabel("새 일정 이름").press("Enter");
+  await page.getByRole("button", { name: "저장", exact: true }).click();
   await expect(page.getByRole("listitem").filter({ hasText: title })).toBeVisible();
 }
 

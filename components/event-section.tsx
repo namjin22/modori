@@ -175,6 +175,7 @@ export function EventSection({
                 endTime: editing.endTime === null ? "" : formatTime(editing.endTime),
               }}
               onSaved={() => setEditing(null)}
+              onCancel={() => setEditing(null)}
             />
             <div className="flex justify-end">
               <UndoableDeleteButton

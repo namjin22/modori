@@ -27,7 +27,7 @@ export function LogoutButton() {
       <Modal open={open} onClose={() => setOpen(false)} title="로그아웃할까요?">
         <div className="flex flex-col items-center gap-2 text-center">
           <Dori mood="hello" size={88} />
-          <p className="text-sm text-muted">다음에 또 만나요. 기록은 그대로 남아 있어요.</p>
+          <p className="text-balance text-sm text-muted">다음에 또 만나요. 기록은 그대로 남아 있어요.</p>
         </div>
         <form action={logout} className="grid grid-cols-2 gap-2">
           <button
