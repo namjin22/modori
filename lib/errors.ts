@@ -5,6 +5,18 @@ export type ErrorSource = "server" | "client";
 const MAX_MESSAGE = 300;
 const KEEP_DAYS = 30;
 
+/**
+ * 사용자가 화면을 다 받기 전에 다른 화면으로 넘어가거나 창을 닫아 연결이 끊긴 경우.
+ * 고칠 것이 없는 일인데 Next는 서버 오류로 넘겨준다. 그대로 두면 사람이 많을 때 매시간 알림이
+ * 헛울린다(테스트 DB에서 하루 27건). 메시지가 정확히 같은 것만 거른다.
+ */
+const CLIENT_ABORT_MESSAGES = new Set(["The destination stream closed early."]);
+
+export function isClientAbort(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  return error.name === "ResponseAborted" || CLIENT_ABORT_MESSAGES.has(error.message);
+}
+
 /** 주소의 경로만 남긴다. 쿼리에는 무엇이 들어올지 몰라 버린다. */
 function pathOnly(value: string | null | undefined): string | null {
   if (!value) return null;

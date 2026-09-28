@@ -12,6 +12,8 @@ import {
 } from "@/lib/date";
 import { contrastTextColor } from "@/lib/colors";
 
+import { DayFill } from "@/components/day-fill";
+
 const WEEKDAY_NAMES = ["일", "월", "화", "수", "목", "금", "토"];
 // 한 칸에 이름을 몇 개까지 보여줄지. 넘치면 "+n"으로 접는다.
 const MAX_CHIPS = 3;
@@ -27,8 +29,8 @@ export type DaySummary = {
 export type CalendarEvent = { id: string; title: string; color: string };
 
 /**
- * 한 달 달력. 칸에는 일정 이름만 글자로 보이고, 할 일은 글자 대신
- * 완료한 만큼 그 색으로 칸을 아래부터 채운다. 둘을 섞으면 칸이 금방 넘친다.
+ * 한 달 달력. 칸에는 일정 이름만 글자로 보이고, 할 일은 글자 대신 날짜 아래 표시(DayFill)가
+ * 완료한 만큼 그 색으로 아래부터 찬다. 이름까지 넣으면 칸이 금방 넘친다.
  * 링크 주소는 부르는 쪽이 정한다. 넓은 화면과 좁은 화면이 붙이는 쿼리가 다르다.
  */
 export function MonthCalendar({
@@ -154,6 +156,13 @@ export function MonthCalendar({
                 >
                   {day.getUTCDate()}
                 </span>
+
+                <DayFill
+                  id={`month-fill-${key}`}
+                  total={summary?.total ?? 0}
+                  doneColors={doneColors}
+                  size={compact ? 16 : 20}
+                />
 
                 <span aria-hidden className="flex w-full flex-col gap-px">
                   {events.slice(0, MAX_CHIPS).map((event) => (

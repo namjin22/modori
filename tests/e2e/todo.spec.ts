@@ -71,6 +71,33 @@ test("할 일을 연달아 완료해도 완료 개수가 즉시 맞는다", asyn
   await expect(page.getByText("2개 중 2개 완료")).toBeVisible();
 });
 
+test("다른 탭에서 먼저 완료한 할 일을 이 탭에서 완료로 눌러도 풀리지 않는다", async ({ page, context }) => {
+  await addTodo(page, "두 탭에서 볼 일");
+  const isDone = async () =>
+    (
+      await prisma.todo.findFirstOrThrow({
+        where: { content: "두 탭에서 볼 일", user: { email: TEST_EMAIL } },
+      })
+    ).done;
+
+  // 두 번째 탭에서 먼저 완료한다. 첫 탭은 아직 "완료" 버튼을 보고 있다.
+  // 체크 표시는 서버보다 먼저 바뀌므로 DB에 들어간 것을 보고 탭을 닫는다.
+  const other = await context.newPage();
+  await other.goto("/");
+  await other.getByRole("button", { name: "완료", exact: true }).click();
+  await expect.poll(isDone).toBe(true);
+  await other.close();
+
+  // 이 탭의 요청이 서버에 닿아 끝날 때까지 기다린다. 그 전에 새로 고치면 요청이 끊긴다.
+  const saved = page.waitForResponse((response) => response.request().method() === "POST");
+  await page.getByRole("button", { name: "완료", exact: true }).click();
+  await saved;
+
+  expect(await isDone()).toBe(true);
+  await page.reload();
+  await expect(page.getByRole("button", { name: "완료 취소" })).toBeVisible();
+});
+
 test("삭제하면 목록에서 사라진다", async ({ page }) => {
   await addTodo(page, "지울 할 일");
 

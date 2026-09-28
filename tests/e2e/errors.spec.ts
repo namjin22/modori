@@ -61,5 +61,6 @@ test("오류 수는 비밀 값 없이 볼 수 없고, 오류 기록 화면은 �
   await expect(page.getByRole("heading", { name: "없는 주소예요" })).toBeVisible();
   await page.goto("/settings");
   await expect(page.getByRole("link", { name: "오류 기록" })).toHaveCount(0);
-  await expect(page.getByRole("link", { name: /의견 보내기/ })).toHaveAttribute("href", /^mailto:penamjin@gmail\.com\?subject=/);
+  // 의견은 맨 아래 운영자 메일 주소로 받는다(사용자 요청으로 버튼에서 작은 글자로 바꿨다).
+  await expect(page.getByRole("link", { name: "penamjin@gmail.com" })).toHaveAttribute("href", /^mailto:penamjin@gmail\.com\?subject=/);
 });

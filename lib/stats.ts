@@ -1,4 +1,4 @@
-import { addDays, formatKST, weekdayKST } from "@/lib/date";
+import { addDays, daysBetween, formatKST, weekdayKST } from "@/lib/date";
 
 /** 통계를 낼 때 필요한 할 일의 최소 모양. 화면과 테스트가 같은 것을 쓴다. */
 export type StatTodo = {
@@ -14,6 +14,14 @@ export type CategoryStat = {
   total: number;
   done: number;
 };
+
+/**
+ * 오늘까지의 할 일만 남긴다. 이번 달 앞날에 미리 적어 둔 일은 아직 할 수 없는 일이라
+ * 세면 계획을 미리 세우는 사람일수록 해낸 비율이 낮게 나온다.
+ */
+export function untilToday<T extends Pick<StatTodo, "date">>(todos: T[], today: Date): T[] {
+  return todos.filter((todo) => daysBetween(todo.date, today) >= 0);
+}
 
 /** 카테고리별 적은 개수와 끝낸 개수. 많이 적은 카테고리가 위로 온다. */
 export function countByCategory(todos: StatTodo[]): CategoryStat[] {

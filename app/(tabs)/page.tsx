@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import {
   addDays,
+  daysBetween,
   endOfMonthKST,
   formatKST,
   isSameKSTDate,
@@ -37,11 +38,11 @@ import { WeekStrip } from "@/components/week-strip";
 
 import { Avatar } from "@/components/avatar";
 import { avatarUrl } from "@/lib/avatar";
+// 카테고리를 고르지 않은 할 일도 달력에 흔적은 남아야 한다.
+import { NO_CATEGORY_COLOR } from "@/lib/colors";
 
 
 const WEEKDAY_NAMES = ["일", "월", "화", "수", "목", "금", "토"];
-// 카테고리를 고르지 않은 할 일도 달력에 흔적은 남아야 한다.
-const NO_CATEGORY_COLOR = "#8b95a1";
 
 function readDate(raw: string | undefined): Date {
   if (!raw) return todayKST();
@@ -425,7 +426,8 @@ export default async function FeedPage({
 
         {categories.length > 0 && todos.length === 0 && scheduled.length === 0 && (
           <div className="flex flex-col items-center gap-1 py-2 text-center">
-            <Dori mood="calm" size={80} />
+            {/* 지난 날은 느긋하게, 오늘과 앞날은 반갑게. */}
+            <Dori mood={daysBetween(today, date) < 0 ? "calm" : "hello"} size={80} />
             <p className="text-sm text-muted">아직 할 일이 없어요</p>
             <p className="text-xs text-muted">
               카테고리 이름을 눌러 적어보세요.{" "}

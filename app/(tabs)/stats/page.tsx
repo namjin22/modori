@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { Dori } from "@/components/dori";
+import { statsMood } from "@/lib/dori-mood";
 import {
   addDays,
   addMonths,
@@ -13,7 +14,7 @@ import {
 } from "@/lib/date";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
-import { countByCategory, countByWeekday, streakDays } from "@/lib/stats";
+import { countByCategory, countByWeekday, streakDays, untilToday } from "@/lib/stats";
 import { BackLink } from "@/components/back-link";
 
 const WEEKDAY_NAMES = ["일", "월", "화", "수", "목", "금", "토"];
@@ -41,7 +42,7 @@ export default async function StatsPage({
   const monthStart = readMonth(month, today);
   const monthEnd = endOfMonthKST(monthStart);
 
-  const [monthTodos, streakTodos] = await Promise.all([
+  const [writtenTodos, streakTodos] = await Promise.all([
     prisma.todo.findMany({
       where: { userId: user.id, date: { gte: monthStart, lte: monthEnd } },
       select: { date: true, done: true, category: true },
@@ -57,6 +58,8 @@ export default async function StatsPage({
     }),
   ]);
 
+  // 이번 달을 볼 때 앞날에 미리 적어 둔 일은 세지 않는다(lib/stats.ts untilToday).
+  const monthTodos = untilToday(writtenTodos, today);
   const total = monthTodos.length;
   const done = monthTodos.filter((todo) => todo.done).length;
   const rate = total === 0 ? 0 : Math.round((done / total) * 100);
@@ -107,6 +110,8 @@ export default async function StatsPage({
         </div>
       ) : (
         <>
+          <StatsCheer rate={rate} streak={streak} isThisMonth={isThisMonth} />
+
           <section className="grid grid-cols-3 gap-2">
             <Figure label="끝낸 일" value={`${done}개`} />
             <Figure label="해낸 비율" value={`${rate}%`} />
@@ -211,6 +216,26 @@ function Figure({ label, value }: { label: string; value: string }) {
     <div className="flex flex-col items-center gap-1 rounded-2xl bg-surface p-4">
       <span className="text-lg font-bold">{value}</span>
       <span className="text-xs text-muted">{label}</span>
+    </div>
+  );
+}
+
+/** 이 달을 한 줄로 알아봐 준다. 숫자 셋보다 먼저 눈에 들어오는 자리다. */
+function StatsCheer({
+  rate,
+  streak,
+  isThisMonth,
+}: {
+  rate: number;
+  streak: number;
+  isThisMonth: boolean;
+}) {
+  const { mood, message } = statsMood({ rate, streak, isThisMonth });
+
+  return (
+    <div className="flex items-center gap-3 rounded-2xl bg-brand-subtle px-4 py-3">
+      <Dori mood={mood} size={48} />
+      <p className="text-sm font-semibold text-brand">{message}</p>
     </div>
   );
 }

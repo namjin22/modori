@@ -2,10 +2,18 @@ import { prisma } from "@/lib/prisma";
 
 export const MAX_NICKNAME_LENGTH = 20;
 
+/**
+ * 눈에 보이지 않는 글자. 폭이 0인 공백(U+200B)·방향 표시 같은 서식 문자(Cf), 제어 문자(Cc),
+ * 한글 채움 문자(ㅤ 등). 이것들을 두면 "남진"과 "남진​"처럼 똑같아 보이는 이름이 따로 가입해
+ * 친구를 사칭할 수 있고, 채움 문자만으로 빈 것처럼 보이는 이름도 만들 수 있다.
+ */
+const INVISIBLE = /[\p{Cc}\p{Cf}ᅟᅠㅤﾠ]/gu;
+
 // 공백만 다른 이름은 같은 이름으로 본다. "모 도리"와 "모도리"는 다르게 두되,
-// 앞뒤 공백과 연속 공백은 정리한다.
+// 앞뒤 공백과 연속 공백은 정리한다. 맥은 한글을 자모로 풀어(NFD) 보내기도 해서 NFC로 모은다.
 export function normalizeNickname(raw: unknown): string {
-  return typeof raw === "string" ? raw.trim().replace(/\s+/g, " ") : "";
+  if (typeof raw !== "string") return "";
+  return raw.normalize("NFC").replace(INVISIBLE, "").trim().replace(/\s+/g, " ");
 }
 
 // 문구는 화면마다 다르다. 처음 만드는 온보딩에서는 길이 규칙을 알려주고,

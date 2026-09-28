@@ -74,15 +74,6 @@ export default async function SettingsPage() {
         <ThemeToggle />
       </section>
 
-      {/* 출시 초기에 불편한 점과 버그를 모은다. 메일 앱이 제목을 채운 채 열린다. */}
-      <a
-        href={`mailto:${PRIVACY_MANAGER.email}?subject=${encodeURIComponent("[모도리] 의견")}`}
-        className="flex h-14 items-center justify-between rounded-2xl bg-surface px-5 text-sm font-medium"
-      >
-        의견 보내기
-        <span className="text-xs text-muted">불편한 점이나 버그를 알려주세요</span>
-      </a>
-
       <form
         action={async () => {
           "use server";
@@ -122,6 +113,17 @@ export default async function SettingsPage() {
           오류 기록
         </Link>
       )}
+
+      {/* 출시 초기에 불편한 점과 버그를 모은다. 버튼으로 두면 자리를 크게 차지해서 맨 아래에 작게 적는다. */}
+      <p className="-mt-2 text-center text-xs text-muted">
+        의견·버그 제보{" "}
+        <a
+          href={`mailto:${PRIVACY_MANAGER.email}?subject=${encodeURIComponent("[모도리] 의견")}`}
+          className="inline-block py-1 underline underline-offset-4"
+        >
+          {PRIVACY_MANAGER.email}
+        </a>
+      </p>
     </div>
   );
 }

@@ -15,6 +15,7 @@ import {
   toggleRoutinePause,
 } from "./actions";
 import { BackLink } from "@/components/back-link";
+import { DoriMessage } from "@/components/dori-message";
 
 const WEEKDAY_NAMES = ["일", "월", "화", "수", "목", "금", "토"];
 
@@ -110,9 +111,9 @@ export default async function RoutinesPage() {
       )}
 
       {routines.length === 0 ? (
-        <p className="rounded-2xl bg-surface p-10 text-center text-sm text-muted">
-          아직 루틴이 없어요
-        </p>
+        <DoriMessage mood="happy">
+          <p>아직 루틴이 없어요</p>
+        </DoriMessage>
       ) : (
         groups.map((group) => (
           <section key={group.key} className="flex flex-col gap-3">
@@ -129,7 +130,9 @@ export default async function RoutinesPage() {
                       {routine.content}
                     </span>
                     {routine.pausedAt ? (
-                      <span className="text-xs text-muted">멈춤</span>
+                      <span className="text-xs text-muted">
+                        {routine.categoryId ? "멈춤" : "카테고리를 지워 멈춤"}
+                      </span>
                     ) : (
                       group.archived && (
                         <span className="text-xs text-muted">카테고리 보관 중</span>
@@ -143,12 +146,16 @@ export default async function RoutinesPage() {
                   </p>
 
                   <div className="-mx-2 mt-1 flex">
-                    <form action={toggleRoutinePause}>
-                      <input type="hidden" name="id" value={routine.id} />
-                      <button type="submit" className="h-8 rounded-lg px-2 text-xs text-muted hover:bg-surface-hover">
-                        {routine.pausedAt ? "다시 시작" : "잠시 멈춤"}
-                      </button>
-                    </form>
+                    {/* 카테고리가 지워진 루틴은 다시 시작할 수 없다. 지우거나 그대로 둔다. */}
+                    {(routine.categoryId || !routine.pausedAt) && (
+                      <form action={toggleRoutinePause}>
+                        <input type="hidden" name="id" value={routine.id} />
+                        <input type="hidden" name="paused" value={String(!routine.pausedAt)} />
+                        <button type="submit" className="h-8 rounded-lg px-2 text-xs text-muted hover:bg-surface-hover">
+                          {routine.pausedAt ? "다시 시작" : "잠시 멈춤"}
+                        </button>
+                      </form>
+                    )}
 
                     {!routine.endDate && (
                       <form action={endRoutineToday}>

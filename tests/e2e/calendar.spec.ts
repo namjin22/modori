@@ -49,6 +49,35 @@ test("완료한 할 일이 있는 날에 표시가 생긴다", async ({ page }) 
   await expect(page.getByText("이번 달 완료 1개")).toBeVisible();
 });
 
+test("할 일을 끝낼 때마다 그날 표시가 카테고리 색으로 한 칸씩 찬다", async ({ page }) => {
+  const today = todayKST();
+  const user = await prisma.user.findUniqueOrThrow({ where: { email: TEST_EMAIL } });
+  const category = await prisma.category.findFirstOrThrow({ where: { userId: user.id } });
+
+  await addTodo(page, "첫째 일");
+  await addTodo(page, "둘째 일");
+
+  const monthCell = page.getByRole("link", { name: new RegExp(`^${today.getUTCDate()}일, 완료`) });
+  const weekCell = page.getByRole("link", {
+    name: `${today.getUTCMonth() + 1}월 ${today.getUTCDate()}일`,
+  });
+  const filled = (cell: typeof monthCell) => cell.locator(`svg rect[fill="${category.color}"]`);
+
+  // 할 일은 있지만 아직 아무것도 끝내지 않았다. 모양만 있고 비어 있다.
+  await expect(monthCell.locator("svg")).toHaveCount(1);
+  await expect(filled(monthCell)).toHaveCount(0);
+
+  await page.getByRole("button", { name: "완료", exact: true }).first().click();
+  await expect(filled(monthCell)).toHaveCount(1);
+
+  await page.getByRole("button", { name: "완료", exact: true }).first().click();
+  await expect(filled(monthCell)).toHaveCount(2);
+
+  // 폰에서는 달력 대신 주간 줄이 보인다. 거기서도 같이 찬다.
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(filled(weekCell)).toHaveCount(2);
+});
+
 test("이전 달과 다음 달로 넘어간다", async ({ page }) => {
   await page.goto("/");
 

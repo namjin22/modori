@@ -102,18 +102,27 @@ export async function toggleTodo(formData: FormData) {
   const user = await requireUser();
   const id = readId(formData, "id");
 
-  const todo = await prisma.todo.findFirst({
-    where: { id, userId: user.id },
-    select: { done: true },
-  });
-  if (!todo) return;
+  // 화면은 누른 뒤 되고 싶은 상태를 보낸다. "지금 상태를 뒤집기"로 처리하면 다른 탭에서 먼저
+  // 완료해 둔 할 일을 이 탭에서 "완료"로 눌렀을 때 오히려 완료가 풀린다.
+  const wanted = readId(formData, "done");
+  let next: boolean;
+  if (wanted === "true" || wanted === "false") {
+    next = wanted === "true";
+  } else {
+    // 이 값을 보내기 전의 화면(배포 직후 열려 있던 탭)은 뒤집기로 처리한다.
+    const todo = await prisma.todo.findFirst({
+      where: { id, userId: user.id },
+      select: { done: true },
+    });
+    if (!todo) return;
+    next = !todo.done;
+  }
 
-  // 확인과 바꾸기 사이에 다른 탭에서 지우거나 먼저 바꿨을 수 있다. update는 그때 오류를 던져
-  // "저장하지 못했어요"가 뜬다. 읽은 상태 그대로일 때만 바꾸고, 아니면 0건으로 넘긴다.
+  // 이미 그 상태면 0건으로 넘긴다. 완료 시각을 다시 찍으면 친구 소셜 목록에서 순서가 바뀐다.
   await prisma.todo.updateMany({
-    where: { id, userId: user.id, done: todo.done },
+    where: { id, userId: user.id, done: !next },
     // 완료 시각은 캘린더와 피드가 쓰므로 같이 기록한다.
-    data: { done: !todo.done, doneAt: todo.done ? null : new Date() },
+    data: { done: next, doneAt: next ? new Date() : null },
   });
 
   revalidatePath("/");

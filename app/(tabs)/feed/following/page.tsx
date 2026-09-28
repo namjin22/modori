@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+import { DoriMessage } from "@/components/dori-message";
+
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 
@@ -30,15 +32,12 @@ export default async function FollowingPage() {
       </header>
 
       {following.length === 0 ? (
-        <div className="rounded-2xl bg-surface p-10 text-center">
-          <p className="text-sm text-muted">아직 팔로우한 친구가 없어요</p>
-          <Link prefetch={false}
-            href="/feed/search"
-            className="mt-3 inline-block text-sm text-brand"
-          >
+        <DoriMessage mood="hello">
+          <p>아직 팔로우한 친구가 없어요</p>
+          <Link prefetch={false} href="/feed/search" className="mt-1 inline-block text-brand">
             닉네임으로 찾아보기
           </Link>
-        </div>
+        </DoriMessage>
       ) : (
         <ul className="flex flex-col gap-3">
           {following.map(({ following: person }) => (

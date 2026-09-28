@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { MAX_NICKNAME_LENGTH, normalizeNickname } from "@/lib/nickname";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 
@@ -8,6 +9,7 @@ import { SubmitButton } from "@/components/submit-button";
 import { followUser, unfollowUser } from "../actions";
 
 import { Avatar } from "@/components/avatar";
+import { DoriMessage } from "@/components/dori-message";
 import { BackLink } from "@/components/back-link";
 import { avatarUrl } from "@/lib/avatar";
 
@@ -20,7 +22,8 @@ export default async function SearchPage({
 }) {
   const user = await requireUser();
   const { q } = await searchParams;
-  const query = q?.trim() ?? "";
+  // 닉네임과 같은 규칙으로 정리한다. 맥에서 친 한글(NFD)도 찾히고, 닉네임보다 긴 검색어는 자른다.
+  const query = normalizeNickname(q).slice(0, MAX_NICKNAME_LENGTH);
 
   const [results, following] = await Promise.all([
     query.length > 0
@@ -66,13 +69,13 @@ export default async function SearchPage({
       </form>
 
       {query.length === 0 ? (
-        <p className="rounded-2xl bg-surface p-10 text-center text-sm text-muted">
-          닉네임으로 찾아보세요
-        </p>
+        <DoriMessage mood="happy">
+          <p>닉네임으로 찾아보세요</p>
+        </DoriMessage>
       ) : results.length === 0 ? (
-        <p className="rounded-2xl bg-surface p-10 text-center text-sm text-muted">
-          {query}에 맞는 사람이 없어요
-        </p>
+        <DoriMessage mood="confused">
+          <p>{query}에 맞는 사람이 없어요</p>
+        </DoriMessage>
       ) : (
         <ul className="flex flex-col gap-3">
           {results.map((person) => {

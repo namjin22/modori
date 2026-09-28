@@ -8,7 +8,8 @@ export const onRequestError: Instrumentation.onRequestError = async (error, requ
   // DB는 Node.js에서만 쓴다.
   if (process.env.NEXT_RUNTIME !== "nodejs") return;
 
-  const { recordError } = await import("@/lib/errors");
+  const { isClientAbort, recordError } = await import("@/lib/errors");
+  if (isClientAbort(error)) return;
   await recordError({
     source: "server",
     message: error instanceof Error ? `${error.name}: ${error.message}` : String(error),
