@@ -31,8 +31,8 @@ export function ReactionBar({
   compact?: boolean;
 }) {
   const chip = compact ? "h-6 px-1.5 text-xs" : "h-7 px-2 text-sm";
-  // 도리 얼굴은 칸 높이에 거의 꽉 차게 둔다. 더 작으면 표정이 뭉개진다.
-  const doriSize = compact ? 22 : 26;
+  // 도리·이모지 모두 같은 크기 칸에 그린다(reaction-glyph). 칩 높이에 거의 꽉 차게 둔다.
+  const glyphSize = compact ? 20 : 24;
   const [picking, setPicking] = useState(false);
   const [, startTransition] = useTransition();
   const saveFailed = useSaveFailure();
@@ -97,7 +97,7 @@ export function ReactionBar({
               : "bg-surface-hover text-muted"
           }`}
         >
-          <ReactionGlyph value={emoji} doriSize={doriSize} />
+          <ReactionGlyph value={emoji} size={glyphSize} />
           <span className="text-xs font-semibold">{count}</span>
         </button>
       ))}
