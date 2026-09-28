@@ -8,6 +8,7 @@ import { revalidatePath } from "next/cache";
 import { daysBetween, formatKST, parseKSTDate, todayKST } from "@/lib/date";
 import { isId, readIdList } from "@/lib/ids";
 import { LIMITS } from "@/lib/limits";
+import { readMemo } from "@/lib/memo";
 import { prisma } from "@/lib/prisma";
 import { matchesRule } from "@/lib/routine";
 import { requireUser } from "@/lib/session";
@@ -134,10 +135,11 @@ export async function updateTodo(formData: FormData) {
   const content = readContent(formData);
   if (!content) return;
 
-  // 폼은 글자만 보낸다. 카테고리와 색은 건드리지 않는다.
+  // 폼은 글자와 메모만 보낸다. 카테고리와 색은 건드리지 않는다.
+  const memo = readMemo(formData.get("memo"));
   await prisma.todo.updateMany({
     where: { id, userId: user.id },
-    data: { content },
+    data: { content, ...(memo !== undefined && { memo }) },
   });
 
   revalidatePath("/");
@@ -154,6 +156,7 @@ export type DeletedTodo = {
   categoryId: string | null;
   color: string | null;
   routineId: string | null;
+  memo: string | null;
   createdAt: string;
 };
 
@@ -192,6 +195,7 @@ export async function deleteTodo(id: string): Promise<DeletedTodo | null> {
     categoryId: todo.categoryId,
     color: todo.color,
     routineId: todo.routineId,
+    memo: todo.memo,
     createdAt: todo.createdAt.toISOString(),
   };
 }
@@ -256,6 +260,7 @@ export async function restoreTodo(snapshot: DeletedTodo): Promise<string | void>
               ? snapshot.color
               : null,
           routineId: routine?.id ?? null,
+          memo: readMemo(snapshot.memo) ?? null,
           createdAt: readInstant(snapshot.createdAt, new Date()),
         },
       }),

@@ -142,6 +142,7 @@ const EVENT_SELECT = {
   startTime: true,
   endTime: true,
   color: true,
+  memo: true,
 } as const;
 
 export default async function FeedPage({

@@ -21,6 +21,7 @@ export type DayEvent = {
   startTime: number | null;
   endTime: number | null;
   color: string;
+  memo: string | null;
 };
 
 /**
@@ -101,6 +102,11 @@ export function EventSection({
                   <span className="flex min-w-0 flex-1 flex-col">
                     <span className="truncate font-medium">{event.title}</span>
                     {when && <span className="text-xs text-muted">{when}</span>}
+                    {event.memo && (
+                      <span className="mt-0.5 line-clamp-3 whitespace-pre-line wrap-break-word text-[13px] text-muted">
+                        {event.memo}
+                      </span>
+                    )}
                   </span>
                   {dday && <Dday label={dday} />}
                 </button>
@@ -173,6 +179,7 @@ export function EventSection({
                 endDate: formatKST(editing.endDate),
                 startTime: editing.startTime === null ? "" : formatTime(editing.startTime),
                 endTime: editing.endTime === null ? "" : formatTime(editing.endTime),
+                memo: editing.memo ?? "",
               }}
               onSaved={() => setEditing(null)}
               onCancel={() => setEditing(null)}

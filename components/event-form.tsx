@@ -9,6 +9,7 @@ import {
 } from "@/app/(tabs)/events/actions";
 import { SubmitButton } from "@/components/submit-button";
 import { useFormAction } from "@/components/use-form-action";
+import { MAX_MEMO_LENGTH } from "@/lib/memo";
 
 type EditingEvent = {
   id: string;
@@ -18,6 +19,7 @@ type EditingEvent = {
   // "HH:MM", 없으면 빈 문자열(하루 종일).
   startTime: string;
   endTime: string;
+  memo: string;
 };
 
 /**
@@ -118,6 +120,17 @@ export function EventForm({
           />
         </label>
       </div>
+
+      {/* 메모 칸의 Enter는 줄바꿈이다(위의 Enter 막기는 input에만 건다). */}
+      <textarea
+        name="memo"
+        defaultValue={event?.memo ?? ""}
+        maxLength={MAX_MEMO_LENGTH}
+        rows={3}
+        placeholder="메모 (나만 봐요)"
+        aria-label={`${label} 메모`}
+        className="w-full resize-none rounded-xl bg-surface-hover px-4 py-3 text-sm outline-none placeholder:text-muted focus:ring-2 focus:ring-brand"
+      />
 
       {state?.message && !state.ok && (
         <p role="alert" className="text-sm text-danger">
