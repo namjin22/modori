@@ -5,10 +5,11 @@ import { prisma } from "@/lib/prisma";
 import { LIMITS } from "@/lib/limits";
 import { requireUser } from "@/lib/session";
 
-import { createCategory, restoreCategory } from "./actions";
+import { createCategory, reorderCategories, restoreCategory } from "./actions";
 import { BackLink } from "@/components/back-link";
 import { DoriMessage } from "@/components/dori-message";
 import { PublicSwitch } from "@/components/public-switch";
+import { SortableList } from "@/components/sortable-list";
 import { CategoryEditor } from "@/components/category-editor";
 
 // 브랜드 파랑을 기본값으로 두면 새 카테고리가 버튼 색과 구분되지 않는다.
@@ -72,11 +73,17 @@ export default async function CategoriesPage() {
           <p>아직 카테고리가 없어요</p>
         </DoriMessage>
       ) : (
-        <ul className="flex flex-col gap-3">
-          {active.map((category) => (
-            <CategoryEditor key={category.id} category={category} />
-          ))}
-        </ul>
+        // 손잡이(⠿)를 끌어 순서를 바꾼다. 피드의 카테고리 묶음도 이 순서를 따른다.
+        <SortableList
+          variant="card"
+          noun="카테고리"
+          save={reorderCategories}
+          items={active.map((category) => ({
+            id: category.id,
+            label: category.name,
+            node: <CategoryEditor category={category} />,
+          }))}
+        />
       )}
 
       {archived.length > 0 && (

@@ -48,7 +48,8 @@ export function CategoryEditor({ category }: { category: Category }) {
   }
 
   return (
-    <li className="rounded-2xl bg-surface">
+    // 줄(li)과 카드 바탕은 순서 바꾸기 목록(SortableList)이 깐다.
+    <div className="min-w-0">
       <button
         type="button"
         onClick={() => setOpen(true)}
@@ -140,6 +141,6 @@ export function CategoryEditor({ category }: { category: Category }) {
           />
         </div>
       </Modal>
-    </li>
+    </div>
   );
 }

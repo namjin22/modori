@@ -219,3 +219,29 @@ export async function restoreCategory(formData: FormData) {
   revalidatePath("/categories");
   revalidatePath("/");
 }
+
+/**
+ * 카테고리 화면에서 끌어 바꾼 순서를 그대로 저장한다. 피드의 카테고리 묶음도 이 순서를 따른다.
+ * 내 카테고리가 빠짐없이, 겹치지 않게 와야 한다. 남의 id나 모자란 목록은 통째로 무시한다.
+ */
+export async function reorderCategories(ids: string[]) {
+  const user = await requireUser();
+  const orderedIds = readIdList(ids, LIMITS.categories);
+  if (!orderedIds || new Set(orderedIds).size !== orderedIds.length) return;
+
+  const owned = await prisma.category.findMany({
+    where: { userId: user.id, archivedAt: null },
+    select: { id: true },
+  });
+  const ownedIds = new Set(owned.map((category) => category.id));
+  if (owned.length !== orderedIds.length || !orderedIds.every((id) => ownedIds.has(id))) return;
+
+  await prisma.$transaction(
+    orderedIds.map((id, index) =>
+      prisma.category.updateMany({ where: { id, userId: user.id }, data: { order: index } }),
+    ),
+  );
+
+  revalidatePath("/categories");
+  revalidatePath("/");
+}
