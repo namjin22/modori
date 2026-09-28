@@ -8,6 +8,7 @@ import { requireUser } from "@/lib/session";
 import { createCategory, restoreCategory } from "./actions";
 import { BackLink } from "@/components/back-link";
 import { DoriMessage } from "@/components/dori-message";
+import { PublicSwitch } from "@/components/public-switch";
 import { CategoryEditor } from "@/components/category-editor";
 
 // 브랜드 파랑을 기본값으로 두면 새 카테고리가 버튼 색과 구분되지 않는다.
@@ -62,6 +63,7 @@ export default async function CategoriesPage() {
             legend="색"
             defaultValue={DEFAULT_NEW_COLOR}
           />
+          <PublicSwitch />
         </form>
       )}
 

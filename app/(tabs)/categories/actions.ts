@@ -45,7 +45,14 @@ export async function createCategory(formData: FormData) {
   });
 
   await prisma.category.create({
-    data: { userId: user.id, name, color, order: (last?.order ?? -1) + 1 },
+    data: {
+      userId: user.id,
+      name,
+      color,
+      // 만들 때 공개 여부를 정한다. 만든 뒤 창을 열어 끄기 전까지 친구에게 보이는 틈이 없게.
+      isPublic: formData.get("isPublic") === "on",
+      order: (last?.order ?? -1) + 1,
+    },
   });
 
   revalidatePath("/categories");

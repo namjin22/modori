@@ -120,7 +120,8 @@ test("비공개 카테고리의 할 일은 피드에 보이지 않는다", async
   // 기본 카테고리를 비공개로 바꾼다. 저장 버튼 없이 끄는 순간 저장된다.
   await page.goto("/categories");
   await openCategory(page, FIRST_CATEGORY);
-  await page.getByLabel("친구 피드에 보이기").uncheck();
+  // 만들기 폼에도 같은 스위치가 있어서 고치는 창 안에서 찾는다.
+  await page.getByRole("dialog").getByLabel("친구 피드에 보이기").uncheck();
   await expect(page.getByText("저장했어요")).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(

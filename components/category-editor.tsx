@@ -10,6 +10,7 @@ import {
 import { ColorSwatches } from "@/components/color-swatches";
 import { Modal } from "@/components/modal";
 import { UndoableDeleteButton } from "@/components/undoable-delete-button";
+import { PublicSwitch } from "@/components/public-switch";
 import { useSaveFailure } from "@/components/use-save-failure";
 
 type Category = { id: string; name: string; color: string; isPublic: boolean };
@@ -115,19 +116,7 @@ export function CategoryEditor({ category }: { category: Category }) {
 
           <ColorSwatches name="color" legend="색" defaultValue={category.color} />
 
-          <label className="flex cursor-pointer items-center justify-between gap-3">
-            <span className="flex flex-col">
-              <span className="text-sm font-medium">친구 피드에 보이기</span>
-              <span className="text-xs text-muted">끄면 이 카테고리의 할 일은 나만 봐요</span>
-            </span>
-            {/* 스위치 모양. 체크박스 그대로 두어 키보드와 화면 읽기가 된다. */}
-            <input
-              type="checkbox"
-              name="isPublic"
-              defaultChecked={category.isPublic}
-              className="relative h-6 w-10 shrink-0 cursor-pointer appearance-none rounded-full bg-border transition-colors before:absolute before:left-0.5 before:top-0.5 before:size-5 before:rounded-full before:bg-white before:shadow before:transition-transform checked:bg-brand checked:before:translate-x-4"
-            />
-          </label>
+          <PublicSwitch defaultChecked={category.isPublic} />
         </form>
 
         <div className="flex items-center justify-between border-t border-border pt-4">
