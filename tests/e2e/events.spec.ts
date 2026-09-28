@@ -1,6 +1,6 @@
 import { expect, test as base, type Page } from "@playwright/test";
 
-import { addDays, daysInMonthKST, formatKST, todayKST } from "@/lib/date";
+import { addDays, daysInMonthKST, formatKST, formatMonthKST, todayKST } from "@/lib/date";
 import { prisma } from "@/lib/prisma";
 
 import { addEvent, addTodo, homeReady, openEvent } from "./todo-helpers";
@@ -61,9 +61,17 @@ test("여러 날 일정은 그 기간의 모든 날에 뜬다", async ({ page, e
 
   await addEvent(page, "수학여행", formatKST(third));
 
+  // 달력 칸은 날짜 숫자로 찾는다. 월말에는 기간이 다음 달로 넘어가므로 그 날의 달 달력을 열어서 본다
+  // (열린 달력에서 "1일"을 찾으면 이번 달 1일 칸을 잡는다).
+  async function showMonthOf(day: Date) {
+    if (formatMonthKST(day) === formatMonthKST(today)) return;
+    await page.goto(`/?date=${formatKST(today)}&month=${formatMonthKST(day)}`);
+  }
   for (const day of [today, addDays(today, 1), third]) {
+    await showMonthOf(day);
     await expect(dayCell(page, day)).toContainText("수학여행");
   }
+  await showMonthOf(addDays(today, 3));
   await expect(dayCell(page, addDays(today, 3))).not.toContainText("수학여행");
 
   // 기간 안의 다른 날로 가도 목록에 있다.
