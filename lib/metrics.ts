@@ -10,7 +10,7 @@ const recordedToday = new Set<string>();
 let currentDay: string | null = null;
 
 /**
- * 가입을 마친 사람이 오늘 모도리를 썼다고 적는다(requireUser가 부른다). 그날 처음 적는 순간 어제 합계도 찍는다.
+ * 가입을 마친 사람이 오늘 모도리를 썼다고 적는다(requireUser가 부른다). 전날 합계는 lib/daily.ts가 찍는다.
  * 지표를 못 적어도 화면은 그대로 떠야 하므로 오류는 기록만 하고 넘긴다.
  */
 export async function recordActiveDay(userId: string): Promise<void> {
@@ -19,7 +19,6 @@ export async function recordActiveDay(userId: string): Promise<void> {
   if (currentDay !== key) {
     currentDay = key;
     recordedToday.clear();
-    await snapshotSafely(addDays(today, -1));
   }
   if (recordedToday.has(userId)) return;
 
@@ -31,7 +30,8 @@ export async function recordActiveDay(userId: string): Promise<void> {
   }
 }
 
-async function snapshotSafely(day: Date) {
+/** 그 날 합계가 없으면 찍고, 90일 지난 쓴 날짜를 지운다. 실패해도 부른 쪽을 망치지 않는다. */
+export async function snapshotIfMissing(day: Date): Promise<void> {
   try {
     const exists = await prisma.dailyStat.findUnique({ where: { date: day }, select: { date: true } });
     if (!exists) await snapshotDay(day);

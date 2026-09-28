@@ -89,7 +89,7 @@ export default async function MetricsPage() {
       <section className="flex flex-col gap-2">
         <h2 className="font-semibold">주별</h2>
         {weeks.length === 0 ? (
-          <p className="text-sm text-muted">하루 합계는 다음 날 첫 접속 때 찍혀요. 내일부터 쌓여요.</p>
+          <p className="text-sm text-muted">하루 합계는 날이 바뀐 뒤 첫 접속이나 서버 상태 확인 때 찍혀요. 내일부터 쌓여요.</p>
         ) : (
           // 좁은 화면에서는 표만 옆으로 민다. 페이지 전체가 밀리지 않게 여기서 가둔다.
           <div className="overflow-x-auto rounded-2xl bg-surface">
