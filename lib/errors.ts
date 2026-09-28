@@ -17,6 +17,14 @@ export function isClientAbort(error: unknown): boolean {
   return error.name === "ResponseAborted" || CLIENT_ABORT_MESSAGES.has(error.message);
 }
 
+/**
+ * 오류 내용은 첫 줄만 남긴다. Prisma 검사 오류는 둘째 줄부터 넘긴 값(할 일 내용 같은 사용자 입력)을
+ * 그대로 적는다. 첫 줄은 "Invalid `prisma.todo.create()` invocation:"처럼 무엇이 실패했는지만 말한다.
+ */
+export function safeMessage(message: string): string {
+  return message.split(/\r?\n/)[0].trim().slice(0, MAX_MESSAGE);
+}
+
 /** 주소의 경로만 남긴다. 쿼리에는 무엇이 들어올지 몰라 버린다. */
 function pathOnly(value: string | null | undefined): string | null {
   if (!value) return null;
@@ -38,7 +46,7 @@ export async function recordError(input: {
     await prisma.errorEvent.create({
       data: {
         source: input.source,
-        message: input.message.slice(0, MAX_MESSAGE) || "(내용 없음)",
+        message: safeMessage(input.message) || "(내용 없음)",
         digest: input.digest?.slice(0, 64) ?? null,
         path: pathOnly(input.path),
       },
