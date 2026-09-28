@@ -19,7 +19,8 @@ export function UndoableDeleteButton<Snapshot>({
 }: {
   id: string;
   remove: (id: string) => Promise<Snapshot | null>;
-  restore: (snapshot: Snapshot) => Promise<void>;
+  // 되살리지 못한 까닭을 돌려주면 알림으로 보여준다.
+  restore: (snapshot: Snapshot) => Promise<string | void>;
   message: string;
   // 떠 있는 창 안에서 지웠으면 그 창도 닫아야 한다.
   onDone?: () => void;

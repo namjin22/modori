@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { isPaletteColor } from "@/lib/colors";
-import { readIdList } from "@/lib/ids";
+import { isId, readIdList } from "@/lib/ids";
 import { LIMITS } from "@/lib/limits";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
@@ -145,12 +145,13 @@ export async function deleteCategory(id: string): Promise<DeletedCategory | null
 }
 
 /** 방금 지운 카테고리를 되살리고, 남겨 둔 할 일과 루틴을 다시 잇는다. */
-export async function undoDeleteCategory(snapshot: DeletedCategory) {
+export async function undoDeleteCategory(snapshot: DeletedCategory): Promise<string | void> {
   const user = await requireUser();
 
   // 브라우저에서 돌아온 값이라 그대로 믿지 않는다.
+  if (!isId(snapshot.id) || typeof snapshot.name !== "string") return;
   const name = snapshot.name.trim().slice(0, MAX_NAME_LENGTH);
-  if (!name || !HEX_COLOR.test(snapshot.color)) return;
+  if (!name || typeof snapshot.color !== "string" || !HEX_COLOR.test(snapshot.color)) return;
   const todoIds = readIdList(snapshot.todoIds, MAX_SNAPSHOT_IDS);
   const routineIds = readIdList(snapshot.routineIds, MAX_SNAPSHOT_IDS);
   const pausedRoutineIds = readIdList(snapshot.pausedRoutineIds, MAX_SNAPSHOT_IDS);
@@ -162,6 +163,12 @@ export async function undoDeleteCategory(snapshot: DeletedCategory) {
   });
   if (exists) return;
 
+  // 되돌리기도 새로 만드는 것과 같은 상한을 지킨다. 없으면 이 함수로 카테고리를 끝없이 만든다.
+  const count = await prisma.category.count({ where: { userId: user.id, archivedAt: null } });
+  if (count >= LIMITS.categories) {
+    return `카테고리는 ${LIMITS.categories}개까지 만들 수 있어요.`;
+  }
+
   await prisma.$transaction([
     prisma.category.create({
       data: {
@@ -169,7 +176,7 @@ export async function undoDeleteCategory(snapshot: DeletedCategory) {
         userId: user.id,
         name,
         color: snapshot.color.toLowerCase(),
-        isPublic: snapshot.isPublic,
+        isPublic: snapshot.isPublic !== false,
         order: Math.trunc(snapshot.order) || 0,
       },
     }),

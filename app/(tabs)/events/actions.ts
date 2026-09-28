@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 
 import { DEFAULT_EVENT_COLOR } from "@/lib/colors";
 import { daysBetween, formatKST, parseKSTDate } from "@/lib/date";
+import { isId } from "@/lib/ids";
 import { LIMITS } from "@/lib/limits";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
@@ -125,8 +126,9 @@ export async function deleteEvent(id: string): Promise<DeletedEvent | null> {
 }
 
 /** 방금 지운 일정을 되살린다. 값은 브라우저에서 오므로 만들 때와 같은 검사를 거친다. */
-export async function restoreEvent(snapshot: DeletedEvent) {
+export async function restoreEvent(snapshot: DeletedEvent): Promise<string | void> {
   const user = await requireUser();
+  if (!isId(snapshot.id)) return;
 
   const formData = new FormData();
   formData.set("title", snapshot.title);
@@ -137,6 +139,12 @@ export async function restoreEvent(snapshot: DeletedEvent) {
   if (typeof input === "string") {
     console.warn("[event] 되돌릴 값이 올바르지 않다.", input);
     return;
+  }
+
+  // 되돌리기도 새로 만드는 것과 같은 상한을 지킨다.
+  const count = await prisma.event.count({ where: { userId: user.id } });
+  if (count >= LIMITS.events) {
+    return `일정은 ${LIMITS.events}개까지 만들 수 있어요.`;
   }
 
   try {
