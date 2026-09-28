@@ -2,7 +2,7 @@ import Link from "next/link";
 
 import { Avatar } from "@/components/avatar";
 
-import { formatMonthDayKST } from "@/lib/date";
+import { formatKST, formatMonthDayKST } from "@/lib/date";
 import { prisma } from "@/lib/prisma";
 import { countUnreadNotifications, requireUser } from "@/lib/session";
 
@@ -254,7 +254,7 @@ function groupByAuthorAndDay<T extends { date: Date; user: { id: string } }>(
   for (const todo of todos) {
     const date = formatMonthDayKST(todo.date);
     const last = groups.at(-1);
-    if (last && last.user.id === todo.user.id && last.date === date) {
+    if (last && last.user.id === todo.user.id && formatKST(last.items[0].date) === formatKST(todo.date)) {
       last.items.push(todo);
     } else {
       groups.push({ key: `${todo.user.id}-${todo.date.getTime()}-${groups.length}`, date, user: todo.user, items: [todo] });
