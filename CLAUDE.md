@@ -68,6 +68,10 @@ prisma/schema.prisma
 tests/              Playwright
 docs/roadmap.md     전체 계획과 남은 작업
 docs/decisions.md   설계 결정 기록
+docs/feedback.md    사용자 요청과 안 한 이유
+docs/incidents.md   장애·버그 기록
+docs/metrics.md     지표 정의와 수집 방법
+docs/screenshots/   릴리스 스크린샷
 ```
 
 ## 명령어
@@ -76,6 +80,7 @@ docs/decisions.md   설계 결정 기록
 npm run dev       # 개발 서버
 npm run verify    # tsc --noEmit && npm run lint && 단위 테스트(시간대 3개) && playwright test
 npm run build     # 프로덕션 빌드
+npm run screenshots # 릴리스 스크린샷(데모 계정, docs/screenshots/)
 npx prisma migrate dev --name <이름>
 npx prisma studio # DB 내용 확인
 ```
@@ -109,6 +114,20 @@ Windows + Git Bash. 셸 명령은 bash 문법으로 쓴다.
 `docs/decisions.md`에 기록된 결정과 다르게 구현해야 한다고 판단되면,
 코드를 고치기 전에 먼저 이유를 설명하고 물어본다.
 새로운 갈림길에서 결정을 내렸으면 같은 형식으로 `docs/decisions.md`에 추가한다.
+
+## 기록 규칙
+
+포트폴리오·면접의 근거가 된다. 초기 숫자와 "왜 그렇게 했는지"는 나중에 되살릴 수 없으니 그때그때 남긴다.
+해당하는 일이 생기면 **같은 작업(같은 PR) 안에서** 적고, 무엇을 적었는지 최종 응답에 말한다.
+
+| 이런 일이 생기면 | 여기에 | 적는 것 |
+|---|---|---|
+| 기능을 추가하거나 동작을 바꿨다 | `docs/decisions.md` | 상황 / 선택지 / 선택 / 이유 / 대가. 고르지 않은 길(선택지)과 포기한 것(대가)을 빠뜨리지 않는다. 고를 것이 없던 작은 수정(문구·간격·버그)은 적지 않는다 |
+| 사용자 요청을 받았다(운영자 요청 포함) | `docs/feedback.md` | 한 줄. 반영이 아니면 **안 한 이유를 반드시**. 이름·이메일은 적지 않는다 |
+| 운영에 영향이 있는 장애·버그, 배포 실패, 데이터·보안 문제가 났다 | `docs/incidents.md` | 증상 / 원인 / 조치 / 재발 방지. 증상과 시각은 겪는 동안 바로 적는다 |
+| 화면이 바뀐 배포가 끝났다 | `docs/screenshots/` | `npm run screenshots`, README "릴리스 목록"에 한 줄. 운영 화면은 찍지 않는다 |
+| 세는 지표를 더하거나 정의를 바꾼다 | `docs/metrics.md` | 정의와 왜 보는지, 모으는 방법. 새 저장 항목이면 개인정보 목록·방침도(규칙 8) |
+| 출시, 첫 N명처럼 다시 없을 순간 | `docs/metrics.md` 이정표 | 날짜와 숫자 |
 
 ## AI 교대 작업 규칙
 

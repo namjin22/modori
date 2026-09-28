@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { loginHref, safeNext } from "@/lib/next-path";
 
 import { auth } from "@/lib/auth";
+import { recordActiveDay } from "@/lib/metrics";
 import { prisma } from "@/lib/prisma";
 
 /**
@@ -45,6 +46,8 @@ export const requireUser = cache(async () => {
     redirect(next ? `/onboarding?next=${encodeURIComponent(next)}` : "/onboarding");
   }
 
+  // 활성 사용자·재방문율을 세려고 오늘 쓴 것을 적는다(docs/metrics.md). 하루 한 번만 DB에 쓴다.
+  await recordActiveDay(user.id);
   return { ...user, nickname: user.nickname };
 });
 

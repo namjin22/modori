@@ -6,6 +6,7 @@ import {
   formatKST,
   isSameKSTDate,
   parseKSTDate,
+  startOfKSTDayInstant,
   todayKST,
   toKSTDateOnly,
   weekdayKST,
@@ -145,5 +146,17 @@ describe("daysBetween", () => {
 
   it("해를 넘겨도 정확하다", () => {
     expect(daysBetween(parseKSTDate("2026-12-31"), parseKSTDate("2027-01-01"))).toBe(1);
+  });
+});
+
+describe("startOfKSTDayInstant", () => {
+  it("한국 자정은 전날 15:00Z다", () => {
+    expect(startOfKSTDayInstant(parseKSTDate("2026-09-28")).toISOString()).toBe("2026-09-27T15:00:00.000Z");
+  });
+
+  it("그날 안의 어느 시각을 넣어도 같은 시작 시각이 나온다", () => {
+    // 2026-09-28 23:30 KST = 14:30Z, 2026-09-28 00:10 KST = 전날 15:10Z
+    expect(startOfKSTDayInstant(new Date("2026-09-28T14:30:00Z")).toISOString()).toBe("2026-09-27T15:00:00.000Z");
+    expect(startOfKSTDayInstant(new Date("2026-09-27T15:10:00Z")).toISOString()).toBe("2026-09-27T15:00:00.000Z");
   });
 });
