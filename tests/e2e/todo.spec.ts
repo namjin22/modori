@@ -119,6 +119,26 @@ test("할 일 입력칸은 비운 채 다른 곳을 누르면 닫히고, 적은 
   await expect(input).toBeHidden();
 });
 
+test("진행 막대는 끝낸 일의 카테고리 색으로 찬다", async ({ page }) => {
+  await addCategory(page, "운동");
+  await page.goto("/");
+  const user = await prisma.user.findUniqueOrThrow({ where: { email: TEST_EMAIL } });
+  const categories = await prisma.category.findMany({ where: { userId: user.id }, orderBy: { order: "asc" } });
+  await addTodo(page, "기본 일");
+  await addTodo(page, "달리기", "운동");
+  await addTodo(page, "남길 일");
+
+  const bar = page.getByRole("progressbar", { name: "오늘 완료율" });
+  await page.getByRole("listitem").filter({ hasText: "기본 일" }).getByRole("button", { name: "완료", exact: true }).click();
+  await page.getByRole("listitem").filter({ hasText: "달리기" }).getByRole("button", { name: "완료", exact: true }).click();
+
+  // 두 칸이 각 카테고리 색으로, 목록(묶음) 순서대로 찬다.
+  const segments = bar.locator("[data-progress-color]");
+  await expect(segments).toHaveCount(2);
+  await expect(segments.nth(0)).toHaveAttribute("data-progress-color", categories[0].color);
+  await expect(segments.nth(1)).toHaveAttribute("data-progress-color", categories[1].color);
+});
+
 test("삭제하면 목록에서 사라진다", async ({ page }) => {
   await addTodo(page, "지울 할 일");
 

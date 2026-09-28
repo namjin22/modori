@@ -31,7 +31,7 @@ export function TodoCheckbox({
         formData.set("done", String(next));
         setOptimisticDone(next);
         // 완료 개수도 같은 액션 안에서 움직여야 둘이 따로 놀지 않는다.
-        changeDone?.(next ? 1 : -1);
+        changeDone?.(id, next);
         // 실패하면 액션이 끝나면서 체크와 개수가 원래대로 돌아간다. 알림만 띄운다.
         try {
           await toggleTodo(formData);
