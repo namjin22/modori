@@ -5,9 +5,6 @@ import { createContext, useContext, useOptimistic, type ReactNode } from "react"
 import { Dori } from "@/components/dori";
 import { progressMood } from "@/lib/dori-mood";
 
-// 막대 바탕(밝은 회색·짙은 회색)과 비슷해 칸이 안 보이는 팔레트 색(lib/colors.ts).
-const EDGE_COLORS = new Set(["#ffffff", "#111827"]);
-
 /** 할 일 하나를 끝냈거나 되돌렸다. */
 type ChangeDone = (id: string, done: boolean) => void;
 
@@ -82,17 +79,15 @@ export function TodoProgress({
             aria-valuemin={0}
             aria-valuemax={Math.max(total, 1)}
             aria-valuenow={optimisticDone}
-            className="flex h-2 gap-0.75 overflow-hidden rounded-full bg-border"
+            className="flex h-2 overflow-hidden rounded-full bg-border"
           >
-            {/* 같은 색이 이어지는 끝낸 일은 한 덩어리로 칠한다. 할 일마다 자르면 막대가 토막 나 보였다.
-                폭은 flex 비율(끝낸 개수)로 나눠 덩어리 사이 틈이 있어도 비율이 맞는다. 남은 몫은 빈 칸이다. */}
+            {/* 막대 하나가 끊기지 않고 색만 바뀌며 이어진다(사용자 요청). 같은 색이 이어지는 끝낸 일은 한 칸으로 묶고,
+                폭은 flex 비율(끝낸 개수)로 나눈다. 남은 몫은 빈 칸이다. */}
             {colorRuns(doneItems).map((run) => (
               <div
                 key={run.key}
                 data-progress-color={run.color ?? "brand"}
-                className={`h-full min-w-0 basis-0 rounded-full bg-brand transition-[flex-grow] duration-300 ${
-                  run.color && EDGE_COLORS.has(run.color.toLowerCase()) ? "segment-edge" : ""
-                }`}
+                className="h-full min-w-0 basis-0 bg-brand transition-[flex-grow] duration-300"
                 style={{ flexGrow: run.count, ...(run.color ? { backgroundColor: run.color } : {}) }}
               />
             ))}
