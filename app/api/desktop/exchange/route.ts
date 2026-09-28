@@ -1,10 +1,9 @@
-import { randomUUID } from "node:crypto";
-
 import { encode } from "next-auth/jwt";
 
 import { isMockAuth } from "@/lib/auth";
 import { redeemDesktopCode } from "@/lib/desktop-login";
 import { prisma } from "@/lib/prisma";
+import { generateSignedSessionToken } from "@/lib/signed-session-token";
 
 // Auth.js 기본값(@auth/core lib/init.js)과 같다. 세션은 30일 동안 쓰지 않으면 끝난다.
 const SESSION_MAX_AGE = 30 * 24 * 60 * 60;
@@ -36,7 +35,9 @@ export async function GET(request: Request) {
     if (!secret) throw new Error("AUTH_SECRET이 없어 데스크톱 로그인 세션을 만들 수 없다.");
     value = await encode({ token: { sub: userId }, secret, salt: name, maxAge: SESSION_MAX_AGE });
   } else {
-    value = randomUUID();
+    const secret = process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET;
+    if (!secret) throw new Error("AUTH_SECRET이 없어 데스크톱 로그인 세션을 만들 수 없다.");
+    value = generateSignedSessionToken(secret);
     await prisma.session.create({ data: { sessionToken: value, userId, expires } });
   }
 

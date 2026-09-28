@@ -7,6 +7,7 @@ import Google from "next-auth/providers/google";
 import type { OAuthConfig } from "next-auth/providers";
 
 import { prisma } from "@/lib/prisma";
+import { generateSignedSessionToken } from "@/lib/signed-session-token";
 
 export const isMockAuth = process.env.AUTH_MODE === "mock";
 
@@ -181,7 +182,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   },
   // Credentials 프로바이더는 DB 세션 전략을 지원하지 않는다.
   // 평소에는 DB 세션(서버에서 강제 로그아웃 가능), 우회 모드일 때만 JWT.
-  session: { strategy: isMockAuth ? "jwt" : "database" },
+  session: {
+    strategy: isMockAuth ? "jwt" : "database",
+    generateSessionToken() {
+      const secret = process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET;
+      if (!secret) throw new Error("AUTH_SECRET이 없어 로그인 세션을 만들 수 없다.");
+      return generateSignedSessionToken(secret);
+    },
+  },
   // 오류도 로그인 화면에서 받는다. 기본 오류 화면은 영어로 "Server error"만 뜬다.
   // /login은 로그인을 요구하지 않으므로 되돌기 고리가 생기지 않는다.
   pages: { signIn: "/login", error: "/login" },
