@@ -250,10 +250,12 @@ export default async function FeedPage({
     };
   });
 
-  const doneCount = todos.filter((todo) => todo.done).length;
-
   // 투두메이트처럼 카테고리마다 칩과 +를 두고, 할 일이 없는 카테고리도 보여준다.
-  const todoGroups = groupByCategory(todos, categories, { includeEmpty: true });
+  // 끝낸 일은 묶음 아래로 내린다(남은 일이 위에 모인다). 같은 쪽 안에서는 원래 순서를 지킨다(sort는 안정 정렬).
+  const todoGroups = groupByCategory(todos, categories, { includeEmpty: true }).map((group) => ({
+    ...group,
+    items: [...group.items].sort((a, b) => Number(a.done) - Number(b.done)),
+  }));
 
   return (
     // 넓은 화면에서는 왼쪽에 프로필과 달력, 오른쪽에 고른 날의 목록을 둔다.
@@ -393,8 +395,14 @@ export default async function FeedPage({
         {/* 앞날짜에 아직 "예정"인 루틴이 남아 있으면 다 끝낸 게 아니다. 축하 배너는 TodoProgress가 띄운다. */}
         <TodoProgress
           key={formatKST(date)}
-          total={todos.length}
-          done={doneCount}
+          // 막대는 끝낸 일의 색으로 찬다. 화면에 보이는 묶음 순서대로 넘겨 같은 색이 붙어 서게 한다.
+          items={todoGroups.flatMap((group) =>
+            group.items.map((todo) => ({
+              id: todo.id,
+              done: todo.done,
+              color: todo.color ?? todo.category?.color ?? null,
+            })),
+          )}
           canCelebrate={scheduled.length === 0}
         >
           {todoGroups.map((group) => (

@@ -196,3 +196,28 @@ test("달력에서 일정 이름을 다른 날로 끌면 기간이 늘어난다"
   await dayCell(page, target).locator("[data-event-id]").click();
   await expect(page).toHaveURL(new RegExp(`date=${formatKST(target)}`));
 });
+
+test("여러 날 일정의 첫날을 잡고 끌면 시작일이 움직여 줄어든다", async ({ page, email }, testInfo) => {
+  await signInAndOnboard(page, email, `줄이기${testInfo.testId.slice(-6)}${RUN_TAG}`);
+  const today = todayKST();
+  // 같은 달 안에 사흘짜리 일정을 둔다.
+  const first = today.getUTCDate() + 2 <= daysInMonthKST(today) ? today : addDays(today, -2);
+  const user = await prisma.user.findUniqueOrThrow({ where: { email } });
+  await prisma.event.create({
+    data: { userId: user.id, title: "사흘 일정", startDate: first, endDate: addDays(first, 2), color: "#2563eb" },
+  });
+  await page.goto("/");
+
+  const from = await dayCell(page, first).locator("[data-event-id]").boundingBox();
+  const to = await dayCell(page, addDays(first, 1)).boundingBox();
+  if (!from || !to) throw new Error("달력 칸을 찾지 못했다");
+  await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(to.x + to.width / 2, to.y + to.height / 2, { steps: 8 });
+  await page.mouse.up();
+
+  await expect(dayCell(page, first).locator("[data-event-id]")).toHaveCount(0);
+  const event = await prisma.event.findFirstOrThrow({ where: { userId: user.id } });
+  expect(formatKST(event.startDate)).toBe(formatKST(addDays(first, 1)));
+  expect(formatKST(event.endDate)).toBe(formatKST(addDays(first, 2)));
+});
