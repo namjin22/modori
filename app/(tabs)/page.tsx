@@ -142,6 +142,7 @@ const EVENT_SELECT = {
   startTime: true,
   endTime: true,
   color: true,
+  memo: true,
 } as const;
 
 export default async function FeedPage({
@@ -440,6 +441,7 @@ export default async function FeedPage({
                     node: (
                       <TodoRow
                         todo={todo}
+                        date={formatKST(date)}
                         received={groupReceivedReactions(
                           todo.reactions.map((reaction) => ({
                             emoji: reaction.emoji,

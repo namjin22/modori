@@ -9,6 +9,7 @@ import { firstOverfullDay } from "@/lib/event-limit";
 import { formatTime, parseTime } from "@/lib/event-time";
 import { isId } from "@/lib/ids";
 import { LIMITS } from "@/lib/limits";
+import { readMemo } from "@/lib/memo";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 
@@ -26,6 +27,7 @@ type EventInput = {
   startTime: number | null;
   endTime: number | null;
   color: string;
+  memo: string | null;
 };
 
 function readText(formData: FormData, key: string): string {
@@ -76,7 +78,10 @@ function readEventInput(formData: FormData): EventInput | string {
   // 색은 고르지 않는다. 달력에서는 일정 이름으로 알아본다.
   const color = DEFAULT_EVENT_COLOR;
 
-  return { title, startDate, endDate, startTime, endTime, color };
+  // 비우면 메모 없음. 칸이 없던 요청(예전 화면)도 메모 없음으로 둔다.
+  const memo = readMemo(formData.get("memo")) ?? null;
+
+  return { title, startDate, endDate, startTime, endTime, color, memo };
 }
 
 /**
@@ -155,6 +160,7 @@ export type DeletedEvent = {
   startTime: string;
   endTime: string;
   color: string;
+  memo: string | null;
 };
 
 export async function deleteEvent(id: string): Promise<DeletedEvent | null> {
@@ -174,6 +180,7 @@ export async function deleteEvent(id: string): Promise<DeletedEvent | null> {
     startTime: event.startTime === null ? "" : formatTime(event.startTime),
     endTime: event.endTime === null ? "" : formatTime(event.endTime),
     color: event.color,
+    memo: event.memo,
   };
 }
 
@@ -189,6 +196,7 @@ export async function restoreEvent(snapshot: DeletedEvent): Promise<string | voi
   formData.set("color", snapshot.color);
   formData.set("startTime", typeof snapshot.startTime === "string" ? snapshot.startTime : "");
   formData.set("endTime", typeof snapshot.endTime === "string" ? snapshot.endTime : "");
+  formData.set("memo", typeof snapshot.memo === "string" ? snapshot.memo : "");
   const input = readEventInput(formData);
   if (typeof input === "string") {
     console.warn("[event] 되돌릴 값이 올바르지 않다.", input);

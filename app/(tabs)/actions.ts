@@ -5,9 +5,10 @@ import { Prisma } from "@prisma/client";
 import { isPaletteColor } from "@/lib/colors";
 import { revalidatePath } from "next/cache";
 
-import { daysBetween, formatKST, parseKSTDate, todayKST } from "@/lib/date";
+import { daysBetween, formatKST, formatMonthDayKST, isSameKSTDate, parseKSTDate, todayKST } from "@/lib/date";
 import { isId, readIdList } from "@/lib/ids";
 import { LIMITS } from "@/lib/limits";
+import { readMemo } from "@/lib/memo";
 import { prisma } from "@/lib/prisma";
 import { matchesRule } from "@/lib/routine";
 import { requireUser } from "@/lib/session";
@@ -134,10 +135,11 @@ export async function updateTodo(formData: FormData) {
   const content = readContent(formData);
   if (!content) return;
 
-  // 폼은 글자만 보낸다. 카테고리와 색은 건드리지 않는다.
+  // 폼은 글자와 메모만 보낸다. 카테고리와 색은 건드리지 않는다.
+  const memo = readMemo(formData.get("memo"));
   await prisma.todo.updateMany({
     where: { id, userId: user.id },
-    data: { content },
+    data: { content, ...(memo !== undefined && { memo }) },
   });
 
   revalidatePath("/");
@@ -154,6 +156,7 @@ export type DeletedTodo = {
   categoryId: string | null;
   color: string | null;
   routineId: string | null;
+  memo: string | null;
   createdAt: string;
 };
 
@@ -192,6 +195,7 @@ export async function deleteTodo(id: string): Promise<DeletedTodo | null> {
     categoryId: todo.categoryId,
     color: todo.color,
     routineId: todo.routineId,
+    memo: todo.memo,
     createdAt: todo.createdAt.toISOString(),
   };
 }
@@ -256,6 +260,7 @@ export async function restoreTodo(snapshot: DeletedTodo): Promise<string | void>
               ? snapshot.color
               : null,
           routineId: routine?.id ?? null,
+          memo: readMemo(snapshot.memo) ?? null,
           createdAt: readInstant(snapshot.createdAt, new Date()),
         },
       }),
@@ -273,6 +278,61 @@ export async function restoreTodo(snapshot: DeletedTodo): Promise<string | void>
   }
 
   revalidatePath("/");
+}
+
+/** 이보다 먼 날로는 옮기지 않는다. 그 너머는 입력 실수이거나 조작된 요청이다. */
+const MAX_MOVE_DAYS = 366;
+
+export type TodoMove = { ok: true; message: string } | { ok: false; message: string };
+
+/**
+ * 할 일을 다른 날로 옮긴다. 옮긴 날의 맨 아래에 붙고, 완료 여부·색·메모·받은 반응은 그대로다.
+ *
+ * 루틴이 만든 할 일은 루틴에서 떼어 보통 할 일로 옮기고, 원래 날은 건너뛴다고 남긴다. 떼지 않으면 원래 날을
+ * 다시 여는 순간 루틴이 "없으니 만든다"로 되살리고, 옮긴 날에 같은 루틴 할 일이 있으면 unique 제약에 걸린다.
+ */
+export async function moveTodo(id: string, day: string): Promise<TodoMove> {
+  const user = await requireUser();
+  const date = readDay(day);
+  if (!date) return { ok: false, message: "옮길 날짜를 골라주세요." };
+  if (Math.abs(daysBetween(todayKST(), date)) > MAX_MOVE_DAYS) {
+    return { ok: false, message: "1년 안의 날짜로만 옮길 수 있어요." };
+  }
+
+  const todo = await prisma.todo.findFirst({
+    where: { id, userId: user.id },
+    select: { date: true, routineId: true },
+  });
+  if (!todo) return { ok: false, message: "할 일을 찾을 수 없어요." };
+  if (isSameKSTDate(todo.date, date)) return { ok: false, message: "이미 그날의 할 일이에요." };
+
+  const count = await prisma.todo.count({ where: { userId: user.id, date } });
+  if (count >= LIMITS.todosPerDay) {
+    return { ok: false, message: `그날은 벌써 ${LIMITS.todosPerDay}개예요. 하루에 ${LIMITS.todosPerDay}개까지 적을 수 있어요.` };
+  }
+  const last = await prisma.todo.findFirst({
+    where: { userId: user.id, date },
+    orderBy: { order: "desc" },
+    select: { order: true },
+  });
+
+  await prisma.$transaction([
+    prisma.todo.updateMany({
+      where: { id, userId: user.id },
+      data: { date, order: (last?.order ?? -1) + 1, routineId: null },
+    }),
+    ...(todo.routineId
+      ? [
+          prisma.routineSkip.createMany({
+            data: [{ routineId: todo.routineId, date: todo.date }],
+            skipDuplicates: true,
+          }),
+        ]
+      : []),
+  ]);
+
+  revalidatePath("/");
+  return { ok: true, message: `${formatMonthDayKST(date)}로 옮겼어요` };
 }
 
 /**
