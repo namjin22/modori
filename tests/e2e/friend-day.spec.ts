@@ -190,3 +190,38 @@ test("팔로워를 끊으면 그 사람은 내 할 일을 더 볼 수 없다", a
   await page.goto(`/feed/u/${me.id}`);
   await expect(page.getByRole("heading", { name: "없는 주소예요" })).toBeVisible();
 });
+
+test("친구 화면에는 아직 안 끝낸 할 일도 보이고, 반응은 끝낸 일에만 보낸다", async ({ page, accounts }) => {
+  await signIn(page, accounts.friend);
+  await addTodo(page, "친구가 끝낸 일");
+  await addTodo(page, "친구가 아직 안 한 일");
+  await page
+    .getByRole("listitem")
+    .filter({ hasText: "친구가 끝낸 일" })
+    .getByRole("button", { name: "완료", exact: true })
+    .click();
+  await expect(page.getByRole("button", { name: "완료 취소" })).toBeVisible();
+  await signOut(page);
+  await signIn(page, accounts.me);
+
+  const [me, friend] = await Promise.all([
+    prisma.user.findUniqueOrThrow({ where: { email: accounts.me.email } }),
+    prisma.user.findUniqueOrThrow({ where: { email: accounts.friend.email } }),
+  ]);
+  await prisma.follow.create({ data: { followerId: me.id, followingId: friend.id } });
+
+  await page.goto(`/feed/u/${friend.id}`);
+  const done = page.getByRole("listitem").filter({ hasText: "친구가 끝낸 일" });
+  const undone = page.getByRole("listitem").filter({ hasText: "친구가 아직 안 한 일" });
+  await expect(done.getByRole("img", { name: "완료" })).toBeVisible();
+  await expect(undone.getByRole("img", { name: "아직 안 함" })).toBeVisible();
+  await expect(done.getByRole("button", { name: "반응 보내기" })).toBeVisible();
+  await expect(undone.getByRole("button", { name: "반응 보내기" })).toHaveCount(0);
+  // 내 화면처럼 끝낸 일은 묶음 아래로 간다.
+  await expect(page.getByRole("listitem").filter({ hasText: "친구가" })).toHaveText([/아직 안 한 일/, /끝낸 일/]);
+
+  // 소셜 피드에는 여전히 끝낸 일만 흐른다.
+  await page.goto("/feed");
+  await expect(page.getByText("친구가 끝낸 일")).toBeVisible();
+  await expect(page.getByText("친구가 아직 안 한 일")).toHaveCount(0);
+});

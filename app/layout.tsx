@@ -20,7 +20,7 @@ export const metadata: Metadata = {
     description: "모도리에서 친구들과 함께 매일을 채워가요",
     locale: "ko_KR",
     // 카카오톡 등은 미리보기 그림을 오래 붙잡아 둔다. 그림을 바꾸면 v를 올린다.
-    images: [{ url: "/og.png?v=3", width: 1200, height: 630, alt: "모도리에서 친구들과 함께 매일을 채워가요" }],
+    images: [{ url: "/og.png?v=4", width: 1200, height: 630, alt: "모도리에서 친구들과 함께 매일을 채워가요" }],
   },
   twitter: { card: "summary_large_image" },
   // 홈 화면에 추가했을 때 주소창 없이 열린다.

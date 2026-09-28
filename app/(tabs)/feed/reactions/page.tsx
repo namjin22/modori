@@ -121,7 +121,7 @@ export default async function NotificationsPage() {
                   aria-label={labelOfReaction(reaction.emoji)}
                   className="flex size-10 shrink-0 items-center justify-center rounded-full bg-surface-hover text-xl"
                 >
-                  <ReactionGlyph value={reaction.emoji} doriSize={34} />
+                  <ReactionGlyph value={reaction.emoji} size={30} />
                 </span>
                 {/* 좁은 폰에서 이름과 할 일을 한 줄에 두면 둘 다 몇 글자만 남는다. 두 줄로 나눈다. */}
                 <div className="min-w-0 flex-1">

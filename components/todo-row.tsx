@@ -4,11 +4,11 @@ import { useState, useTransition } from "react";
 
 import { deleteTodo, restoreTodo, updateTodo } from "@/app/(tabs)/actions";
 import { Modal } from "@/components/modal";
-import { ReactionGlyph } from "@/components/reaction-glyph";
+import { ReceivedReactions } from "@/components/received-reactions";
 import { TodoCheckbox } from "@/components/todo-checkbox";
 import { UndoableDeleteButton } from "@/components/undoable-delete-button";
 import { useSaveFailure } from "@/components/use-save-failure";
-import { labelOfReaction, type ReceivedReaction } from "@/lib/reactions";
+import type { ReceivedReaction } from "@/lib/reactions";
 
 type Todo = {
   id: string;
@@ -98,28 +98,8 @@ export function TodoRow({
       </Modal>
     </div>
 
-      {/* 친구가 보낸 반응을 할 일 밑에 둔다(투두메이트처럼). 글자와 줄을 맞추려고 체크 칸만큼 들인다.
-          내 일에는 내가 반응할 수 없어서 누르는 칩이 아니다. 누가 보냈는지는 이름표로 알린다. */}
-      {received.length > 0 && (
-        <ul aria-label="받은 반응" className="mt-1.5 flex flex-wrap gap-1 pl-[34px]">
-          {received.map(({ emoji, count, names }) => {
-            const who = `${labelOfReaction(emoji)} ${count}개${names.length ? ` · ${names.join(", ")}` : ""}`;
-            return (
-              <li
-                key={emoji}
-                title={who}
-                aria-label={who}
-                className="flex h-6 items-center gap-1 rounded-full bg-surface-hover px-1.5 text-xs text-muted"
-              >
-                <ReactionGlyph value={emoji} doriSize={18} />
-                <span aria-hidden className="font-semibold">
-                  {count}
-                </span>
-              </li>
-            );
-          })}
-        </ul>
-      )}
+      {/* 친구가 보낸 반응(투두메이트처럼). 누르면 누가 보냈는지 보인다. */}
+      <ReceivedReactions received={received} />
     </div>
   );
 }

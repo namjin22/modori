@@ -15,6 +15,8 @@ type FeedTodo = {
   color: string | null;
   category: { name: string; color: string } | null;
   reactions: { emoji: string; userId: string }[];
+  // 친구 화면에는 아직 안 끝낸 일도 온다. 피드는 끝낸 일만이라 비워 둔다.
+  done?: boolean;
 };
 
 export function FeedItem({
@@ -31,26 +33,37 @@ export function FeedItem({
   compact?: boolean;
 }) {
   const color = todo.color ?? todo.category?.color;
+  const done = todo.done ?? true;
 
   if (compact) {
     return (
       // 반응이 많아 이름이 몇 글자만 남을 만큼 좁아지면 반응 줄을 다음 줄로 내린다.
       <li className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5 py-2.5">
+        {/* 내 화면의 체크와 같은 모양. 안 끝낸 일은 회색 네모, 반응은 끝낸 일에만 보낸다. */}
         <span
-          aria-hidden
-          className="color-edge flex size-[18px] shrink-0 items-center justify-center rounded-[6px] bg-brand text-[10px] font-bold"
+          role="img"
+          aria-label={done ? "완료" : "아직 안 함"}
+          className={`color-edge flex size-[18px] shrink-0 items-center justify-center rounded-[6px] text-[10px] font-bold ${
+            done ? "bg-brand" : "bg-border"
+          }`}
           style={
-            color ? { backgroundColor: color, color: onColorText(color) } : { color: "#fff" }
+            !done
+              ? undefined
+              : color
+                ? { backgroundColor: color, color: onColorText(color) }
+                : { color: "#fff" }
           }
         >
-          ✓
+          {done ? "✓" : ""}
         </span>
         <span className="min-w-0 grow basis-28 truncate text-[15px]">{todo.content}</span>
-        <ReactionBar
-          todoId={todo.id}
-          summary={summarizeReactions(todo.reactions, viewerId)}
-          compact
-        />
+        {done && (
+          <ReactionBar
+            todoId={todo.id}
+            summary={summarizeReactions(todo.reactions, viewerId)}
+            compact
+          />
+        )}
       </li>
     );
   }
