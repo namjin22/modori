@@ -10,7 +10,7 @@ import { onColorText } from "@/lib/colors";
 /**
  * 카테고리 칩. 이름을 누르면 칩 바로 아래에 입력칸이 열린다.
  * 적고 Enter를 누르면 입력칸이 비워진 채 열려 있어서 여러 개를 연달아 적는다.
- * Esc로 닫는다.
+ * Esc로 닫고, 아무것도 적지 않은 채 다른 곳을 누르면 저절로 닫힌다.
  */
 export function CategoryAdder({
   categoryId,
@@ -65,6 +65,11 @@ export function CategoryAdder({
             aria-label={`${name}에 할 일 쓰기`}
             aria-expanded={open}
             onClick={() => setOpen((value) => !value)}
+            // 열린 채로 칩을 다시 누르면 입력칸이 먼저 포커스를 잃어 닫혔다가 클릭으로 다시 열린다.
+            // 누르는 순간 포커스를 옮기지 않아 클릭 한 번으로 닫히게 한다.
+            onMouseDown={(event) => {
+              if (open) event.preventDefault();
+            }}
             className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold transition-opacity ${
               color ? "color-edge hover:opacity-80" : "bg-surface text-muted hover:bg-surface-hover"
             } ${open ? "ring-2 ring-foreground ring-offset-2 ring-offset-background" : ""}`}
@@ -108,6 +113,11 @@ export function CategoryAdder({
                 saveFailed(error);
               }
             });
+          }}
+          // 빈 칸인 채로 다른 곳을 누르면 닫는다. 닫기 버튼처럼 폼 안으로 옮겨 가는 것은 그대로 둔다.
+          onBlur={(event) => {
+            if (event.currentTarget.contains(event.relatedTarget as Node | null)) return;
+            if (inputRef.current?.value.trim() === "") setOpen(false);
           }}
           className="flex items-center gap-2 border-b-2 pb-1 pl-1"
           style={{ borderColor: color ?? "var(--color-border)" }}

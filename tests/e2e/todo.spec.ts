@@ -98,6 +98,27 @@ test("다른 탭에서 먼저 완료한 할 일을 이 탭에서 완료로 눌�
   await expect(page.getByRole("button", { name: "완료 취소" })).toBeVisible();
 });
 
+test("할 일 입력칸은 비운 채 다른 곳을 누르면 닫히고, 적은 게 있으면 남는다", async ({ page }) => {
+  const chip = page.getByRole("button", { name: `${FIRST_CATEGORY}에 할 일 쓰기` });
+  const input = page.getByLabel(`${FIRST_CATEGORY} 할 일`);
+
+  await chip.click();
+  await expect(input).toBeFocused();
+  await page.getByRole("heading", { level: 1 }).click();
+  await expect(input).toBeHidden();
+
+  await chip.click();
+  await input.fill("적다 만 일");
+  await page.getByRole("heading", { level: 1 }).click();
+  await expect(input).toHaveValue("적다 만 일");
+
+  // 열린 채로 칩을 다시 누르면 한 번에 닫힌다(닫혔다 다시 열리지 않는다).
+  await input.fill("");
+  await input.focus();
+  await chip.click();
+  await expect(input).toBeHidden();
+});
+
 test("삭제하면 목록에서 사라진다", async ({ page }) => {
   await addTodo(page, "지울 할 일");
 

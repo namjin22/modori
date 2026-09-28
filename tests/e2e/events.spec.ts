@@ -83,3 +83,22 @@ test("일정을 지우면 되돌릴 수 있다", async ({ page, email }, testInf
   await page.getByRole("button", { name: "되돌리기" }).click();
   await expect(page.getByRole("listitem").filter({ hasText: "동아리 발표" })).toBeVisible();
 });
+
+test("일정 만들기 칸은 이름을 비운 채 다른 곳을 누르면 닫힌다", async ({ page, email }, testInfo) => {
+  await signInAndOnboard(page, email, `빈일정${testInfo.testId.slice(-6)}${RUN_TAG}`);
+  const title = page.getByLabel("새 일정 이름");
+
+  await page.getByRole("button", { name: "일정", exact: true }).click();
+  await expect(title).toBeFocused();
+  // 날짜 칸으로 옮겨 가는 것은 같은 칸 안이라 닫히지 않는다.
+  await page.getByLabel("새 일정 시작일").focus();
+  await expect(title).toBeVisible();
+
+  await page.getByRole("heading", { level: 1 }).click();
+  await expect(title).toBeHidden();
+
+  await page.getByRole("button", { name: "일정", exact: true }).click();
+  await title.fill("동아리 발표");
+  await page.getByRole("heading", { level: 1 }).click();
+  await expect(title).toHaveValue("동아리 발표");
+});

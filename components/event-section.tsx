@@ -49,13 +49,25 @@ export function EventSection({
         type="button"
         aria-expanded={creating}
         onClick={() => setCreating((value) => !value)}
+        // 열린 채로 다시 누르면 입력칸이 먼저 포커스를 잃어 닫혔다가 클릭으로 다시 열린다.
+        onMouseDown={(event) => {
+          if (creating) event.preventDefault();
+        }}
         className="-mx-1.5 -my-1.5 w-fit px-1.5 py-1.5 text-sm font-semibold text-foreground"
       >
         일정
       </button>
 
       {creating && (
-        <div className="rounded-2xl bg-surface p-4">
+        <div
+          // 이름을 비운 채 다른 곳을 누르면 닫는다. 날짜 칸으로 옮겨 가는 것은 이 안이라 그대로 둔다.
+          onBlur={(event) => {
+            if (event.currentTarget.contains(event.relatedTarget as Node | null)) return;
+            const title = event.currentTarget.querySelector<HTMLInputElement>('input[name="title"]');
+            if (title && title.value.trim() === "") setCreating(false);
+          }}
+          className="rounded-2xl bg-surface p-4"
+        >
           <EventForm
             defaultDate={date}
             onSaved={() => setCreating(false)}
