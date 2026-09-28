@@ -213,6 +213,10 @@ model Event {
   title     String
   startDate DateTime @db.Date
   endDate   DateTime @db.Date
+  // 시각은 날짜와 따로, 자정부터 몇 분인지로 둔다(0~1439). 비어 있으면 하루 종일.
+  // 시작 시간은 시작일, 끝 시간은 종료일의 시각이다. 날짜를 @db.Date로 두는 규칙을 그대로 지킨다.
+  startTime Int?
+  endTime   Int?
   color     String
   createdAt DateTime @default(now())
 

@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { DEFAULT_EVENT_COLOR } from "@/lib/colors";
 import { daysBetween, formatKST, formatMonthDayKST, parseKSTDate } from "@/lib/date";
 import { firstOverfullDay } from "@/lib/event-limit";
+import { formatTime, parseTime } from "@/lib/event-time";
 import { isId } from "@/lib/ids";
 import { LIMITS } from "@/lib/limits";
 import { prisma } from "@/lib/prisma";
@@ -21,6 +22,9 @@ type EventInput = {
   title: string;
   startDate: Date;
   endDate: Date;
+  // 자정부터 몇 분. 비어 있으면 하루 종일(lib/event-time.ts).
+  startTime: number | null;
+  endTime: number | null;
   color: string;
 };
 
@@ -56,10 +60,23 @@ function readEventInput(formData: FormData): EventInput | string {
     return "일정은 1년 안으로만 잡을 수 있어요.";
   }
 
+  const startTime = parseTime(readText(formData, "startTime"));
+  const endTime = parseTime(readText(formData, "endTime"));
+  if (startTime === undefined || endTime === undefined) return "시간을 다시 골라주세요.";
+  if (startTime === null && endTime !== null) return "시작 시간을 먼저 정해주세요.";
+  if (
+    startTime !== null &&
+    endTime !== null &&
+    daysBetween(startDate, endDate) === 0 &&
+    endTime < startTime
+  ) {
+    return "끝나는 시간이 시작 시간보다 앞설 수 없어요.";
+  }
+
   // 색은 고르지 않는다. 달력에서는 일정 이름으로 알아본다.
   const color = DEFAULT_EVENT_COLOR;
 
-  return { title, startDate, endDate, color };
+  return { title, startDate, endDate, startTime, endTime, color };
 }
 
 /**
@@ -134,6 +151,9 @@ export type DeletedEvent = {
   title: string;
   startDate: string;
   endDate: string;
+  // "HH:MM" 또는 빈 문자열(하루 종일).
+  startTime: string;
+  endTime: string;
   color: string;
 };
 
@@ -151,6 +171,8 @@ export async function deleteEvent(id: string): Promise<DeletedEvent | null> {
     title: event.title,
     startDate: formatKST(event.startDate),
     endDate: formatKST(event.endDate),
+    startTime: event.startTime === null ? "" : formatTime(event.startTime),
+    endTime: event.endTime === null ? "" : formatTime(event.endTime),
     color: event.color,
   };
 }
@@ -165,6 +187,8 @@ export async function restoreEvent(snapshot: DeletedEvent): Promise<string | voi
   formData.set("startDate", snapshot.startDate);
   formData.set("endDate", snapshot.endDate);
   formData.set("color", snapshot.color);
+  formData.set("startTime", typeof snapshot.startTime === "string" ? snapshot.startTime : "");
+  formData.set("endTime", typeof snapshot.endTime === "string" ? snapshot.endTime : "");
   const input = readEventInput(formData);
   if (typeof input === "string") {
     console.warn("[event] 되돌릴 값이 올바르지 않다.", input);

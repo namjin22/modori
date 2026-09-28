@@ -132,6 +132,8 @@ const EVENT_SELECT = {
   title: true,
   startDate: true,
   endDate: true,
+  startTime: true,
+  endTime: true,
   color: true,
 } as const;
 
@@ -206,7 +208,7 @@ export default async function FeedPage({
       // 고른 날에 걸쳐 있는 일정
       prisma.event.findMany({
         where: { userId: user.id, startDate: { lte: date }, endDate: { gte: date } },
-        orderBy: [{ startDate: "asc" }, { createdAt: "asc" }],
+        orderBy: [{ startDate: "asc" }, { startTime: { sort: "asc", nulls: "first" } }, { createdAt: "asc" }],
         select: EVENT_SELECT,
       }),
       // 이번 달에 조금이라도 걸쳐 있는 일정
@@ -216,7 +218,7 @@ export default async function FeedPage({
           startDate: { lte: monthEnd },
           endDate: { gte: monthStart },
         },
-        orderBy: [{ startDate: "asc" }, { createdAt: "asc" }],
+        orderBy: [{ startDate: "asc" }, { startTime: { sort: "asc", nulls: "first" } }, { createdAt: "asc" }],
         select: EVENT_SELECT,
       }),
       // 아직 오지 않은 일정. 그 날짜를 열어보지 않아도 시험이 며칠 남았는지 보인다.
@@ -224,7 +226,7 @@ export default async function FeedPage({
       // 일정이 "다가오는" 쪽에 뜨면 안 된다. 그 날 목록과 겹치는 것은 아래에서 뺀다.
       prisma.event.findMany({
         where: { userId: user.id, startDate: { gt: today } },
-        orderBy: [{ startDate: "asc" }, { createdAt: "asc" }],
+        orderBy: [{ startDate: "asc" }, { startTime: { sort: "asc", nulls: "first" } }, { createdAt: "asc" }],
         select: EVENT_SELECT,
         take: 6,
       }),

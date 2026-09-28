@@ -130,3 +130,37 @@ test("하루에 일정을 다섯 개까지 연달아 넣고, 여섯째는 막는
   const user = await prisma.user.findUniqueOrThrow({ where: { email } });
   expect(await prisma.event.count({ where: { userId: user.id } })).toBe(5);
 });
+
+test("일정에 시간을 넣으면 목록에 시간이 보이고 시간순으로 선다", async ({ page, email }, testInfo) => {
+  await signInAndOnboard(page, email, `시간${testInfo.testId.slice(-6)}${RUN_TAG}`);
+
+  await page.getByRole("button", { name: "시험이나 행사 적어두기" }).click();
+  await page.getByLabel("새 일정 이름").fill("오후 발표");
+  await page.getByLabel("새 일정 시작 시간").fill("14:00");
+  await page.getByLabel("새 일정 종료 시간").fill("15:30");
+  await page.getByLabel("새 일정 이름").press("Enter");
+  await expect(page.getByRole("listitem").filter({ hasText: "오후 발표" })).toContainText("14:00 ~ 15:30");
+
+  await page.getByRole("button", { name: "+ 일정 더 적기" }).click();
+  await page.getByLabel("새 일정 이름").fill("아침 조회");
+  await page.getByLabel("새 일정 시작 시간").fill("08:40");
+  await page.getByLabel("새 일정 이름").press("Enter");
+  await expect(page.getByRole("listitem").filter({ hasText: "아침 조회" })).toContainText("08:40");
+
+  // 늦게 만들었어도 이른 시간이 위에 온다.
+  const titles = page.getByRole("region", { name: "일정" }).getByRole("listitem");
+  await expect(titles.first()).toContainText("아침 조회");
+
+  // 끝나는 시간이 시작보다 이르면 막는다.
+  await page.getByRole("button", { name: "+ 일정 더 적기" }).click();
+  await page.getByLabel("새 일정 이름").fill("거꾸로");
+  await page.getByLabel("새 일정 시작 시간").fill("10:00");
+  await page.getByLabel("새 일정 종료 시간").fill("09:00");
+  await page.getByLabel("새 일정 이름").press("Enter");
+  await expect(page.getByRole("alert").filter({ hasText: "끝나는 시간이 시작 시간보다" })).toBeVisible();
+
+  // 고치는 창에도 시간이 그대로 들어 있다.
+  await page.keyboard.press("Escape");
+  await openEvent(page, "오후 발표");
+  await expect(page.getByLabel("일정 시작 시간", { exact: true })).toHaveValue("14:00");
+});

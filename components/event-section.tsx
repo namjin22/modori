@@ -5,8 +5,9 @@ import { useState } from "react";
 import { EventForm } from "@/components/event-form";
 import { Modal } from "@/components/modal";
 import { UndoableDeleteButton } from "@/components/undoable-delete-button";
-import { formatKST, formatMonthDayKST, isSameKSTDate, parseKSTDate } from "@/lib/date";
+import { formatKST, formatMonthDayKST, parseKSTDate } from "@/lib/date";
 import { ddayLabel } from "@/lib/dday";
+import { describeEventWhen, formatTime } from "@/lib/event-time";
 import { LIMITS } from "@/lib/limits";
 
 import { deleteEvent, restoreEvent } from "@/app/(tabs)/events/actions";
@@ -16,6 +17,9 @@ export type DayEvent = {
   title: string;
   startDate: Date;
   endDate: Date;
+  // 자정부터 몇 분. 없으면 하루 종일.
+  startTime: number | null;
+  endTime: number | null;
   color: string;
 };
 
@@ -79,7 +83,7 @@ export function EventSection({
       {events.length > 0 && (
         <ul className="flex flex-col gap-2">
           {events.map((event) => {
-            const multiDay = !isSameKSTDate(event.startDate, event.endDate);
+            const when = describeEventWhen(event);
             const dday = ddayLabel(event.startDate, event.endDate, todayDate);
 
             return (
@@ -96,12 +100,7 @@ export function EventSection({
                   {/* 기간을 제목 옆에 두면 좁은 폰(320px)에서 제목이 세 글자만 남는다. 아래 줄로 내린다. */}
                   <span className="flex min-w-0 flex-1 flex-col">
                     <span className="truncate font-medium">{event.title}</span>
-                    {multiDay && (
-                      <span className="text-xs text-muted">
-                        {formatMonthDayKST(event.startDate)} ~{" "}
-                        {formatMonthDayKST(event.endDate)}
-                      </span>
-                    )}
+                    {when && <span className="text-xs text-muted">{when}</span>}
                   </span>
                   {dday && <Dday label={dday} />}
                 </button>
@@ -148,6 +147,7 @@ export function EventSection({
                   <span className="min-w-0 flex-1 truncate">{event.title}</span>
                   <span className="shrink-0 text-xs">
                     {formatMonthDayKST(event.startDate)}
+                    {event.startTime !== null && ` ${formatTime(event.startTime)}`}
                   </span>
                   {dday && <Dday label={dday} />}
                 </button>
@@ -171,6 +171,8 @@ export function EventSection({
                 title: editing.title,
                 startDate: formatKST(editing.startDate),
                 endDate: formatKST(editing.endDate),
+                startTime: editing.startTime === null ? "" : formatTime(editing.startTime),
+                endTime: editing.endTime === null ? "" : formatTime(editing.endTime),
               }}
               onSaved={() => setEditing(null)}
             />
