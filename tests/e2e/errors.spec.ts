@@ -31,6 +31,21 @@ test("이상한 보고는 받지 않는다", async ({ request }) => {
   expect((await request.post("/api/errors", { data: JSON.stringify({ message: "x".repeat(3000) }) })).status()).toBe(413);
 });
 
+test("오류 보고는 한 사람이 10개를 넘기면 1분에 하나씩만 받는다", async ({ request }) => {
+  // 로그인 전 요청은 접속 IP로 센다. 다른 테스트와 버킷이 겹치지 않게 이 테스트만의 IP를 쓴다.
+  const headers = { "cf-connecting-ip": `198.51.100.${Math.floor(Math.random() * 250) + 1}` };
+  const statuses: number[] = [];
+  for (let i = 0; i < 11; i += 1) {
+    const response = await request.post("/api/errors", {
+      headers,
+      data: JSON.stringify({ message: `Error: ${MARK} 반복 ${i}` }),
+    });
+    statuses.push(response.status());
+  }
+  expect(statuses.slice(0, 10).every((status) => status === 204)).toBe(true);
+  expect(statuses[10]).toBe(429);
+});
+
 test("오류 수는 비밀 값 없이 볼 수 없고, 오류 기록 화면은 운영자가 아니면 없는 주소다", async ({ page, request }) => {
   expect((await request.get("/api/errors/summary")).status()).toBe(404);
 

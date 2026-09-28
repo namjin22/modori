@@ -7,6 +7,10 @@ const SESSION_RULE: RateRule = { capacity: 60, refillPerSecond: 6 };
 // 로그인 전 요청은 IP마다 센다. 학교 와이파이는 학생 전원이 공인 IP 하나로 나가서 넉넉히 잡는다.
 const ANONYMOUS_RULE: RateRule = { capacity: 300, refillPerSecond: 30 };
 
+// 브라우저 오류 보고는 따로 더 좁게 센다. 화면이 오류를 되풀이하거나 누가 일부러 보내도
+// 오류 기록 표가 몇 줄 이상 늘지 않는다. 10개를 넘으면 1분에 하나씩만 받는다.
+const ERROR_REPORT_RULE: RateRule = { capacity: 10, refillPerSecond: 1 / 60 };
+
 const SESSION_COOKIES = ["__Secure-authjs.session-token", "authjs.session-token"];
 
 /** 누구의 요청인지. 세션이 있으면 세션, 없으면 접속 IP. */
@@ -35,7 +39,10 @@ export function proxy(request: NextRequest) {
   // 상태 확인은 밖의 감시가 15분마다 부른다. 막으면 멀쩡한 서버를 죽었다고 알린다.
   if (pathname !== "/api/health") {
     const { key, rule } = clientKey(request);
-    const result = take(key, rule);
+    const result =
+      pathname === "/api/errors" && request.method === "POST"
+        ? take(`errors:${key}`, ERROR_REPORT_RULE)
+        : take(key, rule);
     if (!result.ok) {
       return new NextResponse("요청이 너무 많아요. 잠시 뒤에 다시 해주세요.", {
         status: 429,
