@@ -1,6 +1,6 @@
 import { expect, test as base, type Page } from "@playwright/test";
 
-import { addDays, formatKST, todayKST } from "@/lib/date";
+import { addDays, daysInMonthKST, formatKST, todayKST } from "@/lib/date";
 import { prisma } from "@/lib/prisma";
 
 import { addEvent, addTodo, homeReady, openEvent } from "./todo-helpers";
@@ -163,4 +163,36 @@ test("일정에 시간을 넣으면 목록에 시간이 보이고 시간순으�
   await page.keyboard.press("Escape");
   await openEvent(page, "오후 발표");
   await expect(page.getByLabel("일정 시작 시간", { exact: true })).toHaveValue("14:00");
+});
+
+test("달력에서 일정 이름을 다른 날로 끌면 기간이 늘어난다", async ({ page, email }, testInfo) => {
+  await signInAndOnboard(page, email, `끌기${testInfo.testId.slice(-6)}${RUN_TAG}`);
+  const today = todayKST();
+  // 같은 달 안에서 끈다. 월말이면 앞으로 끌어 시작일을 당긴다.
+  const forward = today.getUTCDate() + 2 <= daysInMonthKST(today);
+  const target = addDays(today, forward ? 2 : -2);
+
+  await addEvent(page, "잘못 만든 하루");
+  const chip = dayCell(page, today).locator("[data-event-id]");
+  await expect(chip).toHaveText("잘못 만든 하루");
+
+  const from = await chip.boundingBox();
+  const to = await dayCell(page, target).boundingBox();
+  if (!from || !to) throw new Error("달력 칸을 찾지 못했다");
+  await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(to.x + to.width / 2, to.y + to.height / 2, { steps: 8 });
+  // 끄는 동안 바뀔 기간의 칸이 칠해진다.
+  await expect(dayCell(page, target)).toHaveAttribute("data-drag-range", "");
+  await page.mouse.up();
+
+  await expect(dayCell(page, target).locator("[data-event-id]")).toHaveText("잘못 만든 하루");
+  const user = await prisma.user.findUniqueOrThrow({ where: { email } });
+  const event = await prisma.event.findFirstOrThrow({ where: { userId: user.id } });
+  expect(formatKST(event.startDate)).toBe(formatKST(forward ? today : target));
+  expect(formatKST(event.endDate)).toBe(formatKST(forward ? target : today));
+
+  // 끌지 않고 누르면 예전처럼 그날로 간다.
+  await dayCell(page, target).locator("[data-event-id]").click();
+  await expect(page).toHaveURL(new RegExp(`date=${formatKST(target)}`));
 });

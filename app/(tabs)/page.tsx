@@ -112,7 +112,13 @@ function spreadEvents(
       const key = formatKST(day);
       byDate.set(key, [
         ...(byDate.get(key) ?? []),
-        { id: event.id, title: event.title, color: event.color },
+        {
+          id: event.id,
+          title: event.title,
+          color: event.color,
+          start: formatKST(event.startDate),
+          end: formatKST(event.endDate),
+        },
       ]);
       day = addDays(day, 1);
     }
@@ -281,6 +287,7 @@ export default async function FeedPage({
             eventsByDate={spreadEvents(monthEvents, monthStart, monthEnd)}
             dayHref={dayHref}
             monthHref={monthHref}
+            editableEvents
           />
         </div>
       </div>

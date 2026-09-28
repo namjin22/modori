@@ -221,3 +221,44 @@ export async function restoreEvent(snapshot: DeletedEvent): Promise<string | voi
 
   revalidatePath("/");
 }
+
+/**
+ * 달력에서 일정 이름을 끌어 기간만 바꾼다(components/event-drag-grid.tsx). 이름·시간은 그대로다.
+ * 못 바꾸면 사람에게 보여줄 문장을 돌려준다.
+ */
+export async function resizeEvent(
+  id: string,
+  startKey: string,
+  endKey: string,
+): Promise<string | void> {
+  const user = await requireUser();
+  if (!isId(id)) return;
+  const startDate = readDate(startKey);
+  const endDate = readDate(endKey);
+  if (!startDate || !endDate || daysBetween(startDate, endDate) < 0) return;
+  if (daysBetween(startDate, endDate) > MAX_SPAN_DAYS) return "일정은 1년 안으로만 잡을 수 있어요.";
+
+  const event = await prisma.event.findFirst({
+    where: { id, userId: user.id },
+    select: { startTime: true, endTime: true },
+  });
+  if (!event) return;
+
+  const full = await dailyLimitMessage(user.id, { startDate, endDate }, id);
+  if (full) return full;
+
+  // 하루짜리로 줄였는데 끝 시간이 시작보다 이르면(여러 날일 때는 말이 됐다) 끝 시간을 뺀다.
+  const endTime =
+    daysBetween(startDate, endDate) === 0 &&
+    event.startTime !== null &&
+    event.endTime !== null &&
+    event.endTime < event.startTime
+      ? null
+      : event.endTime;
+
+  await prisma.event.updateMany({
+    where: { id, userId: user.id },
+    data: { startDate, endDate, endTime },
+  });
+  revalidatePath("/");
+}
