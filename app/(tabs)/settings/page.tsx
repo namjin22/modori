@@ -95,42 +95,51 @@ export default async function SettingsPage() {
 
       <LogoutButton />
 
-      {/* 눈에 잘 띄지 않게 맨 아래에 작게 둔다. 실수로 누를 자리가 아니다. */}
-      <Link
-        prefetch={false}
-        href="/settings/account"
-        className="mx-auto py-2 text-center text-xs text-muted underline underline-offset-4"
-      >
-        계정 지우기
-      </Link>
-      <Link
-        prefetch={false}
-        href="/privacy"
-        className="mx-auto -mt-4 py-2 text-center text-xs text-muted underline underline-offset-4"
-      >
-        개인정보처리방침
-      </Link>
-      {/* 운영자에게만 보인다. */}
-      {admin && (
-        <Link
-          prefetch={false}
-          href="/admin/errors"
-          className="mx-auto -mt-4 py-2 text-center text-xs text-muted underline underline-offset-4"
-        >
-          오류 기록
-        </Link>
-      )}
-
-      {/* 출시 초기에 불편한 점과 버그를 모은다. 버튼으로 두면 자리를 크게 차지해서 맨 아래에 작게 적는다. */}
-      <p className="-mt-2 text-center text-xs text-muted">
-        의견·버그 제보{" "}
-        <a
-          href={`mailto:${PRIVACY_MANAGER.email}?subject=${encodeURIComponent("[모도리] 의견")}`}
-          className="inline-block py-1 underline underline-offset-4"
-        >
-          {PRIVACY_MANAGER.email}
-        </a>
-      </p>
+      {/* 바닥글. 자주 누를 곳이 아니라 작게 한 곳에 모은다. 계정 지우기는 실수로 누를 자리가 아니라 버튼으로 두지 않는다. */}
+      <footer className="mt-2 flex flex-col items-center gap-1 text-xs text-muted">
+        <nav aria-label="계정과 약관" className="flex flex-wrap items-center justify-center">
+          <FooterLink href="/privacy">개인정보처리방침</FooterLink>
+          <Dot />
+          <FooterLink href="/settings/account">계정 지우기</FooterLink>
+          {/* 운영자에게만 보인다. */}
+          {admin && (
+            <>
+              <Dot />
+              <FooterLink href="/admin/errors">오류 기록</FooterLink>
+            </>
+          )}
+        </nav>
+        {/* 출시 초기에 불편한 점과 버그를 모은다. */}
+        <p>
+          의견·버그 제보{" "}
+          <a
+            href={`mailto:${PRIVACY_MANAGER.email}?subject=${encodeURIComponent("[모도리] 의견")}`}
+            className="inline-block py-1 font-medium text-foreground/70 hover:text-foreground hover:underline hover:underline-offset-4"
+          >
+            {PRIVACY_MANAGER.email}
+          </a>
+        </p>
+      </footer>
     </div>
+  );
+}
+
+function FooterLink({ href, children }: { href: string; children: React.ReactNode }) {
+  return (
+    <Link
+      prefetch={false}
+      href={href}
+      className="px-2 py-1.5 hover:text-foreground hover:underline hover:underline-offset-4"
+    >
+      {children}
+    </Link>
+  );
+}
+
+function Dot() {
+  return (
+    <span aria-hidden className="text-border">
+      ·
+    </span>
   );
 }

@@ -82,26 +82,41 @@ export function TodoProgress({
             aria-valuemin={0}
             aria-valuemax={Math.max(total, 1)}
             aria-valuenow={optimisticDone}
-            className="flex h-1.5 gap-px overflow-hidden rounded-full bg-border"
+            className="flex h-2 gap-0.75 overflow-hidden rounded-full bg-border"
           >
-            {/* 끝낸 일 하나가 한 칸. 목록 순서라 같은 카테고리 색이 붙어 선다. 칸 사이 1px 틈이
-                흰색·검정 카테고리처럼 막대 바탕과 비슷한 색도 칸으로 보이게 한다. */}
-            {doneItems.map((item) => (
+            {/* 같은 색이 이어지는 끝낸 일은 한 덩어리로 칠한다. 할 일마다 자르면 막대가 토막 나 보였다.
+                폭은 flex 비율(끝낸 개수)로 나눠 덩어리 사이 틈이 있어도 비율이 맞는다. 남은 몫은 빈 칸이다. */}
+            {colorRuns(doneItems).map((run) => (
               <div
-                key={item.id}
-                data-progress-color={item.color ?? "brand"}
-                className={`h-full shrink-0 bg-brand transition-[width] duration-300 ${
-                  item.color && EDGE_COLORS.has(item.color.toLowerCase()) ? "segment-edge" : ""
+                key={run.key}
+                data-progress-color={run.color ?? "brand"}
+                className={`h-full min-w-0 basis-0 rounded-full bg-brand transition-[flex-grow] duration-300 ${
+                  run.color && EDGE_COLORS.has(run.color.toLowerCase()) ? "segment-edge" : ""
                 }`}
-                style={{
-                  width: `${100 / total}%`,
-                  ...(item.color ? { backgroundColor: item.color } : {}),
-                }}
+                style={{ flexGrow: run.count, ...(run.color ? { backgroundColor: run.color } : {}) }}
               />
             ))}
+            {total > optimisticDone && (
+              <div
+                aria-hidden
+                className="min-w-0 basis-0 transition-[flex-grow] duration-300"
+                style={{ flexGrow: total - optimisticDone }}
+              />
+            )}
           </div>
       </div>
       {children}
     </CompletionContext.Provider>
   );
+}
+
+/** 목록 순서대로 같은 색이 이어지는 끝낸 일을 묶는다. */
+function colorRuns(items: ProgressItem[]) {
+  const runs: { key: string; color: string | null; count: number }[] = [];
+  for (const item of items) {
+    const last = runs.at(-1);
+    if (last && last.color === item.color) last.count += 1;
+    else runs.push({ key: item.id, color: item.color, count: 1 });
+  }
+  return runs;
 }

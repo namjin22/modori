@@ -4,7 +4,7 @@ import { Avatar } from "@/components/avatar";
 
 import { formatMonthDayKST } from "@/lib/date";
 import { prisma } from "@/lib/prisma";
-import { countUnreadReactions, requireUser } from "@/lib/session";
+import { countUnreadNotifications, requireUser } from "@/lib/session";
 
 import { Dori } from "@/components/dori";
 import { FeedItem } from "@/components/feed-item";
@@ -74,7 +74,7 @@ export default async function FeedPage({
     }),
     prisma.follow.count({ where: { followerId: user.id } }),
     // 레이아웃이 같은 값을 이미 셌다. cache()가 막아주므로 질의는 한 번이다.
-    countUnreadReactions(user.id, user.lastSeenAt),
+    countUnreadNotifications(user.id, user.lastSeenAt),
   ]);
 
   const hasMore = page.length > FEED_SIZE;
@@ -109,7 +109,7 @@ export default async function FeedPage({
             href="/feed/reactions"
             className="flex h-9 items-center gap-1.5 rounded-full bg-surface px-4 text-sm text-muted"
           >
-            받은 반응
+            알림
             {unreadCount > 0 && (
               <span className="rounded-full bg-brand px-1.5 text-xs font-semibold text-brand-contrast">
                 {unreadCount}

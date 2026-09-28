@@ -29,7 +29,7 @@ const TABS = [
   },
 ] as const;
 
-export function BottomNav({ unreadReactions }: { unreadReactions: number }) {
+export function BottomNav({ unreadNotifications }: { unreadNotifications: number }) {
   const pathname = usePathname();
 
   return (
@@ -39,10 +39,10 @@ export function BottomNav({ unreadReactions }: { unreadReactions: number }) {
       <ul className="mx-auto flex w-full max-w-lg md:max-w-2xl">
         {TABS.map(({ href, label, Icon, isActive: matches }) => {
           const isActive = matches(pathname);
-          // 받은 반응 화면을 보는 중이면 이미 읽고 있는 것이다. 뱃지를 띄우지 않는다.
+          // 알림 화면을 보는 중이면 이미 읽고 있는 것이다. 뱃지를 띄우지 않는다.
           const badge =
             href === "/feed" && pathname !== "/feed/reactions"
-              ? unreadReactions
+              ? unreadNotifications
               : 0;
 
           return (
@@ -61,7 +61,7 @@ export function BottomNav({ unreadReactions }: { unreadReactions: number }) {
                   <Icon active={isActive} />
                   {badge > 0 && (
                     <span
-                      aria-label={`안 읽은 반응 ${badge}개`}
+                      aria-label={`안 읽은 알림 ${badge}개`}
                       className="absolute -right-2 -top-1 min-w-4 rounded-full bg-brand px-1 text-[10px] font-bold leading-4 text-brand-contrast"
                     >
                       {badge}

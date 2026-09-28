@@ -1,7 +1,7 @@
 {
   "name": "modori-desktop",
   "productName": "모도리",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "모도리 데스크톱 앱 — modori.site를 창 하나로 띄운다",
   "main": "main.js",
   "private": true,
