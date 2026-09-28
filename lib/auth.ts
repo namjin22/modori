@@ -1,4 +1,6 @@
 import { PrismaAdapter } from "@auth/prisma-adapter";
+
+import { withMinimalStorage } from "@/lib/auth-minimal";
 import NextAuth, { customFetch, type NextAuthConfig } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import Google from "next-auth/providers/google";
@@ -148,7 +150,8 @@ if (isMockAuth) {
 }
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
-  adapter: PrismaAdapter(prisma),
+  // 로그인에 필요 없는 실명·사진 주소·OAuth 토큰은 저장하지 않는다(lib/auth-minimal.ts).
+  adapter: withMinimalStorage(PrismaAdapter(prisma)),
   providers,
   logger: {
     error(error) {
