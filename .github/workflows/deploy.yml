@@ -1,10 +1,13 @@
 name: deploy-gsmsv
 
-# main에 합치면 GSMSV VM에 배포한다. VM은 메모리가 4GB라 이미지는 여기서 만들고
-# SSH로 보낸다. 배포 키는 VM에서 deploy.sh만 실행하도록 묶여 있다(deploy/README.md).
+# main에 합친 커밋의 verify가 통과하면 그 커밋을 GSMSV VM에 배포한다(이슈 #112). 검증이 실패·취소되면 배포하지 않는다.
+# VM은 메모리가 4GB라 이미지는 여기서 만들고 SSH로 보낸다. 배포 키는 VM에서 deploy.sh만 실행하도록 묶여 있다(deploy/README.md).
 on:
-  push:
+  workflow_run:
+    workflows: [verify]
+    types: [completed]
     branches: [main]
+  # 급할 때 손으로 돌린다. 고른 브랜치의 최신 커밋을 검증 없이 배포하므로, 그 커밋의 verify 결과를 먼저 본다.
   workflow_dispatch:
 
 concurrency:
@@ -13,9 +16,16 @@ concurrency:
 
 jobs:
   deploy:
+    # PR에서 돈 verify는 배포하지 않는다. main에 push되어 돈 verify가 성공했을 때만.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
     runs-on: ubuntu-latest
     steps:
+      # verify가 검사한 바로 그 커밋을 받는다. 그사이 main이 더 나아갔어도 검사하지 않은 커밋은 올리지 않는다.
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
       - name: 이미지 만들기
         run: docker build -t modori:latest .

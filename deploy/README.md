@@ -19,8 +19,14 @@
 
 ## 배포 흐름
 
-`main`에 합치면 `.github/workflows/deploy.yml`이 이미지를 만들고
-`docker save | ssh`로 VM에 보낸다. VM은 메모리가 4GB라 빌드를 VM에서 하지 않는다.
+`main`에 합치면 먼저 `verify`(타입·lint·단위·E2E)가 돈다. **그 커밋의 `verify`가 성공해야**
+`.github/workflows/deploy.yml`이 같은 커밋으로 이미지를 만들고 `docker save | ssh`로 VM에 보낸다
+(2026-09-29부터, 이슈 #112). 검증이 실패하거나 취소되면 배포하지 않는다. VM은 메모리가 4GB라 빌드를 VM에서 하지 않는다.
+
+- 검증이 일시적으로 깨졌으면(테스트 DB 지연 등) Actions에서 그 `verify` 실행을 다시 돌린다. 통과하면 그때 배포된다.
+- 급한 배포: Actions → `deploy-gsmsv` → "Run workflow"(`main`). 검증 없이 `main`의 최신 커밋을 올리므로
+  그 커밋의 `verify` 결과를 먼저 확인한다. 쓴 날과 이유를 `docs/incidents.md`에 남긴다.
+- PR에서 돈 `verify`(포크 PR 포함)는 배포로 이어지지 않는다. `main`에 push되어 돈 것만 본다.
 
 Actions가 쓰는 SSH 키(`GSMSV_DEPLOY_KEY`)는 VM의 `authorized_keys`에
 `command="/opt/modori/deploy.sh",restrict`로 묶여 있다. 그 키로는 셸을 열 수 없고
