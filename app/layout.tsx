@@ -10,16 +10,19 @@ export const metadata: Metadata = {
   // 미리보기 그림 등 상대 주소를 이 주소 기준으로 채운다.
   metadataBase: new URL("https://modori.site"),
   title: "모도리",
-  description: "오늘 할 일을 색으로 남겨요",
+  description:
+    "광주소프트웨어마이스터고 학생들이 같이 쓰는 할 일 앱. 끝낸 일은 달력에 색으로 쌓이고, 친구가 끝낸 일엔 응원을 보낼 수 있어요.",
   // 카카오톡·디스코드에 주소를 붙였을 때 뜨는 미리보기. 홍보할 때 첫인상이다.
   openGraph: {
     type: "website",
     url: "/",
     siteName: "모도리",
     title: "모도리",
-    description: "오늘 할 일을 색으로 남겨요",
+    description:
+    "광주소프트웨어마이스터고 학생들이 같이 쓰는 할 일 앱. 끝낸 일은 달력에 색으로 쌓이고, 친구가 끝낸 일엔 응원을 보낼 수 있어요.",
     locale: "ko_KR",
-    images: [{ url: "/og.png", width: 1200, height: 630, alt: "모도리" }],
+    // 카카오톡 등은 미리보기 그림을 오래 붙잡아 둔다. 그림을 바꾸면 v를 올린다.
+    images: [{ url: "/og.png?v=2", width: 1200, height: 630, alt: "모도리 — 끝낸 만큼 달력이 채워져요" }],
   },
   twitter: { card: "summary_large_image" },
   // 홈 화면에 추가했을 때 주소창 없이 열린다.

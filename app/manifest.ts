@@ -7,7 +7,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "모도리",
     short_name: "모도리",
-    description: "오늘 할 일을 색으로 남겨요",
+    description: "끝낸 만큼 달력이 채워지는 할 일 앱",
     start_url: "/",
     display: "standalone",
     background_color: "#f7f8fa",
