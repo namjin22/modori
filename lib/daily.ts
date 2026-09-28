@@ -1,23 +1,29 @@
 import { addDays, formatKST, todayKST } from "@/lib/date";
-import { snapshotIfMissing } from "@/lib/metrics";
+import { cleanExpiredActiveDays, snapshotIfMissing } from "@/lib/metrics";
 import { prisma } from "@/lib/prisma";
 
-// 서버가 하나라 메모리로 하루 한 번을 센다. 재시작하면 한 번 더 돌지만 둘 다 이미 된 일은 건너뛴다.
+// 서버가 하나라 메모리로 하루 한 번을 센다. 재시작하면 다시 돌지만 이미 된 일은 건너뛴다.
 let doneFor: string | null = null;
+let activeDaysCleanedFor: string | null = null;
 
 /**
  * 하루 한 번 하는 정리: 전날 지표 합계 찍기, 만료된 로그인 세션 지우기.
+ * ActiveDay 정리가 실패하면 같은 날 다음 요청에서 다시 시도한다.
  * 로그인한 요청(requireUser)과 /api/health가 부른다. 이틀 내리 아무도 안 와도 GitHub `health` 감시가
  * 몇 시간마다 health를 불러 합계가 빠지지 않는다.
  */
 export async function runDailyOnce(): Promise<void> {
   const today = todayKST();
   const key = formatKST(today);
-  if (doneFor === key) return;
-  // 기다리는 동안 들어온 요청이 같은 일을 또 시작하지 않게 먼저 적는다.
-  doneFor = key;
-  await snapshotIfMissing(addDays(today, -1));
-  await deleteExpiredSessions();
+  if (doneFor !== key) {
+    // 기다리는 동안 들어온 요청이 같은 일을 또 시작하지 않게 먼저 적는다.
+    doneFor = key;
+    await snapshotIfMissing(addDays(today, -1));
+    await deleteExpiredSessions();
+  }
+  if (activeDaysCleanedFor !== key && await cleanExpiredActiveDays(today)) {
+    activeDaysCleanedFor = key;
+  }
 }
 
 /**

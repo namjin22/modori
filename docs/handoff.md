@@ -1413,3 +1413,10 @@ VM에 시험 DB(사용자 1000, 할 일 108만, 반응 24만, 280MB)를 만들�
 - 스크린샷에 10번(할 일 창) 추가, 다시 찍음.
 
 검증: `npm run verify` 통과 — 단위 132×3, E2E 137/137.
+
+## 2026-09-29 — ActiveDay 90일 보관 경계
+
+- `lib/daily.ts`의 로그인 요청·`/api/health` 공통 정리에서 오늘~89일 전만 남긴다. 전날 합계가 실패해도 정리하고, 정리 자체가 실패하면 같은 날 다음 요청에서 재시도한다. 세션 정리·하루 합계는 다시 실행하지 않는다.
+- `tests/unit/metrics-retention.test.ts`: 정리 실패 재시도 회귀를 먼저 실패시킨 뒤 수정하여 통과(3개). `docs/metrics.md`에 보관 범위·실행 경로를 기록했다.
+- `npm run test:unit` 135/135, `npm run test:tz` 135/135×3, `npm run lint`, `npx tsc --noEmit`, `npm run build`, `git diff --check` 통과. 처음 타입 검사는 이전 Prisma client에 새 메모 필드가 없어 실패했으며, `npx prisma generate` 후 다시 통과했다.
+- `npm run verify` 전체는 DB E2E를 포함하므로 안전한 전용 DB를 확인하지 못한 상태에서 실행하지 않았다. DB E2E는 미검증이다.

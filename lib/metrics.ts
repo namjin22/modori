@@ -30,14 +30,24 @@ export async function recordActiveDay(userId: string): Promise<void> {
   }
 }
 
-/** 그 날 합계가 없으면 찍고, 90일 지난 쓴 날짜를 지운다. 실패해도 부른 쪽을 망치지 않는다. */
+/** 그 날 합계가 없으면 찍는다. 실패해도 부른 쪽을 망치지 않는다. */
 export async function snapshotIfMissing(day: Date): Promise<void> {
   try {
     const exists = await prisma.dailyStat.findUnique({ where: { date: day }, select: { date: true } });
     if (!exists) await snapshotDay(day);
-    await prisma.activeDay.deleteMany({ where: { date: { lt: addDays(day, -KEEP_ACTIVE_DAYS) } } });
   } catch (error) {
     console.error("[metrics] 하루 합계를 찍지 못했다.", error);
+  }
+}
+
+/** 오늘 포함 최근 90일만 남긴다. 실패한 날은 같은 날 다시 시도한다. */
+export async function cleanExpiredActiveDays(today: Date): Promise<boolean> {
+  try {
+    await prisma.activeDay.deleteMany({ where: { date: { lt: addDays(today, 1 - KEEP_ACTIVE_DAYS) } } });
+    return true;
+  } catch (error) {
+    console.error("[metrics] 이용한 날을 정리하지 못했다.", error);
+    return false;
   }
 }
 
