@@ -5,6 +5,7 @@ import {
   countByCategory,
   countByWeekday,
   streakDays,
+  untilToday,
   type StatTodo,
 } from "@/lib/stats";
 
@@ -108,5 +109,16 @@ describe("streakDays", () => {
 
   it("아무것도 없으면 0이다", () => {
     expect(streakDays([], today)).toBe(0);
+  });
+});
+
+describe("untilToday", () => {
+  it("오늘까지의 할 일만 남기고 앞날에 미리 적은 일은 뺀다", () => {
+    const today = parseKSTDate("2026-09-10");
+    const kept = untilToday(
+      [todo("2026-09-01", true), todo("2026-09-10", false), todo("2026-09-11", false), todo("2026-09-30", false)],
+      today,
+    );
+    expect(kept.map((item) => item.date)).toEqual([parseKSTDate("2026-09-01"), parseKSTDate("2026-09-10")]);
   });
 });

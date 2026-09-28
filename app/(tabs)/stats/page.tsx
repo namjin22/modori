@@ -14,7 +14,7 @@ import {
 } from "@/lib/date";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
-import { countByCategory, countByWeekday, streakDays } from "@/lib/stats";
+import { countByCategory, countByWeekday, streakDays, untilToday } from "@/lib/stats";
 import { BackLink } from "@/components/back-link";
 
 const WEEKDAY_NAMES = ["일", "월", "화", "수", "목", "금", "토"];
@@ -42,7 +42,7 @@ export default async function StatsPage({
   const monthStart = readMonth(month, today);
   const monthEnd = endOfMonthKST(monthStart);
 
-  const [monthTodos, streakTodos] = await Promise.all([
+  const [writtenTodos, streakTodos] = await Promise.all([
     prisma.todo.findMany({
       where: { userId: user.id, date: { gte: monthStart, lte: monthEnd } },
       select: { date: true, done: true, category: true },
@@ -58,6 +58,8 @@ export default async function StatsPage({
     }),
   ]);
 
+  // 이번 달을 볼 때 앞날에 미리 적어 둔 일은 세지 않는다(lib/stats.ts untilToday).
+  const monthTodos = untilToday(writtenTodos, today);
   const total = monthTodos.length;
   const done = monthTodos.filter((todo) => todo.done).length;
   const rate = total === 0 ? 0 : Math.round((done / total) * 100);
