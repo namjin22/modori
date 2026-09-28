@@ -102,3 +102,31 @@ test("일정 만들기 칸은 이름을 비운 채 다른 곳을 누르면 닫�
   await page.getByRole("heading", { level: 1 }).click();
   await expect(title).toHaveValue("동아리 발표");
 });
+
+test("하루에 일정을 다섯 개까지 연달아 넣고, 여섯째는 막는다", async ({ page, email }, testInfo) => {
+  await signInAndOnboard(page, email, `다섯${testInfo.testId.slice(-6)}${RUN_TAG}`);
+  const today = todayKST();
+
+  // 하나를 넣은 뒤에도 더 넣을 버튼이 목록 아래에 보인다.
+  await page.getByRole("button", { name: "시험이나 행사 적어두기" }).click();
+  await page.getByLabel("새 일정 이름").fill("일정 1");
+  await page.getByLabel("새 일정 이름").press("Enter");
+  for (let index = 2; index <= 5; index += 1) {
+    await page.getByRole("button", { name: "+ 일정 더 적기" }).click();
+    await page.getByLabel("새 일정 이름").fill(`일정 ${index}`);
+    await page.getByLabel("새 일정 이름").press("Enter");
+    await expect(page.getByRole("listitem").filter({ hasText: `일정 ${index}` })).toBeVisible();
+  }
+  await expect(page.getByRole("button", { name: "+ 일정 더 적기" })).toHaveCount(0);
+  await expect(page.getByText("일정은 하루에 5개까지 둘 수 있어요")).toBeVisible();
+
+  // 어제부터 오늘까지 이어지는 일정도 오늘이 꽉 차서 들어가지 않는다.
+  await page.goto(`/?date=${formatKST(addDays(today, -1))}`);
+  await page.getByRole("button", { name: "시험이나 행사 적어두기" }).click();
+  await page.getByLabel("새 일정 이름").fill("이틀짜리");
+  await page.getByLabel("새 일정 종료일").fill(formatKST(today));
+  await page.getByLabel("새 일정 이름").press("Enter");
+  await expect(page.getByRole("alert").filter({ hasText: "일정이 벌써 5개예요" })).toBeVisible();
+  const user = await prisma.user.findUniqueOrThrow({ where: { email } });
+  expect(await prisma.event.count({ where: { userId: user.id } })).toBe(5);
+});

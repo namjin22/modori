@@ -7,6 +7,7 @@ import { Modal } from "@/components/modal";
 import { UndoableDeleteButton } from "@/components/undoable-delete-button";
 import { formatKST, formatMonthDayKST, isSameKSTDate, parseKSTDate } from "@/lib/date";
 import { ddayLabel } from "@/lib/dday";
+import { LIMITS } from "@/lib/limits";
 
 import { deleteEvent, restoreEvent } from "@/app/(tabs)/events/actions";
 
@@ -41,7 +42,6 @@ export function EventSection({
   const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState<DayEvent | null>(null);
   const todayDate = parseKSTDate(today);
-  const empty = events.length === 0 && upcoming.length === 0;
 
   return (
     <section aria-label="일정" className="flex flex-col gap-3">
@@ -111,6 +111,23 @@ export function EventSection({
         </ul>
       )}
 
+      {/* 제목("일정")만 있으면 누를 수 있는 곳인지 모른다. 예전에는 비어 있을 때만 이 버튼이 있어서
+          하나를 만들면 더 넣을 길이 안 보였다. 하루 상한까지는 늘 둔다. */}
+      {!creating &&
+        (events.length < LIMITS.eventsPerDay ? (
+          <button
+            type="button"
+            onClick={() => setCreating(true)}
+            className="rounded-xl border border-dashed border-border py-3 text-sm text-muted hover:bg-surface"
+          >
+            {events.length === 0 ? "시험이나 행사 적어두기" : "+ 일정 더 적기"}
+          </button>
+        ) : (
+          <p className="text-center text-xs text-muted">
+            일정은 하루에 {LIMITS.eventsPerDay}개까지 둘 수 있어요
+          </p>
+        ))}
+
       {upcoming.length > 0 && (
         <ul className="flex flex-col gap-1">
           {upcoming.map((event) => {
@@ -138,17 +155,6 @@ export function EventSection({
             );
           })}
         </ul>
-      )}
-
-      {/* 제목만 있으면 누를 수 있는 곳인지 모른다. 비어 있을 때만 자리를 만들어 준다. */}
-      {empty && !creating && (
-        <button
-          type="button"
-          onClick={() => setCreating(true)}
-          className="rounded-xl border border-dashed border-border py-3 text-sm text-muted hover:bg-surface"
-        >
-          시험이나 행사 적어두기
-        </button>
       )}
 
       <Modal

@@ -4,7 +4,8 @@ import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
 import { DEFAULT_EVENT_COLOR } from "@/lib/colors";
-import { daysBetween, formatKST, parseKSTDate } from "@/lib/date";
+import { daysBetween, formatKST, formatMonthDayKST, parseKSTDate } from "@/lib/date";
+import { firstOverfullDay } from "@/lib/event-limit";
 import { isId } from "@/lib/ids";
 import { LIMITS } from "@/lib/limits";
 import { prisma } from "@/lib/prisma";
@@ -61,6 +62,29 @@ function readEventInput(formData: FormData): EventInput | string {
   return { title, startDate, endDate, color };
 }
 
+/**
+ * 기간 안의 어느 날이라도 일정이 하루 상한만큼 차 있으면 사람에게 보여줄 문장을 돌려준다.
+ * 고치는 중인 일정은 자기 자신을 세지 않는다(exceptId).
+ */
+async function dailyLimitMessage(
+  userId: string,
+  input: Pick<EventInput, "startDate" | "endDate">,
+  exceptId?: string,
+): Promise<string | null> {
+  const overlapping = await prisma.event.findMany({
+    where: {
+      userId,
+      startDate: { lte: input.endDate },
+      endDate: { gte: input.startDate },
+      ...(exceptId ? { id: { not: exceptId } } : {}),
+    },
+    select: { startDate: true, endDate: true },
+  });
+  const full = firstOverfullDay(overlapping, input.startDate, input.endDate, LIMITS.eventsPerDay);
+  if (!full) return null;
+  return `${formatMonthDayKST(full)}에는 일정이 벌써 ${LIMITS.eventsPerDay}개예요. 하루에 ${LIMITS.eventsPerDay}개까지 둘 수 있어요.`;
+}
+
 export async function createEvent(
   _previous: EventFormState,
   formData: FormData,
@@ -73,6 +97,8 @@ export async function createEvent(
   if (count >= LIMITS.events) {
     return { message: `일정은 ${LIMITS.events}개까지 만들 수 있어요. 지난 일정을 지워주세요.` };
   }
+  const full = await dailyLimitMessage(user.id, input);
+  if (full) return { message: full };
 
   await prisma.event.create({ data: { ...input, userId: user.id } });
 
@@ -87,9 +113,13 @@ export async function updateEvent(
   const user = await requireUser();
   const input = readEventInput(formData);
   if (typeof input === "string") return { message: input };
+  const id = readText(formData, "id");
+
+  const full = await dailyLimitMessage(user.id, input, id);
+  if (full) return { message: full };
 
   const { count } = await prisma.event.updateMany({
-    where: { id: readText(formData, "id"), userId: user.id },
+    where: { id, userId: user.id },
     data: input,
   });
   if (count === 0) return { message: "일정을 찾을 수 없어요." };
@@ -146,6 +176,8 @@ export async function restoreEvent(snapshot: DeletedEvent): Promise<string | voi
   if (count >= LIMITS.events) {
     return `일정은 ${LIMITS.events}개까지 만들 수 있어요.`;
   }
+  const full = await dailyLimitMessage(user.id, input);
+  if (full) return full;
 
   try {
     await prisma.event.create({
