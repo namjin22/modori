@@ -78,13 +78,14 @@ test("verifier가 다르면 코드를 가로채도 로그인되지 않는다", a
   await other.close();
 });
 
-test("데스크톱 앱 창의 로그인 화면은 브라우저에서 로그인하라고 안내한다", async ({ browser }) => {
+test("데스크톱 앱 창의 로그인 버튼은 평소 브라우저로 여는 링크다", async ({ browser }) => {
   const desktop = await browser.newContext({
     userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/140 Safari/537.36 ModoriDesktop/1.0.0",
   });
   const page = await desktop.newPage();
   await page.goto("/login");
-  await expect(page.getByRole("link", { name: "브라우저에서 로그인하기" })).toHaveAttribute("href", "/desktop/start");
+  // 버튼은 웹과 같지만, 앱이 가로채 평소 브라우저에서 여는 링크다.
+  await expect(page.getByRole("link", { name: "Google로 계속하기" })).toHaveAttribute("href", "/desktop/start?provider=google");
   await expect(page.getByRole("button", { name: "Google로 계속하기" })).toHaveCount(0);
   await desktop.close();
 
@@ -93,6 +94,38 @@ test("데스크톱 앱 창의 로그인 화면은 브라우저에서 로그인�
   const webPage = await web.newPage();
   await webPage.goto("/login");
   await expect(webPage.getByRole("button", { name: "Google로 계속하기" })).toBeVisible();
-  await expect(webPage.getByRole("link", { name: "브라우저에서 로그인하기" })).toHaveCount(0);
+  await expect(webPage.getByRole("link", { name: "Google로 계속하기" })).toHaveCount(0);
   await web.close();
+});
+
+test("마이페이지에 Windows 앱 받기가 있고, 앱 안에서는 숨긴다", async ({ page, browser, email }, testInfo) => {
+  const signUp = async (target: Page, nickname: string) => {
+    await target.goto("/login");
+    await target.getByLabel("테스트 이메일").fill(email);
+    await target.getByRole("button", { name: "테스트 로그인" }).click();
+    const input = target.getByPlaceholder("닉네임");
+    await expect(input.or(homeReady(target)).first()).toBeVisible();
+    if (await input.isVisible()) {
+      await input.fill(nickname);
+      await target.getByLabel("개인정보 수집·이용에 동의해요").check();
+      await target.getByRole("button", { name: "시작하기" }).click();
+      await expect(homeReady(target)).toBeVisible();
+    }
+  };
+  await signUp(page, `받기${testInfo.testId.slice(-6)}${RUN_TAG}`);
+  await page.goto("/settings");
+  await expect(page.getByRole("link", { name: /Windows 앱 받기/ })).toHaveAttribute(
+    "href",
+    "https://github.com/namjin22/modori/releases/latest/download/Modori-Setup.exe",
+  );
+
+  const desktop = await browser.newContext({
+    userAgent: "Mozilla/5.0 (Windows NT 10.0) Chrome/150 Safari/537.36 ModoriDesktop/1.0.0",
+  });
+  const appPage = await desktop.newPage();
+  await signUp(appPage, "쓰이지 않음");
+  await appPage.goto("/settings");
+  await expect(appPage.getByRole("heading", { name: "마이페이지" })).toBeVisible();
+  await expect(appPage.getByRole("link", { name: /Windows 앱 받기/ })).toHaveCount(0);
+  await desktop.close();
 });
