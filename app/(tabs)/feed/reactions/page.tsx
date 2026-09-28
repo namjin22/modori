@@ -1,4 +1,5 @@
 import { Dori } from "@/components/dori";
+import { ReactionGlyph } from "@/components/reaction-glyph";
 import { formatMonthDayKST } from "@/lib/date";
 import { labelOfReaction } from "@/lib/reactions";
 import { prisma } from "@/lib/prisma";
@@ -60,7 +61,7 @@ export default async function ReactionsPage() {
                   aria-label={labelOfReaction(reaction.emoji)}
                   className="flex size-10 shrink-0 items-center justify-center rounded-full bg-surface-hover text-xl"
                 >
-                  {reaction.emoji}
+                  <ReactionGlyph value={reaction.emoji} doriSize={34} />
                 </span>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm">

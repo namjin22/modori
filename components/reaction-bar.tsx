@@ -1,11 +1,14 @@
 "use client";
 
-import { useOptimistic, useState, useTransition } from "react";
+import { useOptimistic, useState, useTransition, type ReactNode } from "react";
 
 import { toggleReaction } from "@/app/(tabs)/feed/actions";
+import { Dori } from "@/components/dori";
 import { Modal } from "@/components/modal";
+import { ReactionGlyph } from "@/components/reaction-glyph";
 import { useSaveFailure } from "@/components/use-save-failure";
 import {
+  DORI_REACTIONS,
   labelOfReaction,
   REACTIONS,
   type ReactionSummary,
@@ -28,6 +31,8 @@ export function ReactionBar({
   compact?: boolean;
 }) {
   const chip = compact ? "h-6 px-1.5 text-xs" : "h-7 px-2 text-sm";
+  // 도리 얼굴은 칸 높이에 거의 꽉 차게 둔다. 더 작으면 표정이 뭉개진다.
+  const doriSize = compact ? 22 : 26;
   const [picking, setPicking] = useState(false);
   const [, startTransition] = useTransition();
   const saveFailed = useSaveFailure();
@@ -66,9 +71,18 @@ export function ReactionBar({
     });
   }
 
+  function isMine(value: string) {
+    return optimistic.some((item) => item.emoji === value && item.mine);
+  }
+
+  function pick(value: string) {
+    send(value);
+    setPicking(false);
+  }
+
   return (
     <div
-      className={`flex flex-wrap items-center gap-1 ${compact ? "shrink-0 justify-end" : ""}`}
+      className={`flex flex-wrap items-center gap-1 ${compact ? "ml-auto max-w-full shrink-0 justify-end" : ""}`}
     >
       {optimistic.map(({ emoji, count, mine }) => (
         <button
@@ -83,7 +97,7 @@ export function ReactionBar({
               : "bg-surface-hover text-muted"
           }`}
         >
-          <span aria-hidden>{emoji}</span>
+          <ReactionGlyph value={emoji} doriSize={doriSize} />
           <span className="text-xs font-semibold">{count}</span>
         </button>
       ))}
@@ -102,40 +116,74 @@ export function ReactionBar({
         onClose={() => setPicking(false)}
         title="반응 보내기"
       >
-        <ul className="grid grid-cols-4 gap-2">
-          {REACTIONS.map(({ emoji, label }) => {
-            const mine = optimistic.some(
-              (item) => item.emoji === emoji && item.mine,
-            );
+        <section className="flex flex-col gap-2">
+          <h3 className="text-xs font-semibold text-muted">도리</h3>
+          <ul className="grid grid-cols-4 gap-2">
+            {DORI_REACTIONS.map(({ value, mood, name, label }) => (
+              <li key={value}>
+                <PickButton
+                  label={label}
+                  name={name}
+                  mine={isMine(value)}
+                  onPick={() => pick(value)}
+                >
+                  <Dori mood={mood} size={44} />
+                </PickButton>
+              </li>
+            ))}
+          </ul>
+        </section>
 
-            return (
+        <section className="flex flex-col gap-2">
+          <h3 className="text-xs font-semibold text-muted">이모지</h3>
+          <ul className="grid grid-cols-4 gap-2">
+            {REACTIONS.map(({ emoji, label }) => (
               <li key={emoji}>
-                <button
-                  type="button"
-                  aria-label={label}
-                  aria-pressed={mine}
-                  onClick={() => {
-                    send(emoji);
-                    setPicking(false);
-                  }}
-                  className={`flex w-full flex-col items-center gap-1 rounded-2xl py-3 transition-colors ${
-                    mine ? "bg-brand-subtle ring-1 ring-brand/40" : "bg-surface-hover"
-                  }`}
+                <PickButton
+                  label={label}
+                  name={label}
+                  mine={isMine(emoji)}
+                  onPick={() => pick(emoji)}
                 >
                   <span aria-hidden className="text-2xl leading-none">
                     {emoji}
                   </span>
-                  <span
-                    className={`text-[11px] ${mine ? "text-brand" : "text-muted"}`}
-                  >
-                    {label}
-                  </span>
-                </button>
+                </PickButton>
               </li>
-            );
-          })}
-        </ul>
+            ))}
+          </ul>
+        </section>
       </Modal>
     </div>
+  );
+}
+
+/** 고르는 창의 칸 하나. 그림 아래에 짧은 이름을 적는다. */
+function PickButton({
+  label,
+  name,
+  mine,
+  onPick,
+  children,
+}: {
+  label: string;
+  name: string;
+  mine: boolean;
+  onPick: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      aria-pressed={mine}
+      onClick={onPick}
+      className={`flex w-full flex-col items-center gap-1 rounded-2xl py-2.5 transition-colors ${
+        mine ? "bg-brand-subtle ring-1 ring-brand/40" : "bg-surface-hover"
+      }`}
+    >
+      <span className="flex h-11 items-center justify-center">{children}</span>
+      <span className={`text-[11px] ${mine ? "text-brand" : "text-muted"}`}>{name}</span>
+    </button>
   );
 }

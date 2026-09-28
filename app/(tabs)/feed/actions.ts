@@ -5,7 +5,7 @@ import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
 import { prisma } from "@/lib/prisma";
-import { REACTION_EMOJIS, type ReactionEmoji } from "@/lib/reactions";
+import { isReactionValue } from "@/lib/reactions";
 import { requireUser } from "@/lib/session";
 
 function readText(formData: FormData, key: string): string {
@@ -55,7 +55,7 @@ export async function toggleReaction(formData: FormData) {
   const todoId = readText(formData, "todoId");
   const emoji = readText(formData, "emoji");
 
-  if (!REACTION_EMOJIS.includes(emoji as ReactionEmoji)) return;
+  if (!isReactionValue(emoji)) return;
 
   // 피드에서 볼 수 있는 할 일에만 반응할 수 있다.
   // 팔로우한 사람의, 완료된, 공개 카테고리 할 일.

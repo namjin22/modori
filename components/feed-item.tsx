@@ -34,7 +34,8 @@ export function FeedItem({
 
   if (compact) {
     return (
-      <li className="flex items-center gap-2.5 py-2.5">
+      // 반응이 많아 이름이 몇 글자만 남을 만큼 좁아지면 반응 줄을 다음 줄로 내린다.
+      <li className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5 py-2.5">
         <span
           aria-hidden
           className="color-edge flex size-[18px] shrink-0 items-center justify-center rounded-[6px] bg-brand text-[10px] font-bold"
@@ -44,7 +45,7 @@ export function FeedItem({
         >
           ✓
         </span>
-        <span className="min-w-0 flex-1 truncate text-[15px]">{todo.content}</span>
+        <span className="min-w-0 grow basis-28 truncate text-[15px]">{todo.content}</span>
         <ReactionBar
           todoId={todo.id}
           summary={summarizeReactions(todo.reactions, viewerId)}

@@ -10,15 +10,18 @@ export const metadata: Metadata = { title: "도리 모음 · 모도리" };
 // 도리의 표정을 한눈에 본다. 메뉴에는 두지 않고 주소(/dori)로만 들어온다.
 // 표정을 새로 쓰거나 바꿀 때 어디에 쓰이는지 여기 적어 둔다.
 const MOODS: { mood: DoriMood; name: string; usedIn: string }[] = [
-  { mood: "happy", name: "기본", usedIn: "지금 쓰는 곳 없음" },
-  { mood: "like", name: "좋아요", usedIn: "기본 프로필 사진(소품 없이)" },
-  { mood: "hello", name: "안녕", usedIn: "닉네임 정하기, 팔로우한 친구가 없을 때 소셜" },
-  { mood: "calm", name: "느긋", usedIn: "빈 목록(할 일·받은 반응·기록·친구 화면)" },
-  { mood: "party", name: "축하", usedIn: "그날 할 일을 다 끝냈을 때" },
-  { mood: "sad", name: "슬픔", usedIn: "계정 지우기, 오류 화면" },
-  { mood: "confused", name: "갸웃", usedIn: "없는 주소" },
-  { mood: "fire", name: "불타요", usedIn: "지금 쓰는 곳 없음" },
-  { mood: "clap", name: "대단해", usedIn: "지금 쓰는 곳 없음" },
+  { mood: "happy", name: "기본", usedIn: "반응(방긋)" },
+  { mood: "like", name: "좋아요", usedIn: "기본 프로필 사진(소품 없이), 반응(좋아해)" },
+  { mood: "hello", name: "안녕", usedIn: "닉네임 정하기, 팔로우한 친구가 없을 때 소셜, 반응" },
+  { mood: "calm", name: "느긋", usedIn: "빈 목록(할 일·받은 반응·기록·친구 화면), 반응(느긋해)" },
+  { mood: "party", name: "축하", usedIn: "그날 할 일을 다 끝냈을 때, 반응(축하해)" },
+  { mood: "sad", name: "슬픔", usedIn: "계정 지우기, 오류 화면, 반응(아쉬워)" },
+  { mood: "confused", name: "갸웃", usedIn: "없는 주소, 반응" },
+  { mood: "fire", name: "불타요", usedIn: "반응" },
+  { mood: "clap", name: "대단해", usedIn: "반응" },
+  { mood: "cool", name: "멋져", usedIn: "반응" },
+  { mood: "wow", name: "놀라워", usedIn: "반응" },
+  { mood: "love", name: "반했어", usedIn: "반응" },
 ];
 
 export default async function DoriPage() {

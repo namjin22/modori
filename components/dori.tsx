@@ -22,7 +22,10 @@ export type DoriMood =
   | "calm"
   | "sad"
   | "confused"
-  | "hello";
+  | "hello"
+  | "cool"
+  | "wow"
+  | "love";
 
 const INK = "#6e82ad";
 const BODY = "#fdfbf7";
@@ -134,13 +137,8 @@ function SadEye({ x, dir }: { x: number; dir: 1 | -1 }) {
   );
 }
 
-// 작은 ✕ 입. 이 캐릭터의 기본 표정이다.
-const XMouth = () => (
-  <>
-    <Stroke d="M57 55 L63 59" width={3.2} />
-    <Stroke d="M63 55 L57 59" width={3.2} />
-  </>
-);
+// 입꼬리만 살짝 올린 웃는 입. 기본 표정이다.
+const SmileMouth = () => <Stroke d="M53.5 55 Q60 62 66.5 55" width={3.4} />;
 
 const CatMouth = () => (
   <Stroke d="M54 55 Q57 60 60 55 Q63 60 66 55" width={3.2} />
@@ -161,6 +159,90 @@ function OpenMouth() {
   );
 }
 
+/** 활짝 벌린 웃는 입. 아래가 둥근 반달에 혀를 얹는다. */
+function GrinMouth() {
+  return (
+    <>
+      <path
+        d="M52.5 55 Q60 67 67.5 55 Z"
+        fill={EYE}
+        stroke={EYE}
+        strokeWidth={2.4}
+        strokeLinejoin="round"
+      />
+      <path d="M55.6 61 Q60 57.6 64.4 61 Q60 64.6 55.6 61 Z" fill="#ff8fb0" />
+    </>
+  );
+}
+
+const HEART =
+  "M105 12 c-4.2 -7.4 -14.4 -3.2 -11.2 5.1 L105 28 l11.2 -10.9 c3.2 -8.3 -7 -12.5 -11.2 -5.1z";
+
+/** 하트 눈. 좋아요의 하트 소품과 같은 모양을 눈 크기로 줄인다. */
+const HeartEye = ({ x }: { x: number }) => (
+  <path
+    d={HEART}
+    fill="#ff6f95"
+    transform={`translate(${x} 46.5) scale(0.66) translate(-105 -18)`}
+  />
+);
+
+/** 눈 둘을 가리는 선글라스. 알 위의 흰 빗금이 유리처럼 보이게 한다. */
+function Sunglasses() {
+  return (
+    <>
+      <Stroke d="M29 41.5 L91 41.5" width={3} color="#2f3850" />
+      <path d="M34.5 39 H57.5 V45 Q57.5 54.5 46 54.5 Q34.5 54.5 34.5 45 Z" fill="#2f3850" />
+      <path d="M62.5 39 H85.5 V45 Q85.5 54.5 74 54.5 Q62.5 54.5 62.5 45 Z" fill="#2f3850" />
+      <Stroke d="M39 43.5 L43 40.5" width={2.2} color="#ffffff" />
+      <Stroke d="M67 43.5 L71 40.5" width={2.2} color="#ffffff" />
+    </>
+  );
+}
+
+/**
+ * 고깔모자. 두 귀 사이 정수리에 얹고 살짝 기울인다. 밑변을 귀 안쪽 사이보다 좁게 잡아
+ * 귀를 가리지 않는다. 쓰고 있는 물건이라 얼굴처럼 테두리를 두른다.
+ */
+function PartyHat() {
+  const cone = "M50.5 33 L60 8 L69.5 33 Q60 37 50.5 33 Z";
+
+  return (
+    <g transform="rotate(10 60 33)">
+      <path d={cone} fill="#8b7bff" />
+      <path d="M57.34 15 L62.66 15 L64.18 19 L55.82 19 Z" fill="#ffd166" />
+      <path d="M54.11 23.5 L65.89 23.5 L67.41 27.5 L52.59 27.5 Z" fill="#ffd166" />
+      <path
+        d={cone}
+        fill="none"
+        stroke={INK}
+        strokeWidth={3.4}
+        strokeLinejoin="round"
+      />
+      <circle cx={60} cy={8} r={4.4} fill="#ff6b9a" stroke={INK} strokeWidth={3} />
+    </g>
+  );
+}
+
+/**
+ * 불꽃. 바깥 주황 불길에 왼쪽으로 작은 혀가 하나 갈라지고, 안쪽에 노란 불씨가 선다.
+ * 좌표는 밑 가운데가 (0, 0)이고 위로 36만큼 솟는다.
+ */
+function Flame({ x, y }: { x: number; y: number }) {
+  return (
+    <g transform={`translate(${x} ${y})`}>
+      <path
+        d="M0 0 C-7.5 0 -11.5 -5.5 -11 -12.5 C-10.5 -18.5 -6 -21 -5.5 -28 C-2 -25 -0.5 -21.5 -0.8 -18 C2.5 -21.5 4 -28.5 1 -36 C8.5 -30 12 -21.5 11.5 -13 C11 -5 6.5 0 0 0 Z"
+        fill="#ff7a3d"
+      />
+      <path
+        d="M0 -2.5 C-4.5 -2.5 -6.5 -6 -6 -9.5 C-5.5 -13.5 -2 -15.5 -0.5 -20 C3 -16.5 6.5 -13 6 -9 C5.6 -5 3.5 -2.5 0 -2.5 Z"
+        fill="#ffc83d"
+      />
+    </g>
+  );
+}
+
 function Spark({ x, y, s, fill }: { x: number; y: number; s: number; fill: string }) {
   const m = s * 0.28;
 
@@ -172,17 +254,17 @@ function Spark({ x, y, s, fill }: { x: number; y: number; s: number; fill: strin
   );
 }
 
-/** 표정마다 얼굴과 앞뒤 소품을 따로 둔다. */
+/** 표정마다 얼굴과 둘레 소품을 따로 둔다. 소품은 얼굴 위에 그린다(모자는 머리에 얹힌다). */
 const LOOKS: Record<
   DoriMood,
-  { face: ReactNode; props?: ReactNode; behind?: ReactNode }
+  { face: ReactNode; props?: ReactNode }
 > = {
   happy: {
     face: (
       <>
         <DotEye x={46} />
         <DotEye x={74} />
-        <XMouth />
+        <SmileMouth />
       </>
     ),
   },
@@ -209,19 +291,8 @@ const LOOKS: Record<
         <OpenMouth />
       </>
     ),
-    // 귀에 닿지 않게 오른쪽 위 모서리로 민다.
-    behind: (
-      <g transform="translate(5 2)">
-        <path
-          d="M102 6 C112 18 115 28 110 38 C108 31 105 29 103 29 C107 38 100 45 93 42 C87 39 88 30 92 24 C90 30 94 32 96 30 C94 20 97 13 102 6Z"
-          fill="#ff9a4d"
-        />
-        <path
-          d="M102 22 C107 28 106 35 102 37 C98 35 97 31 100 27Z"
-          fill="#ffd166"
-        />
-      </g>
-    ),
+    // 귀에 닿지 않게 오른쪽 위 모서리에 세운다.
+    props: <Flame x={105} y={40} />,
   },
   clap: {
     face: (
@@ -245,10 +316,6 @@ const LOOKS: Record<
         <ArcEye x={46} />
         <ArcEye x={74} />
         <OpenMouth />
-        {/* 고깔은 한쪽 귀에만 씌운다. 가운데에 씌우면 두 귀가 다 가려져 실루엣이 흐려진다. */}
-        <path d="M64 24 L76 6 L88 24 Z" fill="#8b7bff" />
-        <path d="M68 16 L84 16" stroke="#ffd166" strokeWidth={3.4} />
-        <circle cx={76} cy={6} r={4.5} fill="#ffd166" />
       </>
     ),
     props: (
@@ -273,6 +340,7 @@ const LOOKS: Record<
         />
         <circle cx={108} cy={36} r={3.4} fill="#4d9bff" />
         <circle cx={13} cy={62} r={3.4} fill="#8b7bff" />
+        <PartyHat />
       </>
     ),
   },
@@ -345,6 +413,40 @@ const LOOKS: Record<
       </>
     ),
   },
+  cool: {
+    face: (
+      <>
+        <Sunglasses />
+        <Stroke d="M53 57.5 Q61 61.5 67.5 55" width={3.2} />
+      </>
+    ),
+  },
+  wow: {
+    face: (
+      <>
+        <ellipse cx={46} cy={46} rx={7} ry={8.6} fill={EYE} />
+        <ellipse cx={74} cy={46} rx={7} ry={8.6} fill={EYE} />
+        <circle cx={48.4} cy={42} r={2.6} fill="#fff" />
+        <circle cx={76.4} cy={42} r={2.6} fill="#fff" />
+        <ellipse cx={60} cy={60} rx={4} ry={5} fill={EYE} />
+      </>
+    ),
+    props: (
+      <>
+        <Stroke d="M106 10 L106 26" width={5} color="#ffb13d" />
+        <circle cx={106} cy={35} r={3} fill="#ffb13d" />
+      </>
+    ),
+  },
+  love: {
+    face: (
+      <>
+        <HeartEye x={46} />
+        <HeartEye x={74} />
+        <GrinMouth />
+      </>
+    ),
+  },
 };
 
 export function Dori({
@@ -375,8 +477,6 @@ export function Dori({
       aria-hidden={label ? undefined : true}
       className={className}
     >
-      {!avatar && look.behind}
-
       <Outlined>
         <Head />
       </Outlined>
