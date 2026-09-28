@@ -15,6 +15,8 @@
 
 로그인은 Google과 DataGSM(학생·교사 계정)으로 합니다. 비밀번호는 받지 않습니다.
 
+Windows 데스크톱 앱도 있습니다. 마이페이지의 "Windows 앱 받기"로 받을 수 있고, 만든 방법은 [`desktop/README.md`](desktop/README.md)에 있습니다.
+
 타이머, 일기, 리마인더, AI 기능은 넣지 않기로 했습니다. 할 일을 적고 끝내는 데만 집중합니다.
 
 "도리"는 모도리의 고양이 캐릭터입니다. 직접 그린 SVG라 외부 저작권 표기가 필요 없습니다(`components/dori.tsx`).
@@ -80,6 +82,7 @@ lib/          날짜·루틴·통계·인증 같은 도메인 로직
 prisma/       스키마와 마이그레이션
 tests/        unit(Vitest), e2e(Playwright)
 deploy/       VM에 두는 compose·배포·백업 스크립트
+desktop/      Electron 데스크톱 앱(웹을 창 하나로 띄운다)
 docs/         계획, 설계 결정, 작업 기록
 ```
 
