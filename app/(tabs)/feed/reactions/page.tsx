@@ -91,11 +91,10 @@ export default async function NotificationsPage() {
                 <li key={`follow-${person.id}`} className={row}>
                   <Avatar src={avatarUrl(person)} size={40} />
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm">
-                      <span className="font-semibold">{person.nickname}</span>
-                      <span className="text-muted">님이 나를 팔로우했어요</span>
+                    <p className="truncate text-sm font-semibold">{person.nickname}</p>
+                    <p className="truncate text-xs text-muted">
+                      나를 팔로우했어요 · {formatMonthDayKST(item.at)}
                     </p>
-                    <p className="text-xs text-muted">{formatMonthDayKST(item.at)}</p>
                   </div>
                   {newMark}
                   {/* 아직 팔로우하지 않은 사람이면 그 자리에서 맞팔로우한다. */}
@@ -124,12 +123,12 @@ export default async function NotificationsPage() {
                 >
                   <ReactionGlyph value={reaction.emoji} doriSize={34} />
                 </span>
+                {/* 좁은 폰에서 이름과 할 일을 한 줄에 두면 둘 다 몇 글자만 남는다. 두 줄로 나눈다. */}
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm">
-                    <span className="font-semibold">{reaction.user.nickname}</span>
-                    <span className="text-muted"> · {reaction.todo.content}</span>
+                  <p className="truncate text-sm font-semibold">{reaction.user.nickname}</p>
+                  <p className="truncate text-xs text-muted">
+                    {reaction.todo.content} · {formatMonthDayKST(reaction.todo.date)}
                   </p>
-                  <p className="text-xs text-muted">{formatMonthDayKST(reaction.todo.date)}</p>
                 </div>
                 {newMark}
               </li>
