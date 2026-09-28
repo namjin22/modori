@@ -1,0 +1,50 @@
+name: desktop
+
+# 데스크톱 앱 설치 파일을 만들어 GitHub 릴리스에 붙인다. desktop/package.json의 version을 올리고
+# 같은 번호로 태그(desktop-v1.0.1)를 올리면 돈다. 마이페이지의 "Windows 앱 받기"는 가장 최근 릴리스를 가리킨다.
+on:
+  push:
+    tags: ["desktop-v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            script: dist
+            files: desktop/dist/Modori-Setup.exe
+          - os: macos-latest
+            script: dist:mac
+            files: desktop/dist/Modori.dmg
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: desktop
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: desktop/package-lock.json
+
+      # Electron은 설치 스크립트로 실행 파일을 받는다. package.json의 allowScripts가 그것만 허용한다.
+      - run: npm ci
+
+      - run: npm run ${{ matrix.script }}
+
+      - name: 릴리스에 붙이기
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --title "모도리 데스크톱 ${TAG#desktop-v}" --notes "모도리 데스크톱 앱"
+          gh release upload "$TAG" "../${{ matrix.files }}" --clobber
