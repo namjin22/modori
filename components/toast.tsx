@@ -12,7 +12,8 @@ import {
 
 type ToastAction = {
   label: string;
-  run: () => Promise<void>;
+  // 알릴 말을 돌려주면 알림을 닫지 않고 그 말로 바꾼다(되돌리기가 상한에 걸렸을 때 등).
+  run: () => Promise<string | void>;
 };
 
 type Toast = {
@@ -57,8 +58,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   function runAction(action: ToastAction) {
     startTransition(async () => {
       try {
-        await action.run();
-        setToast(null);
+        const message = await action.run();
+        setToast(message ? { id: Date.now(), message } : null);
       } catch (error) {
         console.error("[toast] 알림의 동작이 실패했다.", error);
         setToast({ id: Date.now(), message: "되돌리지 못했어요. 다시 시도해주세요." });

@@ -3,7 +3,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { todayKST } from "@/lib/date";
 import { prisma } from "@/lib/prisma";
 
-import { FIRST_CATEGORY } from "./todo-helpers";
+import { FIRST_CATEGORY, openTodo } from "./todo-helpers";
 
 import { RUN_TAG } from "./run-tag";
 
@@ -54,6 +54,34 @@ test("하루 할 일 상한(50개)에 닿으면 이유를 알리고 적은 글�
 
   await expect(page.getByRole("status", { name: "알림" })).toContainText("하루에 50개까지");
   await expect(input).toHaveValue("51번째 할 일");
+  expect(await prisma.todo.count({ where: { userId: user.id } })).toBe(50);
+});
+
+test("되돌리기도 하루 상한을 넘기지 않고 이유를 알린다", async ({ page }) => {
+  const user = await prisma.user.findUniqueOrThrow({ where: { email: TEST_EMAIL } });
+  const category = await prisma.category.findFirstOrThrow({ where: { userId: user.id } });
+  await prisma.todo.createMany({
+    data: Array.from({ length: 50 }, (_, order) => ({
+      userId: user.id,
+      categoryId: category.id,
+      content: `채운 일 ${order}`,
+      date: todayKST(),
+      order,
+    })),
+  });
+  await page.reload();
+
+  await openTodo(page, "채운 일 0");
+  await page.getByRole("button", { name: "삭제" }).click();
+  await expect(page.getByRole("status", { name: "알림" })).toContainText("할 일을 지웠어요");
+
+  // 되돌리기 전에 다른 곳(다른 탭)에서 하나를 더 적어 다시 꽉 찼다.
+  await prisma.todo.create({
+    data: { userId: user.id, categoryId: category.id, content: "사이에 적은 일", date: todayKST(), order: 99 },
+  });
+
+  await page.getByRole("button", { name: "되돌리기" }).click();
+  await expect(page.getByRole("status", { name: "알림" })).toContainText("하루에 50개까지");
   expect(await prisma.todo.count({ where: { userId: user.id } })).toBe(50);
 });
 

@@ -6,7 +6,7 @@ import { isPaletteColor } from "@/lib/colors";
 import { revalidatePath } from "next/cache";
 
 import { daysBetween, formatKST, parseKSTDate, todayKST } from "@/lib/date";
-import { readIdList } from "@/lib/ids";
+import { isId, readIdList } from "@/lib/ids";
 import { LIMITS } from "@/lib/limits";
 import { prisma } from "@/lib/prisma";
 import { matchesRule } from "@/lib/routine";
@@ -19,12 +19,19 @@ function readContent(formData: FormData): string {
   return typeof raw === "string" ? raw.trim().slice(0, MAX_CONTENT_LENGTH) : "";
 }
 
-/** 브라우저에서 온 시각 문자열. 읽을 수 없으면 대신 쓸 값을 돌려준다. */
+/**
+ * 브라우저에서 온 시각 문자열. 읽을 수 없으면 대신 쓸 값을 돌려준다.
+ * 지금보다 뒤의 시각은 지금으로 자른다. 완료 시각이 미래면 친구 소셜 목록 맨 위에 계속 떠 있다.
+ */
 function readInstant(value: string | null, fallback: Date): Date {
   if (!value) return fallback;
   const parsed = new Date(value);
-  return Number.isNaN(parsed.getTime()) ? fallback : parsed;
+  if (Number.isNaN(parsed.getTime())) return fallback;
+  return parsed.getTime() > Date.now() ? new Date() : parsed;
 }
+
+/** 루틴의 예정 할 일을 미리 체크할 수 있는 가장 먼 날. 그 너머는 조작된 요청이다. */
+const MAX_SCHEDULED_DAYS = 366;
 
 function readId(formData: FormData, key: string): string {
   const raw = formData.get(key);
@@ -185,14 +192,21 @@ export async function deleteTodo(id: string): Promise<DeletedTodo | null> {
  * 카테고리와 루틴은 본인 것일 때만 다시 붙이고, 같은 id가 이미 있으면 만들지 않는다.
  * 할 일에 달려 있던 반응은 지울 때 함께 사라져서 돌아오지 않는다.
  */
-export async function restoreTodo(snapshot: DeletedTodo) {
+export async function restoreTodo(snapshot: DeletedTodo): Promise<string | void> {
   const user = await requireUser();
 
+  if (!isId(snapshot.id) || typeof snapshot.content !== "string") return;
   const content = snapshot.content.trim().slice(0, MAX_CONTENT_LENGTH);
   if (!content) return;
 
   const date = readDay(snapshot.date);
   if (!date) return;
+
+  // 되돌리기도 새로 만드는 것과 같은 상한을 지킨다. 지우고 그 사이 다른 걸 적어 꽉 찼을 수 있다.
+  const count = await prisma.todo.count({ where: { userId: user.id, date } });
+  if (count >= LIMITS.todosPerDay) {
+    return `하루에 ${LIMITS.todosPerDay}개까지 적을 수 있어요.`;
+  }
 
   const [category, routine] = await Promise.all([
     snapshot.categoryId
@@ -224,8 +238,8 @@ export async function restoreTodo(snapshot: DeletedTodo) {
           userId: user.id,
           content,
           date,
-          done: snapshot.done,
-          doneAt: snapshot.done ? readInstant(snapshot.doneAt, new Date()) : null,
+          done: snapshot.done === true,
+          doneAt: snapshot.done === true ? readInstant(snapshot.doneAt, new Date()) : null,
           order: Number.isInteger(snapshot.order) ? snapshot.order : 0,
           categoryId: category?.id ?? null,
           color:
@@ -277,7 +291,11 @@ export async function completeScheduledRoutine(formData: FormData) {
   });
   if (!routine) return;
 
-  if (daysBetween(todayKST(), date) <= 0 || !matchesRule(routine, date)) return;
+  const ahead = daysBetween(todayKST(), date);
+  if (ahead <= 0 || ahead > MAX_SCHEDULED_DAYS || !matchesRule(routine, date)) return;
+
+  const count = await prisma.todo.count({ where: { userId: user.id, date } });
+  if (count >= LIMITS.todosPerDay) return;
 
   const skipped = await prisma.routineSkip.findUnique({
     where: { routineId_date: { routineId, date } },

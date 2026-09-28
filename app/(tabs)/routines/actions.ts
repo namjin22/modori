@@ -5,7 +5,7 @@ import { Prisma, type RoutineFreq } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
 import { formatKST, parseKSTDate, todayKST } from "@/lib/date";
-import { readIdList } from "@/lib/ids";
+import { isId, readIdList } from "@/lib/ids";
 import { LIMITS } from "@/lib/limits";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
@@ -207,9 +207,10 @@ function toKSTDates(values: string[]): Date[] {
  * 방금 지운 루틴을 되살린다. 값은 브라우저에서 오므로 그대로 믿지 않는다.
  * 이어 붙이는 할 일도 본인 것이고 아직 비어 있는 것만 고른다.
  */
-export async function restoreRoutine(snapshot: DeletedRoutine) {
+export async function restoreRoutine(snapshot: DeletedRoutine): Promise<string | void> {
   const user = await requireUser();
 
+  if (!isId(snapshot.id) || typeof snapshot.content !== "string") return;
   const content = snapshot.content.trim().slice(0, MAX_CONTENT_LENGTH);
   const freq = FREQS.find((value) => value === snapshot.freq);
   if (!content || !freq) return;
@@ -217,8 +218,17 @@ export async function restoreRoutine(snapshot: DeletedRoutine) {
   const [startDate] = toKSTDates([snapshot.startDate]);
   if (!startDate) return;
   const todoIds = readIdList(snapshot.todoIds, MAX_SNAPSHOT_IDS);
-  if (!todoIds || !Array.isArray(snapshot.skipDates)) return;
+  // 날짜 목록도 id 목록과 같은 모양 검사를 거친다. 수만 개가 오면 쿼리 하나가 서버를 붙잡는다.
+  const skipDates = readIdList(snapshot.skipDates, MAX_SNAPSHOT_IDS);
+  if (!todoIds || !skipDates) return;
+  if (!Array.isArray(snapshot.byWeekday) || !Array.isArray(snapshot.byMonthday)) return;
   const [endDate] = snapshot.endDate ? toKSTDates([snapshot.endDate]) : [];
+
+  // 되돌리기도 새로 만드는 것과 같은 상한을 지킨다.
+  const count = await prisma.routine.count({ where: { userId: user.id } });
+  if (count >= LIMITS.routines) {
+    return `루틴은 ${LIMITS.routines}개까지 만들 수 있어요.`;
+  }
 
   const category = snapshot.categoryId
     ? await prisma.category.findFirst({
@@ -240,7 +250,8 @@ export async function restoreRoutine(snapshot: DeletedRoutine) {
           categoryId: category?.id ?? null,
           startDate,
           endDate: endDate ?? null,
-          pausedAt: snapshot.paused ? new Date() : null,
+          // 그 사이 카테고리가 지워졌으면 멈춘 채로 되살린다. 카테고리 없이 돌면 적을 칸이 없다.
+          pausedAt: snapshot.paused || !category ? new Date() : null,
           order: Number.isInteger(snapshot.order) ? snapshot.order : 0,
         },
       }),
@@ -249,7 +260,7 @@ export async function restoreRoutine(snapshot: DeletedRoutine) {
         data: { routineId: snapshot.id },
       }),
       prisma.routineSkip.createMany({
-        data: toKSTDates(snapshot.skipDates).map((date) => ({
+        data: toKSTDates(skipDates).map((date) => ({
           routineId: snapshot.id,
           date,
         })),
