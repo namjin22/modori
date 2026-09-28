@@ -87,13 +87,14 @@ async function seed(): Promise<Seeded> {
 
   await prisma.event.createMany({
     data: [
-      { userId: me.id, title: "수행평가 발표", startDate: today, endDate: today, startTime: 14 * 60, endTime: 15 * 60, color: "#dc2626" },
+      { userId: me.id, title: "수행평가 발표", startDate: today, endDate: today, startTime: 14 * 60, endTime: 15 * 60, color: "#dc2626", memo: "노트북, 발표 자료 USB" },
       { userId: me.id, title: "중간고사", startDate: addDays(today, 7), endDate: addDays(today, 10), color: "#7c3aed" },
     ],
   });
 
   const mine = await prisma.todo.findMany({ where: { userId: me.id, date: today, done: true }, orderBy: { order: "asc" } });
   const theirs = await prisma.todo.findFirstOrThrow({ where: { userId: friend.id, done: true } });
+  await prisma.todo.update({ where: { id: mine[0].id }, data: { memo: "3단원 끝까지, 오답은 노트에" } });
   await prisma.reaction.createMany({
     data: [
       { userId: friend.id, todoId: mine[0].id, todoUserId: me.id, emoji: "dori:happy" },
@@ -161,6 +162,12 @@ for (const viewport of VIEWPORTS) {
       await page.goto(url);
       await shoot(page, `${viewport.name}-${name}`);
     }
+
+    // 할 일을 눌렀을 때 뜨는 창(메모, 다른 날에 하기).
+    await page.goto("/");
+    await page.getByRole("button", { name: /^수학 문제집 3장/ }).click();
+    await page.getByRole("button", { name: "다른 날에 하기" }).click();
+    await shoot(page, `${viewport.name}-10-todo-sheet`);
 
     await page.emulateMedia({ colorScheme: "dark" });
     await page.goto("/");
