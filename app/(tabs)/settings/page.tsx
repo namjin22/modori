@@ -100,6 +100,8 @@ export default async function SettingsPage() {
         <nav aria-label="계정과 약관" className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
           <FooterLink href="/privacy">개인정보처리방침</FooterLink>
           <Dot />
+          <FooterLink href="/terms">이용약관</FooterLink>
+          <Dot />
           <FooterLink href="/settings/account">계정 지우기</FooterLink>
           {/* 운영자에게만 보인다. */}
           {admin && (
