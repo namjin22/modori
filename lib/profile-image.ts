@@ -4,12 +4,78 @@ export const PROFILE_IMAGE_SIZE = 128;
 /** data URL 길이 상한. 128×128 JPEG는 보통 10KB 안쪽이라 넉넉히 잡은 값이다. */
 export const MAX_PROFILE_IMAGE_LENGTH = 120_000;
 
-const DATA_URL = /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/]+={0,2}$/;
+const DATA_URL = /^data:image\/(png|jpeg|webp);base64,([A-Za-z0-9+/]+={0,2})$/;
+
+function hasPngStructure(bytes: Buffer): boolean {
+  if (bytes.length < 57 || !bytes.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))) return false;
+  let offset = 8;
+  let hasIdat = false;
+  while (offset + 12 <= bytes.length) {
+    const length = bytes.readUInt32BE(offset);
+    const end = offset + 12 + length;
+    if (end > bytes.length) return false;
+    const chunk = bytes.toString("ascii", offset + 4, offset + 8);
+    if (offset === 8 && (chunk !== "IHDR" || length !== 13 ||
+      bytes.readUInt32BE(offset + 8) === 0 || bytes.readUInt32BE(offset + 12) === 0)) return false;
+    if (chunk === "IDAT" && length > 0) hasIdat = true;
+    if (chunk === "IEND") return length === 0 && hasIdat && end === bytes.length;
+    offset = end;
+  }
+  return false;
+}
+
+function hasJpegStructure(bytes: Buffer): boolean {
+  if (bytes.length < 12 || bytes[0] !== 0xff || bytes[1] !== 0xd8 ||
+    bytes[bytes.length - 2] !== 0xff || bytes[bytes.length - 1] !== 0xd9) return false;
+  let offset = 2;
+  let hasFrame = false;
+  while (offset + 4 <= bytes.length - 2) {
+    if (bytes[offset++] !== 0xff) return false;
+    while (bytes[offset] === 0xff) offset++;
+    const marker = bytes[offset++];
+    if (marker === 0 || marker === 0xd8 || marker === 0xd9 || offset + 2 > bytes.length - 2) return false;
+    const length = bytes.readUInt16BE(offset);
+    if (length < 2 || offset + length > bytes.length - 2) return false;
+    if (marker >= 0xc0 && marker <= 0xcf && marker !== 0xc4 && marker !== 0xc8 && marker !== 0xcc) {
+      hasFrame = length >= 7 && bytes.readUInt16BE(offset + 3) > 0 && bytes.readUInt16BE(offset + 5) > 0;
+    }
+    if (marker === 0xda) return hasFrame && length >= 6 && offset + length < bytes.length - 2;
+    offset += length;
+  }
+  return false;
+}
+
+function hasWebpStructure(bytes: Buffer): boolean {
+  if (bytes.length < 20 || bytes.toString("ascii", 0, 4) !== "RIFF" ||
+    bytes.readUInt32LE(4) !== bytes.length - 8 || bytes.toString("ascii", 8, 12) !== "WEBP") return false;
+  let offset = 12;
+  let hasImage = false;
+  while (offset + 8 <= bytes.length) {
+    const type = bytes.toString("ascii", offset, offset + 4);
+    const size = bytes.readUInt32LE(offset + 4);
+    const data = offset + 8;
+    if (data + size > bytes.length) return false;
+    if (type === "VP8 " && size >= 10 && bytes.subarray(data + 3, data + 6).equals(Buffer.from([0x9d, 0x01, 0x2a]))) hasImage = true;
+    if (type === "VP8L" && size >= 5 && bytes[data] === 0x2f) hasImage = true;
+    offset = data + size + (size % 2);
+  }
+  return hasImage && offset === bytes.length;
+}
+
+function hasImageStructure(type: string, bytes: Buffer): boolean {
+  if (type === "png") return hasPngStructure(bytes);
+  if (type === "jpeg") return hasJpegStructure(bytes);
+  return hasWebpStructure(bytes);
+}
 
 /**
- * 브라우저에서 줄여 보낸 사진인지 확인한다. 서버는 폼을 그대로 믿을 수 없어서,
- * 형식과 길이를 다시 본다. 길이를 막지 않으면 큰 파일이 그대로 DB에 들어간다.
+ * data URL의 타입과 실제 이미지 파일의 기본 구조를 함께 확인한다.
+ * 전체 디코딩은 하지 않으므로 이미지 데이터 자체의 무결성까지 보장하지는 않는다.
  */
 export function isProfileImage(value: string): boolean {
-  return value.length <= MAX_PROFILE_IMAGE_LENGTH && DATA_URL.test(value);
+  if (value.length > MAX_PROFILE_IMAGE_LENGTH) return false;
+  const match = DATA_URL.exec(value);
+  if (!match || match[2].length % 4 !== 0) return false;
+  const bytes = Buffer.from(match[2], "base64");
+  return bytes.toString("base64") === match[2] && hasImageStructure(match[1], bytes);
 }
