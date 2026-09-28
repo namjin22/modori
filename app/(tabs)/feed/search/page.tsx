@@ -8,6 +8,7 @@ import { SubmitButton } from "@/components/submit-button";
 import { followUser, unfollowUser } from "../actions";
 
 import { Avatar } from "@/components/avatar";
+import { DoriMessage } from "@/components/dori-message";
 import { BackLink } from "@/components/back-link";
 import { avatarUrl } from "@/lib/avatar";
 
@@ -66,13 +67,13 @@ export default async function SearchPage({
       </form>
 
       {query.length === 0 ? (
-        <p className="rounded-2xl bg-surface p-10 text-center text-sm text-muted">
-          닉네임으로 찾아보세요
-        </p>
+        <DoriMessage mood="happy">
+          <p>닉네임으로 찾아보세요</p>
+        </DoriMessage>
       ) : results.length === 0 ? (
-        <p className="rounded-2xl bg-surface p-10 text-center text-sm text-muted">
-          {query}에 맞는 사람이 없어요
-        </p>
+        <DoriMessage mood="confused">
+          <p>{query}에 맞는 사람이 없어요</p>
+        </DoriMessage>
       ) : (
         <ul className="flex flex-col gap-3">
           {results.map((person) => {

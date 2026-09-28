@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { Dori } from "@/components/dori";
+import { statsMood } from "@/lib/dori-mood";
 import {
   addDays,
   addMonths,
@@ -107,6 +108,8 @@ export default async function StatsPage({
         </div>
       ) : (
         <>
+          <StatsCheer rate={rate} streak={streak} isThisMonth={isThisMonth} />
+
           <section className="grid grid-cols-3 gap-2">
             <Figure label="끝낸 일" value={`${done}개`} />
             <Figure label="해낸 비율" value={`${rate}%`} />
@@ -211,6 +214,26 @@ function Figure({ label, value }: { label: string; value: string }) {
     <div className="flex flex-col items-center gap-1 rounded-2xl bg-surface p-4">
       <span className="text-lg font-bold">{value}</span>
       <span className="text-xs text-muted">{label}</span>
+    </div>
+  );
+}
+
+/** 이 달을 한 줄로 알아봐 준다. 숫자 셋보다 먼저 눈에 들어오는 자리다. */
+function StatsCheer({
+  rate,
+  streak,
+  isThisMonth,
+}: {
+  rate: number;
+  streak: number;
+  isThisMonth: boolean;
+}) {
+  const { mood, message } = statsMood({ rate, streak, isThisMonth });
+
+  return (
+    <div className="flex items-center gap-3 rounded-2xl bg-brand-subtle px-4 py-3">
+      <Dori mood={mood} size={48} />
+      <p className="text-sm font-semibold text-brand">{message}</p>
     </div>
   );
 }

@@ -2,6 +2,9 @@
 
 import { createContext, useContext, useOptimistic, type ReactNode } from "react";
 
+import { Dori } from "@/components/dori";
+import { progressMood } from "@/lib/dori-mood";
+
 type ChangeDone = (delta: 1 | -1) => void;
 
 const CompletionContext = createContext<ChangeDone | null>(null);
@@ -36,14 +39,20 @@ export function TodoProgress({
       Math.max(0, Math.min(total, current + delta)),
   );
 
+  const mood = progressMood(optimisticDone, total);
+
   return (
     <CompletionContext.Provider value={changeDone}>
       {/* 할 일이 없어도 자리를 지킨다. 첫 할 일을 적는 순간 막대가 생기면
           화면이 한 번 밀리고, 무엇이 늘었는지도 알아채기 어렵다. */}
       <div className="flex flex-col gap-1">
-          <p aria-live="polite" className="text-sm text-muted">
-            {total}개 중 {optimisticDone}개 완료
-          </p>
+          <div className="flex items-center gap-1.5">
+            {/* 체크할 때마다 표정이 따라 바뀐다. 숫자만 오르는 것보다 한 번 더 누르고 싶어진다. */}
+            {mood && <Dori mood={mood} size={28} className="-my-1" />}
+            <p aria-live="polite" className="text-sm text-muted">
+              {total}개 중 {optimisticDone}개 완료
+            </p>
+          </div>
           <div
             role="progressbar"
             aria-label="오늘 완료율"

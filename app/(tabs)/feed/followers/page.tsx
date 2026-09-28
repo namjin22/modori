@@ -3,6 +3,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 
+import { DoriMessage } from "@/components/dori-message";
 import { SubmitButton } from "@/components/submit-button";
 
 import { followUser } from "../actions";
@@ -42,9 +43,9 @@ export default async function FollowersPage() {
       </header>
 
       {followers.length === 0 ? (
-        <p className="rounded-2xl bg-surface p-10 text-center text-sm text-muted">
-          아직 나를 팔로우한 친구가 없어요
-        </p>
+        <DoriMessage mood="calm">
+          <p>아직 나를 팔로우한 친구가 없어요</p>
+        </DoriMessage>
       ) : (
         <ul className="flex flex-col gap-3">
           {followers.map(({ follower: person }) => {

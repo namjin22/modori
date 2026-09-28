@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import {
   addDays,
+  daysBetween,
   endOfMonthKST,
   formatKST,
   isSameKSTDate,
@@ -425,7 +426,8 @@ export default async function FeedPage({
 
         {categories.length > 0 && todos.length === 0 && scheduled.length === 0 && (
           <div className="flex flex-col items-center gap-1 py-2 text-center">
-            <Dori mood="calm" size={80} />
+            {/* 지난 날은 느긋하게, 오늘과 앞날은 반갑게. */}
+            <Dori mood={daysBetween(today, date) < 0 ? "calm" : "hello"} size={80} />
             <p className="text-sm text-muted">아직 할 일이 없어요</p>
             <p className="text-xs text-muted">
               카테고리 이름을 눌러 적어보세요.{" "}

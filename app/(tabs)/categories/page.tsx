@@ -7,6 +7,7 @@ import { requireUser } from "@/lib/session";
 
 import { createCategory, restoreCategory } from "./actions";
 import { BackLink } from "@/components/back-link";
+import { DoriMessage } from "@/components/dori-message";
 import { CategoryEditor } from "@/components/category-editor";
 
 // 브랜드 파랑을 기본값으로 두면 새 카테고리가 버튼 색과 구분되지 않는다.
@@ -65,9 +66,9 @@ export default async function CategoriesPage() {
       )}
 
       {active.length === 0 ? (
-        <p className="rounded-2xl bg-surface p-10 text-center text-sm text-muted">
-          아직 카테고리가 없어요
-        </p>
+        <DoriMessage mood="happy">
+          <p>아직 카테고리가 없어요</p>
+        </DoriMessage>
       ) : (
         <ul className="flex flex-col gap-3">
           {active.map((category) => (

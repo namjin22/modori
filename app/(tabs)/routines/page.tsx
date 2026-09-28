@@ -15,6 +15,7 @@ import {
   toggleRoutinePause,
 } from "./actions";
 import { BackLink } from "@/components/back-link";
+import { DoriMessage } from "@/components/dori-message";
 
 const WEEKDAY_NAMES = ["일", "월", "화", "수", "목", "금", "토"];
 
@@ -110,9 +111,9 @@ export default async function RoutinesPage() {
       )}
 
       {routines.length === 0 ? (
-        <p className="rounded-2xl bg-surface p-10 text-center text-sm text-muted">
-          아직 루틴이 없어요
-        </p>
+        <DoriMessage mood="happy">
+          <p>아직 루틴이 없어요</p>
+        </DoriMessage>
       ) : (
         groups.map((group) => (
           <section key={group.key} className="flex flex-col gap-3">

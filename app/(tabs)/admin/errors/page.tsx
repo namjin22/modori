@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { BackLink } from "@/components/back-link";
 import { isAdmin } from "@/lib/admin";
 import { formatKST } from "@/lib/date";
+import { DoriMessage } from "@/components/dori-message";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 
@@ -28,7 +29,9 @@ export default async function ErrorsPage() {
       <p className="text-sm text-muted">최근 100건, 30일 지난 것은 지워져요.</p>
 
       {errors.length === 0 ? (
-        <p className="rounded-2xl bg-surface p-10 text-center text-sm text-muted">기록된 오류가 없어요</p>
+        <DoriMessage mood="cool">
+          <p>기록된 오류가 없어요</p>
+        </DoriMessage>
       ) : (
         <ul className="flex flex-col gap-2">
           {errors.map((error) => (
