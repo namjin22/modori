@@ -59,19 +59,24 @@ export default async function FollowersPage() {
             );
 
             return (
-              <li key={person.id} className="flex items-center gap-3 rounded-2xl bg-surface p-4">
+              // 좁은 폰에서 버튼 둘이 이름을 몇 글자만 남기면 버튼을 이름 아래 줄로 내린다.
+              <li
+                key={person.id}
+                className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-2xl bg-surface p-4"
+              >
                 {isFollowing ? (
                   <Link
                     prefetch={false}
                     href={`/feed/u/${person.id}`}
-                    className="flex min-w-0 flex-1 items-center gap-3"
+                    className="flex min-w-0 grow basis-40 items-center gap-3"
                   >
                     {face}
                   </Link>
                 ) : (
-                  <div className="flex min-w-0 flex-1 items-center gap-3">{face}</div>
+                  <div className="flex min-w-0 grow basis-40 items-center gap-3">{face}</div>
                 )}
 
+                <div className="ml-auto flex items-center gap-1">
                 {isFollowing ? (
                   <span className="shrink-0 px-2 text-sm text-muted">팔로우 중</span>
                 ) : (
@@ -87,6 +92,7 @@ export default async function FollowersPage() {
                 )}
 
                 <RemoveFollowerButton id={person.id} nickname={person.nickname ?? ""} />
+                </div>
               </li>
             );
           })}
