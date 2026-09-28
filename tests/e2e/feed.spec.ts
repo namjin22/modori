@@ -259,10 +259,11 @@ test("친구가 보낸 반응은 내 홈 화면의 그 할 일 밑에 보인다"
   await signIn(page, accounts.me);
   await page.goto("/");
   const row = page.getByRole("listitem").filter({ hasText: "칭찬 받을 운동" });
-  // 누가 보냈는지 이름표로 알 수 있다.
-  await expect(row.getByRole("list", { name: "받은 반응" }).getByRole("listitem")).toHaveAccessibleName(
-    `불타요 1개 · ${accounts.friend.nickname}`,
-  );
+  // 칩을 누르면 누가 보냈는지 창으로 보인다.
+  await row.getByRole("button", { name: "불타요 1개, 누가 보냈는지 보기" }).click();
+  const dialog = page.getByRole("dialog", { name: "받은 반응" });
+  await expect(dialog).toContainText("불타요");
+  await expect(dialog).toContainText(accounts.friend.nickname);
   await expect(
     page.getByRole("listitem").filter({ hasText: "반응 없는 일" }).getByRole("list", { name: "받은 반응" }),
   ).toHaveCount(0);
