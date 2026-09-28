@@ -119,6 +119,17 @@ test("할 일 입력칸은 비운 채 다른 곳을 누르면 닫히고, 적은 
   await expect(input).toBeHidden();
 });
 
+test("끝낸 할 일은 묶음 아래로 내려간다", async ({ page }) => {
+  await addTodo(page, "첫째 일");
+  await addTodo(page, "둘째 일");
+  const rows = page.getByRole("listitem").filter({ hasText: /째 일/ });
+  await expect(rows.first()).toContainText("첫째 일");
+
+  await rows.filter({ hasText: "첫째 일" }).getByRole("button", { name: "완료", exact: true }).click();
+  await expect(rows.first()).toContainText("둘째 일");
+  await expect(rows.last()).toContainText("첫째 일");
+});
+
 test("진행 막대는 끝낸 일의 카테고리 색으로 찬다", async ({ page }) => {
   await addCategory(page, "운동");
   await page.goto("/");

@@ -251,7 +251,11 @@ export default async function FeedPage({
   });
 
   // 투두메이트처럼 카테고리마다 칩과 +를 두고, 할 일이 없는 카테고리도 보여준다.
-  const todoGroups = groupByCategory(todos, categories, { includeEmpty: true });
+  // 끝낸 일은 묶음 아래로 내린다(남은 일이 위에 모인다). 같은 쪽 안에서는 원래 순서를 지킨다(sort는 안정 정렬).
+  const todoGroups = groupByCategory(todos, categories, { includeEmpty: true }).map((group) => ({
+    ...group,
+    items: [...group.items].sort((a, b) => Number(a.done) - Number(b.done)),
+  }));
 
   return (
     // 넓은 화면에서는 왼쪽에 프로필과 달력, 오른쪽에 고른 날의 목록을 둔다.
