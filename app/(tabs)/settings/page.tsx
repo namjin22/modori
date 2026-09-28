@@ -96,8 +96,8 @@ export default async function SettingsPage() {
       <LogoutButton />
 
       {/* 바닥글. 자주 누를 곳이 아니라 작게 한 곳에 모은다. 계정 지우기는 실수로 누를 자리가 아니라 버튼으로 두지 않는다. */}
-      <footer className="mt-2 flex flex-col items-center gap-1 text-xs text-muted">
-        <nav aria-label="계정과 약관" className="flex flex-wrap items-center justify-center">
+      <footer className="mt-6 flex flex-col items-center gap-3 border-t border-border pt-6 text-[13px] text-muted">
+        <nav aria-label="계정과 약관" className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
           <FooterLink href="/privacy">개인정보처리방침</FooterLink>
           <Dot />
           <FooterLink href="/settings/account">계정 지우기</FooterLink>
@@ -111,10 +111,10 @@ export default async function SettingsPage() {
         </nav>
         {/* 출시 초기에 불편한 점과 버그를 모은다. */}
         <p>
-          의견·버그 제보{" "}
+          의견·버그 제보
           <a
             href={`mailto:${PRIVACY_MANAGER.email}?subject=${encodeURIComponent("[모도리] 의견")}`}
-            className="inline-block py-1 font-medium text-foreground/70 hover:text-foreground hover:underline hover:underline-offset-4"
+            className="ml-1 inline-block py-1 font-medium text-foreground/70 hover:text-foreground hover:underline hover:underline-offset-4"
           >
             {PRIVACY_MANAGER.email}
           </a>
@@ -129,17 +129,14 @@ function FooterLink({ href, children }: { href: string; children: React.ReactNod
     <Link
       prefetch={false}
       href={href}
-      className="px-2 py-1.5 hover:text-foreground hover:underline hover:underline-offset-4"
+      className="py-1.5 hover:text-foreground hover:underline hover:underline-offset-4"
     >
       {children}
     </Link>
   );
 }
 
+/** 바닥글 링크 사이 세로 막대. 점(·)은 너무 흐려 한 줄이 한쪽으로 쏠려 보였다. */
 function Dot() {
-  return (
-    <span aria-hidden className="text-border">
-      ·
-    </span>
-  );
+  return <span aria-hidden className="h-3 w-px bg-border" />;
 }
