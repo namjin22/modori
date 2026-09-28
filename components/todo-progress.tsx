@@ -5,6 +5,9 @@ import { createContext, useContext, useOptimistic, type ReactNode } from "react"
 import { Dori } from "@/components/dori";
 import { progressMood } from "@/lib/dori-mood";
 
+// 막대 바탕(밝은 회색·짙은 회색)과 비슷해 칸이 안 보이는 팔레트 색(lib/colors.ts).
+const EDGE_COLORS = new Set(["#ffffff", "#111827"]);
+
 /** 할 일 하나를 끝냈거나 되돌렸다. */
 type ChangeDone = (id: string, done: boolean) => void;
 
@@ -87,7 +90,9 @@ export function TodoProgress({
               <div
                 key={item.id}
                 data-progress-color={item.color ?? "brand"}
-                className="h-full shrink-0 bg-brand transition-[width] duration-300"
+                className={`h-full shrink-0 bg-brand transition-[width] duration-300 ${
+                  item.color && EDGE_COLORS.has(item.color.toLowerCase()) ? "segment-edge" : ""
+                }`}
                 style={{
                   width: `${100 / total}%`,
                   ...(item.color ? { backgroundColor: item.color } : {}),

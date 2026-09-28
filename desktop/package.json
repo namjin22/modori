@@ -1,0 +1,64 @@
+{
+  "name": "modori-desktop",
+  "productName": "모도리",
+  "version": "1.0.0",
+  "description": "모도리 데스크톱 앱 — modori.site를 창 하나로 띄운다",
+  "main": "main.js",
+  "private": true,
+  "author": "이남진 <penamjin@gmail.com>",
+  "homepage": "https://modori.site",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win --publish never",
+    "dist:mac": "electron-builder --mac --publish never"
+  },
+  "devDependencies": {
+    "electron": "^44.4.5",
+    "electron-builder": "^26.15.3"
+  },
+  "allowScripts": {
+    "electron@44.4.5": true
+  },
+  "build": {
+    "appId": "site.modori.desktop",
+    "productName": "모도리",
+    "artifactName": "Modori-Setup.${ext}",
+    "files": [
+      "main.js",
+      "offline.html",
+      "build/icon.png"
+    ],
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "protocols": [
+      {
+        "name": "Modori",
+        "schemes": [
+          "modori"
+        ]
+      }
+    ],
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "build/icon.png"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "shortcutName": "모도리",
+      "uninstallDisplayName": "모도리"
+    },
+    "mac": {
+      "target": [
+        "dmg"
+      ],
+      "category": "public.app-category.productivity",
+      "icon": "build/icon.png",
+      "artifactName": "Modori.${ext}"
+    }
+  }
+}

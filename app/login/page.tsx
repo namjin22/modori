@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 
 import { Logo } from "@/components/logo";
 import { isDataGSMConfigured, isMockAuth, signIn } from "@/lib/auth";
+import { isDesktopApp } from "@/lib/desktop";
 import { safeNext } from "@/lib/next-path";
 import { getCurrentUser } from "@/lib/session";
 
@@ -12,6 +13,7 @@ const ERROR_MESSAGES: Record<string, string> = {
   Configuration: "로그인 설정에 문제가 있어요. 잠시 뒤 다시 시도해주세요.",
   AccessDenied: "로그인이 취소됐거나 권한이 없어요.",
   Verification: "로그인 링크가 만료됐어요. 다시 시도해주세요.",
+  DesktopLogin: "앱 로그인 시간이 지났어요. 다시 눌러 주세요.",
   OAuthAccountNotLinked:
     "같은 이메일로 이미 다른 방법으로 가입했어요. 처음 쓰던 방법으로 로그인해주세요.",
 };
@@ -27,6 +29,7 @@ export default async function LoginPage({
 
   // 세션만 보고 보내면, 계정이 사라진 세션에서 탭 화면과 서로 튕겨낸다.
   if (await getCurrentUser()) redirect(next);
+  const desktop = await isDesktopApp();
 
   const message = error
     ? (ERROR_MESSAGES[error] ?? "로그인하지 못했어요. 다시 시도해주세요.")
@@ -57,34 +60,60 @@ export default async function LoginPage({
           </p>
         )}
 
-        <form
-          action={async () => {
-            "use server";
-            await signIn("google", { redirectTo: next });
-          }}
-        >
-          <button
-            type="submit"
-            className="h-14 w-full rounded-2xl bg-brand text-base font-semibold text-brand-contrast transition-colors hover:bg-brand-hover active:scale-[0.98]"
-          >
-            Google로 계속하기
-          </button>
-        </form>
-
-        {isDataGSMConfigured && (
-          <form
-            action={async () => {
-              "use server";
-              await signIn("datagsm", { redirectTo: next });
-            }}
-          >
-            <button
-              type="submit"
-              className="h-14 w-full rounded-2xl bg-surface text-base font-semibold text-foreground transition-colors hover:bg-surface-hover active:scale-[0.98]"
+        {desktop ? (
+          // 앱 창 안에서는 Google이 로그인을 막는다. 버튼은 웹과 같게 두고, 누르면 평소 브라우저에서
+          // 그 로그인을 시작한다. 이 주소는 앱(desktop/main.js)이 가로챈다. 웹에서는 보이지 않는 버튼이다.
+          <>
+            <a
+              href="/desktop/start?provider=google"
+              className="flex h-14 w-full items-center justify-center rounded-2xl bg-brand text-base font-semibold text-brand-contrast transition-colors hover:bg-brand-hover active:scale-[0.98]"
             >
-              DataGSM으로 계속하기
-            </button>
-          </form>
+              Google로 계속하기
+            </a>
+            {isDataGSMConfigured && (
+              <a
+                href="/desktop/start?provider=datagsm"
+                className="flex h-14 w-full items-center justify-center rounded-2xl bg-surface text-base font-semibold text-foreground transition-colors hover:bg-surface-hover active:scale-[0.98]"
+              >
+                DataGSM으로 계속하기
+              </a>
+            )}
+            <p className="text-center text-xs text-muted">
+              누르면 평소 쓰는 브라우저가 열려요. 로그인을 마치면 앱으로 돌아와요.
+            </p>
+          </>
+        ) : (
+          <>
+            <form
+              action={async () => {
+                "use server";
+                await signIn("google", { redirectTo: next });
+              }}
+            >
+              <button
+                type="submit"
+                className="h-14 w-full rounded-2xl bg-brand text-base font-semibold text-brand-contrast transition-colors hover:bg-brand-hover active:scale-[0.98]"
+              >
+                Google로 계속하기
+              </button>
+            </form>
+
+            {isDataGSMConfigured && (
+              <form
+                action={async () => {
+                  "use server";
+                  await signIn("datagsm", { redirectTo: next });
+                }}
+              >
+                <button
+                  type="submit"
+                  className="h-14 w-full rounded-2xl bg-surface text-base font-semibold text-foreground transition-colors hover:bg-surface-hover active:scale-[0.98]"
+                >
+                  DataGSM으로 계속하기
+                </button>
+              </form>
+            )}
+          </>
         )}
 
         {isMockAuth && (

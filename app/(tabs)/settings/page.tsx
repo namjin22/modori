@@ -3,6 +3,8 @@ import Link from "next/link";
 import { LogoutButton } from "@/components/logout-button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { isAdmin } from "@/lib/admin";
+import { isDesktopApp } from "@/lib/desktop";
+import { DESKTOP_DOWNLOAD_URL } from "@/lib/desktop-download";
 import { prisma } from "@/lib/prisma";
 import { PRIVACY_MANAGER } from "@/lib/privacy";
 import { requireUser } from "@/lib/session";
@@ -12,6 +14,7 @@ import { avatarUrl } from "@/lib/avatar";
 
 export default async function SettingsPage() {
   const user = await requireUser();
+  const desktop = await isDesktopApp();
   const [following, followers, admin] = await Promise.all([
     prisma.follow.count({ where: { followerId: user.id } }),
     prisma.follow.count({ where: { followingId: user.id } }),
@@ -73,6 +76,22 @@ export default async function SettingsPage() {
         <h2 className="text-sm font-semibold text-muted">화면</h2>
         <ThemeToggle />
       </section>
+
+      {/* 앱 안에서는 받을 필요가 없어 숨긴다. */}
+      {!desktop && (
+        <a
+          href={DESKTOP_DOWNLOAD_URL}
+          className="flex items-center gap-3 rounded-2xl bg-surface p-5"
+        >
+          <span className="flex flex-1 flex-col">
+            <span className="text-sm font-semibold">Windows 앱 받기</span>
+            <span className="text-xs text-muted">브라우저를 열지 않고 바탕화면에서 바로 써요</span>
+          </span>
+          <span className="shrink-0 rounded-full bg-brand px-3 py-1.5 text-xs font-semibold text-brand-contrast">
+            다운로드
+          </span>
+        </a>
+      )}
 
       <LogoutButton />
 
