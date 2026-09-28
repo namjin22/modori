@@ -3,19 +3,19 @@
 모도리 운영 서버는 GSMSV VM 한 대다. 계획과 VM 사양은 `docs/gsmsv-migration.md`.
 
 ```
-사용자 ─HTTPS─> Cloudflare ─Tunnel─> cloudflared(VM) ─> app:3000 ─> db(Postgres 17)
+사용자 ─HTTPS─> Cloudflare ─Tunnel─> cloudflared(VM) ─> app:3000 ─> db(Postgres 18)
 ```
 
 ## VM의 /opt/modori
 
 | 파일 | 하는 일 |
 |---|---|
-| `docker-compose.yml` | `db`(Postgres 17)와 `app`(modori:latest). 앱은 127.0.0.1:3000에만 열린다 |
+| `docker-compose.yml` | `db`(Postgres 18)와 `app`(modori:latest). 앱은 127.0.0.1:3000에만 열린다 |
 | `.env` | 비밀 값. 권한 600. 저장소에 없다. `set-secrets.sh`로만 채운다 |
 | `set-secrets.sh` | 사람이 VM에서 직접 돌린다. 값을 화면에 보이지 않게 입력받는다 |
 | `deploy.sh` | 이미지 받기 → 마이그레이션 → 앱 교체 → 응답 확인 |
 | `migrate-from-neon.sh` | 이관하는 날 한 번. Neon 데이터를 VM DB로 복사 |
-| `backup.sh` | 매일 04:00. VM 안 7일치 + 백업용 Neon에 통째로 복원 |
+| `backup.sh` | 매일 04:00. VM 안 7일치(파일 권한 600) + 백업용 Neon에 통째로 복원 |
 
 ## 배포 흐름
 
@@ -37,6 +37,17 @@ bash set-secrets.sh                # 비밀 값 넣기/바꾸기 (비우면 그�
 bash backup.sh                     # 지금 백업
 systemctl list-timers modori-backup.timer
 ```
+
+## 감시
+
+| 워크플로 | 간격 | 하는 일 |
+|---|---|---|
+| `health` | 예약 15분(실제로는 GitHub가 밀려 2.5~6시간) | `https://modori.site/api/health`가 200이 아니면 실패 → 메일 |
+| `errors` | 매시간 44분 | `/api/errors/summary?minutes=65`로 최근 오류 **수만** 받아 1건 이상이면 실패 → 메일 |
+
+`errors`는 `MONITOR_TOKEN`이 필요하다. GitHub secret과 VM `.env`에 같은 값을 넣는다. 값이 틀리면 404가 온다.
+Windows(Git Bash)에서 `openssl rand -hex 24`로 만들면 줄 끝에 `\r\n`이 붙는다. `tr -d '\r\n'`으로 둘 다 지운다
+(`\n`만 지웠다가 49자가 되어 한 번 틀렸다). 오류 내용은 운영자 계정으로 `/admin/errors`에서 본다.
 
 ## 되살리기
 

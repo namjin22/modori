@@ -25,7 +25,7 @@
   디자인 토큰은 `app/globals.css`의 `@theme` 블록에 정의한다.
 - **Prisma 6.x** + PostgreSQL 18 (GSMSV VM 안 Docker. 백업은 Neon)
 - Auth.js v5 — Google + DataGSM(커스텀 OAuth)
-- shadcn/ui
+- UI 컴포넌트는 직접 만든다(`components/`). shadcn/ui는 쓰지 않는다
 - Playwright (테스트), GitHub Actions (CI·배포), GSMSV VM + Cloudflare Tunnel (운영, `deploy/README.md`)
 
 ## 버전 주의
@@ -72,7 +72,7 @@ docs/decisions.md   설계 결정 기록
 
 ```bash
 npm run dev       # 개발 서버
-npm run verify    # tsc --noEmit && npm run lint && playwright test
+npm run verify    # tsc --noEmit && npm run lint && 단위 테스트(시간대 3개) && playwright test
 npm run build     # 프로덕션 빌드
 npx prisma migrate dev --name <이름>
 npx prisma studio # DB 내용 확인

@@ -11,13 +11,13 @@ describe("normalizeNickname", () => {
   });
 
   it("보이지 않는 글자를 지워 똑같아 보이는 이름이 따로 생기지 않게 한다", () => {
-    expect(normalizeNickname("남진​")).toBe("남진");
-    expect(normalizeNickname("‍남⁦진")).toBe("남진");
+    expect(normalizeNickname("남진\u200B")).toBe("남진");
+    expect(normalizeNickname("\u200D남\u2066진")).toBe("남진");
   });
 
   it("한글 채움 문자만 있는 이름은 빈 이름이 된다", () => {
-    expect(normalizeNickname("ㅤㅤ")).toBe("");
-    expect(validateNickname(normalizeNickname("ㅤ")).ok).toBe(false);
+    expect(normalizeNickname("\u3164\u3164")).toBe("");
+    expect(validateNickname(normalizeNickname("\u3164")).ok).toBe(false);
   });
 
   it("자모로 풀린 한글(NFD)을 완성형(NFC)으로 모은다", () => {
