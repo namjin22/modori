@@ -1297,3 +1297,23 @@ VM에 시험 DB(사용자 1000, 할 일 108만, 반응 24만, 280MB)를 만들�
   새 키보드 테스트는 dnd-kit이 집은 뒤 다음 틱에 방향키를 받아 처음에 실패 → 기존 keyboard-reorder.spec처럼 안내를 보고 누르게 고침.
 
 검증: `npm run verify` 통과 — 단위 113×3, E2E 115/115.
+
+## 2026-09-29 — 남은 점 정리, 데스크톱 앱(Electron)
+
+- 진행 막대의 흰색·검정 칸에 안쪽 1px 윤곽(`.segment-edge`). 손가락 끌기(일정·할 일·카테고리)를 CDP 터치 이벤트로 확인하는 `touch.spec.ts`.
+- 데스크톱 로그인(서버): `DesktopLogin` 표(마이그레이션 `20260929090000_desktop_login`, 새 표만), `lib/desktop-login.ts`(PKCE, 2분, 한 번),
+  `/desktop/login`(provider가 있으면 브라우저에서 그 로그인을 바로 시작), `/api/desktop/exchange`(세션 행 + Auth.js 기본 쿠키, 우회 모드는 JWT).
+  앱 창의 로그인 화면은 웹과 같은 버튼이 `/desktop/start?provider=…` 링크가 된다(사용자 에이전트 `ModoriDesktop`).
+- 앱: `desktop/`(Electron 44, electron-builder). `npm install` 뒤 Electron 실행 파일은 설치 스크립트로 받는데 npm 11이 막아서
+  `allowScripts`에 electron만 허용했다. 테스트 `tests/e2e/desktop-app.spec.ts`는 앱을 실제로 띄운다(Electron이 없으면 건너뜀).
+- 겪은 문제(앱):
+  1. VS Code 확장이 `ELECTRON_RUN_AS_NODE=1`을 물려줘 Electron이 Node로 떴다 → 테스트가 앱을 띄울 때 뺀다.
+  2. Electron 44의 `will-navigate`는 주소를 `event.url`로만 준다(두 번째 인자는 비어 있다) → 가로채기가 안 됐다.
+  3. `electron main.js`로 파일을 넘기면 package.json을 못 읽어 앱 버전이 Electron 버전이 됐다 → 폴더를 넘긴다.
+  4. Electron은 사용자 에이전트에 앱 이름("모도리")을 넣는다 → ASCII가 아닌 조각을 뺀다(한글 헤더는 요청을 깨뜨린다).
+  5. Playwright의 마우스·키보드 입력이 이 Electron 창에 닿지 않았다(창 안에서 보낸 클릭·주소 이동은 된다) → 테스트는 dispatchEvent.
+  6. 테스트용 임시 파일의 타입 오류가 next build를 막아 "webServer was not able to start"로만 보였다.
+- 설치 파일: `desktop/dist/Modori-Setup.exe`(약 111MB, 서명 없음). 마이페이지 "Windows 앱 받기" → GitHub 릴리스 latest.
+  `desktop-v*` 태그를 올리면 `desktop` 워크플로가 Windows·macOS 설치 파일을 릴리스에 붙인다.
+
+검증: `npm run verify` 통과 — 단위 116×3, E2E 124/124(앱 2개 포함). 한 번은 테스트 DB가 느려 피드 화면이 30초를 넘겨 1개 실패, 다시 돌려 통과.
