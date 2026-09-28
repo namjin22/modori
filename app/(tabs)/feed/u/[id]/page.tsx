@@ -13,6 +13,7 @@ import {
   todayKST,
   weekdayKST,
 } from "@/lib/date";
+import { NO_CATEGORY_COLOR } from "@/lib/colors";
 import { groupByCategory } from "@/lib/group-by-category";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
@@ -126,10 +127,7 @@ export default async function FriendDayPage({
     // 친구 화면에는 완료한 것만 보이므로 남은 개수라는 개념이 없다. 전부 채운다.
     return {
       total: rowsOfDay.length,
-      doneColors: rowsOfDay.flatMap((todo) => {
-        const color = todo.color ?? todo.category?.color;
-        return color ? [color] : [];
-      }),
+      doneColors: rowsOfDay.map((todo) => todo.color ?? todo.category?.color ?? NO_CATEGORY_COLOR),
     };
   }
 
@@ -144,8 +142,7 @@ export default async function FriendDayPage({
     const key = formatKST(todo.date);
     const summary = summaries.get(key) ?? { total: 0, doneColors: [] };
     summary.total += 1;
-    const color = todo.color ?? todo.category?.color;
-    if (color) summary.doneColors.push(color);
+    summary.doneColors.push(todo.color ?? todo.category?.color ?? NO_CATEGORY_COLOR);
     summaries.set(key, summary);
   }
 

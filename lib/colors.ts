@@ -19,6 +19,9 @@ export const PALETTE = [
 /** 일정은 색을 고르지 않는다. 달력에서 이름으로 알아보므로 파랑으로 고정한다. */
 export const DEFAULT_EVENT_COLOR = "#2563eb";
 
+/** 카테고리도 따로 고른 색도 없는 할 일을 달력에 채울 때 쓰는 회색. */
+export const NO_CATEGORY_COLOR = "#8b95a1";
+
 export function isPaletteColor(value: string): boolean {
   return PALETTE.some((color) => color.value === value);
 }

@@ -2,6 +2,8 @@ import Link from "next/link";
 
 import { formatKST, weekdayKST } from "@/lib/date";
 
+import { DayFill } from "@/components/day-fill";
+
 const WEEKDAY_NAMES = ["일", "월", "화", "수", "목", "금", "토"];
 
 export type WeekDay = {
@@ -73,6 +75,8 @@ export function WeekStrip({
             >
               {Number(key.slice(8))}
             </span>
+
+            <DayFill id={`week-fill-${key}`} total={day.total} doneColors={day.doneColors} size={18} />
           </Link>
         );
       })}

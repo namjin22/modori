@@ -37,11 +37,11 @@ import { WeekStrip } from "@/components/week-strip";
 
 import { Avatar } from "@/components/avatar";
 import { avatarUrl } from "@/lib/avatar";
+// 카테고리를 고르지 않은 할 일도 달력에 흔적은 남아야 한다.
+import { NO_CATEGORY_COLOR } from "@/lib/colors";
 
 
 const WEEKDAY_NAMES = ["일", "월", "화", "수", "목", "금", "토"];
-// 카테고리를 고르지 않은 할 일도 달력에 흔적은 남아야 한다.
-const NO_CATEGORY_COLOR = "#8b95a1";
 
 function readDate(raw: string | undefined): Date {
   if (!raw) return todayKST();
