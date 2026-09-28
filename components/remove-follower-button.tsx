@@ -25,7 +25,7 @@ export function RemoveFollowerButton({ id, nickname }: { id: string; nickname: s
       </button>
 
       <Modal open={open} onClose={() => setOpen(false)} title="팔로워를 끊을까요?">
-        <p className="text-sm text-muted">
+        <p className="text-balance text-sm text-muted">
           <span className="font-semibold text-foreground">{nickname}</span>님은 더 이상 내 할 일을 보거나
           반응을 보낼 수 없어요. 나중에 다시 팔로우할 수는 있어요.
         </p>

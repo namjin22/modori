@@ -174,12 +174,13 @@ export default async function FriendDayPage({
                 : `${basePath}?date=${formatKST(date)}&view=month`
             }
             aria-label={monthOpen ? "달력 접기" : "달력 펼치기"}
-            className={`ml-auto flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3 text-sm lg:hidden ${
+            // 320px 폰에서는 글자까지 두면 이름이 몇 글자만 남는다. 좁으면 아이콘만(이름은 aria-label).
+            className={`ml-auto flex h-8 shrink-0 items-center gap-1.5 rounded-full px-2 text-sm min-[360px]:px-3 lg:hidden ${
               monthOpen ? "bg-brand-subtle text-brand" : "bg-surface text-muted"
             }`}
           >
             <CalendarIcon active={monthOpen} />
-            달력
+            <span className="hidden min-[360px]:inline">달력</span>
           </Link>
         </div>
 
