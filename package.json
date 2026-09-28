@@ -11,6 +11,7 @@
     "test:unit": "vitest run",
     "test:tz": "node scripts/test-tz.mjs",
     "test:e2e": "playwright test",
+    "screenshots": "playwright test --config playwright.screenshots.config.ts",
     "verify": "tsc --noEmit && npm run lint && npm run test:tz && npm run test:e2e"
   },
   "dependencies": {
