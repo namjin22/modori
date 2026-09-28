@@ -110,11 +110,11 @@ test("하루에 일정을 다섯 개까지 연달아 넣고, 여섯째는 막는
   // 하나를 넣은 뒤에도 더 넣을 버튼이 목록 아래에 보인다.
   await page.getByRole("button", { name: "시험이나 행사 적어두기" }).click();
   await page.getByLabel("새 일정 이름").fill("일정 1");
-  await page.getByLabel("새 일정 이름").press("Enter");
+  await page.getByRole("button", { name: "저장", exact: true }).click();
   for (let index = 2; index <= 5; index += 1) {
     await page.getByRole("button", { name: "+ 일정 더 적기" }).click();
     await page.getByLabel("새 일정 이름").fill(`일정 ${index}`);
-    await page.getByLabel("새 일정 이름").press("Enter");
+    await page.getByRole("button", { name: "저장", exact: true }).click();
     await expect(page.getByRole("listitem").filter({ hasText: `일정 ${index}` })).toBeVisible();
   }
   await expect(page.getByRole("button", { name: "+ 일정 더 적기" })).toHaveCount(0);
@@ -125,7 +125,7 @@ test("하루에 일정을 다섯 개까지 연달아 넣고, 여섯째는 막는
   await page.getByRole("button", { name: "시험이나 행사 적어두기" }).click();
   await page.getByLabel("새 일정 이름").fill("이틀짜리");
   await page.getByLabel("새 일정 종료일").fill(formatKST(today));
-  await page.getByLabel("새 일정 이름").press("Enter");
+  await page.getByRole("button", { name: "저장", exact: true }).click();
   await expect(page.getByRole("alert").filter({ hasText: "일정이 벌써 5개예요" })).toBeVisible();
   const user = await prisma.user.findUniqueOrThrow({ where: { email } });
   expect(await prisma.event.count({ where: { userId: user.id } })).toBe(5);
@@ -138,13 +138,13 @@ test("일정에 시간을 넣으면 목록에 시간이 보이고 시간순으�
   await page.getByLabel("새 일정 이름").fill("오후 발표");
   await page.getByLabel("새 일정 시작 시간").fill("14:00");
   await page.getByLabel("새 일정 종료 시간").fill("15:30");
-  await page.getByLabel("새 일정 이름").press("Enter");
+  await page.getByRole("button", { name: "저장", exact: true }).click();
   await expect(page.getByRole("listitem").filter({ hasText: "오후 발표" })).toContainText("14:00 ~ 15:30");
 
   await page.getByRole("button", { name: "+ 일정 더 적기" }).click();
   await page.getByLabel("새 일정 이름").fill("아침 조회");
   await page.getByLabel("새 일정 시작 시간").fill("08:40");
-  await page.getByLabel("새 일정 이름").press("Enter");
+  await page.getByRole("button", { name: "저장", exact: true }).click();
   await expect(page.getByRole("listitem").filter({ hasText: "아침 조회" })).toContainText("08:40");
 
   // 늦게 만들었어도 이른 시간이 위에 온다.
@@ -156,7 +156,7 @@ test("일정에 시간을 넣으면 목록에 시간이 보이고 시간순으�
   await page.getByLabel("새 일정 이름").fill("거꾸로");
   await page.getByLabel("새 일정 시작 시간").fill("10:00");
   await page.getByLabel("새 일정 종료 시간").fill("09:00");
-  await page.getByLabel("새 일정 이름").press("Enter");
+  await page.getByRole("button", { name: "저장", exact: true }).click();
   await expect(page.getByRole("alert").filter({ hasText: "끝나는 시간이 시작 시간보다" })).toBeVisible();
 
   // 고치는 창에도 시간이 그대로 들어 있다.
@@ -221,3 +221,33 @@ test("여러 날 일정의 첫날을 잡고 끌면 시작일이 움직여 줄어
   expect(formatKST(event.startDate)).toBe(formatKST(addDays(first, 1)));
   expect(formatKST(event.endDate)).toBe(formatKST(addDays(first, 2)));
 });
+
+test("일정은 Enter가 아니라 저장 버튼으로 저장하고, 취소하면 고친 게 남지 않는다", async ({ page, email }, testInfo) => {
+  await signInAndOnboard(page, email, `저장${testInfo.testId.slice(-6)}${RUN_TAG}`);
+  const user = await prisma.user.findUniqueOrThrow({ where: { email } });
+
+  await page.getByRole("button", { name: "시험이나 행사 적어두기" }).click();
+  await page.getByLabel("새 일정 이름").fill("수학 시험");
+  // Enter는 저장하지 않는다. 날짜 칸을 옮겨 다니다 덜 고친 채 저장되지 않게.
+  await page.getByLabel("새 일정 이름").press("Enter");
+  await page.getByLabel("새 일정 시작 시간").fill("09:00");
+  await page.getByLabel("새 일정 시작 시간").press("Enter");
+  expect(await prisma.event.count({ where: { userId: user.id } })).toBe(0);
+
+  await page.getByRole("button", { name: "저장", exact: true }).click();
+  await expect(page.getByRole("listitem").filter({ hasText: "수학 시험" })).toContainText("09:00");
+
+  // 고치다 취소하면 그대로다.
+  await openEvent(page, "수학 시험");
+  await page.getByLabel("일정 이름", { exact: true }).fill("영어 시험");
+  await page.getByRole("dialog").getByRole("button", { name: "취소" }).click();
+  await expect(page.getByRole("dialog")).toBeHidden();
+  await expect(page.getByRole("listitem").filter({ hasText: "수학 시험" })).toBeVisible();
+
+  // 고치고 저장하면 바뀐다.
+  await openEvent(page, "수학 시험");
+  await page.getByLabel("일정 이름", { exact: true }).fill("영어 시험");
+  await page.getByRole("dialog").getByRole("button", { name: "저장", exact: true }).click();
+  await expect(page.getByRole("listitem").filter({ hasText: "영어 시험" })).toBeVisible();
+});
+

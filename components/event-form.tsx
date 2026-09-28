@@ -7,6 +7,7 @@ import {
   type EventFormState,
   updateEvent,
 } from "@/app/(tabs)/events/actions";
+import { SubmitButton } from "@/components/submit-button";
 import { useFormAction } from "@/components/use-form-action";
 
 type EditingEvent = {
@@ -22,8 +23,8 @@ type EditingEvent = {
 /**
  * 일정 만들기와 고치기에 같이 쓴다. 떠 있는 창 안에 들어간다.
  *
- * 저장 버튼을 두지 않는다. 이름을 적고 Enter를 누르면 저장된다.
- * 날짜와 시간은 바꾸는 일이 드물어서 이름 아래에 조용히 둔다. 시간은 비워 두면 하루 종일이다.
+ * 아래의 "저장"으로만 저장한다(사용자 요청). 날짜·시간 칸을 옮겨 다니다 Enter를 눌러 덜 고친 채
+ * 저장되는 일이 없게, 입력칸의 Enter는 막는다. 시간은 비워 두면 하루 종일이다.
  */
 export function EventForm({
   event,
@@ -34,10 +35,10 @@ export function EventForm({
   event?: EditingEvent;
   defaultDate: string;
   onSaved: () => void;
-  // 자리에서 바로 열릴 때는 닫을 길이 있어야 한다. 창으로 열리면 창이 닫아 준다.
-  onCancel?: () => void;
+  // 취소를 누르면 만들기 칸이나 고치는 창을 닫는다.
+  onCancel: () => void;
 }) {
-  const [state, action] = useFormAction<EventFormState>(
+  const [state, action, pending] = useFormAction<EventFormState>(
     event ? updateEvent : createEvent,
     null,
   );
@@ -49,7 +50,13 @@ export function EventForm({
   }, [state, onSaved]);
 
   return (
-    <form onSubmit={action} className="flex flex-col gap-4">
+    <form
+      onSubmit={action}
+      onKeyDown={(keyEvent) => {
+        if (keyEvent.key === "Enter" && keyEvent.target instanceof HTMLInputElement) keyEvent.preventDefault();
+      }}
+      className="flex flex-col gap-4"
+    >
       {event && <input type="hidden" name="id" value={event.id} />}
 
       <input
@@ -62,7 +69,7 @@ export function EventForm({
         placeholder="예: 중간고사, 동아리 발표"
         aria-label={`${label} 이름`}
         onKeyDown={(keyEvent) => {
-          if (keyEvent.key === "Escape") onCancel?.();
+          if (keyEvent.key === "Escape") onCancel();
         }}
         className="h-12 w-full rounded-xl bg-surface-hover px-4 text-[15px] outline-none placeholder:text-muted focus:ring-2 focus:ring-brand"
       />
@@ -118,23 +125,24 @@ export function EventForm({
         </p>
       )}
 
-      <div className="flex items-center justify-between gap-2">
-        <p className="min-w-0 text-xs text-muted">시간은 비워 두면 하루 종일이에요. Enter로 저장돼요.</p>
-        {onCancel && (
-          <button
-            type="button"
-            onClick={onCancel}
-            className="h-9 shrink-0 whitespace-nowrap rounded-xl px-3 text-sm text-muted"
-          >
-            닫기
-          </button>
-        )}
-      </div>
+      <p className="-mt-1 text-xs text-muted">시간은 비워 두면 하루 종일이에요.</p>
 
-      {/* 화면에는 두지 않는다. 날짜 칸에서 Enter를 눌러도 저장되게 하는 버튼이다. */}
-      <button type="submit" className="sr-only">
-        {event ? "일정 고치기" : "일정 넣기"}
-      </button>
+      <div className="grid grid-cols-2 gap-2">
+        <button
+          type="button"
+          onClick={onCancel}
+          className="h-11 rounded-xl bg-surface-hover text-sm font-semibold"
+        >
+          취소
+        </button>
+        <SubmitButton
+          pending={pending}
+          pendingLabel="저장 중"
+          className="h-11 rounded-xl bg-brand text-sm font-semibold text-brand-contrast"
+        >
+          저장
+        </SubmitButton>
+      </div>
     </form>
   );
 }
