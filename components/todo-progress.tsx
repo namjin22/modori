@@ -27,10 +27,13 @@ export function useCompletionCount(): ChangeDone | null {
 export function TodoProgress({
   total,
   done,
+  canCelebrate,
   children,
 }: {
   total: number;
   done: number;
+  // 앞날에 아직 "예정"인 루틴이 남아 있으면 다 끝낸 날이 아니다.
+  canCelebrate: boolean;
   children: ReactNode;
 }) {
   const [optimisticDone, changeDone] = useOptimistic(
@@ -39,10 +42,22 @@ export function TodoProgress({
       Math.max(0, Math.min(total, current + delta)),
   );
 
-  const mood = progressMood(optimisticDone, total);
+  // 다 끝낸 날은 알아봐 준다. 마지막 하나를 체크할 동기가 된다. 체크하는 즉시(서버 응답 전) 뜬다.
+  const celebrating = canCelebrate && total > 0 && optimisticDone >= total;
+  // 축하 배너에 도리가 있으니 진행률 옆 도리는 뺀다. 둘이 같이 있으면 어색하다.
+  const mood = celebrating ? null : progressMood(optimisticDone, total);
 
   return (
     <CompletionContext.Provider value={changeDone}>
+      {celebrating && (
+        <div className="flex items-center gap-3 rounded-2xl bg-brand-subtle px-4 py-3">
+          <Dori mood="party" size={56} />
+          <div>
+            <p className="font-semibold text-brand">할 일을 다 끝냈어요</p>
+            <p className="text-xs text-muted">도리가 대신 박수 쳐줄게요</p>
+          </div>
+        </div>
+      )}
       {/* 할 일이 없어도 자리를 지킨다. 첫 할 일을 적는 순간 막대가 생기면
           화면이 한 번 밀리고, 무엇이 늘었는지도 알아채기 어렵다. */}
       <div className="flex flex-col gap-1">

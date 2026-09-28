@@ -14,13 +14,16 @@ type EditingEvent = {
   title: string;
   startDate: string;
   endDate: string;
+  // "HH:MM", 없으면 빈 문자열(하루 종일).
+  startTime: string;
+  endTime: string;
 };
 
 /**
  * 일정 만들기와 고치기에 같이 쓴다. 떠 있는 창 안에 들어간다.
  *
  * 저장 버튼을 두지 않는다. 이름을 적고 Enter를 누르면 저장된다.
- * 날짜는 바꾸는 일이 드물어서 이름 아래에 조용히 둔다.
+ * 날짜와 시간은 바꾸는 일이 드물어서 이름 아래에 조용히 둔다. 시간은 비워 두면 하루 종일이다.
  */
 export function EventForm({
   event,
@@ -64,7 +67,8 @@ export function EventForm({
         className="h-12 w-full rounded-xl bg-surface-hover px-4 text-[15px] outline-none placeholder:text-muted focus:ring-2 focus:ring-brand"
       />
 
-      <div className="grid grid-cols-2 gap-3">
+      {/* 360px보다 좁은 폰에서는 날짜 칸이 "2026-09-"까지만 보여서 한 줄에 하나씩 둔다. */}
+      <div className="grid grid-cols-1 gap-3 min-[360px]:grid-cols-2">
         <label className="flex min-w-0 flex-col gap-1.5 text-xs text-muted">
           시작일
           <input
@@ -86,6 +90,26 @@ export function EventForm({
             className="h-11 w-full min-w-0 rounded-xl bg-surface-hover px-3 text-sm text-foreground"
           />
         </label>
+        <label className="flex min-w-0 flex-col gap-1.5 text-xs text-muted">
+          시작 시간
+          <input
+            type="time"
+            name="startTime"
+            defaultValue={event?.startTime ?? ""}
+            aria-label={`${label} 시작 시간`}
+            className="h-11 w-full min-w-0 rounded-xl bg-surface-hover px-3 text-sm text-foreground"
+          />
+        </label>
+        <label className="flex min-w-0 flex-col gap-1.5 text-xs text-muted">
+          종료 시간
+          <input
+            type="time"
+            name="endTime"
+            defaultValue={event?.endTime ?? ""}
+            aria-label={`${label} 종료 시간`}
+            className="h-11 w-full min-w-0 rounded-xl bg-surface-hover px-3 text-sm text-foreground"
+          />
+        </label>
       </div>
 
       {state?.message && !state.ok && (
@@ -94,13 +118,13 @@ export function EventForm({
         </p>
       )}
 
-      <div className="flex items-center justify-between">
-        <p className="text-xs text-muted">Enter로 저장돼요.</p>
+      <div className="flex items-center justify-between gap-2">
+        <p className="min-w-0 text-xs text-muted">시간은 비워 두면 하루 종일이에요. Enter로 저장돼요.</p>
         {onCancel && (
           <button
             type="button"
             onClick={onCancel}
-            className="h-9 rounded-xl px-3 text-sm text-muted"
+            className="h-9 shrink-0 whitespace-nowrap rounded-xl px-3 text-sm text-muted"
           >
             닫기
           </button>

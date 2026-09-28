@@ -5,8 +5,10 @@ import { useState } from "react";
 import { EventForm } from "@/components/event-form";
 import { Modal } from "@/components/modal";
 import { UndoableDeleteButton } from "@/components/undoable-delete-button";
-import { formatKST, formatMonthDayKST, isSameKSTDate, parseKSTDate } from "@/lib/date";
+import { formatKST, formatMonthDayKST, parseKSTDate } from "@/lib/date";
 import { ddayLabel } from "@/lib/dday";
+import { describeEventWhen, formatTime } from "@/lib/event-time";
+import { LIMITS } from "@/lib/limits";
 
 import { deleteEvent, restoreEvent } from "@/app/(tabs)/events/actions";
 
@@ -15,6 +17,9 @@ export type DayEvent = {
   title: string;
   startDate: Date;
   endDate: Date;
+  // 자정부터 몇 분. 없으면 하루 종일.
+  startTime: number | null;
+  endTime: number | null;
   color: string;
 };
 
@@ -41,7 +46,6 @@ export function EventSection({
   const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState<DayEvent | null>(null);
   const todayDate = parseKSTDate(today);
-  const empty = events.length === 0 && upcoming.length === 0;
 
   return (
     <section aria-label="일정" className="flex flex-col gap-3">
@@ -49,13 +53,25 @@ export function EventSection({
         type="button"
         aria-expanded={creating}
         onClick={() => setCreating((value) => !value)}
+        // 열린 채로 다시 누르면 입력칸이 먼저 포커스를 잃어 닫혔다가 클릭으로 다시 열린다.
+        onMouseDown={(event) => {
+          if (creating) event.preventDefault();
+        }}
         className="-mx-1.5 -my-1.5 w-fit px-1.5 py-1.5 text-sm font-semibold text-foreground"
       >
         일정
       </button>
 
       {creating && (
-        <div className="rounded-2xl bg-surface p-4">
+        <div
+          // 이름을 비운 채 다른 곳을 누르면 닫는다. 날짜 칸으로 옮겨 가는 것은 이 안이라 그대로 둔다.
+          onBlur={(event) => {
+            if (event.currentTarget.contains(event.relatedTarget as Node | null)) return;
+            const title = event.currentTarget.querySelector<HTMLInputElement>('input[name="title"]');
+            if (title && title.value.trim() === "") setCreating(false);
+          }}
+          className="rounded-2xl bg-surface p-4"
+        >
           <EventForm
             defaultDate={date}
             onSaved={() => setCreating(false)}
@@ -67,7 +83,7 @@ export function EventSection({
       {events.length > 0 && (
         <ul className="flex flex-col gap-2">
           {events.map((event) => {
-            const multiDay = !isSameKSTDate(event.startDate, event.endDate);
+            const when = describeEventWhen(event);
             const dday = ddayLabel(event.startDate, event.endDate, todayDate);
 
             return (
@@ -84,12 +100,7 @@ export function EventSection({
                   {/* 기간을 제목 옆에 두면 좁은 폰(320px)에서 제목이 세 글자만 남는다. 아래 줄로 내린다. */}
                   <span className="flex min-w-0 flex-1 flex-col">
                     <span className="truncate font-medium">{event.title}</span>
-                    {multiDay && (
-                      <span className="text-xs text-muted">
-                        {formatMonthDayKST(event.startDate)} ~{" "}
-                        {formatMonthDayKST(event.endDate)}
-                      </span>
-                    )}
+                    {when && <span className="text-xs text-muted">{when}</span>}
                   </span>
                   {dday && <Dday label={dday} />}
                 </button>
@@ -98,6 +109,23 @@ export function EventSection({
           })}
         </ul>
       )}
+
+      {/* 제목("일정")만 있으면 누를 수 있는 곳인지 모른다. 예전에는 비어 있을 때만 이 버튼이 있어서
+          하나를 만들면 더 넣을 길이 안 보였다. 하루 상한까지는 늘 둔다. */}
+      {!creating &&
+        (events.length < LIMITS.eventsPerDay ? (
+          <button
+            type="button"
+            onClick={() => setCreating(true)}
+            className="rounded-xl border border-dashed border-border py-3 text-sm text-muted hover:bg-surface"
+          >
+            {events.length === 0 ? "시험이나 행사 적어두기" : "+ 일정 더 적기"}
+          </button>
+        ) : (
+          <p className="text-center text-xs text-muted">
+            일정은 하루에 {LIMITS.eventsPerDay}개까지 둘 수 있어요
+          </p>
+        ))}
 
       {upcoming.length > 0 && (
         <ul className="flex flex-col gap-1">
@@ -119,6 +147,7 @@ export function EventSection({
                   <span className="min-w-0 flex-1 truncate">{event.title}</span>
                   <span className="shrink-0 text-xs">
                     {formatMonthDayKST(event.startDate)}
+                    {event.startTime !== null && ` ${formatTime(event.startTime)}`}
                   </span>
                   {dday && <Dday label={dday} />}
                 </button>
@@ -126,17 +155,6 @@ export function EventSection({
             );
           })}
         </ul>
-      )}
-
-      {/* 제목만 있으면 누를 수 있는 곳인지 모른다. 비어 있을 때만 자리를 만들어 준다. */}
-      {empty && !creating && (
-        <button
-          type="button"
-          onClick={() => setCreating(true)}
-          className="rounded-xl border border-dashed border-border py-3 text-sm text-muted hover:bg-surface"
-        >
-          시험이나 행사 적어두기
-        </button>
       )}
 
       <Modal
@@ -153,6 +171,8 @@ export function EventSection({
                 title: editing.title,
                 startDate: formatKST(editing.startDate),
                 endDate: formatKST(editing.endDate),
+                startTime: editing.startTime === null ? "" : formatTime(editing.startTime),
+                endTime: editing.endTime === null ? "" : formatTime(editing.endTime),
               }}
               onSaved={() => setEditing(null)}
             />

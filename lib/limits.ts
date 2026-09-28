@@ -9,4 +9,6 @@ export const LIMITS = {
   categories: 10,
   routines: 50,
   events: 1000,
+  // 달력 한 칸에 이름이 세 개까지 보이고, 그날 목록도 다섯이면 한 화면에 들어온다.
+  eventsPerDay: 5,
 } as const;

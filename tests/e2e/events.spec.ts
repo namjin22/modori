@@ -1,6 +1,6 @@
 import { expect, test as base, type Page } from "@playwright/test";
 
-import { addDays, formatKST, todayKST } from "@/lib/date";
+import { addDays, daysInMonthKST, formatKST, todayKST } from "@/lib/date";
 import { prisma } from "@/lib/prisma";
 
 import { addEvent, addTodo, homeReady, openEvent } from "./todo-helpers";
@@ -82,4 +82,117 @@ test("일정을 지우면 되돌릴 수 있다", async ({ page, email }, testInf
 
   await page.getByRole("button", { name: "되돌리기" }).click();
   await expect(page.getByRole("listitem").filter({ hasText: "동아리 발표" })).toBeVisible();
+});
+
+test("일정 만들기 칸은 이름을 비운 채 다른 곳을 누르면 닫힌다", async ({ page, email }, testInfo) => {
+  await signInAndOnboard(page, email, `빈일정${testInfo.testId.slice(-6)}${RUN_TAG}`);
+  const title = page.getByLabel("새 일정 이름");
+
+  await page.getByRole("button", { name: "일정", exact: true }).click();
+  await expect(title).toBeFocused();
+  // 날짜 칸으로 옮겨 가는 것은 같은 칸 안이라 닫히지 않는다.
+  await page.getByLabel("새 일정 시작일").focus();
+  await expect(title).toBeVisible();
+
+  await page.getByRole("heading", { level: 1 }).click();
+  await expect(title).toBeHidden();
+
+  await page.getByRole("button", { name: "일정", exact: true }).click();
+  await title.fill("동아리 발표");
+  await page.getByRole("heading", { level: 1 }).click();
+  await expect(title).toHaveValue("동아리 발표");
+});
+
+test("하루에 일정을 다섯 개까지 연달아 넣고, 여섯째는 막는다", async ({ page, email }, testInfo) => {
+  await signInAndOnboard(page, email, `다섯${testInfo.testId.slice(-6)}${RUN_TAG}`);
+  const today = todayKST();
+
+  // 하나를 넣은 뒤에도 더 넣을 버튼이 목록 아래에 보인다.
+  await page.getByRole("button", { name: "시험이나 행사 적어두기" }).click();
+  await page.getByLabel("새 일정 이름").fill("일정 1");
+  await page.getByLabel("새 일정 이름").press("Enter");
+  for (let index = 2; index <= 5; index += 1) {
+    await page.getByRole("button", { name: "+ 일정 더 적기" }).click();
+    await page.getByLabel("새 일정 이름").fill(`일정 ${index}`);
+    await page.getByLabel("새 일정 이름").press("Enter");
+    await expect(page.getByRole("listitem").filter({ hasText: `일정 ${index}` })).toBeVisible();
+  }
+  await expect(page.getByRole("button", { name: "+ 일정 더 적기" })).toHaveCount(0);
+  await expect(page.getByText("일정은 하루에 5개까지 둘 수 있어요")).toBeVisible();
+
+  // 어제부터 오늘까지 이어지는 일정도 오늘이 꽉 차서 들어가지 않는다.
+  await page.goto(`/?date=${formatKST(addDays(today, -1))}`);
+  await page.getByRole("button", { name: "시험이나 행사 적어두기" }).click();
+  await page.getByLabel("새 일정 이름").fill("이틀짜리");
+  await page.getByLabel("새 일정 종료일").fill(formatKST(today));
+  await page.getByLabel("새 일정 이름").press("Enter");
+  await expect(page.getByRole("alert").filter({ hasText: "일정이 벌써 5개예요" })).toBeVisible();
+  const user = await prisma.user.findUniqueOrThrow({ where: { email } });
+  expect(await prisma.event.count({ where: { userId: user.id } })).toBe(5);
+});
+
+test("일정에 시간을 넣으면 목록에 시간이 보이고 시간순으로 선다", async ({ page, email }, testInfo) => {
+  await signInAndOnboard(page, email, `시간${testInfo.testId.slice(-6)}${RUN_TAG}`);
+
+  await page.getByRole("button", { name: "시험이나 행사 적어두기" }).click();
+  await page.getByLabel("새 일정 이름").fill("오후 발표");
+  await page.getByLabel("새 일정 시작 시간").fill("14:00");
+  await page.getByLabel("새 일정 종료 시간").fill("15:30");
+  await page.getByLabel("새 일정 이름").press("Enter");
+  await expect(page.getByRole("listitem").filter({ hasText: "오후 발표" })).toContainText("14:00 ~ 15:30");
+
+  await page.getByRole("button", { name: "+ 일정 더 적기" }).click();
+  await page.getByLabel("새 일정 이름").fill("아침 조회");
+  await page.getByLabel("새 일정 시작 시간").fill("08:40");
+  await page.getByLabel("새 일정 이름").press("Enter");
+  await expect(page.getByRole("listitem").filter({ hasText: "아침 조회" })).toContainText("08:40");
+
+  // 늦게 만들었어도 이른 시간이 위에 온다.
+  const titles = page.getByRole("region", { name: "일정" }).getByRole("listitem");
+  await expect(titles.first()).toContainText("아침 조회");
+
+  // 끝나는 시간이 시작보다 이르면 막는다.
+  await page.getByRole("button", { name: "+ 일정 더 적기" }).click();
+  await page.getByLabel("새 일정 이름").fill("거꾸로");
+  await page.getByLabel("새 일정 시작 시간").fill("10:00");
+  await page.getByLabel("새 일정 종료 시간").fill("09:00");
+  await page.getByLabel("새 일정 이름").press("Enter");
+  await expect(page.getByRole("alert").filter({ hasText: "끝나는 시간이 시작 시간보다" })).toBeVisible();
+
+  // 고치는 창에도 시간이 그대로 들어 있다.
+  await page.keyboard.press("Escape");
+  await openEvent(page, "오후 발표");
+  await expect(page.getByLabel("일정 시작 시간", { exact: true })).toHaveValue("14:00");
+});
+
+test("달력에서 일정 이름을 다른 날로 끌면 기간이 늘어난다", async ({ page, email }, testInfo) => {
+  await signInAndOnboard(page, email, `끌기${testInfo.testId.slice(-6)}${RUN_TAG}`);
+  const today = todayKST();
+  // 같은 달 안에서 끈다. 월말이면 앞으로 끌어 시작일을 당긴다.
+  const forward = today.getUTCDate() + 2 <= daysInMonthKST(today);
+  const target = addDays(today, forward ? 2 : -2);
+
+  await addEvent(page, "잘못 만든 하루");
+  const chip = dayCell(page, today).locator("[data-event-id]");
+  await expect(chip).toHaveText("잘못 만든 하루");
+
+  const from = await chip.boundingBox();
+  const to = await dayCell(page, target).boundingBox();
+  if (!from || !to) throw new Error("달력 칸을 찾지 못했다");
+  await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(to.x + to.width / 2, to.y + to.height / 2, { steps: 8 });
+  // 끄는 동안 바뀔 기간의 칸이 칠해진다.
+  await expect(dayCell(page, target)).toHaveAttribute("data-drag-range", "");
+  await page.mouse.up();
+
+  await expect(dayCell(page, target).locator("[data-event-id]")).toHaveText("잘못 만든 하루");
+  const user = await prisma.user.findUniqueOrThrow({ where: { email } });
+  const event = await prisma.event.findFirstOrThrow({ where: { userId: user.id } });
+  expect(formatKST(event.startDate)).toBe(formatKST(forward ? today : target));
+  expect(formatKST(event.endDate)).toBe(formatKST(forward ? target : today));
+
+  // 끌지 않고 누르면 예전처럼 그날로 간다.
+  await dayCell(page, target).locator("[data-event-id]").click();
+  await expect(page).toHaveURL(new RegExp(`date=${formatKST(target)}`));
 });

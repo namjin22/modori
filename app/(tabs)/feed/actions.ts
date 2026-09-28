@@ -50,6 +50,23 @@ export async function unfollowUser(formData: FormData) {
   revalidatePath("/settings");
 }
 
+/**
+ * 나를 팔로우하는 사람을 끊는다. 그 사람은 더 이상 내 할 일을 보지 못하고 반응도 보낼 수 없다.
+ * 다시 팔로우하는 것은 막지 않는다(차단이 아니다). 이미 받은 반응은 남는다.
+ */
+export async function removeFollower(formData: FormData) {
+  const user = await requireUser();
+  const followerId = readText(formData, "followerId");
+  if (!followerId) return;
+
+  await prisma.follow.deleteMany({
+    where: { followerId, followingId: user.id },
+  });
+
+  revalidatePath("/feed/followers");
+  revalidatePath("/settings");
+}
+
 export async function toggleReaction(formData: FormData) {
   const user = await requireUser();
   const todoId = readText(formData, "todoId");

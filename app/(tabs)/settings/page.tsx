@@ -1,7 +1,7 @@
 import Link from "next/link";
 
+import { LogoutButton } from "@/components/logout-button";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { signOut } from "@/lib/auth";
 import { isAdmin } from "@/lib/admin";
 import { prisma } from "@/lib/prisma";
 import { PRIVACY_MANAGER } from "@/lib/privacy";
@@ -74,19 +74,7 @@ export default async function SettingsPage() {
         <ThemeToggle />
       </section>
 
-      <form
-        action={async () => {
-          "use server";
-          await signOut({ redirectTo: "/login" });
-        }}
-      >
-        <button
-          type="submit"
-          className="h-12 w-full rounded-2xl bg-surface text-sm text-muted transition-colors hover:text-foreground"
-        >
-          로그아웃
-        </button>
-      </form>
+      <LogoutButton />
 
       {/* 눈에 잘 띄지 않게 맨 아래에 작게 둔다. 실수로 누를 자리가 아니다. */}
       <Link

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 
 
 import {
@@ -13,6 +14,7 @@ import {
 import { contrastTextColor } from "@/lib/colors";
 
 import { DayFill } from "@/components/day-fill";
+import { EventDragGrid } from "@/components/event-drag-grid";
 
 const WEEKDAY_NAMES = ["일", "월", "화", "수", "목", "금", "토"];
 // 한 칸에 이름을 몇 개까지 보여줄지. 넘치면 "+n"으로 접는다.
@@ -25,8 +27,8 @@ export type DaySummary = {
   doneColors: string[];
 };
 
-/** 달력에 이름으로 보일 일정. */
-export type CalendarEvent = { id: string; title: string; color: string };
+/** 달력에 이름으로 보일 일정. start·end("YYYY-MM-DD")는 이름표를 끌어 기간을 바꿀 때 쓴다. */
+export type CalendarEvent = { id: string; title: string; color: string; start: string; end: string };
 
 /**
  * 한 달 달력. 칸에는 일정 이름만 글자로 보이고, 할 일은 글자 대신 날짜 아래 표시(DayFill)가
@@ -42,7 +44,10 @@ export function MonthCalendar({
   dayHref,
   monthHref,
   compact = false,
+  editableEvents = false,
 }: {
+  // 내 달력에서만 일정 이름표를 끌어 기간을 바꾼다.
+  editableEvents?: boolean;
   // 친구 화면처럼 일정 이름이 들어가지 않는 곳에서는 칸을 낮춰 한눈에 보이게 한다.
   compact?: boolean;
   monthStart: Date;
@@ -115,7 +120,7 @@ export function MonthCalendar({
           ))}
         </div>
 
-        <div className="grid grid-cols-7 gap-0.5">
+        <DayGrid editable={editableEvents}>
           {Array.from({ length: leadingBlanks }, (_, index) => (
             <div key={`blank-${index}`} />
           ))}
@@ -143,7 +148,9 @@ export function MonthCalendar({
                 aria-label={`${day.getUTCDate()}일, 완료 ${doneColors.length > 0 ? "있음" : "없음"}`}
                 aria-describedby={events.length ? `calendar-events-${key}` : undefined}
                 aria-current={isSelected ? "date" : undefined}
-                className={`flex flex-col items-center gap-0.5 rounded-lg px-0.5 py-1 transition-colors hover:bg-surface-hover ${compact ? "min-h-10" : "min-h-16"}`}
+                data-date={key}
+                // 일정 이름표를 끄는 동안 바뀔 기간의 칸(EventDragGrid가 붙인다).
+                className={`flex flex-col items-center gap-0.5 rounded-lg px-0.5 py-1 transition-colors hover:bg-surface-hover data-[drag-range]:bg-brand-subtle data-[drag-range]:ring-1 data-[drag-range]:ring-brand/50 ${compact ? "min-h-10" : "min-h-16"}`}
               >
                 <span
                   className={`flex size-6 items-center justify-center rounded-full text-xs ${
@@ -168,7 +175,12 @@ export function MonthCalendar({
                   {events.slice(0, MAX_CHIPS).map((event) => (
                     <span
                       key={event.id}
-                      className="truncate rounded px-1 text-[10px] font-medium leading-[15px]"
+                      data-event-id={editableEvents ? event.id : undefined}
+                      data-event-start={event.start}
+                      data-event-end={event.end}
+                      title={editableEvents ? "끌어서 기간 바꾸기" : undefined}
+                      // 손가락으로 끌 때 화면이 대신 움직이지 않게 한다.
+                      className={`truncate rounded px-1 text-[10px] font-medium leading-[15px] ${editableEvents ? "cursor-grab touch-none select-none" : ""}`}
                       style={{ backgroundColor: event.color, color: contrastTextColor(event.color) }}
                     >
                       {event.title}
@@ -188,10 +200,20 @@ export function MonthCalendar({
               </Link>
             );
           })}
-        </div>
+        </DayGrid>
       </div>
 
       <p className="text-center text-sm text-muted">이번 달 완료 {doneCount}개</p>
+      {editableEvents && days.some((day) => (eventsByDate.get(formatKST(day)) ?? []).length > 0) && (
+        <p className="-mt-2 text-center text-xs text-muted">일정 이름을 다른 날로 끌면 기간이 바뀌어요</p>
+      )}
     </section>
   );
+}
+
+/** 날짜 칸 격자. 내 달력이면 일정 이름표를 끌 수 있게 감싼다. */
+function DayGrid({ editable, children }: { editable: boolean; children: ReactNode }) {
+  const className = "grid grid-cols-7 gap-0.5";
+  if (!editable) return <div className={className}>{children}</div>;
+  return <EventDragGrid className={className}>{children}</EventDragGrid>;
 }

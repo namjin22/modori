@@ -112,7 +112,13 @@ function spreadEvents(
       const key = formatKST(day);
       byDate.set(key, [
         ...(byDate.get(key) ?? []),
-        { id: event.id, title: event.title, color: event.color },
+        {
+          id: event.id,
+          title: event.title,
+          color: event.color,
+          start: formatKST(event.startDate),
+          end: formatKST(event.endDate),
+        },
       ]);
       day = addDays(day, 1);
     }
@@ -132,6 +138,8 @@ const EVENT_SELECT = {
   title: true,
   startDate: true,
   endDate: true,
+  startTime: true,
+  endTime: true,
   color: true,
 } as const;
 
@@ -206,7 +214,7 @@ export default async function FeedPage({
       // 고른 날에 걸쳐 있는 일정
       prisma.event.findMany({
         where: { userId: user.id, startDate: { lte: date }, endDate: { gte: date } },
-        orderBy: [{ startDate: "asc" }, { createdAt: "asc" }],
+        orderBy: [{ startDate: "asc" }, { startTime: { sort: "asc", nulls: "first" } }, { createdAt: "asc" }],
         select: EVENT_SELECT,
       }),
       // 이번 달에 조금이라도 걸쳐 있는 일정
@@ -216,7 +224,7 @@ export default async function FeedPage({
           startDate: { lte: monthEnd },
           endDate: { gte: monthStart },
         },
-        orderBy: [{ startDate: "asc" }, { createdAt: "asc" }],
+        orderBy: [{ startDate: "asc" }, { startTime: { sort: "asc", nulls: "first" } }, { createdAt: "asc" }],
         select: EVENT_SELECT,
       }),
       // 아직 오지 않은 일정. 그 날짜를 열어보지 않아도 시험이 며칠 남았는지 보인다.
@@ -224,7 +232,7 @@ export default async function FeedPage({
       // 일정이 "다가오는" 쪽에 뜨면 안 된다. 그 날 목록과 겹치는 것은 아래에서 뺀다.
       prisma.event.findMany({
         where: { userId: user.id, startDate: { gt: today } },
-        orderBy: [{ startDate: "asc" }, { createdAt: "asc" }],
+        orderBy: [{ startDate: "asc" }, { startTime: { sort: "asc", nulls: "first" } }, { createdAt: "asc" }],
         select: EVENT_SELECT,
         take: 6,
       }),
@@ -279,6 +287,7 @@ export default async function FeedPage({
             eventsByDate={spreadEvents(monthEvents, monthStart, monthEnd)}
             dayHref={dayHref}
             monthHref={monthHref}
+            editableEvents
           />
         </div>
       </div>
@@ -365,18 +374,6 @@ export default async function FeedPage({
           today={formatKST(today)}
         />
 
-        {/* 앞날짜에 아직 "예정"인 루틴이 남아 있으면 다 끝낸 게 아니다. */}
-        {todos.length > 0 && doneCount === todos.length && scheduled.length === 0 && (
-          // 다 끝낸 날은 알아봐 준다. 마지막 하나를 체크할 동기가 된다.
-          <div className="flex items-center gap-3 rounded-2xl bg-brand-subtle px-4 py-3">
-            <Dori mood="party" size={56} />
-            <div>
-              <p className="font-semibold text-brand">할 일을 다 끝냈어요</p>
-              <p className="text-xs text-muted">도리가 대신 박수 쳐줄게요</p>
-            </div>
-          </div>
-        )}
-
         {categories.length === 0 && (
           // 카테고리 칩이 곧 할 일을 적는 자리다. 하나도 없으면 적을 곳이 없어진다.
           <div className="flex flex-col items-start gap-2 rounded-2xl bg-surface p-5">
@@ -393,7 +390,13 @@ export default async function FeedPage({
           </div>
         )}
 
-        <TodoProgress key={formatKST(date)} total={todos.length} done={doneCount}>
+        {/* 앞날짜에 아직 "예정"인 루틴이 남아 있으면 다 끝낸 게 아니다. 축하 배너는 TodoProgress가 띄운다. */}
+        <TodoProgress
+          key={formatKST(date)}
+          total={todos.length}
+          done={doneCount}
+          canCelebrate={scheduled.length === 0}
+        >
           {todoGroups.map((group) => (
             <section key={group.key} className="flex flex-col gap-1">
               <CategoryAdder
