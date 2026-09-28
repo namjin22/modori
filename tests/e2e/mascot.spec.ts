@@ -37,8 +37,14 @@ test("그날 할 일을 다 끝내면 도리가 축하한다", async ({ page, em
   await expect(page.getByRole("listitem").filter({ hasText: "물 마시기" })).toBeVisible();
   await expect(banner).toBeHidden();
 
+  // 진행률 옆 도리는 시작 전 인사 표정이다.
+  const progressRow = page.getByText("1개 중 0개 완료").locator("xpath=..");
+  await expect(progressRow.locator("svg")).toHaveCount(1);
+
   await page.getByRole("button", { name: "완료", exact: true }).click();
   await expect(banner).toBeVisible();
+  // 축하 배너에 도리가 있으니 진행률 옆 도리는 빠진다(둘이 같이 있으면 어색하다).
+  await expect(page.getByText("1개 중 1개 완료").locator("xpath=..").locator("svg")).toHaveCount(0);
 
   // 하나라도 남으면 사라진다.
   await page.getByRole("button", { name: "완료 취소" }).click();

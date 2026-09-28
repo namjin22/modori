@@ -367,18 +367,6 @@ export default async function FeedPage({
           today={formatKST(today)}
         />
 
-        {/* 앞날짜에 아직 "예정"인 루틴이 남아 있으면 다 끝낸 게 아니다. */}
-        {todos.length > 0 && doneCount === todos.length && scheduled.length === 0 && (
-          // 다 끝낸 날은 알아봐 준다. 마지막 하나를 체크할 동기가 된다.
-          <div className="flex items-center gap-3 rounded-2xl bg-brand-subtle px-4 py-3">
-            <Dori mood="party" size={56} />
-            <div>
-              <p className="font-semibold text-brand">할 일을 다 끝냈어요</p>
-              <p className="text-xs text-muted">도리가 대신 박수 쳐줄게요</p>
-            </div>
-          </div>
-        )}
-
         {categories.length === 0 && (
           // 카테고리 칩이 곧 할 일을 적는 자리다. 하나도 없으면 적을 곳이 없어진다.
           <div className="flex flex-col items-start gap-2 rounded-2xl bg-surface p-5">
@@ -395,7 +383,13 @@ export default async function FeedPage({
           </div>
         )}
 
-        <TodoProgress key={formatKST(date)} total={todos.length} done={doneCount}>
+        {/* 앞날짜에 아직 "예정"인 루틴이 남아 있으면 다 끝낸 게 아니다. 축하 배너는 TodoProgress가 띄운다. */}
+        <TodoProgress
+          key={formatKST(date)}
+          total={todos.length}
+          done={doneCount}
+          canCelebrate={scheduled.length === 0}
+        >
           {todoGroups.map((group) => (
             <section key={group.key} className="flex flex-col gap-1">
               <CategoryAdder
