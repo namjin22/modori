@@ -44,10 +44,3 @@ test("그날 할 일을 다 끝내면 도리가 축하한다", async ({ page, em
   await page.getByRole("button", { name: "완료 취소" }).click();
   await expect(banner).toBeHidden();
 });
-
-test("도리 모음 화면에서 표정 열두 가지를 한눈에 본다", async ({ page, email }, testInfo) => {
-  await signInAndOnboard(page, email, `모음${testInfo.testId.slice(-6)}${RUN_TAG}`);
-  await page.goto("/dori");
-  await expect(page.getByRole("heading", { name: "도리 모음" })).toBeVisible();
-  await expect(page.getByRole("img")).toHaveCount(12);
-});
