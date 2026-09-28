@@ -161,3 +161,32 @@ test("마이페이지 팔로워를 누르면 팔로워 목록이 나오고 맞�
   await page.getByRole("link", { name: accounts.friend.nickname }).click();
   await expect(page).toHaveURL(new RegExp(`/feed/u/${friend.id}$`));
 });
+
+test("팔로워를 끊으면 그 사람은 내 할 일을 더 볼 수 없다", async ({ page, accounts }) => {
+  await signIn(page, accounts.friend);
+  await signOut(page);
+  await signIn(page, accounts.me);
+  const [me, friend] = await Promise.all([
+    prisma.user.findUniqueOrThrow({ where: { email: accounts.me.email } }),
+    prisma.user.findUniqueOrThrow({ where: { email: accounts.friend.email } }),
+  ]);
+  await prisma.follow.create({ data: { followerId: friend.id, followingId: me.id } });
+
+  await page.goto("/feed/followers");
+  // 잘못 눌렀으면 취소한다. 아무 일도 없다.
+  await page.getByRole("button", { name: `${accounts.friend.nickname} 팔로워 끊기` }).click();
+  await expect(page.getByRole("dialog", { name: "팔로워를 끊을까요?" })).toBeVisible();
+  await page.getByRole("dialog").getByRole("button", { name: "취소" }).click();
+  expect(await prisma.follow.count({ where: { followerId: friend.id, followingId: me.id } })).toBe(1);
+
+  await page.getByRole("button", { name: `${accounts.friend.nickname} 팔로워 끊기` }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "끊기" }).click();
+  await expect(page.getByText("아직 나를 팔로우한 친구가 없어요")).toBeVisible();
+  expect(await prisma.follow.count({ where: { followerId: friend.id, followingId: me.id } })).toBe(0);
+
+  // 끊긴 사람은 내 하루를 열 수 없다.
+  await signOut(page);
+  await signIn(page, accounts.friend);
+  await page.goto(`/feed/u/${me.id}`);
+  await expect(page.getByRole("heading", { name: "없는 주소예요" })).toBeVisible();
+});

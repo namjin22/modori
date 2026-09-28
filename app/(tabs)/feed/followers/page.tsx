@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 
 import { DoriMessage } from "@/components/dori-message";
+import { RemoveFollowerButton } from "@/components/remove-follower-button";
 import { SubmitButton } from "@/components/submit-button";
 
 import { followUser } from "../actions";
@@ -13,7 +14,7 @@ import { BackLink } from "@/components/back-link";
 import { avatarUrl } from "@/lib/avatar";
 
 /**
- * 나를 팔로우하는 사람. 마이페이지의 팔로워 수를 누르면 온다.
+ * 나를 팔로우하는 사람. 마이페이지의 팔로워 수를 누르면 온다. 원하지 않는 사람은 "끊기"로 뺀다.
  * 친구 화면(/feed/u/[id])은 내가 팔로우한 사람만 볼 수 있어서, 아직 팔로우하지 않은
  * 사람은 이름에 링크를 걸지 않고 맞팔로우 버튼을 둔다.
  */
@@ -84,6 +85,8 @@ export default async function FollowersPage() {
                     </SubmitButton>
                   </form>
                 )}
+
+                <RemoveFollowerButton id={person.id} nickname={person.nickname ?? ""} />
               </li>
             );
           })}
