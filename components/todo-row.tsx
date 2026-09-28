@@ -4,9 +4,11 @@ import { useState, useTransition } from "react";
 
 import { deleteTodo, restoreTodo, updateTodo } from "@/app/(tabs)/actions";
 import { Modal } from "@/components/modal";
+import { ReactionGlyph } from "@/components/reaction-glyph";
 import { TodoCheckbox } from "@/components/todo-checkbox";
 import { UndoableDeleteButton } from "@/components/undoable-delete-button";
 import { useSaveFailure } from "@/components/use-save-failure";
+import { labelOfReaction, type ReceivedReaction } from "@/lib/reactions";
 
 type Todo = {
   id: string;
@@ -20,13 +22,21 @@ type Todo = {
  * 할 일 한 줄. 글자를 누르면 창이 떠서 그 글자를 바로 고친다.
  * 색은 카테고리를 따라가므로 여기서 고르지 않는다.
  */
-export function TodoRow({ todo }: { todo: Todo }) {
+export function TodoRow({
+  todo,
+  received = [],
+}: {
+  todo: Todo;
+  // 친구들이 이 할 일에 보낸 반응. 종류별로 묶여 온다.
+  received?: ReceivedReaction[];
+}) {
   const [open, setOpen] = useState(false);
   const [, startTransition] = useTransition();
   const saveFailed = useSaveFailure();
 
   return (
-    <div className="flex items-center gap-3 py-2.5 pr-3">
+    <div className="py-2.5 pr-3">
+    <div className="flex items-center gap-3">
       <TodoCheckbox
         id={todo.id}
         done={todo.done}
@@ -86,6 +96,30 @@ export function TodoRow({ todo }: { todo: Todo }) {
           />
         </div>
       </Modal>
+    </div>
+
+      {/* 친구가 보낸 반응을 할 일 밑에 둔다(투두메이트처럼). 글자와 줄을 맞추려고 체크 칸만큼 들인다.
+          내 일에는 내가 반응할 수 없어서 누르는 칩이 아니다. 누가 보냈는지는 이름표로 알린다. */}
+      {received.length > 0 && (
+        <ul aria-label="받은 반응" className="mt-1.5 flex flex-wrap gap-1 pl-[34px]">
+          {received.map(({ emoji, count, names }) => {
+            const who = `${labelOfReaction(emoji)} ${count}개${names.length ? ` · ${names.join(", ")}` : ""}`;
+            return (
+              <li
+                key={emoji}
+                title={who}
+                aria-label={who}
+                className="flex h-6 items-center gap-1 rounded-full bg-surface-hover px-1.5 text-xs text-muted"
+              >
+                <ReactionGlyph value={emoji} doriSize={18} />
+                <span aria-hidden className="font-semibold">
+                  {count}
+                </span>
+              </li>
+            );
+          })}
+        </ul>
+      )}
     </div>
   );
 }

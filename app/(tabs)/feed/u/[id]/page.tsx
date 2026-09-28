@@ -156,7 +156,9 @@ export default async function FriendDayPage({
   return (
     // 내 오늘 화면과 같이, 넓은 화면에서는 왼쪽에 프로필과 달력을 둔다.
     <div className="flex flex-col gap-6 lg:grid lg:grid-cols-2 lg:items-start lg:gap-10">
-      <div className="flex flex-col gap-6 lg:sticky lg:top-6">
+      {/* 넓은 화면에서 달력 칸은 제자리에 둔다. 시작 위치(pt-8)와 같은 top-8이라 스크롤을 시작해도 움직이지 않고,
+          창이 달력보다 낮으면(노트북) 칸 안에서만 스크롤해 페이지 끝에서 밀려 올라가지 않는다. */}
+      <div className="flex flex-col gap-6 lg:sticky lg:top-8 lg:max-h-[calc(100dvh-6rem)] lg:overflow-y-auto">
         <div className="flex items-center gap-3">
           <BackLink href="/feed" label="소셜로" />
           <Avatar src={avatarUrl(friend)} size={48} />
@@ -198,7 +200,7 @@ export default async function FriendDayPage({
         </div>
       </div>
 
-      <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-6 lg:pb-12">
         <header className="flex items-center justify-between">
           <Link prefetch={false}
             href={`${basePath}?date=${formatKST(addDays(date, -1))}${viewQuery}`}
