@@ -124,3 +124,25 @@ export function summarizeReactions(
     (a, b) => (order.get(a.emoji) ?? 99) - (order.get(b.emoji) ?? 99),
   );
 }
+
+export type ReceivedReaction = { emoji: string; count: number; names: string[] };
+
+/**
+ * 내 할 일에 친구들이 보낸 반응을 종류별로 묶는다. 홈 화면 할 일 밑에 투두메이트처럼 보여준다.
+ * 보낸 사람 이름은 먼저 보낸 순서대로. 종류 순서는 고르는 창 순서를 따른다(summarizeReactions와 같다).
+ */
+export function groupReceivedReactions(
+  reactions: { emoji: string; nickname: string | null }[],
+): ReceivedReaction[] {
+  const groups = new Map<string, ReceivedReaction>();
+  for (const reaction of reactions) {
+    const group = groups.get(reaction.emoji) ?? { emoji: reaction.emoji, count: 0, names: [] };
+    group.count += 1;
+    if (reaction.nickname) group.names.push(reaction.nickname);
+    groups.set(reaction.emoji, group);
+  }
+  const order = new Map<string, number>(ORDER.map((value, index) => [value, index]));
+  return [...groups.values()].sort(
+    (a, b) => (order.get(a.emoji) ?? 99) - (order.get(b.emoji) ?? 99),
+  );
+}

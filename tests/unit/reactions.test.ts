@@ -4,6 +4,7 @@ import {
   DORI_REACTIONS,
   REACTIONS,
   doriMoodOf,
+  groupReceivedReactions,
   isReactionValue,
   labelOfReaction,
   summarizeReactions,
@@ -48,6 +49,22 @@ describe("반응 값", () => {
       { emoji: "dori:happy", count: 1, mine: true },
       { emoji: "dori:sad", count: 1, mine: false },
       { emoji: "👍", count: 2, mine: true },
+    ]);
+  });
+});
+
+describe("groupReceivedReactions", () => {
+  it("종류별로 개수와 보낸 사람을 모으고, 고르는 창 순서로 세운다", () => {
+    expect(
+      groupReceivedReactions([
+        { emoji: "🔥", nickname: "민아" },
+        { emoji: "dori:clap", nickname: "지훈" },
+        { emoji: "🔥", nickname: "서연" },
+        { emoji: "🔥", nickname: null },
+      ]),
+    ).toEqual([
+      { emoji: "dori:clap", count: 1, names: ["지훈"] },
+      { emoji: "🔥", count: 3, names: ["민아", "서연"] },
     ]);
   });
 });

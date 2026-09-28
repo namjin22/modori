@@ -1,5 +1,6 @@
 import { expect, test as base, type Page } from "@playwright/test";
 
+import { todayKST } from "@/lib/date";
 import { prisma } from "@/lib/prisma";
 
 import { FIRST_CATEGORY, addTodo, homeReady, openCategory } from "./todo-helpers";
@@ -233,4 +234,36 @@ test("누가 나를 팔로우하면 알림으로 오고, 거기서 맞팔로우�
   // 알림 화면을 열었으니 뱃지는 사라진다.
   await page.goto("/feed");
   await expect(page.getByLabel(/안 읽은 알림/)).toHaveCount(0);
+});
+
+test("친구가 보낸 반응은 내 홈 화면의 그 할 일 밑에 보인다", async ({ page, accounts }) => {
+  await signIn(page, accounts.me);
+  await addDoneTodo(page, "칭찬 받을 운동");
+  // 반응을 받지 않은 할 일도 하나 둔다(도우미는 한 화면에 할 일이 하나라고 보고 체크해서 DB로 만든다).
+  const me = await prisma.user.findUniqueOrThrow({ where: { email: accounts.me.email } });
+  const category = await prisma.category.findFirstOrThrow({ where: { userId: me.id } });
+  await prisma.todo.create({
+    data: { userId: me.id, categoryId: category.id, content: "반응 없는 일", date: todayKST(), done: true, doneAt: new Date(), order: 9 },
+  });
+  await signOut(page);
+
+  await signIn(page, accounts.friend);
+  await follow(page, accounts.me.nickname);
+  await page.goto("/feed");
+  const card = page.getByRole("listitem").filter({ hasText: "칭찬 받을 운동" }).last();
+  await card.getByRole("button", { name: "반응 보내기" }).click();
+  await page.getByRole("button", { name: "불타요", exact: true }).click();
+  await expect(page.getByRole("button", { name: "불타요 반응 취소" })).toBeVisible();
+  await signOut(page);
+
+  await signIn(page, accounts.me);
+  await page.goto("/");
+  const row = page.getByRole("listitem").filter({ hasText: "칭찬 받을 운동" });
+  // 누가 보냈는지 이름표로 알 수 있다.
+  await expect(row.getByRole("list", { name: "받은 반응" }).getByRole("listitem")).toHaveAccessibleName(
+    `불타요 1개 · ${accounts.friend.nickname}`,
+  );
+  await expect(
+    page.getByRole("listitem").filter({ hasText: "반응 없는 일" }).getByRole("list", { name: "받은 반응" }),
+  ).toHaveCount(0);
 });

@@ -38,6 +38,7 @@ import { WeekStrip } from "@/components/week-strip";
 
 import { Avatar } from "@/components/avatar";
 import { avatarUrl } from "@/lib/avatar";
+import { groupReceivedReactions } from "@/lib/reactions";
 // 카테고리를 고르지 않은 할 일도 달력에 흔적은 남아야 한다.
 import { NO_CATEGORY_COLOR } from "@/lib/colors";
 
@@ -190,6 +191,12 @@ export default async function FeedPage({
         orderBy: { order: "asc" },
         include: {
           category: { select: { id: true, name: true, color: true } },
+          // 친구가 보낸 반응. 할 일 밑에 투두메이트처럼 보여준다(내가 내 일에 보낼 수는 없다).
+          reactions: {
+            where: { userId: { not: user.id } },
+            orderBy: { createdAt: "asc" },
+            select: { emoji: true, user: { select: { nickname: true } } },
+          },
         },
       }),
       prisma.category.findMany({
@@ -427,7 +434,17 @@ export default async function FeedPage({
                   items={group.items.map((todo) => ({
                     id: todo.id,
                     label: todo.content,
-                    node: <TodoRow todo={todo} />,
+                    node: (
+                      <TodoRow
+                        todo={todo}
+                        received={groupReceivedReactions(
+                          todo.reactions.map((reaction) => ({
+                            emoji: reaction.emoji,
+                            nickname: reaction.user.nickname,
+                          })),
+                        )}
+                      />
+                    ),
                   }))}
                 />
               )}
