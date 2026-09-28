@@ -44,7 +44,7 @@ export default async function LoginPage({
         <Logo size={64} />
         <div>
           <h1 className="text-3xl font-bold tracking-tight">모도리</h1>
-          <p className="mt-2 text-muted">끝낸 만큼 달력이 채워져요</p>
+          <p className="mt-2 text-muted">모도리에서 친구들과 함께 매일을 채워가요</p>
         </div>
       </div>
 

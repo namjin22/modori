@@ -223,7 +223,7 @@ test("누가 나를 팔로우하면 알림으로 오고, 거기서 맞팔로우�
   await expect(page.getByLabel("안 읽은 알림 1개")).toBeVisible();
   await page.goto("/feed/reactions");
   await expect(page.getByRole("heading", { name: "알림" })).toBeVisible();
-  const item = page.getByRole("listitem").filter({ hasText: "님이 나를 팔로우했어요" });
+  const item = page.getByRole("listitem").filter({ hasText: "나를 팔로우했어요" });
   await expect(item).toContainText(accounts.friend.nickname);
   await expect(item).toContainText("NEW");
 
