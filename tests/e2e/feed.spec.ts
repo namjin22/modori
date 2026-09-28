@@ -159,6 +159,27 @@ test("반응을 누르면 개수가 오르고 다시 누르면 취소된다", as
   ).toHaveCount(0);
 });
 
+test("도리 표정도 반응으로 보내고 받은 반응 화면에서 본다", async ({ page, accounts }) => {
+  await signIn(page, accounts.friend);
+  await addDoneTodo(page, "도리 받을 일");
+  await signOut(page);
+
+  await signIn(page, accounts.me);
+  await follow(page, accounts.friend.nickname);
+  await page.goto("/feed");
+  await page.getByRole("button", { name: "반응 보내기" }).click();
+  // 이모지 "불타요"와 이름이 겹치지 않게 도리 반응은 "도리"를 붙여 부른다.
+  await page.getByRole("button", { name: "도리 불타요", exact: true }).click();
+  await expect(page.getByRole("button", { name: "도리 불타요 반응 취소" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "불타요 반응 취소", exact: true })).toHaveCount(0);
+  await signOut(page);
+
+  await signIn(page, accounts.friend);
+  await page.goto("/feed/reactions");
+  await expect(page.getByText("도리 받을 일")).toBeVisible();
+  await expect(page.getByRole("img", { name: "도리 불타요" })).toBeVisible();
+});
+
 test("받은 반응은 뱃지로 알리고 받은 반응 화면을 열면 사라진다", async ({
   page,
   accounts,
