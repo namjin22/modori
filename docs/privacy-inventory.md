@@ -44,7 +44,7 @@ Cloudflare(접속을 잇는 곳)와 Google·DataGSM(로그인)은 방침 5번에
 | `User.name` (실명) | 어디서도 쓰지 않는다. 운영 10명 모두 저장돼 있었다 | 2026-09-28부터 새로 저장하지 않는다(`lib/auth-minimal.ts`). **이미 저장된 값을 비울지는 사용자 결정** |
 | `User.image` (Google 사진 주소) | 쓰지 않는다. 운영 4명 | 위와 같음 |
 | `Account` 토큰(access·refresh·id_token 등) | 로그인 뒤 Google·DataGSM API를 부르지 않아 쓰지 않는다. DataGSM refresh_token은 오래 산다 | 새로 저장하지 않는다. **이미 저장된 토큰(운영 10개 계정)을 비울지는 사용자 결정** — 비우는 것을 권한다 |
-| `User.grade`, `classNum` | 쓰지 않고 운영에 값도 없다 | 열 삭제는 마이그레이션이 필요해 사용자 승인 뒤(CLAUDE.md 5번) |
+| `User.grade`, `classNum` | 쓰지 않았고 운영에 값도 없었다 | 2026-09-29 사용자 승인으로 열을 지웠다(마이그레이션 `20260929120000_drop_grade_class`) |
 | `User.emailVerified`, `VerificationToken` 표 | 이메일 로그인용. 쓰지 않고 비어 있다 | Prisma 어댑터가 기대하는 모양이라 둔다 |
 | 만료된 `Session` 행 | 다시 오지 않는 사람의 행이 남았다 | 2026-09-28부터 하루 한 번 지운다(사용자 결정, `lib/daily.ts`) |
 

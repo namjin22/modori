@@ -27,8 +27,6 @@ model User {
   // 올린 사진을 128×128로 줄인 data URL. 없으면 화면에서 도리 얼굴을 쓴다.
   profileImage    String?
   bio             String?
-  grade           Int?
-  classNum        Int?
   lastSeenAt      DateTime  @default(now()) // 안 읽은 반응 뱃지 기준점
   privacyAgreedAt DateTime? // 가입할 때 개인정보 수집·이용에 동의한 시각
   createdAt       DateTime  @default(now())
