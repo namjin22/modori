@@ -441,6 +441,7 @@ export default async function FeedPage({
                     node: (
                       <TodoRow
                         todo={todo}
+                        date={formatKST(date)}
                         received={groupReceivedReactions(
                           todo.reactions.map((reaction) => ({
                             emoji: reaction.emoji,
