@@ -1,0 +1,21 @@
+{
+  "name": "modori-mobile",
+  "version": "1.0.0",
+  "description": "모도리 모바일 앱 — modori.site를 앱 창 하나로 띄운다(Capacitor)",
+  "private": true,
+  "author": "이남진 <penamjin@gmail.com>",
+  "homepage": "https://modori.site",
+  "scripts": {
+    "sync": "cap sync android",
+    "apk": "cap sync android && cd android && ./gradlew assembleDebug"
+  },
+  "dependencies": {
+    "@capacitor/android": "8.5.2",
+    "@capacitor/app": "8.1.1",
+    "@capacitor/browser": "8.0.4",
+    "@capacitor/core": "8.5.2"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "8.5.2"
+  }
+}

@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 
 import type { Metadata, Viewport } from "next";
 
+import { NativeBridge } from "@/components/native-bridge";
 import { ValidationBubble } from "@/components/validation-bubble";
 
 import "./globals.css";
@@ -80,6 +81,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
       </head>
       <body className="flex min-h-full flex-col bg-background text-foreground">
+        <NativeBridge />
         {children}
         {/* 브라우저 기본 입력 말풍선 대신 앱 모양의 말풍선을 띄운다. */}
         <ValidationBubble />

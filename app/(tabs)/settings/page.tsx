@@ -3,7 +3,7 @@ import Link from "next/link";
 import { LogoutButton } from "@/components/logout-button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { isAdmin } from "@/lib/admin";
-import { isDesktopApp } from "@/lib/desktop";
+import { isDesktopApp, isMobileApp } from "@/lib/desktop";
 import { DesktopDownload } from "@/components/desktop-download";
 import { prisma } from "@/lib/prisma";
 import { PRIVACY_MANAGER } from "@/lib/privacy";
@@ -14,7 +14,7 @@ import { avatarUrl } from "@/lib/avatar";
 
 export default async function SettingsPage() {
   const user = await requireUser();
-  const desktop = await isDesktopApp();
+  const desktop = (await isDesktopApp()) || (await isMobileApp());
   const [following, followers, admin] = await Promise.all([
     prisma.follow.count({ where: { followerId: user.id } }),
     prisma.follow.count({ where: { followingId: user.id } }),
