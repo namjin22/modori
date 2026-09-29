@@ -90,7 +90,7 @@ export default async function CategoriesPage() {
         <section className="flex flex-col gap-3">
           <h2 className="text-sm font-semibold text-muted">보관함</h2>
           <p className="text-xs text-muted">
-            지운 카테고리는 예전 기록의 색까지 가져가요. 그래서 보관만 해요.
+            예전에 보관해 둔 카테고리예요. 되돌리면 다시 쓸 수 있어요.
           </p>
           <ul className="flex flex-col gap-3">
             {archived.map((category) => (

@@ -86,7 +86,7 @@ export function ProfileImageField({ defaultValue }: { defaultValue: string | nul
 }
 
 /** 가운데를 정사각형으로 잘라 한 변 128px JPEG data URL로 만든다. */
-async function toSquareDataUrl(file: File): Promise<string> {
+export async function toSquareDataUrl(file: File): Promise<string> {
   const bitmap = await createImageBitmap(file);
   const side = Math.min(bitmap.width, bitmap.height);
 
