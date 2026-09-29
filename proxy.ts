@@ -29,8 +29,9 @@ async function clientKey(request: NextRequest): Promise<{ key: string; rule: Rat
       try {
         const token = await decode({ token: value, secret, salt: name });
         if (token?.sub) return { key: `s:${value}`, rule: SESSION_RULE };
-      } catch {
-        // 위조·만료된 JWT는 익명 IP 제한을 따른다.
+      } catch (error) {
+        // 위조·만료된 JWT는 익명 IP 제한을 따른다. 이 분기는 우회 로그인(로컬·테스트)에서만 돌아 기록이 넘치지 않는다.
+        console.warn("[rate-limit] 세션 쿠키를 읽지 못해 IP로 센다.", error instanceof Error ? error.name : error);
       }
     } else if (isSignedSessionToken(value, secret)) {
       return { key: `s:${value}`, rule: SESSION_RULE };
