@@ -124,7 +124,13 @@ test("넓은 화면에서 할 일이 많아 스크롤해도 왼쪽 달력은 제
   const tops: number[] = [];
   for (const y of [0, 200, 600, 100_000]) {
     await page.evaluate((top) => window.scrollTo(0, top), y);
-    await page.waitForTimeout(100);
+    // 고정 시간만 기다리면 PC가 바쁠 때 스크롤이 끝나기 전에 쟀다(전체 E2E를 병렬로 돌리면 가끔 실패).
+    // 스크롤이 목표(또는 맨 끝)에 닿은 뒤, 화면이 두 프레임 그려질 때까지 기다린 다음 잰다.
+    await page.waitForFunction((top) => {
+      const max = document.documentElement.scrollHeight - window.innerHeight;
+      return Math.abs(window.scrollY - Math.min(top, max)) < 1;
+    }, y);
+    await page.evaluate(() => new Promise<void>((done) => requestAnimationFrame(() => requestAnimationFrame(() => done()))));
     tops.push(Math.round((await monthHeading.boundingBox())?.y ?? -1));
   }
   expect(new Set(tops).size).toBe(1);
