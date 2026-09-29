@@ -30,14 +30,14 @@ type Todo = {
 export function TodoRow({
   todo,
   date,
-  isToday,
+  quickMove,
   received = [],
 }: {
   todo: Todo;
-  // 이 할 일의 날짜("YYYY-MM-DD"). "내일 하기"와 "다른 날에 하기"의 처음 값(다음 날)을 여기서 정한다.
+  // 이 할 일의 날짜("YYYY-MM-DD"). "다른 날에 하기"의 처음 값(다음 날)을 여기서 정한다.
   date: string;
-  // 오늘 할 일이면 다음 날 버튼을 "내일 하기"로, 아니면 "다음 날에 하기"로 부른다.
-  isToday: boolean;
+  // 한 번에 옮기는 버튼. 지난 날 할 일은 "오늘 하기", 오늘 할 일은 "내일 하기", 앞날 할 일은 "다음 날에 하기"(app/(tabs)/page.tsx가 정한다).
+  quickMove: { label: string; target: string };
   // 친구들이 이 할 일에 보낸 반응. 종류별로 묶여 온다.
   received?: ReceivedReaction[];
 }) {
@@ -100,7 +100,7 @@ export function TodoRow({
             className="h-12 w-full rounded-xl bg-surface-hover px-4 text-[15px] outline-none focus:ring-2 focus:ring-brand"
           />
           {/* 날짜 옮기기는 자주 누르므로 메모·삭제·저장보다 위에 둔다(사용자 요청). */}
-          <MoveToDay id={todo.id} date={date} isToday={isToday} onMoved={() => setOpen(false)} />
+          <MoveToDay id={todo.id} date={date} quickMove={quickMove} onMoved={() => setOpen(false)} />
           <textarea
             name="memo"
             defaultValue={todo.memo ?? ""}
@@ -144,12 +144,12 @@ export function TodoRow({
 function MoveToDay({
   id,
   date,
-  isToday,
+  quickMove,
   onMoved,
 }: {
   id: string;
   date: string;
-  isToday: boolean;
+  quickMove: { label: string; target: string };
   onMoved: () => void;
 }) {
   const nextDay = formatKST(addDays(parseKSTDate(date), 1));
@@ -182,8 +182,8 @@ function MoveToDay({
   return (
     <div className="flex flex-col gap-2">
       <div className="flex gap-2">
-        <button type="button" disabled={pending} onClick={() => move(nextDay)} className={button}>
-          {isToday ? "내일 하기" : "다음 날에 하기"}
+        <button type="button" disabled={pending} onClick={() => move(quickMove.target)} className={button}>
+          {quickMove.label}
         </button>
         <button
           type="button"

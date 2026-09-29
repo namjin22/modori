@@ -335,6 +335,61 @@ export async function moveTodo(id: string, day: string): Promise<TodoMove> {
   return { ok: true, message: `${formatMonthDayKST(date)}로 옮겼어요` };
 }
 
+export type UndoneMove = { ok: boolean; message: string };
+
+/**
+ * 지난 날의 안 끝낸 할 일을 모두 오늘로 옮긴다("모두 오늘 하기"). 오늘이 하루 상한(50개)에 차 있으면 들어가는 만큼만 옮기고 남은 수를 알린다.
+ * 화면에 보이는 순서(order)대로 오늘 맨 아래에 붙는다. 루틴 할 일은 moveTodo와 같이 루틴에서 떼고 원래 날을 건너뛴다고 남긴다.
+ * 오늘이나 앞날은 옮기지 않는다(오늘 할 일을 오늘로 옮기는 일이 되고, 앞날은 "미룬" 것이 아니다).
+ */
+export async function moveUndoneToToday(fromDay: string): Promise<UndoneMove> {
+  const user = await requireUser();
+  const from = readDay(fromDay);
+  if (!from) return { ok: false, message: "날짜를 읽지 못했어요. 새로 고쳐 주세요." };
+  const today = todayKST();
+  if (daysBetween(from, today) <= 0) return { ok: false, message: "지난 날의 할 일만 오늘로 옮길 수 있어요." };
+
+  const [undone, todayCount, last] = await Promise.all([
+    prisma.todo.findMany({
+      where: { userId: user.id, date: from, done: false },
+      orderBy: { order: "asc" },
+      select: { id: true, routineId: true },
+    }),
+    prisma.todo.count({ where: { userId: user.id, date: today } }),
+    prisma.todo.findFirst({ where: { userId: user.id, date: today }, orderBy: { order: "desc" }, select: { order: true } }),
+  ]);
+  if (undone.length === 0) return { ok: false, message: "옮길 할 일이 없어요." };
+
+  const room = Math.max(0, LIMITS.todosPerDay - todayCount);
+  if (room === 0) return { ok: false, message: `오늘은 벌써 ${LIMITS.todosPerDay}개예요. 하루에 ${LIMITS.todosPerDay}개까지 적을 수 있어요.` };
+  const moving = undone.slice(0, room);
+  const start = (last?.order ?? -1) + 1;
+
+  await prisma.$transaction([
+    ...moving.map((todo, index) =>
+      prisma.todo.updateMany({
+        // 그 사이 다른 탭에서 끝냈거나 옮긴 할 일은 건드리지 않는다.
+        where: { id: todo.id, userId: user.id, date: from, done: false },
+        data: { date: today, order: start + index, routineId: null },
+      }),
+    ),
+    prisma.routineSkip.createMany({
+      data: moving.flatMap((todo) => (todo.routineId ? [{ routineId: todo.routineId, date: from }] : [])),
+      skipDuplicates: true,
+    }),
+  ]);
+
+  revalidatePath("/");
+  const left = undone.length - moving.length;
+  return {
+    ok: true,
+    message:
+      left > 0
+        ? `오늘 넣을 수 있는 ${moving.length}개만 옮겼어요. ${left}개가 남았어요`
+        : `안 끝낸 일 ${moving.length}개를 오늘로 옮겼어요`,
+  };
+}
+
 /**
  * 미래 날짜의 "예정" 루틴을 체크한 경우. 이때 처음으로 행을 만든다.
  * 미리 만들어두지 않는 이유는 docs/decisions.md 참고.
