@@ -7,6 +7,7 @@ import {
   type EventFormState,
   updateEvent,
 } from "@/app/(tabs)/events/actions";
+import { LabeledSwitch } from "@/components/labeled-switch";
 import { SubmitButton } from "@/components/submit-button";
 import { useFormAction } from "@/components/use-form-action";
 import { MAX_MEMO_LENGTH } from "@/lib/memo";
@@ -20,6 +21,7 @@ type EditingEvent = {
   startTime: string;
   endTime: string;
   memo: string;
+  dday: boolean;
 };
 
 /**
@@ -120,6 +122,13 @@ export function EventForm({
           />
         </label>
       </div>
+
+      <LabeledSwitch
+        name="dday"
+        title="D-day 보이기"
+        description="끄면 D-day와 다가오는 일정 목록에서 빠져요"
+        defaultChecked={event?.dday ?? true}
+      />
 
       {/* 메모 칸의 Enter는 줄바꿈이다(위의 Enter 막기는 input에만 건다). */}
       <textarea

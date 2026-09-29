@@ -1,10 +1,11 @@
 import { expect, test as base, type Page } from "@playwright/test";
 
-import { addDays, formatKST, todayKST } from "@/lib/date";
+import { addDays, todayKST } from "@/lib/date";
 import { prisma } from "@/lib/prisma";
 
+import { homeReady, openEvent } from "./todo-helpers";
+
 import { RUN_TAG } from "./run-tag";
-import { addEvent, homeReady } from "./todo-helpers";
 
 const test = base.extend<{ email: string }>({
   email: async ({}, provide, testInfo) => {
@@ -15,7 +16,7 @@ const test = base.extend<{ email: string }>({
   },
 });
 
-async function signInAndOnboard(page: Page, email: string, nickname: string) {
+async function signUp(page: Page, email: string, nickname: string) {
   await page.goto("/login");
   await page.getByLabel("테스트 이메일").fill(email);
   await page.getByRole("button", { name: "테스트 로그인" }).click();
@@ -29,101 +30,41 @@ test.afterAll(async () => {
   await prisma.$disconnect();
 });
 
-test("아직 오지 않은 일정이 남은 날과 함께 오늘 화면에 뜬다", async ({
-  page,
-  email,
-}, testInfo) => {
-  await signInAndOnboard(page, email, `디데${testInfo.testId.slice(-6)}${RUN_TAG}`);
-
-  // 오늘 시작하는 일정과, 이레 뒤에 시작하는 일정.
-  await addEvent(page, "오늘 발표");
+test("D-day를 끈 일정은 다가오는 일정 목록에서 빠진다", async ({ page, email }, testInfo) => {
+  await signUp(page, email, `디데${testInfo.testId.slice(-6)}${RUN_TAG}`);
   const user = await prisma.user.findUniqueOrThrow({ where: { email } });
-  await prisma.event.create({
-    data: {
-      userId: user.id,
-      title: "중간고사",
-      startDate: addDays(todayKST(), 7),
-      endDate: addDays(todayKST(), 9),
-      color: "#3b82f6",
-    },
-  });
-
-  await page.goto("/");
-
-  // 오늘 것은 D-DAY, 아직 안 온 것은 남은 날과 시작일이 함께 보인다.
-  await expect(page.getByText("D-DAY", { exact: true })).toBeVisible();
-  const upcoming = page.getByRole("button", { name: /중간고사/ });
-  await expect(upcoming).toContainText("D-7");
-
-  // 눌러서 바로 고칠 수 있다.
-  await upcoming.click();
-  await expect(page.getByLabel("일정 이름", { exact: true })).toHaveValue(
-    "중간고사",
-  );
-});
-
-test("끝난 일정에는 남은 날을 붙이지 않는다", async ({ page, email }, testInfo) => {
-  await signInAndOnboard(page, email, `지난${testInfo.testId.slice(-6)}${RUN_TAG}`);
-
-  const user = await prisma.user.findUniqueOrThrow({ where: { email } });
-  const past = addDays(todayKST(), -3);
-  await prisma.event.create({
-    data: {
-      userId: user.id,
-      title: "지난 일정",
-      startDate: past,
-      endDate: past,
-      color: "#3b82f6",
-    },
-  });
-
-  await page.goto(`/?date=${formatKST(past)}`);
-
-  await expect(page.getByRole("button", { name: /지난 일정/ })).toBeVisible();
-  await expect(page.getByText("D-", { exact: false })).toHaveCount(0);
-});
-
-test("지난 날짜를 열어도 다가오는 일정은 오늘 기준이다", async ({ page, email }, testInfo) => {
-  await signInAndOnboard(page, email, `기준${testInfo.testId.slice(-6)}${RUN_TAG}`);
-
-  const user = await prisma.user.findUniqueOrThrow({ where: { email } });
-  const today = todayKST();
+  const later = addDays(todayKST(), 5);
   await prisma.event.createMany({
     data: [
-      // 열어 볼 날짜보다는 뒤지만 오늘 기준으로는 이미 끝난 일정
-      {
-        userId: user.id,
-        title: "이미 끝난 발표",
-        startDate: addDays(today, -3),
-        endDate: addDays(today, -3),
-        color: "#3b82f6",
-      },
-      {
-        userId: user.id,
-        title: "다음 주 시험",
-        startDate: addDays(today, 7),
-        endDate: addDays(today, 7),
-        color: "#3b82f6",
-      },
+      { userId: user.id, title: "기말고사", startDate: later, endDate: later, color: "#2563eb" },
+      { userId: user.id, title: "동아리 회의", startDate: later, endDate: later, color: "#2563eb" },
     ],
   });
 
-  await page.goto(`/?date=${formatKST(addDays(today, -10))}`);
+  await page.reload();
+  const section = page.getByRole("region", { name: "일정" });
+  await expect(section.getByRole("button", { name: /기말고사/ })).toContainText("D-5");
+  await expect(section.getByRole("button", { name: /동아리 회의/ })).toBeVisible();
 
-  await expect(page.getByRole("button", { name: /다음 주 시험/ })).toContainText("D-7");
-  await expect(page.getByRole("button", { name: /이미 끝난 발표/ })).toHaveCount(0);
+  await openEvent(page, "동아리 회의");
+  const toggle = page.getByRole("checkbox", { name: /D-day 보이기/ });
+  await expect(toggle).toBeChecked();
+  await toggle.uncheck();
+  await page.getByRole("dialog").getByRole("button", { name: "저장", exact: true }).click();
+
+  await expect(section.getByRole("button", { name: /동아리 회의/ })).toHaveCount(0);
+  await expect(section.getByRole("button", { name: /기말고사/ })).toContainText("D-5");
+  expect((await prisma.event.findFirstOrThrow({ where: { userId: user.id, title: "동아리 회의" } })).dday).toBe(false);
 });
 
-test("앞날짜의 일정은 그 날 목록에만 한 번 나온다", async ({ page, email }, testInfo) => {
-  await signInAndOnboard(page, email, `중복${testInfo.testId.slice(-6)}${RUN_TAG}`);
+test("D-day를 끄고 만든 오늘 일정은 D-DAY 표시 없이 이름만 보인다", async ({ page, email }, testInfo) => {
+  await signUp(page, email, `오늘${testInfo.testId.slice(-6)}${RUN_TAG}`);
+  await page.getByRole("button", { name: "일정", exact: true }).click();
+  await page.getByLabel("새 일정 이름").fill("학급 회의");
+  await page.getByRole("checkbox", { name: /D-day 보이기/ }).uncheck();
+  await page.getByRole("button", { name: "저장", exact: true }).click();
 
-  const user = await prisma.user.findUniqueOrThrow({ where: { email } });
-  const day = addDays(todayKST(), 4);
-  await prisma.event.create({
-    data: { userId: user.id, title: "동아리 발표", startDate: day, endDate: day, color: "#3b82f6" },
-  });
-
-  await page.goto(`/?date=${formatKST(day)}`);
-
-  await expect(page.getByRole("button", { name: /동아리 발표/ })).toHaveCount(1);
+  const card = page.getByRole("listitem").filter({ hasText: "학급 회의" });
+  await expect(card).toBeVisible();
+  await expect(card).not.toContainText("D-DAY");
 });

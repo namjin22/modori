@@ -28,6 +28,7 @@ type EventInput = {
   endTime: number | null;
   color: string;
   memo: string | null;
+  dday: boolean;
 };
 
 function readText(formData: FormData, key: string): string {
@@ -81,7 +82,10 @@ function readEventInput(formData: FormData): EventInput | string {
   // 비우면 메모 없음. 칸이 없던 요청(예전 화면)도 메모 없음으로 둔다.
   const memo = readMemo(formData.get("memo")) ?? null;
 
-  return { title, startDate, endDate, startTime, endTime, color, memo };
+  // 스위치가 꺼져 있으면 값이 오지 않는다.
+  const dday = formData.get("dday") === "on";
+
+  return { title, startDate, endDate, startTime, endTime, color, memo, dday };
 }
 
 /**
@@ -161,6 +165,7 @@ export type DeletedEvent = {
   endTime: string;
   color: string;
   memo: string | null;
+  dday: boolean;
 };
 
 export async function deleteEvent(id: string): Promise<DeletedEvent | null> {
@@ -181,6 +186,7 @@ export async function deleteEvent(id: string): Promise<DeletedEvent | null> {
     endTime: event.endTime === null ? "" : formatTime(event.endTime),
     color: event.color,
     memo: event.memo,
+    dday: event.dday,
   };
 }
 
@@ -197,6 +203,7 @@ export async function restoreEvent(snapshot: DeletedEvent): Promise<string | voi
   formData.set("startTime", typeof snapshot.startTime === "string" ? snapshot.startTime : "");
   formData.set("endTime", typeof snapshot.endTime === "string" ? snapshot.endTime : "");
   formData.set("memo", typeof snapshot.memo === "string" ? snapshot.memo : "");
+  if (snapshot.dday !== false) formData.set("dday", "on");
   const input = readEventInput(formData);
   if (typeof input === "string") {
     console.warn("[event] 되돌릴 값이 올바르지 않다.", input);
