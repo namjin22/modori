@@ -5,11 +5,16 @@ on:
     branches: [main]
   pull_request:
 
-# E2E가 실제 DB 하나를 같이 쓴다. 두 실행이 겹치면 서로의 테스트 계정을 지워서
-# 아무 데나 실패한다. 줄 세워서 한 번에 하나만 돌린다.
+# E2E가 테스트 DB 하나를 같이 쓰지만, 계정 이름에 실행마다 다른 꼬리표가 붙어(tests/e2e/run-tag.ts) 실행끼리 겹쳐도
+# 서로의 계정을 지우지 않는다. 그래서 main 검증과 PR 검증을 다른 줄에 세운다.
+#
+# 한 줄로 세우면 GitHub가 기다리는 실행을 하나만 남기고 새 실행이 오면 앞의 대기를 취소한다. main에 합친 직후 PR을 열면
+# 기다리던 main 검증이 취소되어, 검증에 묶인 운영 배포(deploy.yml)가 그 커밋에서 빠졌다(2026-09-29).
+# - main: 한 줄로 세운다. 새 main 커밋이 오면 앞의 대기는 취소되지만 새 커밋이 앞 커밋을 포함하고 그 커밋이 배포된다.
+# - PR: 브랜치마다 줄을 나눠 서로 취소하지 않고, 같은 PR의 새 커밋이 오면 앞의 실행만 취소한다.
 concurrency:
-  group: verify-shared-database
-  cancel-in-progress: false
+  group: ${{ github.event_name == 'push' && 'verify-main' || format('verify-pr-{0}', github.head_ref) }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   verify:
