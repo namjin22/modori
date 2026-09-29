@@ -83,3 +83,25 @@ test("루틴 할 일을 옮기면 원래 날에 다시 생기지 않는다", asy
     routineId: null,
   });
 });
+
+test("내일 하기를 누르면 오늘 할 일이 내일로 옮겨진다", async ({ page, email }, testInfo) => {
+  await signUp(page, email, `내일${testInfo.testId.slice(-6)}${RUN_TAG}`);
+  await addTodo(page, "빨래 개기");
+
+  await openTodo(page, "빨래 개기");
+  // 옮기기 버튼은 메모보다 위에 있다.
+  const dialog = page.getByRole("dialog");
+  const tomorrowBox = await dialog.getByRole("button", { name: "내일 하기" }).boundingBox();
+  const memoBox = await dialog.getByLabel("할 일 메모").boundingBox();
+  expect(tomorrowBox!.y).toBeLessThan(memoBox!.y);
+
+  await dialog.getByRole("button", { name: "내일 하기" }).click();
+  const tomorrow = addDays(todayKST(), 1);
+  await expect(page.getByText(`${formatMonthDayKST(tomorrow)}로 옮겼어요`)).toBeVisible();
+  await expect(page.getByRole("button", { name: "빨래 개기", exact: true })).toHaveCount(0);
+
+  // 내일 화면에서는 버튼 이름이 "다음 날에 하기"가 된다.
+  await page.goto(`/?date=${formatKST(tomorrow)}`);
+  await openTodo(page, "빨래 개기");
+  await expect(page.getByRole("dialog").getByRole("button", { name: "다음 날에 하기" })).toBeVisible();
+});
