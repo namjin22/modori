@@ -70,7 +70,7 @@ export function EventForm({
         defaultValue={event?.title}
         autoFocus
         data-autofocus
-        placeholder="예: 중간고사, 동아리 발표"
+        placeholder="예: 시험, 친구 생일, 병원 예약"
         aria-label={`${label} 이름`}
         onKeyDown={(keyEvent) => {
           if (keyEvent.key === "Escape") onCancel();

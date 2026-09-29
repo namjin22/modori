@@ -7,8 +7,8 @@
 
 ## 현재 상태 (2026-09-28, 출시 직전)
 
-**운영**: https://modori.site. 교내 서버 GSMSV의 VM 한 대에 Docker로 앱과 PostgreSQL 18을 띄우고,
-Cloudflare Tunnel로 HTTPS를 붙였다. `main`에 합치면 GitHub Actions(`deploy-gsmsv`)가 이미지를 만들어
+**운영**: https://modori.site. GSMSV 클라우드의 VM 한 대에 Docker로 앱과 PostgreSQL 18을 띄우고,
+Cloudflare Tunnel로 HTTPS를 붙였다. `main`에 합친 커밋의 `verify`가 통과하면 GitHub Actions(`deploy-gsmsv`)가 이미지를 만들어
 VM에 올리고, 새 버전이 뜨지 않으면 직전 버전으로 되돌린다. 매일 04:00 백업(VM 안 7일 + 백업용 Neon).
 구성과 명령은 `deploy/README.md`, 옮긴 과정은 `docs/gsmsv-migration.md`.
 예전 주소 modori.vercel.app은 modori.site로 넘긴다. 출시 전에 운영 DB의 사용자 데이터를 모두 비웠다.
@@ -53,7 +53,7 @@ VM에 올리고, 새 버전이 뜨지 않으면 직전 버전으로 되돌린다
 ## 브랜치와 배포
 
 `main`은 배포 브랜치, `develop`이 통합 브랜치다. 작업은 `develop`에 쌓고 `main`에는 PR로 합친다.
-PR마다 `verify`(타입·린트·단위·E2E)가 돌고, `main`에 들어가는 순간 GSMSV VM에 재배포된다.
+PR마다 `verify`(타입·린트·단위·E2E)가 돌고, `main`에 들어간 커밋의 `verify`가 통과하면 GSMSV VM에 재배포된다(2026-09-29부터).
 커밋은 `<type>: <한글 한 줄 요약>`, 한 커밋에 한 가지 변경.
 
 ---
@@ -158,7 +158,10 @@ await prisma.todo.createMany({
 로그인은 운영에서 된다(`lib/auth.ts`). DataGSM API 키는 주기적 갱신이 필요하다고 안내되어 있다.
 만료되면 DataGSM 로그인이 전부 막히므로 만료일을 확인해 `docs/release-checklist.md`에 적어 둔다.
 
-### 학교 데이터 연동 (NEIS)
+### 학교 데이터 연동 (NEIS) — 보류
+**2026-09-29: 모도리를 한 학교 전용이 아닌 일반 사용자용으로 바꾸면서 보류한다.** 한 학교의 급식·시간표는 다른 사용자에게 뜻이 없다.
+다시 하려면 학교를 고르는 기능부터 필요하다.
+
 급식(`mealServiceDietInfo`)과 학사일정(`SchoolSchedule`)은 NEIS Open API를 직접 부르기로 했다
 (`docs/decisions.md` "학교 데이터는 DataGSM 대신 NEIS를 직접 호출한다"). 아직 만들지 않았다.
 
