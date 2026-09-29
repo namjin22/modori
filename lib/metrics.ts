@@ -10,7 +10,7 @@ const recordedToday = new Set<string>();
 let currentDay: string | null = null;
 
 /**
- * 가입을 마친 사람이 오늘 모도리를 썼다고 적는다(requireUser가 부른다). 전날 합계는 lib/daily.ts가 찍는다.
+ * 가입을 마친 사람이 오늘 모도리를 썼다고 적는다(requireUser가 부른다). 하루 합계는 lib/daily.ts가 채운다.
  * 지표를 못 적어도 화면은 그대로 떠야 하므로 오류는 기록만 하고 넘긴다.
  */
 export async function recordActiveDay(userId: string): Promise<void> {
@@ -30,15 +30,95 @@ export async function recordActiveDay(userId: string): Promise<void> {
   }
 }
 
-/** 그 날 합계가 없으면 찍고, 90일 지난 쓴 날짜를 지운다. 실패해도 부른 쪽을 망치지 않는다. */
-export async function snapshotIfMissing(day: Date): Promise<void> {
+/** 오늘 포함 최근 90일(오늘~89일 전)의 쓴 날짜만 남긴다. 성공하면 true. */
+export async function cleanExpiredActiveDays(today: Date): Promise<boolean> {
   try {
-    const exists = await prisma.dailyStat.findUnique({ where: { date: day }, select: { date: true } });
-    if (!exists) await snapshotDay(day);
-    await prisma.activeDay.deleteMany({ where: { date: { lt: addDays(day, -KEEP_ACTIVE_DAYS) } } });
+    await prisma.activeDay.deleteMany({ where: { date: { lt: oldestKeptDay(today) } } });
+    return true;
   } catch (error) {
-    console.error("[metrics] 하루 합계를 찍지 못했다.", error);
+    console.error("[metrics] 90일 지난 쓴 날짜를 지우지 못했다.", error);
+    return false;
   }
+}
+
+function oldestKeptDay(today: Date): Date {
+  return addDays(today, 1 - KEEP_ACTIVE_DAYS);
+}
+
+/** 한 번에 채우는 날 수. 서버가 오래 꺼져 있었어도 요청 하나가 DB를 오래 붙잡지 않게 나눈다. */
+const MAX_SNAPSHOT_DAYS_PER_RUN = 30;
+
+// 합계 채우기의 진행 상태. 서버가 하나라 메모리에 둔다. 재시작하면 처음부터 확인하고, 이미 있는 날은 건너뛴다.
+let snapshotsCompleteThrough: string | null = null;
+let snapshotRun: Promise<void> | null = null;
+let resumeFrom: Date | null = null;
+
+/**
+ * 어제까지 빠진 하루 합계를 뒤에서 채운다. 부른 쪽은 기다리지 않는다.
+ * 서버가 하루 넘게 꺼져 있었거나 한 날이 실패해도, 다음 요청이 남은 날을 이어서 채운다.
+ */
+export function ensureSnapshots(yesterday: Date): void {
+  const through = formatKST(yesterday);
+  if (snapshotsCompleteThrough === through || snapshotRun) return;
+  snapshotRun = snapshotMissingDays(yesterday)
+    .then((complete) => {
+      if (complete) snapshotsCompleteThrough = through;
+    })
+    .catch((error: unknown) => {
+      console.error("[metrics] 하루 합계를 찍지 못했다. 다음 요청 때 다시 한다.", error);
+    })
+    .finally(() => {
+      snapshotRun = null;
+    });
+}
+
+/**
+ * 확인할 첫날: 가장 오래된 합계나 쓴 날짜 가운데 이른 날. 다만 쓴 날짜가 남아 있는 보관 기간(오늘~89일 전)보다
+ * 앞은 채우지 않는다. 원본이 지워져 활성 사용자를 셀 수 없다.
+ */
+async function firstDayToCheck(yesterday: Date): Promise<Date> {
+  const [earliestStat, oldestActive] = await Promise.all([
+    prisma.dailyStat.findFirst({ orderBy: { date: "asc" }, select: { date: true } }),
+    prisma.activeDay.findFirst({ orderBy: { date: "asc" }, select: { date: true } }),
+  ]);
+  const known = [earliestStat?.date, oldestActive?.date].filter((date): date is Date => date !== undefined);
+  if (known.length === 0) return yesterday;
+  const earliest = new Date(Math.min(...known.map((date) => date.getTime())));
+  const oldestKept = oldestKeptDay(addDays(yesterday, 1));
+  return earliest < oldestKept ? oldestKept : earliest;
+}
+
+/** 이번 차례(최대 30일)를 채운다. 어제까지 다 채웠으면 true, 남았으면 false. 한 날이라도 실패하면 던진다. */
+async function snapshotMissingDays(yesterday: Date): Promise<boolean> {
+  const first = resumeFrom ?? (await firstDayToCheck(yesterday));
+  const last = addDays(first, MAX_SNAPSHOT_DAYS_PER_RUN - 1);
+  const end = last < yesterday ? last : yesterday;
+  const existing = await prisma.dailyStat.findMany({
+    where: { date: { gte: first, lte: end } },
+    select: { date: true },
+  });
+  const done = new Set(existing.map(({ date }) => date.getTime()));
+
+  // 한 날이 실패해도 뒤의 날은 채운다. 실패한 날은 다음 요청이 처음부터 다시 확인할 때 채운다.
+  let failure: unknown = null;
+  for (let day = first; day <= end; day = addDays(day, 1)) {
+    if (done.has(day.getTime())) continue;
+    try {
+      await snapshotDay(day);
+    } catch (error) {
+      failure ??= error;
+    }
+  }
+  if (failure !== null) {
+    resumeFrom = null;
+    throw failure;
+  }
+  if (end < yesterday) {
+    resumeFrom = addDays(end, 1);
+    return false;
+  }
+  resumeFrom = null;
+  return true;
 }
 
 export type Totals = {
