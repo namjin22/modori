@@ -105,3 +105,61 @@ test("내일 하기를 누르면 오늘 할 일이 내일로 옮겨진다", asyn
   await openTodo(page, "빨래 개기");
   await expect(page.getByRole("dialog").getByRole("button", { name: "다음 날에 하기" })).toBeVisible();
 });
+
+test("지난 날의 할 일은 오늘 하기로 오늘에 옮기고, 안 끝낸 일은 모두 오늘 하기로 한꺼번에 옮긴다", async ({ page, email }, testInfo) => {
+  await signUp(page, email, `지난${testInfo.testId.slice(-6)}${RUN_TAG}`);
+  const user = await prisma.user.findUniqueOrThrow({ where: { email } });
+  const category = await prisma.category.findFirstOrThrow({ where: { userId: user.id } });
+  const yesterday = addDays(todayKST(), -1);
+  const base = { userId: user.id, categoryId: category.id, date: yesterday };
+  await prisma.todo.createMany({
+    data: [
+      { ...base, content: "어제 못 한 일 1", order: 0 },
+      { ...base, content: "어제 못 한 일 2", order: 1 },
+      { ...base, content: "어제 못 한 일 3", order: 2 },
+      { ...base, content: "어제 끝낸 일", order: 3, done: true, doneAt: new Date() },
+    ],
+  });
+
+  await page.goto(`/?date=${formatKST(yesterday)}`);
+  // 지난 날에서는 한 번에 옮기기가 "오늘 하기"다(내일이 아니다).
+  await openTodo(page, "어제 못 한 일 1");
+  const dialog = page.getByRole("dialog");
+  await expect(dialog.getByRole("button", { name: "내일 하기" })).toHaveCount(0);
+  await dialog.getByRole("button", { name: "오늘 하기" }).click();
+  await expect(page.getByText(`${formatMonthDayKST(todayKST())}로 옮겼어요`)).toBeVisible();
+
+  // 남은 안 끝낸 일 둘을 한꺼번에. 끝낸 일은 그대로 남는다.
+  await page.getByRole("button", { name: "안 끝낸 일 2개 모두 오늘 하기" }).click();
+  await expect(page.getByText("안 끝낸 일 2개를 오늘로 옮겼어요")).toBeVisible();
+  await expect(page.getByRole("button", { name: /모두 오늘 하기/ })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "어제 끝낸 일", exact: true })).toBeVisible();
+
+  await page.goto("/");
+  for (const content of ["어제 못 한 일 1", "어제 못 한 일 2", "어제 못 한 일 3"]) {
+    await expect(page.getByRole("button", { name: content, exact: true })).toBeVisible();
+  }
+  await expect(page.getByRole("button", { name: "어제 끝낸 일", exact: true })).toHaveCount(0);
+  // 오늘 화면에는 모두 오늘 하기가 없다.
+  await expect(page.getByRole("button", { name: /모두 오늘 하기/ })).toHaveCount(0);
+});
+
+test("오늘이 가득 차 있으면 들어가는 만큼만 옮기고 남은 수를 알린다", async ({ page, email }, testInfo) => {
+  await signUp(page, email, `가득${testInfo.testId.slice(-6)}${RUN_TAG}`);
+  const user = await prisma.user.findUniqueOrThrow({ where: { email } });
+  const category = await prisma.category.findFirstOrThrow({ where: { userId: user.id } });
+  const today = todayKST();
+  const yesterday = addDays(today, -1);
+  await prisma.todo.createMany({
+    data: [
+      // 오늘은 49개가 차 있어 하나만 더 들어간다(하루 50개).
+      ...Array.from({ length: 49 }, (_, order) => ({ userId: user.id, categoryId: category.id, date: today, content: `오늘 ${order}`, order })),
+      ...Array.from({ length: 3 }, (_, order) => ({ userId: user.id, categoryId: category.id, date: yesterday, content: `밀린 ${order}`, order })),
+    ],
+  });
+  await page.goto(`/?date=${formatKST(yesterday)}`);
+  await page.getByRole("button", { name: "안 끝낸 일 3개 모두 오늘 하기" }).click();
+  await expect(page.getByText("오늘 넣을 수 있는 1개만 옮겼어요. 2개가 남았어요")).toBeVisible();
+  expect(await prisma.todo.count({ where: { userId: user.id, date: today } })).toBe(50);
+  expect(await prisma.todo.count({ where: { userId: user.id, date: yesterday } })).toBe(2);
+});

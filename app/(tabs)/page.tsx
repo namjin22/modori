@@ -24,6 +24,7 @@ import { CategoryAdder } from "@/components/category-adder";
 import { DayRollover } from "@/components/day-rollover";
 import { Dori } from "@/components/dori";
 import { type DayEvent, EventSection } from "@/components/event-section";
+import { MoveUndoneButton } from "@/components/move-undone-button";
 import {
   type CalendarEvent,
   type DaySummary,
@@ -156,6 +157,11 @@ export default async function FeedPage({
   const date = readDate(params.date);
   const today = todayKST();
   const isToday = isSameKSTDate(date, today);
+  const isPast = daysBetween(today, date) < 0;
+  // 할 일 창의 한 번에 옮기기: 지난 날은 오늘로, 오늘·앞날은 다음 날로.
+  const quickMove = isPast
+    ? { label: "오늘 하기", target: formatKST(today) }
+    : { label: isToday ? "내일 하기" : "다음 날에 하기", target: formatKST(addDays(date, 1)) };
   const monthStart = readMonth(params.month, date);
 
   // 좁은 화면에서는 주간 줄이 기본이고, 달력은 눌렀을 때만 편다.
@@ -267,6 +273,7 @@ export default async function FeedPage({
 
   // 투두메이트처럼 카테고리마다 칩과 +를 두고, 할 일이 없는 카테고리도 보여준다.
   // 끝낸 일은 묶음 아래로 내린다(남은 일이 위에 모인다). 같은 쪽 안에서는 원래 순서를 지킨다(sort는 안정 정렬).
+  const undoneCount = todos.filter((todo) => !todo.done).length;
   const todoGroups = groupByCategory(todos, categories, { includeEmpty: true }).map((group) => ({
     ...group,
     items: [...group.items].sort((a, b) => Number(a.done) - Number(b.done)),
@@ -408,6 +415,8 @@ export default async function FeedPage({
           </div>
         )}
 
+        {isPast && undoneCount > 0 && <MoveUndoneButton date={formatKST(date)} count={undoneCount} />}
+
         {/* 앞날짜에 아직 "예정"인 루틴이 남아 있으면 다 끝낸 게 아니다. 축하 배너는 TodoProgress가 띄운다. */}
         <TodoProgress
           key={formatKST(date)}
@@ -447,7 +456,7 @@ export default async function FeedPage({
                       <TodoRow
                         todo={todo}
                         date={formatKST(date)}
-                        isToday={isToday}
+                        quickMove={quickMove}
                         received={groupReceivedReactions(
                           todo.reactions.map((reaction) => ({
                             emoji: reaction.emoji,
