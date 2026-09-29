@@ -26,6 +26,9 @@ import { FeedItem } from "@/components/feed-item";
 import { MonthCalendar, type DaySummary } from "@/components/month-calendar";
 import { WeekStrip } from "@/components/week-strip";
 import { BackLink } from "@/components/back-link";
+import { LockedProfile } from "@/components/locked-profile";
+import { SubmitButton } from "@/components/submit-button";
+import { followUser, unfollowUser } from "../../actions";
 import { avatarUrl } from "@/lib/avatar";
 
 const WEEKDAY_NAMES = ["일", "월", "화", "수", "목", "금", "토"];
@@ -111,7 +114,25 @@ export default async function FriendDayPage({
       },
     },
   });
-  if (!friend) notFound();
+  if (!friend) {
+    // 팔로우하지 않은 사람이면 없는 주소가 아니라 "팔로우하면 볼 수 있어요" 안내를 보여준다. 자기 자신과 가입 전 계정은 없는 주소다.
+    const stranger =
+      id === viewer.id
+        ? null
+        : await prisma.user.findFirst({
+            where: { id, nickname: { not: null } },
+            select: { id: true, nickname: true, profileImage: true },
+          });
+    if (!stranger?.nickname) notFound();
+    return (
+      <LockedProfile
+        nickname={stranger.nickname}
+        avatar={avatarUrl(stranger)}
+        follow={followUser}
+        targetId={stranger.id}
+      />
+    );
+  }
 
   const today = todayKST();
   const date = readDate(params_.date);
@@ -181,13 +202,20 @@ export default async function FriendDayPage({
             {friend.bio && (
               <p className="truncate text-sm text-muted">{friend.bio}</p>
             )}
-            <p className="mt-0.5 flex gap-3 text-xs text-muted">
+            <p className="mt-0.5 flex items-center gap-3 text-xs text-muted">
               <Link prefetch={false} href={`${basePath}/following`} className="hover:text-foreground">
                 팔로우 <b className="font-semibold text-foreground">{friend._count.following}</b>
               </Link>
               <Link prefetch={false} href={`${basePath}/followers`} className="hover:text-foreground">
                 팔로워 <b className="font-semibold text-foreground">{friend._count.followers}</b>
               </Link>
+              {/* 이미 팔로우한 사람이라 여기서 바로 끊을 수 있다. 끊으면 이 화면이 팔로우 안내로 바뀐다. */}
+              <form action={unfollowUser} className="ml-auto">
+                <input type="hidden" name="targetId" value={friend.id} />
+                <SubmitButton pendingLabel="처리 중" className="h-7 rounded-full bg-surface px-3 text-xs font-medium text-muted">
+                  언팔로우
+                </SubmitButton>
+              </form>
             </p>
           </div>
           {/* 좁은 화면에서 달력 버튼 하나가 한 줄을 차지하지 않게 이름 옆에 둔다. */}

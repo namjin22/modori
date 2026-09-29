@@ -74,12 +74,13 @@ export async function FriendFollowList({ id, kind }: { id: string; kind: FollowL
             );
             return (
               <li key={person.id} className="flex items-center gap-3 rounded-2xl bg-surface p-4">
-                {followed ? (
+                {/* 팔로우하지 않은 사람의 화면은 "팔로우하면 볼 수 있어요" 안내가 뜬다. 나 자신은 열 화면이 없다. */}
+                {me ? (
+                  <span className="flex min-w-0 flex-1 items-center gap-3">{face}</span>
+                ) : (
                   <Link prefetch={false} href={`/feed/u/${person.id}`} className="flex min-w-0 flex-1 items-center gap-3">
                     {face}
                   </Link>
-                ) : (
-                  <span className="flex min-w-0 flex-1 items-center gap-3">{face}</span>
                 )}
 
                 {me ? (
