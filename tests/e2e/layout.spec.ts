@@ -121,10 +121,22 @@ test("넓은 화면에서 할 일이 많아 스크롤해도 왼쪽 달력은 제
   await page.reload();
 
   const monthHeading = page.getByRole("heading", { level: 2, name: /년 \d+월/ });
+  // 화면이 뜬 직후 0.1초쯤 제목이 3px 남짓 움직인 채 자리를 잡는다(109 → 106, 달력이 스크롤로 움직이는 것과는 다른 일).
+  // 부하가 크면 그 움직임이 스크롤 재기와 겹쳐 전체 E2E에서만 실패했다. 위치가 세 번 연달아 같아질 때까지 기다린 뒤 잰다.
+  await expect
+    .poll(async () => {
+      const seen: number[] = [];
+      for (let i = 0; i < 3; i += 1) {
+        seen.push(Math.round((await monthHeading.boundingBox())?.y ?? -1));
+        await page.waitForTimeout(150);
+      }
+      return new Set(seen).size;
+    })
+    .toBe(1);
+
   const tops: number[] = [];
   for (const y of [0, 200, 600, 100_000]) {
     await page.evaluate((top) => window.scrollTo(0, top), y);
-    // 고정 시간만 기다리면 PC가 바쁠 때 스크롤이 끝나기 전에 쟀다(전체 E2E를 병렬로 돌리면 가끔 실패).
     // 스크롤이 목표(또는 맨 끝)에 닿은 뒤, 화면이 두 프레임 그려질 때까지 기다린 다음 잰다.
     await page.waitForFunction((top) => {
       const max = document.documentElement.scrollHeight - window.innerHeight;
