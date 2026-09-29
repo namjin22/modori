@@ -66,9 +66,10 @@ test("팔로우한 친구의 하루를 열어본다", async ({ page, accounts })
   await signOut(page);
   await signIn(page, accounts.me);
 
-  // 팔로우하기 전에는 볼 수 없다.
+  // 팔로우하기 전에는 할 일을 볼 수 없고, 팔로우하면 볼 수 있다는 안내가 뜬다(2026-09-29 요청으로 "없는 주소"에서 바꿈).
   await page.goto(`/feed/u/${friendId}`);
-  await expect(page.getByRole("heading", { name: "없는 주소예요" })).toBeVisible();
+  await expect(page.getByText("팔로우하면", { exact: false })).toContainText("할 일을 볼 수 있어요");
+  await expect(page.getByText("친구가 한 일")).toHaveCount(0);
 
   await page.goto("/feed/search");
   await page.getByLabel("닉네임 검색").fill(accounts.friend.nickname);
@@ -184,11 +185,11 @@ test("팔로워를 끊으면 그 사람은 내 할 일을 더 볼 수 없다", a
   await expect(page.getByText("아직 나를 팔로우한 친구가 없어요")).toBeVisible();
   expect(await prisma.follow.count({ where: { followerId: friend.id, followingId: me.id } })).toBe(0);
 
-  // 끊긴 사람은 내 하루를 열 수 없다.
+  // 끊긴 사람은 내 하루를 열 수 없다. 팔로우하면 볼 수 있다는 안내만 뜬다(예전에는 "없는 주소"였다).
   await signOut(page);
   await signIn(page, accounts.friend);
   await page.goto(`/feed/u/${me.id}`);
-  await expect(page.getByRole("heading", { name: "없는 주소예요" })).toBeVisible();
+  await expect(page.getByText("팔로우하면", { exact: false })).toContainText("할 일을 볼 수 있어요");
 });
 
 test("친구 화면에는 아직 안 끝낸 할 일도 보이고, 반응은 끝낸 일에만 보낸다", async ({ page, accounts }) => {

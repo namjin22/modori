@@ -1,0 +1,15 @@
+{
+  "appId": "site.modori.app",
+  "appName": "모도리",
+  "webDir": "www",
+  "server": {
+    "url": "https://modori.site",
+    "androidScheme": "https",
+    "errorPath": "offline.html",
+    "allowNavigation": ["modori.site"]
+  },
+  "android": {
+    "appendUserAgent": "ModoriMobile/1.0.0",
+    "allowMixedContent": false
+  }
+}

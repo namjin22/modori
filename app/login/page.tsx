@@ -3,9 +3,11 @@ import { redirect } from "next/navigation";
 
 import { Logo } from "@/components/logo";
 import { isDataGSMConfigured, isMockAuth, signIn } from "@/lib/auth";
-import { isDesktopApp } from "@/lib/desktop";
+import { isDesktopApp, isMobileApp } from "@/lib/desktop";
 import { safeNext } from "@/lib/next-path";
 import { getCurrentUser } from "@/lib/session";
+
+import { NativeLoginButtons } from "@/components/native-login-buttons";
 
 // Auth.js가 붙여 보내는 오류 코드. 사람이 읽을 말로 바꾼다.
 // 모르는 코드는 일반 안내로 받는다.
@@ -30,6 +32,7 @@ export default async function LoginPage({
   // 세션만 보고 보내면, 계정이 사라진 세션에서 탭 화면과 서로 튕겨낸다.
   if (await getCurrentUser()) redirect(next);
   const desktop = await isDesktopApp();
+  const mobile = await isMobileApp();
 
   const message = error
     ? (ERROR_MESSAGES[error] ?? "로그인하지 못했어요. 다시 시도해주세요.")
@@ -60,7 +63,15 @@ export default async function LoginPage({
           </p>
         )}
 
-        {desktop ? (
+        {mobile ? (
+          // 모바일 앱도 앱 안에서는 Google이 로그인을 막는다. 시스템 로그인 창에서 로그인하고 modori://로 돌아온다.
+          <NativeLoginButtons
+            providers={[
+              { id: "google", label: "Google로 계속하기", primary: true },
+              ...(isDataGSMConfigured ? [{ id: "datagsm" as const, label: "DataGSM으로 계속하기", primary: false }] : []),
+            ]}
+          />
+        ) : desktop ? (
           // 앱 창 안에서는 Google이 로그인을 막는다. 버튼은 웹과 같게 두고, 누르면 평소 브라우저에서
           // 그 로그인을 시작한다. 이 주소는 앱(desktop/main.js)이 가로챈다. 웹에서는 보이지 않는 버튼이다.
           <>

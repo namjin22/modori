@@ -86,25 +86,16 @@ export default async function SearchPage({
                 key={person.id}
                 className="flex items-center gap-3 rounded-2xl bg-surface p-4"
               >
-                {/* 팔로우한 사람만 하루를 열어볼 수 있다. 아직이면 누를 것이 없다. */}
-                {isFollowing ? (
-                  <Link prefetch={false}
-                    href={`/feed/u/${person.id}`}
-                    className="flex min-w-0 flex-1 items-center gap-3"
-                  >
-                    <Avatar src={avatarUrl(person)} size={36} />
-                    <span className="truncate font-medium">
-                      {person.nickname}
-                    </span>
-                  </Link>
-                ) : (
-                  <>
-                    <Avatar src={avatarUrl(person)} size={36} />
-                    <span className="flex-1 truncate font-medium">
-                      {person.nickname}
-                    </span>
-                  </>
-                )}
+                {/* 팔로우하지 않은 사람의 화면은 "팔로우하면 볼 수 있어요" 안내가 뜬다. */}
+                <Link prefetch={false}
+                  href={`/feed/u/${person.id}`}
+                  className="flex min-w-0 flex-1 items-center gap-3"
+                >
+                  <Avatar src={avatarUrl(person)} size={36} />
+                  <span className="truncate font-medium">
+                    {person.nickname}
+                  </span>
+                </Link>
 
                 <form action={isFollowing ? unfollowUser : followUser}>
                   <input type="hidden" name="targetId" value={person.id} />

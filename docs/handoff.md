@@ -1492,3 +1492,16 @@ VM에 시험 DB(사용자 1000, 할 일 108만, 반응 24만, 280MB)를 만들�
 - 다음 큰 일: 모바일 앱(`docs/platforms.md`). Capacitor 의존성 추가 승인과 푸시 범위를 사용자에게 물었다.
 
 검증: `npm run verify` 통과 — 단위 158×3, E2E 146/146.
+
+## 2026-09-29 — 팔로우 화면 개선, 모바일 앱(Android) 시작
+
+- 친구 화면: 이미 팔로우한 사람에는 "언팔로우" 버튼, 팔로우하지 않은 사람은 "없는 주소" 대신 닉네임·사진과 "팔로우하면 할 일을 볼 수 있어요" 안내(`components/locked-profile.tsx`).
+  자기 자신·가입 전 계정은 없는 주소. 기존 `friend-day.spec` 2곳(팔로우 전/끊긴 뒤 "없는 주소")은 요청으로 동작이 바뀌어 안내 확인으로 고쳤다.
+- 모바일 앱: `mobile/`(Capacitor 8, 의존성은 mobile/ 안에만, 버전 고정). Android 프로젝트에 `modori://login` 링크와 `allowBackup=false`. 웹 쪽에
+  `lib/native-login.ts`, `components/native-login-buttons.tsx`(시스템 로그인 창 열기), `components/native-bridge.tsx`(링크로 돌아와 코드 교환), UA `ModoriMobile`.
+  서버 코드는 데스크톱과 공용. 시험은 가짜 Capacitor 다리(`tests/e2e/mobile-login.spec.ts`)이고 **실제 기기는 아직 확인 못 했다**(Android SDK가 이 PC에 없다).
+  APK는 GitHub Actions `android`(손으로 실행)에서 만든다. `.gitattributes`에 gradlew LF 고정.
+- 남은 일(모바일): 푸시(Firebase 프로젝트·`google-services.json`·서버 FCM 자격이 필요, 새 표에 기기 토큰 → 방침·개인정보 목록 갱신), 아이콘·스플래시,
+  스토어 서명 키·AAB·소개·스크린샷, iOS(맥북, Apple 로그인). 채팅은 사용자에게 보류를 권했다.
+
+검증: `npm run verify` 통과 — 단위 158×3, E2E 151/151.
