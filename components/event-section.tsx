@@ -22,6 +22,7 @@ export type DayEvent = {
   endTime: number | null;
   color: string;
   memo: string | null;
+  dday: boolean;
 };
 
 /**
@@ -85,7 +86,8 @@ export function EventSection({
         <ul className="flex flex-col gap-2">
           {events.map((event) => {
             const when = describeEventWhen(event);
-            const dday = ddayLabel(event.startDate, event.endDate, todayDate);
+            // D-day를 끈 일정은 이름과 시간만 보인다.
+            const dday = event.dday ? ddayLabel(event.startDate, event.endDate, todayDate) : null;
 
             return (
               <li
@@ -180,6 +182,7 @@ export function EventSection({
                 startTime: editing.startTime === null ? "" : formatTime(editing.startTime),
                 endTime: editing.endTime === null ? "" : formatTime(editing.endTime),
                 memo: editing.memo ?? "",
+                dday: editing.dday,
               }}
               onSaved={() => setEditing(null)}
               onCancel={() => setEditing(null)}

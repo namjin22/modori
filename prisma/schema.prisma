@@ -220,6 +220,8 @@ model Event {
   endTime   Int?
   color     String
   memo      String? // 본인만 본다
+  // D-day를 보일지. 끄면 일정 카드의 D-day와 "다가오는 일정" 목록에서 빠진다(일정이 많을 때 중요한 것만 남긴다).
+  dday      Boolean  @default(true)
   createdAt DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)

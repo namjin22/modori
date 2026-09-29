@@ -143,6 +143,7 @@ const EVENT_SELECT = {
   endTime: true,
   color: true,
   memo: true,
+  dday: true,
 } as const;
 
 export default async function FeedPage({
@@ -242,6 +243,8 @@ export default async function FeedPage({
         where: {
           userId: user.id,
           startDate: { gt: today },
+          // D-day를 끈 일정은 "다가오는 일정"에 올리지 않는다(사용자가 고른 것만 남긴다).
+          dday: true,
           NOT: { startDate: { lte: date }, endDate: { gte: date } },
         },
         orderBy: [{ startDate: "asc" }, { startTime: { sort: "asc", nulls: "first" } }, { createdAt: "asc" }],
