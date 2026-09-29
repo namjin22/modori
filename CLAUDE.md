@@ -68,6 +68,7 @@ prisma/schema.prisma
 tests/              Playwright
 docs/roadmap.md     전체 계획과 남은 작업
 docs/decisions.md   설계 결정 기록
+docs/platforms.md   웹·데스크톱·모바일 기능 분담
 docs/feedback.md    사용자 요청과 안 한 이유
 docs/incidents.md   장애·버그 기록
 docs/metrics.md     지표 정의와 수집 방법
