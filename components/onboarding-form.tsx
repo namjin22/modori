@@ -6,6 +6,7 @@ import {
 } from "@/app/onboarding/actions";
 import { useState } from "react";
 
+import { AvatarChoice } from "@/components/avatar-choice";
 import { Modal } from "@/components/modal";
 import { PrivacyPolicy } from "@/components/privacy-policy";
 import { SubmitButton } from "@/components/submit-button";
@@ -31,6 +32,8 @@ export function OnboardingForm({ next }: { next: string | null }) {
         placeholder="닉네임"
         className="h-14 rounded-2xl bg-surface px-4 text-base outline-none ring-border focus:ring-2"
       />
+
+      <AvatarChoice />
 
       {/* 법에 따라 동의는 가입하는 사람이 직접 체크해야 한다. 미리 체크해 두지 않는다. */}
       <div className="flex items-center gap-3 rounded-2xl bg-surface px-4 py-3">

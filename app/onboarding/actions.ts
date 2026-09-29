@@ -13,6 +13,7 @@ import {
   validateNickname,
 } from "@/lib/nickname";
 import { prisma } from "@/lib/prisma";
+import { isProfileImage } from "@/lib/profile-image";
 import { getCurrentUser } from "@/lib/session";
 
 // 빈 화면으로 시작하면 무엇부터 해야 할지 모른다. 지우거나 바꿀 수 있는 기본값을 하나 준다.
@@ -39,6 +40,15 @@ export async function saveNickname(
     return { message: "개인정보 수집·이용에 동의해주세요." };
   }
 
+  // 가입할 때 고른 프로필 사진. 비어 있으면 도리 얼굴을 쓴다(components/avatar-choice.tsx).
+  const profileImage = String(formData.get("profileImage") ?? "").trim();
+  if (formData.get("profileImageBusy")) {
+    return { message: "사진을 줄이는 중이에요. 잠깐 뒤에 눌러주세요." };
+  }
+  if (profileImage && !isProfileImage(profileImage)) {
+    return { message: "사진을 올리지 못했어요. 다른 사진이나 도리로 해주세요." };
+  }
+
   if (await isNicknameTaken(nickname, userId)) {
     return { message: "이미 쓰고 있는 닉네임이에요. 다른 이름으로 해주세요." };
   }
@@ -47,7 +57,7 @@ export async function saveNickname(
     // 언제 동의했는지 남긴다. 방침이 바뀌면 이 시각과 시행일을 견줘 다시 물을 수 있다.
     await prisma.user.update({
       where: { id: userId },
-      data: { nickname, privacyAgreedAt: new Date() },
+      data: { nickname, privacyAgreedAt: new Date(), ...(profileImage && { profileImage }) },
     });
   } catch (error) {
     // 같은 순간에 같은 이름으로 둘이 저장하면 여기서 걸린다.
