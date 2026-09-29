@@ -19,13 +19,15 @@ docker compose up -d --wait db
 docker compose run --rm --no-deps app node /migrate/node_modules/prisma/build/index.js migrate deploy
 docker compose up -d app
 
-# 새 버전이 실제로 응답하는지 확인한다.
+# 새 버전의 앱과 DB가 모두 준비됐는지 확인한다.
+deadline=$((SECONDS + 60))
 for _ in $(seq 1 30); do
-  if curl -fsS -o /dev/null http://127.0.0.1:$PORT/login; then
+  if curl --max-time 2 -fsS -o /dev/null "http://127.0.0.1:$PORT/api/health"; then
     echo "배포 완료"
     docker image prune -f >/dev/null
     exit 0
   fi
+  if (( SECONDS >= deadline - 2 )); then break; fi
   sleep 2
 done
 
@@ -35,11 +37,13 @@ docker compose logs --tail 50 app >&2
 if docker image inspect "$IMAGE:previous" >/dev/null 2>&1; then
   docker tag "$IMAGE:previous" "$IMAGE:latest"
   docker compose up -d app
+  deadline=$((SECONDS + 60))
   for _ in $(seq 1 30); do
-    if curl -fsS -o /dev/null http://127.0.0.1:$PORT/login; then
+    if curl --max-time 2 -fsS -o /dev/null "http://127.0.0.1:$PORT/api/health"; then
       echo "직전 버전으로 되돌렸다" >&2
       exit 1
     fi
+    if (( SECONDS >= deadline - 2 )); then break; fi
     sleep 2
   done
 fi
