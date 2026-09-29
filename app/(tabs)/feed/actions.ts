@@ -31,7 +31,8 @@ export async function followUser(formData: FormData) {
     skipDuplicates: true,
   });
 
-  revalidatePath("/feed");
+  // 친구 화면과 친구의 팔로우·팔로워 목록(/feed/u/…)까지 다시 그린다.
+  revalidatePath("/feed", "layout");
   revalidatePath("/feed/search");
   revalidatePath("/feed/followers");
   revalidatePath("/settings");
@@ -44,7 +45,8 @@ export async function unfollowUser(formData: FormData) {
     where: { followerId: user.id, followingId: readText(formData, "targetId") },
   });
 
-  revalidatePath("/feed");
+  // 친구 화면과 친구의 팔로우·팔로워 목록(/feed/u/…)까지 다시 그린다.
+  revalidatePath("/feed", "layout");
   revalidatePath("/feed/search");
   revalidatePath("/feed/followers");
   revalidatePath("/settings");
