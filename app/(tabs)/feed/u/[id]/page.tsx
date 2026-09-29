@@ -97,7 +97,19 @@ export default async function FriendDayPage({
       // 팔로우한 사람만 볼 수 있다. 피드와 같은 규칙이다.
       followers: { some: { followerId: viewer.id } },
     },
-    select: { id: true, nickname: true, profileImage: true, bio: true },
+    select: {
+      id: true,
+      nickname: true,
+      profileImage: true,
+      bio: true,
+      // 가입을 마치지 않은(닉네임 없는) 계정은 목록에도 안 나오므로 세지 않는다.
+      _count: {
+        select: {
+          following: { where: { following: { nickname: { not: null } } } },
+          followers: { where: { follower: { nickname: { not: null } } } },
+        },
+      },
+    },
   });
   if (!friend) notFound();
 
@@ -169,6 +181,14 @@ export default async function FriendDayPage({
             {friend.bio && (
               <p className="truncate text-sm text-muted">{friend.bio}</p>
             )}
+            <p className="mt-0.5 flex gap-3 text-xs text-muted">
+              <Link prefetch={false} href={`${basePath}/following`} className="hover:text-foreground">
+                팔로우 <b className="font-semibold text-foreground">{friend._count.following}</b>
+              </Link>
+              <Link prefetch={false} href={`${basePath}/followers`} className="hover:text-foreground">
+                팔로워 <b className="font-semibold text-foreground">{friend._count.followers}</b>
+              </Link>
+            </p>
           </div>
           {/* 좁은 화면에서 달력 버튼 하나가 한 줄을 차지하지 않게 이름 옆에 둔다. */}
           <Link prefetch={false}
