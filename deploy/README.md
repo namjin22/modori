@@ -19,8 +19,14 @@
 
 ## 배포 흐름
 
-`main`에 합치면 `.github/workflows/deploy.yml`이 이미지를 만들고
-`docker save | ssh`로 VM에 보낸다. VM은 메모리가 4GB라 빌드를 VM에서 하지 않는다.
+`main`에 합치면 먼저 `verify`(타입·lint·단위·E2E)가 돈다. **그 커밋의 `verify`가 성공해야**
+`.github/workflows/deploy.yml`이 같은 커밋으로 이미지를 만들고 `docker save | ssh`로 VM에 보낸다
+(2026-09-29부터, 이슈 #112). 검증이 실패하거나 취소되면 배포하지 않는다. VM은 메모리가 4GB라 빌드를 VM에서 하지 않는다.
+
+- 검증이 일시적으로 깨졌으면(테스트 DB 지연 등) Actions에서 그 `verify` 실행을 다시 돌린다. 통과하면 그때 배포된다.
+- 급한 배포: Actions → `deploy-gsmsv` → "Run workflow"(`main`). 검증 없이 `main`의 최신 커밋을 올리므로
+  그 커밋의 `verify` 결과를 먼저 확인한다. 쓴 날과 이유를 `docs/incidents.md`에 남긴다.
+- PR에서 돈 `verify`(포크 PR 포함)는 배포로 이어지지 않는다. `main`에 push되어 돈 것만 본다.
 
 Actions가 쓰는 SSH 키(`GSMSV_DEPLOY_KEY`)는 VM의 `authorized_keys`에
 `command="/opt/modori/deploy.sh",restrict`로 묶여 있다. 그 키로는 셸을 열 수 없고
@@ -66,7 +72,7 @@ VM이 통째로 사라졌으면: 새 VM에 이 폴더를 다시 만들고, 백�
 
 ## 배포 되돌리기 시험
 
-`deploy.sh`는 새 버전이 60초 안에 `/login`에 응답하지 않으면 직전 이미지(`modori:previous`)로 되돌리고 실패로 끝난다.
+`deploy.sh`는 새 버전이 60초 안에 DB까지 확인하는 `/api/health`에 응답하지 않으면 직전 이미지(`modori:previous`)로 되돌리고 실패로 끝난다. 되돌린 버전도 같은 경로로 확인한다.
 마이그레이션은 되돌리지 않는다(열을 더하는 식으로만 바꾸므로 직전 앱도 돈다).
 
 운영을 멈추지 않고 시험하려면 폴더·포트·이미지 이름을 바꿔 돌린다. 2026-09-27에 이렇게 확인했다.

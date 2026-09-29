@@ -236,13 +236,17 @@ export default async function FeedPage({
         select: EVENT_SELECT,
       }),
       // 아직 오지 않은 일정. 그 날짜를 열어보지 않아도 시험이 며칠 남았는지 보인다.
-      // 보고 있는 날짜가 아니라 오늘을 기준으로 센다. 지난 날짜를 열었을 때 이미 끝난
-      // 일정이 "다가오는" 쪽에 뜨면 안 된다. 그 날 목록과 겹치는 것은 아래에서 뺀다.
+      // 보고 있는 날짜가 아니라 오늘을 기준으로 센다. 고른 날과 겹치는 일정은
+      // 상한을 적용하기 전에 빼야 다섯 개가 꽉 찬 날에도 다음 일정 셋이 보인다.
       prisma.event.findMany({
-        where: { userId: user.id, startDate: { gt: today } },
+        where: {
+          userId: user.id,
+          startDate: { gt: today },
+          NOT: { startDate: { lte: date }, endDate: { gte: date } },
+        },
         orderBy: [{ startDate: "asc" }, { startTime: { sort: "asc", nulls: "first" } }, { createdAt: "asc" }],
         select: EVENT_SELECT,
-        take: 6,
+        take: 3,
       }),
     ]);
 
@@ -380,9 +384,7 @@ export default async function FeedPage({
 
         <EventSection
           events={dayEvents}
-          upcoming={upcomingEvents
-            .filter((event) => !dayEvents.some((day) => day.id === event.id))
-            .slice(0, 3)}
+          upcoming={upcomingEvents}
           date={formatKST(date)}
           today={formatKST(today)}
         />

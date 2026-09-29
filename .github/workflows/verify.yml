@@ -25,10 +25,17 @@ jobs:
 
       # lock 파일 그대로 설치한다. 버전이 어긋나 배포가 깨진 적이 있다.
       - run: npm ci
+      - run: npm ci --prefix desktop --include=dev
+      # Electron 44는 npm ci만으로 바이너리를 내려받지 않는다. 명시적으로 설치한다.
+      - run: npm exec --prefix desktop -- install-electron
 
       - run: npx playwright install --with-deps chromium
+      - run: sudo apt-get install -y xvfb
 
-      - run: npm run verify
+      # Electron 설치 스크립트가 막히면 테스트가 건너뛰므로 먼저 명시적으로 실패시킨다.
+      - run: test -s desktop/node_modules/electron/path.txt && test -x desktop/node_modules/electron/dist/electron
+
+      - run: xvfb-run -a npm run verify
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           DIRECT_URL: ${{ secrets.DIRECT_URL }}

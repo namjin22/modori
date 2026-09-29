@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { Avatar } from "@/components/avatar";
 import { BackLink } from "@/components/back-link";
 import { DoriMessage } from "@/components/dori-message";
+import { MarkNotificationsSeen, NewMark, NotificationRow } from "@/components/notifications-seen";
 import { ReactionGlyph } from "@/components/reaction-glyph";
 import { SubmitButton } from "@/components/submit-button";
 import { avatarUrl } from "@/lib/avatar";
@@ -24,8 +25,9 @@ const MAX_ITEMS = 50;
 export default async function NotificationsPage() {
   const user = await requireUser();
 
-  // 이 화면을 여는 시점이 "읽음" 기준이다. 목록을 먼저 읽고 갱신한다.
+  // 이 화면을 그린 시각이 "읽음" 기준이다. 목록보다 먼저 잡아, 그 사이에 온 알림을 읽은 것으로 치지 않는다.
   const lastSeenAt = user.lastSeenAt;
+  const renderedAt = new Date();
 
   const [reactions, follows, myFollowing] = await Promise.all([
     prisma.reaction.findMany({
@@ -58,16 +60,17 @@ export default async function NotificationsPage() {
     .sort((a, b) => b.at.getTime() - a.at.getTime())
     .slice(0, MAX_ITEMS);
 
-  // 응답을 보내기 전에 끝내야 한다. after()로 미루면 바로 피드로 돌아갔을 때
-  // 아직 안 읽은 것으로 나온다. updateMany를 쓰는 이유는 그 사이 계정이 사라져도
-  // 화면 전체가 죽지 않게 하려는 것이다(update는 대상이 없으면 던진다).
+  // 응답을 보내기 전에 남긴다. 화면을 열자마자 떠나도 읽은 것으로 친다. updateMany를 쓰는 이유는 그 사이 계정이
+  // 사라져도 화면 전체가 죽지 않게 하려는 것이다(update는 대상이 없으면 던진다).
   await prisma.user.updateMany({
-    where: { id: user.id },
-    data: { lastSeenAt: new Date() },
+    where: { id: user.id, lastSeenAt: { lt: renderedAt } },
+    data: { lastSeenAt: renderedAt },
   });
 
   return (
     <div className="flex flex-col gap-6">
+      {/* 링크로 오갈 때는 탭 공통 레이아웃(아래 탭의 알림 수)이 다시 그려지지 않는다. 화면이 뜬 뒤 액션으로 다시 그리게 한다. */}
+      <MarkNotificationsSeen renderedAt={renderedAt.toISOString()} />
       <header className="flex items-center gap-1">
         <BackLink href="/feed" label="소셜로" />
         <h1 className="text-2xl font-bold">알림</h1>
@@ -82,13 +85,12 @@ export default async function NotificationsPage() {
         <ul className="flex flex-col gap-3">
           {items.map((item) => {
             const isNew = item.at > lastSeenAt;
-            const row = `flex items-center gap-3 rounded-2xl p-4 ${isNew ? "bg-brand-subtle" : "bg-surface"}`;
-            const newMark = isNew && <span className="shrink-0 text-xs text-brand">NEW</span>;
+            const newMark = <NewMark isNew={isNew} />;
 
             if (item.kind === "follow") {
               const person = item.follow.follower;
               return (
-                <li key={`follow-${person.id}`} className={row}>
+                <NotificationRow key={`follow-${person.id}`} isNew={isNew}>
                   <Avatar src={avatarUrl(person)} size={40} />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-semibold">{person.nickname}</p>
@@ -109,13 +111,13 @@ export default async function NotificationsPage() {
                       </SubmitButton>
                     </form>
                   )}
-                </li>
+                </NotificationRow>
               );
             }
 
             const { reaction } = item;
             return (
-              <li key={reaction.id} className={row}>
+              <NotificationRow key={reaction.id} isNew={isNew}>
                 <span
                   role="img"
                   aria-label={labelOfReaction(reaction.emoji)}
@@ -131,7 +133,7 @@ export default async function NotificationsPage() {
                   </p>
                 </div>
                 {newMark}
-              </li>
+              </NotificationRow>
             );
           })}
         </ul>
