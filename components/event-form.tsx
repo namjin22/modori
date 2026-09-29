@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 import {
   createEvent,
@@ -9,6 +9,7 @@ import {
 } from "@/app/(tabs)/events/actions";
 import { LabeledSwitch } from "@/components/labeled-switch";
 import { SubmitButton } from "@/components/submit-button";
+import { TimePicker } from "@/components/time-picker";
 import { useFormAction } from "@/components/use-form-action";
 import { MAX_MEMO_LENGTH } from "@/lib/memo";
 
@@ -27,8 +28,8 @@ type EditingEvent = {
 /**
  * 일정 만들기와 고치기에 같이 쓴다. 떠 있는 창 안에 들어간다.
  *
- * 아래의 "저장"으로만 저장한다(사용자 요청). 날짜·시간 칸을 옮겨 다니다 Enter를 눌러 덜 고친 채
- * 저장되는 일이 없게, 입력칸의 Enter는 막는다. 시간은 비워 두면 하루 종일이다.
+ * 이름·날짜 칸의 Enter나 "저장"으로 저장한다(2026-09-29 사용자 요청으로 Enter 저장을 되살렸다). 메모 칸의 Enter는 줄바꿈이다.
+ * "하루 종일"을 끄면 시작·끝 시간을 드롭다운으로 고른다(components/time-picker.tsx).
  */
 export function EventForm({
   event,
@@ -48,6 +49,16 @@ export function EventForm({
   );
   // 만들기 창과 고치기 창이 한 화면에 여럿 떠 있을 수 있다. 이름표를 구분한다.
   const label = event ? "일정" : "새 일정";
+  const [allDay, setAllDay] = useState(!event?.startTime);
+  const [startTime, setStartTime] = useState(event?.startTime ?? "");
+  const [endTime, setEndTime] = useState(event?.endTime ?? "");
+
+  // 시작을 끝보다 늦게 옮기면 끝을 한 시간 뒤로 따라 옮긴다. 그대로 두면 저장할 때 "끝이 시작보다 이르다"에 걸린다.
+  // "HH:MM"은 글자 순서가 시간 순서와 같아 그대로 견준다.
+  function changeStart(next: string) {
+    setStartTime(next);
+    if (next && endTime && endTime <= next) setEndTime(oneHourLater(next));
+  }
 
   useEffect(() => {
     if (state?.ok) onSaved();
@@ -56,9 +67,6 @@ export function EventForm({
   return (
     <form
       onSubmit={action}
-      onKeyDown={(keyEvent) => {
-        if (keyEvent.key === "Enter" && keyEvent.target instanceof HTMLInputElement) keyEvent.preventDefault();
-      }}
       className="flex flex-col gap-4"
     >
       {event && <input type="hidden" name="id" value={event.id} />}
@@ -101,26 +109,36 @@ export function EventForm({
             className="h-11 w-full min-w-0 rounded-xl bg-surface-hover px-3 text-sm text-foreground"
           />
         </label>
-        <label className="flex min-w-0 flex-col gap-1.5 text-xs text-muted">
-          시작 시간
-          <input
-            type="time"
-            name="startTime"
-            defaultValue={event?.startTime ?? ""}
-            aria-label={`${label} 시작 시간`}
-            className="h-11 w-full min-w-0 rounded-xl bg-surface-hover px-3 text-sm text-foreground"
-          />
-        </label>
-        <label className="flex min-w-0 flex-col gap-1.5 text-xs text-muted">
-          종료 시간
-          <input
-            type="time"
-            name="endTime"
-            defaultValue={event?.endTime ?? ""}
-            aria-label={`${label} 종료 시간`}
-            className="h-11 w-full min-w-0 rounded-xl bg-surface-hover px-3 text-sm text-foreground"
-          />
-        </label>
+      </div>
+
+      <div className="flex flex-col gap-3 rounded-xl border border-border p-3">
+        <LabeledSwitch
+          name="allDay"
+          title="하루 종일"
+          checked={allDay}
+          onChange={(checked) => {
+            setAllDay(checked);
+            // 처음 시간을 켤 때 흔한 값(오전 9시~10시)을 넣어 둔다. 빈 칸에서 고르는 것보다 빠르다.
+            if (!checked && !startTime) {
+              setStartTime("09:00");
+              setEndTime("10:00");
+            }
+          }}
+        />
+        {!allDay && (
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center gap-3">
+              <span className="w-8 shrink-0 text-xs text-muted">시작</span>
+              <TimePicker label={`${label} 시작`} value={startTime} onChange={changeStart} />
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="w-8 shrink-0 text-xs text-muted">끝</span>
+              <TimePicker label={`${label} 종료`} value={endTime} onChange={setEndTime} optional />
+            </div>
+          </div>
+        )}
+        <input type="hidden" name="startTime" value={allDay ? "" : startTime} />
+        <input type="hidden" name="endTime" value={allDay ? "" : endTime} />
       </div>
 
       <LabeledSwitch
@@ -130,7 +148,7 @@ export function EventForm({
         defaultChecked={event?.dday ?? true}
       />
 
-      {/* 메모 칸의 Enter는 줄바꿈이다(위의 Enter 막기는 input에만 건다). */}
+      {/* 메모 칸의 Enter는 줄바꿈이다(textarea라 폼을 보내지 않는다). */}
       <textarea
         name="memo"
         defaultValue={event?.memo ?? ""}
@@ -146,8 +164,6 @@ export function EventForm({
           {state.message}
         </p>
       )}
-
-      <p className="-mt-1 text-xs text-muted">시간은 비워 두면 하루 종일이에요.</p>
 
       <div className="grid grid-cols-2 gap-2">
         <button
@@ -167,4 +183,11 @@ export function EventForm({
       </div>
     </form>
   );
+}
+
+/** 한 시간 뒤. 자정을 넘기면 그날 23:55에서 멈춘다(끝 시간은 같은 날 안에서 고른다). */
+function oneHourLater(time: string): string {
+  const [hour, minute] = time.split(":").map(Number);
+  const minutes = Math.min(hour * 60 + minute + 60, 23 * 60 + 55);
+  return `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
 }

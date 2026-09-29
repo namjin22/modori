@@ -30,11 +30,14 @@ type Todo = {
 export function TodoRow({
   todo,
   date,
+  isToday,
   received = [],
 }: {
   todo: Todo;
-  // 이 할 일의 날짜("YYYY-MM-DD"). "다른 날에 하기"의 처음 값(다음 날)을 여기서 정한다.
+  // 이 할 일의 날짜("YYYY-MM-DD"). "내일 하기"와 "다른 날에 하기"의 처음 값(다음 날)을 여기서 정한다.
   date: string;
+  // 오늘 할 일이면 다음 날 버튼을 "내일 하기"로, 아니면 "다음 날에 하기"로 부른다.
+  isToday: boolean;
   // 친구들이 이 할 일에 보낸 반응. 종류별로 묶여 온다.
   received?: ReceivedReaction[];
 }) {
@@ -96,6 +99,8 @@ export function TodoRow({
             aria-label="할 일 내용 수정"
             className="h-12 w-full rounded-xl bg-surface-hover px-4 text-[15px] outline-none focus:ring-2 focus:ring-brand"
           />
+          {/* 날짜 옮기기는 자주 누르므로 메모·삭제·저장보다 위에 둔다(사용자 요청). */}
+          <MoveToDay id={todo.id} date={date} isToday={isToday} onMoved={() => setOpen(false)} />
           <textarea
             name="memo"
             defaultValue={todo.memo ?? ""}
@@ -124,7 +129,6 @@ export function TodoRow({
           </div>
         </form>
 
-        <MoveToDay id={todo.id} date={date} onMoved={() => setOpen(false)} />
       </Modal>
 
       {/* 친구가 보낸 반응(투두메이트처럼). 누르면 누가 보냈는지 보인다. */}
@@ -133,71 +137,97 @@ export function TodoRow({
   );
 }
 
-/** "다른 날에 하기". 누르면 날짜 칸이 열리고, 고른 날로 옮긴다. */
-function MoveToDay({ id, date, onMoved }: { id: string; date: string; onMoved: () => void }) {
+/**
+ * 할 일을 다음 날이나 고른 날로 옮긴다. 할 일 폼 안에 들어가므로(폼 안에 폼을 둘 수 없다) 버튼으로 보낸다.
+ * 날짜 칸의 Enter는 할 일 저장이 아니라 옮기기로 받는다.
+ */
+function MoveToDay({
+  id,
+  date,
+  isToday,
+  onMoved,
+}: {
+  id: string;
+  date: string;
+  isToday: boolean;
+  onMoved: () => void;
+}) {
+  const nextDay = formatKST(addDays(parseKSTDate(date), 1));
   const [picking, setPicking] = useState(false);
+  const [day, setDay] = useState(nextDay);
   const [message, setMessage] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const toast = useToast();
   const saveFailed = useSaveFailure();
 
-  if (!picking) {
-    return (
-      <button
-        type="button"
-        onClick={() => setPicking(true)}
-        className="h-10 w-full rounded-xl border border-border text-sm font-medium"
-      >
-        다른 날에 하기
-      </button>
-    );
+  function move(target: string) {
+    setMessage(null);
+    startTransition(async () => {
+      try {
+        const result = await moveTodo(id, target);
+        if (!result.ok) {
+          setMessage(result.message);
+          return;
+        }
+        onMoved();
+        toast({ message: result.message });
+      } catch (error) {
+        saveFailed(error);
+      }
+    });
   }
 
+  const button = "h-10 flex-1 rounded-xl border border-border text-sm font-medium disabled:opacity-50";
+
   return (
-    <form
-      onSubmit={(event) => {
-        event.preventDefault();
-        const day = new FormData(event.currentTarget).get("day");
-        if (typeof day !== "string") return;
-        startTransition(async () => {
-          try {
-            const result = await moveTodo(id, day);
-            if (!result.ok) {
-              setMessage(result.message);
-              return;
-            }
-            onMoved();
-            toast({ message: result.message });
-          } catch (error) {
-            saveFailed(error);
-          }
-        });
-      }}
-      className="flex flex-col gap-2 rounded-xl border border-border p-3"
-    >
-      <p className="text-xs text-muted">어느 날로 옮길까요?</p>
-      <div className="flex items-center gap-2">
-        <input
-          type="date"
-          name="day"
-          required
-          defaultValue={formatKST(addDays(parseKSTDate(date), 1))}
-          aria-label="옮길 날짜"
-          className="h-10 min-w-0 flex-1 rounded-xl bg-surface-hover px-3 text-sm"
-        />
-        <SubmitButton
-          pending={pending}
-          pendingLabel="옮기는 중"
-          className="h-10 shrink-0 rounded-xl bg-brand px-4 text-sm font-semibold text-brand-contrast"
+    <div className="flex flex-col gap-2">
+      <div className="flex gap-2">
+        <button type="button" disabled={pending} onClick={() => move(nextDay)} className={button}>
+          {isToday ? "내일 하기" : "다음 날에 하기"}
+        </button>
+        <button
+          type="button"
+          aria-expanded={picking}
+          onClick={() => setPicking((value) => !value)}
+          className={`${button} ${picking ? "border-brand text-brand" : ""}`}
         >
-          옮기기
-        </SubmitButton>
+          다른 날에 하기
+        </button>
       </div>
+
+      {picking && (
+        <div className="flex flex-col gap-2 rounded-xl border border-border p-3">
+          <p className="text-xs text-muted">어느 날로 옮길까요?</p>
+          <div className="flex items-center gap-2">
+            <input
+              type="date"
+              value={day}
+              onChange={(event) => setDay(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key !== "Enter") return;
+                event.preventDefault();
+                if (day) move(day);
+              }}
+              aria-label="옮길 날짜"
+              className="h-10 min-w-0 flex-1 rounded-xl bg-surface-hover px-3 text-sm"
+            />
+            <button
+              type="button"
+              disabled={pending || !day}
+              onClick={() => move(day)}
+              className="h-10 shrink-0 rounded-xl bg-brand px-4 text-sm font-semibold text-brand-contrast disabled:opacity-50"
+            >
+              {pending ? "옮기는 중" : "옮기기"}
+            </button>
+          </div>
+        </div>
+      )}
+
       {message && (
         <p role="alert" className="text-sm text-danger">
           {message}
         </p>
       )}
-    </form>
+    </div>
   );
 }

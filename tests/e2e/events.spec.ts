@@ -33,6 +33,18 @@ function dayCell(page: Page, date: Date) {
   });
 }
 
+/**
+ * 일정 시간을 고른다. "하루 종일"을 끄고 시·분 드롭다운에서 고른다(2026-09-29, 기본 시간 칸이 맥에서 AM/PM을
+ * 바꾸기 어려워 드롭다운으로 바꿨다). 확인하는 내용은 예전에 시간 칸에 글자를 넣던 때와 같다.
+ */
+async function setEventTime(page: Page, which: "시작" | "종료", time: string, label = "새 일정") {
+  const allDay = page.getByRole("checkbox", { name: "하루 종일" });
+  if (await allDay.isChecked()) await allDay.uncheck();
+  const [hour, minute] = time.split(":");
+  await page.getByLabel(`${label} ${which} 시`, { exact: true }).selectOption(hour);
+  await page.getByLabel(`${label} ${which} 분`, { exact: true }).selectOption(minute);
+}
+
 test.afterAll(async () => {
   await prisma.$disconnect();
 });
@@ -144,14 +156,14 @@ test("일정에 시간을 넣으면 목록에 시간이 보이고 시간순으�
 
   await page.getByRole("button", { name: "시험이나 행사 적어두기" }).click();
   await page.getByLabel("새 일정 이름").fill("오후 발표");
-  await page.getByLabel("새 일정 시작 시간").fill("14:00");
-  await page.getByLabel("새 일정 종료 시간").fill("15:30");
+  await setEventTime(page, "시작", "14:00");
+  await setEventTime(page, "종료", "15:30");
   await page.getByRole("button", { name: "저장", exact: true }).click();
   await expect(page.getByRole("listitem").filter({ hasText: "오후 발표" })).toContainText("14:00 ~ 15:30");
 
   await page.getByRole("button", { name: "+ 일정 더 적기" }).click();
   await page.getByLabel("새 일정 이름").fill("아침 조회");
-  await page.getByLabel("새 일정 시작 시간").fill("08:40");
+  await setEventTime(page, "시작", "08:40");
   await page.getByRole("button", { name: "저장", exact: true }).click();
   await expect(page.getByRole("listitem").filter({ hasText: "아침 조회" })).toContainText("08:40");
 
@@ -162,15 +174,16 @@ test("일정에 시간을 넣으면 목록에 시간이 보이고 시간순으�
   // 끝나는 시간이 시작보다 이르면 막는다.
   await page.getByRole("button", { name: "+ 일정 더 적기" }).click();
   await page.getByLabel("새 일정 이름").fill("거꾸로");
-  await page.getByLabel("새 일정 시작 시간").fill("10:00");
-  await page.getByLabel("새 일정 종료 시간").fill("09:00");
+  await setEventTime(page, "시작", "10:00");
+  await setEventTime(page, "종료", "09:00");
   await page.getByRole("button", { name: "저장", exact: true }).click();
   await expect(page.getByRole("alert").filter({ hasText: "끝나는 시간이 시작 시간보다" })).toBeVisible();
 
   // 고치는 창에도 시간이 그대로 들어 있다.
   await page.keyboard.press("Escape");
   await openEvent(page, "오후 발표");
-  await expect(page.getByLabel("일정 시작 시간", { exact: true })).toHaveValue("14:00");
+  await expect(page.getByLabel("일정 시작 시", { exact: true })).toHaveValue("14");
+  await expect(page.getByLabel("일정 시작 분", { exact: true })).toHaveValue("00");
 });
 
 test("달력에서 일정 이름을 다른 날로 끌면 기간이 늘어난다", async ({ page, email }, testInfo) => {
@@ -230,19 +243,21 @@ test("여러 날 일정의 첫날을 잡고 끌면 시작일이 움직여 줄어
   expect(formatKST(event.endDate)).toBe(formatKST(addDays(first, 2)));
 });
 
-test("일정은 Enter가 아니라 저장 버튼으로 저장하고, 취소하면 고친 게 남지 않는다", async ({ page, email }, testInfo) => {
+// 2026-09-29 사용자 요청으로 Enter 저장을 되살려 이 테스트의 앞부분을 뒤집었다(예전: Enter로는 저장하지 않는다).
+test("일정은 Enter나 저장 버튼으로 저장하고, 취소하면 고친 게 남지 않는다", async ({ page, email }, testInfo) => {
   await signInAndOnboard(page, email, `저장${testInfo.testId.slice(-6)}${RUN_TAG}`);
   const user = await prisma.user.findUniqueOrThrow({ where: { email } });
 
   await page.getByRole("button", { name: "시험이나 행사 적어두기" }).click();
   await page.getByLabel("새 일정 이름").fill("수학 시험");
-  // Enter는 저장하지 않는다. 날짜 칸을 옮겨 다니다 덜 고친 채 저장되지 않게.
-  await page.getByLabel("새 일정 이름").press("Enter");
-  await page.getByLabel("새 일정 시작 시간").fill("09:00");
-  await page.getByLabel("새 일정 시작 시간").press("Enter");
+  await setEventTime(page, "시작", "09:00");
+  // 메모 칸의 Enter는 줄바꿈이라 저장하지 않는다.
+  await page.getByLabel("새 일정 메모").fill("3단원");
+  await page.getByLabel("새 일정 메모").press("Enter");
   expect(await prisma.event.count({ where: { userId: user.id } })).toBe(0);
 
-  await page.getByRole("button", { name: "저장", exact: true }).click();
+  // 이름 칸에서 Enter를 누르면 저장한다.
+  await page.getByLabel("새 일정 이름").press("Enter");
   await expect(page.getByRole("listitem").filter({ hasText: "수학 시험" })).toContainText("09:00");
 
   // 고치다 취소하면 그대로다.
