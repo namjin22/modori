@@ -115,3 +115,23 @@ export async function toggleReaction(formData: FormData) {
   // 반응 수는 피드와 친구 화면 양쪽에 보인다. /feed 아래를 통째로 다시 그린다.
   revalidatePath("/feed", "layout");
 }
+
+/**
+ * 알림 화면이 뜬 뒤 브라우저가 부른다(components/notifications-seen.tsx). 읽은 시각은 화면을 그릴 때 이미 남겼고,
+ * 여기서는 탭 공통 레이아웃을 다시 그리게 하는 것이 목적이다. 알림 수는 레이아웃이 세는데, 링크로 오갈 때 Next는
+ * 레이아웃을 다시 그리지 않아 알림을 봐도 아래 탭의 숫자가 남아 있었다.
+ *
+ * 화면을 그리다 갱신이 실패했을 때를 위해 한 번 더 남긴다. 기준은 화면을 그린 시각이고, 뒤로 돌리지 않는다.
+ */
+export async function markNotificationsSeen(renderedAt: string) {
+  const user = await requireUser();
+  const at = new Date(renderedAt);
+  if (Number.isNaN(at.getTime())) return;
+  const seenAt = at.getTime() > Date.now() ? new Date() : at;
+
+  await prisma.user.updateMany({
+    where: { id: user.id, lastSeenAt: { lt: seenAt } },
+    data: { lastSeenAt: seenAt },
+  });
+  revalidatePath("/", "layout");
+}
