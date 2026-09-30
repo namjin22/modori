@@ -1,5 +1,9 @@
 apply plugin: 'com.android.application'
 
+// 괄호 없는 호출(versionCode 값 ?: ...)은 Groovy가 다르게 읽어 null이 되므로 먼저 변수에 담는다.
+def modoriVersionCode = Integer.parseInt(System.getenv("MODORI_VERSION_CODE") ?: "1")
+def modoriVersionName = System.getenv("MODORI_VERSION_NAME") ?: "1.0.0"
+
 android {
     namespace = "site.modori.app"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -8,8 +12,8 @@ android {
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         // 스토어는 올릴 때마다 versionCode가 커져야 한다. CI가 실행 번호를 넣는다(.github/workflows/android.yml).
-        versionCode (System.getenv("MODORI_VERSION_CODE") ?: "1").toInteger()
-        versionName System.getenv("MODORI_VERSION_NAME") ?: "1.0.0"
+        versionCode modoriVersionCode
+        versionName modoriVersionName
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
