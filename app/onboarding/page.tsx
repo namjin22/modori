@@ -22,7 +22,7 @@ export default async function OnboardingPage({
         <Dori mood="hello" size={88} className="-ml-2 mb-2" />
         <h1 className="text-2xl font-bold">뭐라고 부를까요?</h1>
         <p className="mt-2 text-muted">
-          친구가 나를 찾을 때 쓰는 이름과 사진이에요. 나중에 바꿔도 돼요.
+          친구가 나를 찾을 때 쓰는 닉네임과 사진이에요. 실명은 필요 없고, 나중에 바꿔도 돼요.
         </p>
       </div>
 
