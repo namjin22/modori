@@ -51,3 +51,6 @@ next-env.d.ts
 # 에디터 확장 설치 파일. 저장소에 들어갈 것이 아니다.
 *.vsix
 docs/promo/*.webm
+docs/promo/*.mp4
+docs/promo/*.png
+docs/promo/timeline.json
