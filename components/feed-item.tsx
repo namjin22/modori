@@ -2,7 +2,7 @@ import Link from "next/link";
 
 import { ReactionBar } from "@/components/reaction-bar";
 import { onColorText } from "@/lib/colors";
-import { summarizeReactions } from "@/lib/reactions";
+import { othersByEmoji, summarizeReactions } from "@/lib/reactions";
 
 import { Avatar } from "@/components/avatar";
 
@@ -14,7 +14,7 @@ type FeedTodo = {
   user: { id: string; nickname: string | null; avatar?: string | null };
   color: string | null;
   category: { name: string; color: string } | null;
-  reactions: { emoji: string; userId: string }[];
+  reactions: { emoji: string; userId: string; user?: { nickname: string | null } | null }[];
   // 친구 화면에는 아직 안 끝낸 일도 온다. 피드는 끝낸 일만이라 비워 둔다.
   done?: boolean;
 };
@@ -61,6 +61,7 @@ export function FeedItem({
           <ReactionBar
             todoId={todo.id}
             summary={summarizeReactions(todo.reactions, viewerId)}
+            others={othersByEmoji(todo.reactions, viewerId)}
             compact
           />
         )}
@@ -112,6 +113,7 @@ export function FeedItem({
       <ReactionBar
         todoId={todo.id}
         summary={summarizeReactions(todo.reactions, viewerId)}
+        others={othersByEmoji(todo.reactions, viewerId)}
       />
     </li>
   );

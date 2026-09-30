@@ -21,15 +21,19 @@
     <main>
       <img src="build/icon.png" alt="" />
       <h1>모도리에 연결하지 못했어요</h1>
-      <p>인터넷 연결을 확인하고 다시 시도해 주세요.</p>
+      <p>인터넷 연결을 확인해 주세요. 연결되면 자동으로 다시 시도하고, F5를 눌러도 돼요.</p>
       <button id="retry" type="button">다시 시도</button>
     </main>
     <script>
       // 원래 가려던 모도리 주소로 돌아간다(main.js가 retry로 넘긴다).
       const retry = new URLSearchParams(location.search).get("retry");
-      document.getElementById("retry").addEventListener("click", () => {
+      const go = () => {
         if (retry) location.href = retry;
-      });
+      };
+      document.getElementById("retry").addEventListener("click", go);
+      // 잠깐 끊겼다 돌아온 경우를 위해 스스로도 다시 시도한다. 네트워크가 돌아오면 바로, 아니면 15초마다.
+      window.addEventListener("online", go);
+      setInterval(go, 15000);
     </script>
   </body>
 </html>

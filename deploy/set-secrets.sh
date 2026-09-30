@@ -36,6 +36,7 @@ ask DATAGSM_CLIENT_ID "DataGSM Client ID"
 ask DATAGSM_CLIENT_SECRET "DataGSM Client Secret"
 ask OLD_NEON_URL "지금 쓰는 Neon 주소(데이터 옮길 때 한 번만 씀, DIRECT_URL 값)"
 ask BACKUP_DATABASE_URL "백업용 새 Neon 프로젝트 주소"
+ask FIREBASE_SERVICE_ACCOUNT "Firebase 서비스 계정 키(JSON을 base64로 바꾼 한 줄, 푸시 알림용)"
 
 echo "저장했다: $ENV"
 cut -d= -f1 "$ENV" | sed 's/^/  - /'

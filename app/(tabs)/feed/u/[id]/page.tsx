@@ -154,7 +154,10 @@ export default async function FriendDayPage({
       include: {
         user: { select: { id: true, nickname: true } },
         category: { select: { id: true, name: true, color: true } },
-        reactions: { select: { emoji: true, userId: true } },
+        reactions: {
+          select: { emoji: true, userId: true, user: { select: { nickname: true } } },
+          orderBy: { createdAt: "asc" },
+        },
       },
     }),
     prisma.todo.findMany({

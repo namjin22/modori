@@ -6,6 +6,7 @@ import { logout } from "@/app/(tabs)/settings/actions";
 import { Dori } from "@/components/dori";
 import { Modal } from "@/components/modal";
 import { SubmitButton } from "@/components/submit-button";
+import { unregisterPushToken } from "@/lib/push-client";
 
 /**
  * 로그아웃은 한 번 더 묻는다. 마이페이지에서 스크롤하다 잘못 누르면 다시 로그인해야 하는데,
@@ -29,7 +30,14 @@ export function LogoutButton() {
           <Dori mood="hello" size={88} />
           <p className="text-balance text-sm text-muted">다음에 또 만나요. 기록은 그대로 남아 있어요.</p>
         </div>
-        <form action={logout} className="grid grid-cols-2 gap-2">
+        <form
+          action={async () => {
+            // 이 기기가 로그아웃한 계정의 알림을 계속 받지 않게 번호를 먼저 지운다. 세션이 살아 있을 때 해야 한다.
+            await unregisterPushToken();
+            await logout();
+          }}
+          className="grid grid-cols-2 gap-2"
+        >
           <button
             type="button"
             onClick={() => setOpen(false)}

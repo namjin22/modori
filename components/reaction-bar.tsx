@@ -15,18 +15,22 @@ import {
 } from "@/lib/reactions";
 
 /**
- * 받은 반응은 이모지 칩으로 쌓이고, 새로 보낼 때는 +를 눌러 고른다.
+ * 받은 반응은 이모지 칩으로 쌓인다. 칩을 누르면 누가 눌렀는지 창으로 보여준다(같이 누르는 것이 아니다).
+ * 내 반응을 보내거나 취소하는 것은 ♡를 눌러 고르는 창에서 한다.
  *
- * 누르면 서버 응답을 기다리지 않고 바로 바뀐다. 기다렸다 바꾸면 눌렸는지 몰라
+ * 창에서 고르면 서버 응답을 기다리지 않고 바로 바뀐다. 기다렸다 바꾸면 눌렸는지 몰라
  * 두 번 누르게 되고, 그러면 취소된다.
  */
 export function ReactionBar({
   todoId,
   summary,
+  others = {},
   compact = false,
 }: {
   todoId: string;
   summary: ReactionSummary[];
+  // 이모지별로 내가 아닌 사람들의 닉네임(lib/reactions.ts의 othersByEmoji).
+  others?: Record<string, string[]>;
   // 할 일과 같은 줄에 붙일 때는 칩을 작게 한다.
   compact?: boolean;
 }) {
@@ -34,6 +38,8 @@ export function ReactionBar({
   // 도리·이모지 모두 같은 크기 칸에 그린다(reaction-glyph). 칩 높이에 거의 꽉 차게 둔다.
   const glyphSize = compact ? 20 : 24;
   const [picking, setPicking] = useState(false);
+  // 누가 눌렀는지 보는 창. 누른 칩의 이모지를 기억해 그 반응을 맨 위에 둔다.
+  const [whoOpened, setWhoOpened] = useState<string | null>(null);
   const [, startTransition] = useTransition();
   const saveFailed = useSaveFailure();
 
@@ -75,6 +81,15 @@ export function ReactionBar({
     return optimistic.some((item) => item.emoji === value && item.mine);
   }
 
+  /** 이모지 하나를 누른 사람들. 내가 눌렀으면 "나"가 맨 앞에 온다. */
+  function whoPressed(emoji: string, mine: boolean) {
+    return [...(mine ? ["나"] : []), ...(others[emoji] ?? [])];
+  }
+
+  const whoList = whoOpened
+    ? [...optimistic].sort((a, b) => Number(b.emoji === whoOpened) - Number(a.emoji === whoOpened))
+    : optimistic;
+
   function pick(value: string) {
     send(value);
     setPicking(false);
@@ -88,9 +103,8 @@ export function ReactionBar({
         <button
           key={emoji}
           type="button"
-          onClick={() => send(emoji)}
-          aria-label={`${labelOfReaction(emoji)} 반응${mine ? " 취소" : ""}`}
-          aria-pressed={mine}
+          onClick={() => setWhoOpened(emoji)}
+          aria-label={`${labelOfReaction(emoji)} ${count}개${mine ? ", 내가 누름" : ""}, 누가 눌렀는지 보기`}
           className={`flex ${chip} items-center gap-1 rounded-full transition-colors active:scale-90 ${
             mine
               ? "bg-brand-subtle text-brand ring-1 ring-brand/40"
@@ -110,6 +124,24 @@ export function ReactionBar({
       >
         ♡
       </button>
+
+      <Modal open={whoOpened !== null} onClose={() => setWhoOpened(null)} title="누가 눌렀어요">
+        <ul className="flex flex-col gap-3">
+          {whoList.map(({ emoji, count, mine }) => (
+            <li key={emoji} className="flex items-start gap-3">
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-surface-hover">
+                <ReactionGlyph value={emoji} size={28} />
+              </span>
+              <div className="min-w-0 flex-1 pt-0.5">
+                <p className="text-sm font-semibold">
+                  {labelOfReaction(emoji)} <span className="font-normal text-muted">{count}개</span>
+                </p>
+                <p className="text-sm text-muted">{whoPressed(emoji, mine).join(", ") || "지운 계정"}</p>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </Modal>
 
       <Modal
         open={picking}

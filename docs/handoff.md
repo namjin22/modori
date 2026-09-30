@@ -1556,3 +1556,13 @@ VM에 시험 DB(사용자 1000, 할 일 108만, 반응 24만, 280MB)를 만들�
 - 홍보 영상: 첫 화면 비율 조정, 로고도 위에서부터 채움.
 
 검증: `npm run verify` 통과 — 단위 158×3, E2E 155/155.
+
+## 2026-09-30 — 푸시 알림(Android), 반응 칩 동작 변경
+
+- 푸시 알림(받은 반응, 새 팔로워): `PushToken` 표(마이그레이션 `20260930115108_push_token`), `lib/push.ts`(Node crypto로 FCM v1, 새 서버 의존성 없음), `/api/push/register`, 앱 쪽 `components/push-registrar.tsx`, `mobile/`에 `@capacitor/push-notifications` 8.1.2와 `google-services.json`. 서비스 계정 키가 서버에 없으면 아무것도 안 보낸다.
+  **켜려면:** ① Firebase 콘솔에서 서비스 계정 키(JSON) 생성 ② base64 한 줄로 바꿔 VM에서 `deploy/set-secrets.sh`로 `FIREBASE_SERVICE_ACCOUNT` 입력 ③ 서버 재시작 ④ `android` 워크플로 release로 새 AAB → Play Console 새 버전. Play Console 데이터 보안에 "기기 또는 기타 ID"(FCM 토큰) 추가.
+- 반응 칩은 "누가 눌렀어요" 창(`components/reaction-bar.tsx`), 내 반응은 ♡ 창에서(decisions).
+- 데스크톱 새로고침(F5) PR #125 열림. 태그 `desktop-v1.0.2`는 사용자 확인 뒤에 올린다.
+- 검증: 세션을 바꾸는 동안 PC가 멈춰 한 번 56분 걸리고 todo.spec 3개가 DB 연결 오류로 실패했다(단독 재실행 통과). 다시 돌려 통과.
+
+검증: `npm run verify` 통과 — 단위 168×3, E2E 160/160.

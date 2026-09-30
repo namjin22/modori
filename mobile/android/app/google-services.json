@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "974398300145",
+    "project_id": "modori-6a8b1",
+    "storage_bucket": "modori-6a8b1.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:974398300145:android:2a4f9ee363a0790a86ee50",
+        "android_client_info": {
+          "package_name": "site.modori.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCWARVdACcXZxK6TJVMhZ5-fpGlNnua9JQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

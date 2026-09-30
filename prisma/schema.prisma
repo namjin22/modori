@@ -42,6 +42,7 @@ model User {
   followers     Follow[]       @relation("following")
   reactions     Reaction[]
   activeDays    ActiveDay[]
+  pushTokens    PushToken[]
 }
 
 model Account {
@@ -256,6 +257,22 @@ model DesktopLogin {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([expiresAt])
+}
+
+// 모바일 앱이 푸시 알림(받은 반응, 새 팔로워)을 받으려고 알려 준 기기 알림 번호(FCM 토큰).
+// 같은 기기가 다른 계정으로 로그인하면 그 계정으로 옮겨 온다. 로그아웃하거나 계정을 지우면 지우고,
+// 알림을 보냈는데 Google이 더는 없는 번호라고 하면(앱 삭제 등) 그때도 지운다(lib/push.ts).
+model PushToken {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  platform  String // "android"
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 // ========================================

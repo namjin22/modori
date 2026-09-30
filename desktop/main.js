@@ -4,7 +4,7 @@
 // 로그인: Google은 앱 안에 끼운 브라우저에서의 로그인을 막는다. 그래서 평소 브라우저에서 로그인하고,
 // 서버가 준 한 번 쓰는 코드를 처음에 만든 verifier와 함께 바꿔 세션을 받는다(웹의 lib/desktop-login.ts).
 
-const { app, BrowserWindow, shell } = require("electron");
+const { app, BrowserWindow, Menu, shell } = require("electron");
 const crypto = require("node:crypto");
 const path = require("node:path");
 
@@ -63,6 +63,19 @@ function handleDeepLink(url) {
   win.focus();
 }
 global.modoriHandleDeepLink = handleDeepLink;
+
+// 연결 안내 화면(offline.html)이 떠 있을 때 새로고침하면 안내 화면이 아니라 원래 가려던 주소로 돌아가야 한다.
+let retryUrl = BASE.toString();
+
+/** F5·Ctrl+R. 안내 화면이면 원래 주소를 다시 부르고, 아니면 지금 화면을 다시 읽는다. hard는 캐시도 무시한다. */
+function reloadPage({ hard = false } = {}) {
+  if (!win) return;
+  const contents = win.webContents;
+  if (contents.getURL().startsWith("file:")) win.loadURL(retryUrl);
+  else if (hard) contents.reloadIgnoringCache();
+  else contents.reload();
+}
+global.modoriReload = reloadPage;
 
 function isOurs(url) {
   try {
@@ -125,6 +138,7 @@ function createWindow() {
     // -3은 사용자가 다른 곳으로 옮겨 간 경우(ERR_ABORTED)라 오류가 아니다.
     if (!isMainFrame || errorCode === -3) return;
     const retry = isOurs(url) ? url : BASE.toString();
+    retryUrl = retry;
     win.loadFile(path.join(__dirname, "offline.html"), { query: { retry } });
   });
 
@@ -132,6 +146,32 @@ function createWindow() {
     win = null;
   });
   win.loadURL(BASE.toString());
+}
+
+// 메뉴 막대는 Alt를 눌러야 보이지만, 단축키는 늘 먹는다. 기본 메뉴의 새로고침은 안내 화면에서 안내 화면만 다시 읽는다.
+function setupMenu() {
+  Menu.setApplicationMenu(
+    Menu.buildFromTemplate([
+      {
+        label: "보기",
+        submenu: [
+          { label: "새로고침", accelerator: "F5", click: () => reloadPage() },
+          { label: "새로고침", accelerator: "CmdOrCtrl+R", visible: false, click: () => reloadPage() },
+          { label: "캐시 없이 새로고침", accelerator: "CmdOrCtrl+Shift+R", click: () => reloadPage({ hard: true }) },
+          { type: "separator" },
+          { label: "뒤로", accelerator: "Alt+Left", click: () => win?.webContents.navigationHistory.goBack() },
+          { label: "앞으로", accelerator: "Alt+Right", click: () => win?.webContents.navigationHistory.goForward() },
+          { type: "separator" },
+          { role: "zoomIn" },
+          { role: "zoomOut" },
+          { role: "resetZoom" },
+          { type: "separator" },
+          { role: "togglefullscreen" },
+        ],
+      },
+      { label: "편집", submenu: [{ role: "undo" }, { role: "redo" }, { type: "separator" }, { role: "cut" }, { role: "copy" }, { role: "paste" }, { role: "selectAll" }] },
+    ]),
+  );
 }
 
 // modori:// 링크를 이 앱이 받게 등록한다. 개발 중(electron .)에는 실행 파일과 경로를 같이 넘겨야 한다.
@@ -169,6 +209,7 @@ if (!app.requestSingleInstanceLock()) {
   });
 
   app.whenReady().then(() => {
+    setupMenu();
     createWindow();
     app.on("activate", () => {
       if (BrowserWindow.getAllWindows().length === 0) createWindow();
