@@ -7,6 +7,7 @@ import base from "./playwright.config";
 export default defineConfig({
   ...base,
   testDir: "tests/screenshots",
+  testIgnore: "promo.spec.ts",
   workers: 1,
   retries: 0,
   reporter: "list",

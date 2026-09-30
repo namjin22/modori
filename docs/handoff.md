@@ -1514,3 +1514,21 @@ VM에 시험 DB(사용자 1000, 할 일 108만, 반응 24만, 280MB)를 만들�
 - 이전 배포(PR #121: 언팔로우·팔로우 안내·모바일 앱)는 9/29 검증 대기 중이었다. 배포 상태는 다음 작업자가 `gh run list`로 확인.
 
 검증: `npm run verify` 통과 — 단위 158×3, E2E 153/153.
+
+## 2026-09-30 — Play Console 준비: 계정 삭제 안내 페이지
+
+- 사용자: APK 설치·Google 로그인 성공 확인. Firebase 프로젝트 `modori-6a8b1` 생성, `google-services.json` 받음(아직 저장소에 넣지 않았다. 푸시 작업 때 `mobile/android/app/`에).
+  Play Console은 **개인 계정**(비공개 테스트 12명 × 14일 필요) — AAB를 빨리 올릴수록 유리.
+- 공개 페이지 `/account-deletion`(로그인 없이 보임, Play "계정 삭제 URL"용). 방침 6번에 이 주소 안내 한 줄. 새 저장 항목은 없다.
+- 남은 일: 서명된 AAB(Play 앱 서명), 스토어 문구·아이콘·그래픽·스크린샷, 심사용 Google 계정 입력(사용자), 푸시.
+
+검증: `npm run verify` 통과 — 단위 158×3, E2E 154/154.
+
+## 2026-09-30 — 스토어 문구·그림, 홍보 영상 녹화
+
+- 스토어 등록정보 문구는 `docs/store-listing.md`, 그림(아이콘·그래픽 이미지·휴대전화 스크린샷 6장, 9:16)은 `docs/screenshots/store-listing/`.
+  스크린샷은 `STORE_ASSETS=1 SCREENSHOT_DIR=store-listing npm run screenshots`.
+- 홍보 영상: `npm run promo`(Playwright 녹화, `docs/promo/`). 데모 시드는 `tests/screenshots/seed.ts`로 빼서 스크린샷과 같이 쓴다.
+  이 PC에는 ffmpeg가 없어 자막·음악은 편집 앱(CapCut)에서 얹는다. 녹화 결과 화면은 눈으로 확인하지 못했다(단계별 단언만 통과) — 사용자가 재생해 보고 어색한 장면을 알려 주면 `beat` 시간을 고친다.
+
+검증: `npm run verify` 통과 — 단위 158×3, E2E 154/154.
