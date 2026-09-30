@@ -3,8 +3,10 @@
 import { Prisma } from "@prisma/client";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 
 import { prisma } from "@/lib/prisma";
+import { sendPushToUser } from "@/lib/push";
 import { isReactionValue } from "@/lib/reactions";
 import { requireUser } from "@/lib/session";
 
@@ -26,10 +28,21 @@ export async function followUser(formData: FormData) {
   });
   if (!target) return;
 
-  await prisma.follow.createMany({
+  const created = await prisma.follow.createMany({
     data: [{ followerId: user.id, followingId: target.id }],
     skipDuplicates: true,
   });
+  // 새로 팔로우했을 때만 알린다. 응답은 알림을 보내는 것을 기다리지 않는다.
+  if (created.count > 0) {
+    after(() =>
+      sendPushToUser(target.id, {
+        title: "새 팔로워",
+        body: `${user.nickname}님이 나를 팔로우했어요`,
+        url: "/feed/followers",
+        tag: `follow:${user.id}`,
+      }),
+    );
+  }
 
   // 친구 화면과 친구의 팔로우·팔로워 목록(/feed/u/…)까지 다시 그린다.
   revalidatePath("/feed", "layout");
@@ -101,6 +114,18 @@ export async function toggleReaction(formData: FormData) {
       await prisma.reaction.create({
         data: { userId: user.id, todoId, todoUserId: todo.userId, emoji },
       });
+      // 같은 할 일에 이 사람의 첫 반응일 때만 알린다. 반응을 껐다 켜며 알림이 쌓이지 않게 한다.
+      const mine = await prisma.reaction.count({ where: { userId: user.id, todoId } });
+      if (mine === 1) {
+        after(() =>
+          sendPushToUser(todo.userId, {
+            title: "반응이 왔어요",
+            body: `${user.nickname}님이 내 할 일에 반응을 보냈어요`,
+            url: "/feed/reactions",
+            tag: `reaction:${todoId}`,
+          }),
+        );
+      }
     }
   } catch (error) {
     // 같은 순간에 두 번 눌러 먼저 온 요청이 이미 만들었다. 결과는 같으니 넘긴다.
