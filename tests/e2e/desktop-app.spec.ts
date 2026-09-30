@@ -107,3 +107,27 @@ test("서버에 닿지 못하면 흰 화면 대신 연결 안내를 띄운다", 
     await app.close();
   }
 });
+
+test("연결 안내 화면에서 F5(새로고침)를 누르면 원래 주소를 다시 부른다", async () => {
+  const app = await launch("http://127.0.0.1:9");
+  try {
+    const win = await app.firstWindow();
+    await expect(win.getByRole("heading", { name: "모도리에 연결하지 못했어요" })).toBeVisible();
+    // 새로고침이 안내 화면 자신이 아니라 원래 주소(연결 실패)를 부르는지: 주소가 안내 화면 파일에서 다시 안내 화면으로 돌아온다.
+    const loads = await app.evaluate(async ({ BrowserWindow }) => {
+      const contents = BrowserWindow.getAllWindows()[0].webContents;
+      let started = 0;
+      contents.on("did-start-navigation", (...args: unknown[]) => {
+        const [, url, , isMainFrame] = args as [unknown, string, unknown, boolean];
+        if (isMainFrame && url.startsWith("http://127.0.0.1:9")) started += 1;
+      });
+      (globalThis as unknown as { modoriReload: () => void }).modoriReload();
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      return started;
+    });
+    expect(loads).toBeGreaterThanOrEqual(1);
+    await expect(win.getByRole("heading", { name: "모도리에 연결하지 못했어요" })).toBeVisible();
+  } finally {
+    await app.close();
+  }
+});
