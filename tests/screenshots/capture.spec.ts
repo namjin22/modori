@@ -124,6 +124,18 @@ async function shoot(page: Page, name: string) {
   await page.setViewportSize(viewport);
 }
 
+/**
+ * Google Play 스토어 등록정보용. 스토어는 9:16(또는 16:9)만 받아서 창을 늘리지 않고 화면 한 장 크기로 찍는다.
+ * 1080×1920이 되도록 405×720에 배율 2.667을 준다. STORE_ASSETS=1일 때만 돈다.
+ */
+async function shootStore(page: Page, name: string) {
+  await page.waitForLoadState("networkidle");
+  await page.evaluate(() => document.fonts.ready);
+  // 스크롤바가 찍혀 오른쪽이 잘려 보인다.
+  await page.addStyleTag({ content: "::-webkit-scrollbar{display:none}html{scrollbar-width:none}" });
+  await page.screenshot({ path: path.join(OUT, `${name}.png`), type: "png" });
+}
+
 let seeded: Seeded;
 
 test.beforeAll(async () => {
@@ -136,7 +148,35 @@ test.afterAll(async () => {
   await prisma.$disconnect();
 });
 
-for (const viewport of VIEWPORTS) {
+const STORE = process.env.STORE_ASSETS === "1";
+
+test.describe("스토어 스크린샷", () => {
+  test.skip(!STORE, "STORE_ASSETS=1일 때만 찍는다");
+  test.use({ viewport: { width: 405, height: 720 }, deviceScaleFactor: 2.667 });
+
+  test("휴대전화", async ({ page }) => {
+    await page.emulateMedia({ colorScheme: "light" });
+    await page.goto("/login");
+    await page.getByLabel("테스트 이메일").fill(ME);
+    await page.getByRole("button", { name: "테스트 로그인" }).click();
+    await expect(page.getByRole("button", { name: "공부에 할 일 쓰기" })).toBeVisible();
+
+    const screens: [string, string][] = [
+      ["1-home", "/"],
+      ["2-calendar", "/?view=month"],
+      ["3-social", "/feed"],
+      ["4-friend", `/feed/u/${seeded.friendId}`],
+      ["5-notifications", "/feed/reactions"],
+      ["6-stats", "/stats"],
+    ];
+    for (const [name, url] of screens) {
+      await page.goto(url);
+      await shootStore(page, `store-phone-${name}`);
+    }
+  });
+});
+
+for (const viewport of STORE ? [] : VIEWPORTS) {
   test(`${viewport.name} 화면`, async ({ page }) => {
     await page.setViewportSize({ width: viewport.width, height: viewport.height });
     await page.emulateMedia({ colorScheme: "light" });
