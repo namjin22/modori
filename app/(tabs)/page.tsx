@@ -215,7 +215,8 @@ export default async function FeedPage({
       listScheduledRoutines(user.id, date),
       prisma.todo.findMany({
         where: { userId: user.id, date: { gte: weekStart, lte: weekEnd } },
-        orderBy: { order: "asc" },
+        // 끝낸 순서대로. 날짜 밑 고양이가 끝낸 차례로 위에서부터 채워진다(components/day-fill.tsx).
+        orderBy: [{ doneAt: { sort: "asc", nulls: "last" } }, { order: "asc" }],
         select: RANGE_SELECT,
       }),
       prisma.todo.findMany({
@@ -223,7 +224,7 @@ export default async function FeedPage({
           userId: user.id,
           date: { gte: monthStart, lte: monthEnd },
         },
-        orderBy: { order: "asc" },
+        orderBy: [{ doneAt: { sort: "asc", nulls: "last" } }, { order: "asc" }],
         select: RANGE_SELECT,
       }),
       // 고른 날에 걸쳐 있는 일정

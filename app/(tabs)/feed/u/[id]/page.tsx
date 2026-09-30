@@ -159,12 +159,12 @@ export default async function FriendDayPage({
     }),
     prisma.todo.findMany({
       where: { ...visible, date: { gte: weekStart, lte: weekEnd } },
-      orderBy: { order: "asc" },
+      orderBy: [{ doneAt: { sort: "asc", nulls: "last" } }, { order: "asc" }],
       select: { date: true, done: true, color: true, category: { select: { color: true } } },
     }),
     prisma.todo.findMany({
       where: { ...visible, date: { gte: monthStart, lte: monthEnd } },
-      orderBy: { order: "asc" },
+      orderBy: [{ doneAt: { sort: "asc", nulls: "last" } }, { order: "asc" }],
       select: { date: true, done: true, color: true, category: { select: { color: true } } },
     }),
   ]);

@@ -1,5 +1,5 @@
 /**
- * 날짜 아래 고양이 머리 표시. 그날 할 일 가운데 끝낸 만큼 아래부터 그 색으로 찬다.
+ * 날짜 아래 고양이 머리 표시. 그날 할 일 가운데 끝낸 만큼, 끝낸 차례로 위에서부터 그 색으로 찬다.
  * 투두메이트의 날짜 표시처럼 달력만 봐도 어느 날 무엇을 얼마나 했는지 보인다.
  * 모양은 앱 아이콘(app/icon.svg)의 귀 달린 네모와 같다.
  *
@@ -22,7 +22,7 @@ export function DayFill({
 }: {
   id: string;
   total: number;
-  // 끝낸 할 일의 색. 먼저 온 것이 맨 아래에 깔린다.
+  // 끝낸 할 일의 색. 먼저 끝낸 것이 맨 위에 온다.
   doneColors: string[];
   size?: number;
 }) {
@@ -48,7 +48,7 @@ export function DayFill({
             key={index}
             x={0}
             // 칸 사이가 벌어져 보이지 않게 조금 겹친다.
-            y={64 - share * (index + 1) - 0.5}
+            y={share * index}
             width={64}
             height={share + 0.5}
             fill={color}
