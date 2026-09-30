@@ -13,6 +13,8 @@
     "test:e2e": "playwright test",
     "screenshots": "playwright test --config playwright.screenshots.config.ts",
     "promo": "playwright test --config playwright.promo.config.ts",
+    "promo:edit": "node scripts/promo-edit.mjs",
+    "promo:anim": "node scripts/promo-anim.mjs",
     "verify": "tsc --noEmit && npm run lint && npm run test:tz && npm run test:e2e"
   },
   "dependencies": {

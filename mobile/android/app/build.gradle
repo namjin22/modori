@@ -1,5 +1,9 @@
 apply plugin: 'com.android.application'
 
+// 괄호 없는 호출(versionCode 값 ?: ...)은 Groovy가 다르게 읽어 null이 되므로 먼저 변수에 담는다.
+def modoriVersionCode = Integer.parseInt(System.getenv("MODORI_VERSION_CODE") ?: "1")
+def modoriVersionName = System.getenv("MODORI_VERSION_NAME") ?: "1.0.0"
+
 android {
     namespace = "site.modori.app"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -7,8 +11,9 @@ android {
         applicationId "site.modori.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        // 스토어는 올릴 때마다 versionCode가 커져야 한다. CI가 실행 번호를 넣는다(.github/workflows/android.yml).
+        versionCode modoriVersionCode
+        versionName modoriVersionName
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -16,8 +21,22 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    // 업로드 키. 값은 GitHub 비밀(Secrets)에서 환경 변수로만 들어오고 저장소에는 없다.
+    // 값이 없으면 서명 없이 만들어져 로컬 빌드는 그대로 된다.
+    signingConfigs {
+        release {
+            def keystorePath = System.getenv("MODORI_KEYSTORE_FILE")
+            if (keystorePath) {
+                storeFile file(keystorePath)
+                storePassword System.getenv("MODORI_KEYSTORE_PASSWORD")
+                keyAlias System.getenv("MODORI_KEY_ALIAS")
+                keyPassword System.getenv("MODORI_KEY_PASSWORD")
+            }
+        }
+    }
     buildTypes {
         release {
+            if (System.getenv("MODORI_KEYSTORE_FILE")) signingConfig signingConfigs.release
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }

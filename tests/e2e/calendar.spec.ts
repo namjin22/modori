@@ -102,3 +102,25 @@ test("날짜를 누르면 그 날의 할 일 화면으로 간다", async ({ page
 
   await expect(page).toHaveURL(`/?date=${formatKST(today)}`);
 });
+
+test("날짜 밑 표시는 끝낸 순서대로 위에서부터 찬다", async ({ page }) => {
+  const today = todayKST();
+  const user = await prisma.user.findUniqueOrThrow({ where: { email: TEST_EMAIL } });
+  const [early, late] = await Promise.all([
+    prisma.category.create({ data: { userId: user.id, name: "먼저", color: "#ef4444", order: 5 } }),
+    prisma.category.create({ data: { userId: user.id, name: "나중", color: "#0ea5e9", order: 6 } }),
+  ]);
+  const now = Date.now();
+  // 목록 순서(order)는 나중에 끝낸 일이 앞이다. 그래도 끝낸 시각이 이른 색이 맨 위에 와야 한다.
+  await prisma.todo.createMany({
+    data: [
+      { userId: user.id, categoryId: late.id, content: "나중에 끝낸 일", date: today, order: 0, done: true, doneAt: new Date(now) },
+      { userId: user.id, categoryId: early.id, content: "먼저 끝낸 일", date: today, order: 1, done: true, doneAt: new Date(now - 3_600_000) },
+    ],
+  });
+
+  await page.goto("/");
+  const monthCell = page.getByRole("link", { name: new RegExp(`^${today.getUTCDate()}일, 완료`) });
+  await expect(monthCell.locator(`svg rect[fill="${early.color}"]`)).toHaveAttribute("y", "0");
+  await expect(monthCell.locator(`svg rect[fill="${late.color}"]`)).toHaveAttribute("y", "32");
+});

@@ -23,7 +23,7 @@ const MAX_CHIPS = 3;
 /** 달력 한 칸에 필요한 요약. 할 일이 없는 날은 넘기지 않아도 된다. */
 export type DaySummary = {
   total: number;
-  // 완료한 할 일의 색. 할 일 순서대로.
+  // 완료한 할 일의 색. 끝낸 순서대로(먼저 끝낸 것이 위).
   doneColors: string[];
 };
 

@@ -1528,7 +1528,31 @@ VM에 시험 DB(사용자 1000, 할 일 108만, 반응 24만, 280MB)를 만들�
 
 - 스토어 등록정보 문구는 `docs/store-listing.md`, 그림(아이콘·그래픽 이미지·휴대전화 스크린샷 6장, 9:16)은 `docs/screenshots/store-listing/`.
   스크린샷은 `STORE_ASSETS=1 SCREENSHOT_DIR=store-listing npm run screenshots`.
-- 홍보 영상: `npm run promo`(Playwright 녹화, `docs/promo/`). 데모 시드는 `tests/screenshots/seed.ts`로 빼서 스크린샷과 같이 쓴다.
-  이 PC에는 ffmpeg가 없어 자막·음악은 편집 앱(CapCut)에서 얹는다. 녹화 결과 화면은 눈으로 확인하지 못했다(단계별 단언만 통과) — 사용자가 재생해 보고 어색한 장면을 알려 주면 `beat` 시간을 고친다.
+- 홍보 영상: `npm run promo`(Playwright 녹화) → `npm run promo:edit`(FFmpeg로 자막·음악, mp4). `docs/promo/README.md`. 사용자가 "편집된 영상"을 원해 FFmpeg를 winget으로 설치했다(Gyan.FFmpeg).
+  데모 시드는 `tests/screenshots/seed.ts`로 빼서 스크린샷과 같이 쓴다. 프레임을 뽑아 화면·자막 위치를 확인했다. 음악은 합성 화음(임시) — 사용자가 좋은 곡을 주면 `MUSIC=`로 바꾼다.
 
 검증: `npm run verify` 통과 — 단위 158×3, E2E 154/154.
+
+## 2026-09-30 — 애니메이션 홍보 영상
+
+- 운영자가 화면 녹화 영상을 마음에 들어 하지 않아 "색이 채워지는 하루" 콘셉트의 30초 모션 그래픽을 코드로 만들었다(`npm run promo:anim`, `scripts/promo-anim*`). 실사·AI 영상은 이 환경에서 만들 수 없다고 안내했다.
+- 프레임을 뽑아 화면·자막 위치를 확인했다. 소리는 들을 수 없어 볼륨(평균 -20dB, 최대 -1.4dB)만 확인했다. 음악은 합성이라 어색하면 곡을 바꾼다.
+- 계정 삭제 안내(`/account-deletion`, PR #123)는 배포 완료를 확인했다(200).
+
+검증: `npm run verify` 통과 — 단위 158×3, E2E 154/154.
+
+## 2026-09-30 — 스토어용 AAB 준비
+
+- `mobile/android/app/build.gradle`: 업로드 키를 환경 변수로 받는 서명 설정, 버전 코드·이름을 환경 변수(`MODORI_VERSION_CODE/NAME`)로. `android.yml`에 `aab` 작업(release 입력 또는 `mobile-v*` 태그) 추가.
+- 앱 아이콘(적응형 포함)·시작 화면을 앱 로고로 교체(`scripts/mobile-icons.mjs`). 안내서 `docs/mobile-release.md`.
+- **사용자가 할 일:** 업로드 키 만들기 → GitHub 비밀 4개 → android 워크플로 release로 실행 → AAB를 Play Console 내부/비공개 테스트에 올리기.
+- Gradle 변경은 이 PC에 Android SDK가 없어 로컬에서 못 돌렸다. CI(`android` 워크플로)로 확인한다 — 결과는 아래에.
+
+## 2026-09-30 — AAB 만듦, 끝낸 순서 채움
+
+- 사용자가 업로드 키(`upload.jks`)를 만들고 GitHub 비밀 4개를 넣었다. `android` 워크플로 release로 AAB 빌드 성공(실행 36675767322), `modori-android-release` 결과물을 사용자 바탕화면 `modori-aab/`에 내려받았다. Play Console 업로드는 사용자가 한다.
+- 날짜 밑 고양이(`DayFill`)는 끝낸 순서(`doneAt`)대로 위에서부터 채운다(decisions 참고). 달력·주간 줄·친구 화면 조회의 정렬을 바꿨다. 테스트 `calendar.spec` 추가.
+- 첫 전체 검증에서 3개(로그인 후 온보딩 입력칸 기다리다 30초 초과)가 실패했다. 같은 파일 재실행과 전체 재실행은 통과(155/155) — 환경 지연으로 보인다.
+- 홍보 영상: 첫 화면 비율 조정, 로고도 위에서부터 채움.
+
+검증: `npm run verify` 통과 — 단위 158×3, E2E 155/155.

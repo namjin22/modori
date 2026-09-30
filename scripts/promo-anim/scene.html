@@ -1,0 +1,319 @@
+<!doctype html>
+<meta charset="utf-8">
+<style>
+  html, body { margin: 0; background: #fff; overflow: hidden; }
+  svg { display: block; width: 1080px; height: 1920px; }
+  text { font-family: "Noto Sans KR", "Malgun Gothic", "Segoe UI Emoji", sans-serif; }
+</style>
+<div id="root"></div>
+<script>
+const W = 1080, H = 1920;
+const COLORS = ["#2563eb", "#22c55e", "#f97316", "#7c3aed"];
+const S = window.TL.SCENES;
+
+const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const prog = (t, a, b) => clamp((t - a) / (b - a));
+const outCubic = (x) => 1 - Math.pow(1 - x, 3);
+const inOut = (x) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
+const outBack = (x) => { const c1 = 1.70158, c3 = c1 + 1; return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2); };
+const lerp = (a, b, x) => a + (b - a) * x;
+// 시드 고정 난수: 프레임마다 같은 값이 나와야 영상이 떨리지 않는다.
+const rnd = (i) => { const x = Math.sin(i * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); };
+
+const text = (str, x, y, size, { fill = "#111", weight = 900, anchor = "middle", opacity = 1, stroke = "", sw = 0, dy = 0 } = {}) =>
+  `<text x="${x}" y="${y + dy}" font-size="${size}" font-weight="${weight}" fill="${fill}" text-anchor="${anchor}" opacity="${opacity}"` +
+  (stroke ? ` stroke="${stroke}" stroke-width="${sw}" paint-order="stroke" stroke-linejoin="round"` : "") + `>${str}</text>`;
+
+/** 단어 단위로 위로 떠오르며 나타난다. */
+function kinetic(words, s, x, y, size, opts = {}) {
+  const gap = size * 0.28;
+  const widths = words.map((w) => w.length * size * 0.9);
+  const total = widths.reduce((a, b) => a + b, 0) + gap * (words.length - 1);
+  let cursor = x - total / 2;
+  return words.map((w, i) => {
+    const p = outBack(prog(s, i * 0.16, i * 0.16 + 0.45));
+    const a = prog(s, i * 0.16, i * 0.16 + 0.25);
+    const cx = cursor + widths[i] / 2;
+    cursor += widths[i] + gap;
+    return text(w, cx, y + (1 - p) * 50, size, { ...opts, opacity: a });
+  }).join("");
+}
+
+// 앱의 날짜 표시와 같은 고양이 모양(components/day-fill.tsx). 64×64 좌표.
+const CAT_SHAPES = `<path d="M11 22 L15 5 L28 15 Z"/><path d="M53 22 L49 5 L36 15 Z"/><rect x="6" y="14" width="52" height="46" rx="15"/>`;
+let catId = 0;
+/** fills: 색 네 줄이 아래부터 차오르는 정도(0~1). face: 얼굴이 보이는 정도. */
+function cat(cx, cy, size, fills, face, { rot = 0, scale = 1, stripes = COLORS, check = 0 } = {}) {
+  const id = `c${catId++}`;
+  const sc = (size / 64) * scale;
+  const share = 64 / stripes.length;
+  const rects = stripes.map((c, i) => {
+    const h = share * clamp(fills[i] ?? 0) + (fills[i] > 0 ? 0.6 : 0);
+    return `<rect x="0" y="${share * i}" width="64" height="${h}" fill="${c}"/>`;
+  }).join("");
+  const f = clamp(face);
+  return `<g transform="translate(${cx} ${cy}) rotate(${rot}) scale(${sc}) translate(-32 -32)">
+    <defs><clipPath id="${id}">${CAT_SHAPES}</clipPath></defs>
+    <g fill="#c9d1e6" stroke="#c9d1e6" stroke-width="10" stroke-linejoin="round">${CAT_SHAPES}</g>
+    <g clip-path="url(#${id})"><rect width="64" height="64" fill="#eef1f8"/>${rects}</g>
+    <g opacity="${f}" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M15 38 Q20 30 25 38"/><path d="M39 38 Q44 30 49 38"/><path d="M27 43 Q32 50 37 43"/>
+    </g>
+    ${check > 0 ? `<path d="M20 37 L28.5 45.5 L44 29" fill="none" stroke="#fff" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="40" stroke-dashoffset="${40 * (1 - clamp(check))}"/>` : ""}
+    <g opacity="${f}"><ellipse cx="12" cy="44" rx="4" ry="2.6" fill="#ffdbe4" opacity=".85"/><ellipse cx="52" cy="44" rx="4" ry="2.6" fill="#ffdbe4" opacity=".85"/></g>
+  </g>`;
+}
+
+const star = (x, y, r, fill, rot = 0) =>
+  `<path transform="translate(${x} ${y}) rotate(${rot}) scale(${Math.max(r, 0) / 10})" d="M0 -10 L2.6 -2.6 L10 0 L2.6 2.6 L0 10 L-2.6 2.6 L-10 0 L-2.6 -2.6 Z" fill="${fill}"/>`;
+
+const shadow = `<filter id="sh" x="-50%" y="-50%" width="200%" height="200%"><feDropShadow dx="0" dy="24" stdDeviation="28" flood-color="#1f2937" flood-opacity=".18"/></filter><filter id="shs" x="-60%" y="-120%" width="220%" height="340%"><feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="#1f2937" flood-opacity=".16"/></filter>`;
+
+/* 장면 1: 회색 책상 */
+function desk(s) {
+  const zoom = 1 + 0.06 * prog(s, 0, 4.4);
+  const notes = [[260, 1240, -8, 330], [640, 1330, 6, 300], [880, 1200, -4, 250]].map(([x, y, r, w], i) => {
+    const sway = Math.sin(s * 1.6 + i) * 2;
+    return `<g transform="translate(${x} ${y}) rotate(${r + sway})"><rect x="${-w / 2}" y="${-w / 2}" width="${w}" height="${w}" rx="12" fill="${["#e4e6eb", "#dcdfe5", "#e9ebef"][i]}"/>
+      ${[0, 1, 2, 3].map((l) => `<rect x="${-w / 2 + 34}" y="${-w / 2 + 60 + l * 54}" width="${w - 68 - l * 46}" height="14" rx="7" fill="#c3c7cf"/>`).join("")}</g>`;
+  }).join("");
+  const marks = [0, 1, 2].map((i) => {
+    const a = prog(s, 1.2 + i * 0.5, 1.8 + i * 0.5);
+    return text("?", 250 + i * 290, 800 - a * 50 + Math.sin(s * 3 + i) * 10, 150 + i * 20, { fill: "#a0a5b1", opacity: a * (1 - prog(s, 3.6, 4.2)) });
+  }).join("");
+  return `<g transform="translate(540 960) scale(${zoom}) translate(-540 -960)">
+    <rect width="${W}" height="${H}" fill="#eceef2"/>
+    <rect y="960" width="${W}" height="1000" fill="#d5d8de"/><rect y="956" width="${W}" height="8" fill="#c6cad2"/>
+    ${notes}
+    <g transform="translate(800 1660) rotate(-24)"><rect x="-240" y="-16" width="480" height="32" rx="12" fill="#bfc3cb"/><path d="M240 -16 L300 0 L240 16Z" fill="#a9adb6"/></g>
+    <g transform="translate(330 1600) rotate(-10)" filter="url(#sh)"><rect x="-160" y="-320" width="320" height="640" rx="52" fill="#b4b8c1"/><rect x="-138" y="-296" width="276" height="592" rx="38" fill="#cdd0d8"/></g>
+    ${marks}
+  </g>
+  ${kinetic(["오늘도", "뭐부터", "하지?"], s, 540, 420, 90, { fill: "#4b5563" })}`;
+}
+
+/* 장면 2: 적으면 색이 번진다 */
+function write(s) {
+  const cx = 540, cy = 1060;
+  const rings = [2400, 1850, 1350, 900].map((r, i) => {
+    const p = outCubic(prog(s, 2.4 + i * 0.25, 3.6 + i * 0.25));
+    return p > 0 ? `<circle cx="${cx}" cy="${cy}" r="${r * p}" fill="${COLORS[i]}" opacity="1"/>` : "";
+  }).join("");
+  const label = "영어 발표 준비";
+  const typed = label.slice(0, Math.floor(prog(s, 0.5, 1.75) * (label.length + 0.999)));
+  const enter = prog(s, 2.1, 2.4);
+  const phoneScale = 1 + 0.04 * outCubic(prog(s, 0, 1)) + 0.05 * Math.sin(prog(s, 2.3, 2.9) * Math.PI);
+  const cursor = Math.floor(s * 2.5) % 2 === 0 && s < 2.1 ? "|" : "";
+  const dots = [0, 1, 2, 3, 4, 5].map((i) => {
+    const p = prog(s, 2.6 + i * 0.05, 3.5);
+    const ang = i * 60 + 20;
+    return p > 0 ? `<circle cx="${cx + Math.cos(ang * Math.PI / 180) * (300 + outCubic(p) * 260)}" cy="${cy + Math.sin(ang * Math.PI / 180) * (300 + outCubic(p) * 260)}" r="${26 * (1 - p)}" fill="#fff"/>` : "";
+  }).join("");
+  const gone = prog(s, 2.5, 3.6);
+  return `<rect width="${W}" height="${H}" fill="#eceef2"/>${rings}
+  <g transform="translate(${cx} ${cy}) scale(${phoneScale}) translate(${-cx} ${-cy})" filter="url(#sh)">
+    <rect x="${cx - 270}" y="${cy - 540}" width="540" height="1080" rx="72" fill="#fff"/>
+    <rect x="${cx - 270}" y="${cy - 540}" width="540" height="1080" rx="72" fill="none" stroke="#e5e7eb" stroke-width="6"/>
+    ${text("오늘", cx - 220, cy - 430, 46, { fill: "#6b7280", anchor: "start", weight: 700 })}
+    <rect x="${cx - 230}" y="${cy - 360}" width="460" height="120" rx="24" fill="#f3f4f6"/>
+    <rect x="${cx - 214}" y="${cy - 328}" width="56" height="56" rx="14" fill="${enter > 0.5 ? COLORS[0] : "#e5e7eb"}"/>
+    ${enter > 0.5 ? `<path d="M${cx - 200} ${cy - 298} l10 10 l19 -22" stroke="#fff" stroke-width="8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>` : ""}
+    ${text(typed + cursor, cx - 140, cy - 285, 44, { fill: "#111827", anchor: "start", weight: 700 })}
+    <rect x="${cx - 230}" y="${cy - 200}" width="150" height="56" rx="28" fill="${COLORS[0]}" opacity="${prog(s, 0.4, 0.8)}"/>
+    ${text("공부", cx - 155, cy - 160, 32, { fill: "#fff", opacity: prog(s, 0.4, 0.8), weight: 700 })}
+    ${[0, 1, 2].map((i) => `<rect x="${cx - 230}" y="${cy - 100 + i * 120}" width="460" height="90" rx="22" fill="#f3f4f6"/><rect x="${cx - 210}" y="${cy - 78 + i * 120}" width="46" height="46" rx="12" fill="#e5e7eb"/><rect x="${cx - 140}" y="${cy - 62 + i * 120}" width="${260 - i * 50}" height="16" rx="8" fill="#d1d5db"/>`).join("")}
+  </g>${dots}
+  ${kinetic(["할", "일을", "적고"], s, 540, 300, 120, { fill: s > 2.4 ? "#fff" : "#4b5563", stroke: s > 2.4 ? "rgba(31,41,55,.72)" : "", sw: 14 })}
+`;
+}
+
+/* 도리: components/dori.tsx의 얼굴을 옮겨 왔다. 120×120 좌표에서 머리 가운데가 (60, 66). */
+const D_INK = "#6e82ad", D_BODY = "#fdfbf7", D_EYE = "#5d6f96";
+function dori(cx, cy, size, mood, { rot = 0, scale = 1 } = {}) {
+  const head = `<path d="M40 25 L35 9 Q48 11 55 21 Z"/><path d="M80 25 L85 9 Q72 11 65 21 Z"/><circle cx="60" cy="46" r="32"/>`;
+  const face = mood === "cheer"
+    ? `<path d="M39 49 Q46 39 53 49" stroke="${D_EYE}" stroke-width="4" fill="none" stroke-linecap="round"/><path d="M67 49 Q74 39 81 49" stroke="${D_EYE}" stroke-width="4" fill="none" stroke-linecap="round"/>
+       <path d="M52.5 55 Q60 67 67.5 55 Z" fill="${D_EYE}" stroke="${D_EYE}" stroke-width="2.4" stroke-linejoin="round"/><path d="M55.6 61 Q60 57.6 64.4 61 Q60 64.6 55.6 61 Z" fill="#ff8fb0"/>`
+    : `<ellipse cx="46" cy="46" rx="6" ry="7.5" fill="${D_EYE}"/><circle cx="48" cy="42.5" r="2.1" fill="#fff"/><ellipse cx="74" cy="46" rx="6" ry="7.5" fill="${D_EYE}"/><circle cx="76" cy="42.5" r="2.1" fill="#fff"/>
+       <path d="M53.5 55 Q60 62 66.5 55" stroke="${D_EYE}" stroke-width="3.4" fill="none" stroke-linecap="round"/>`;
+  return `<g transform="translate(${cx} ${cy}) rotate(${rot}) scale(${(size / 120) * scale}) translate(-60 -66)">
+    <g transform="translate(60 66) scale(1.1) translate(-60 -46)">
+      <g fill="${D_INK}" stroke="${D_INK}" stroke-width="7.3" stroke-linejoin="round">${head}</g>
+      <g fill="${D_BODY}">${head}</g>
+      <path d="M41.8 21.3 L39.6 14.1 L48.6 19.5 Z" fill="#ffd0dc" stroke="#ffd0dc" stroke-width="1.6" stroke-linejoin="round"/>
+      <path d="M78.2 21.3 L80.4 14.1 L71.4 19.5 Z" fill="#ffd0dc" stroke="#ffd0dc" stroke-width="1.6" stroke-linejoin="round"/>
+      <ellipse cx="40" cy="59" rx="8" ry="6" fill="#ffdbe4"/><ellipse cx="80" cy="59" rx="8" ry="6" fill="#ffdbe4"/>
+      ${face}
+    </g></g>`;
+}
+
+/* 친구(사람) 캐릭터. (cx, cy)가 머리 가운데. */
+function friend(cx, cy, size, { rot = 0, scale = 1, hoodie = "#7c3aed", hair = "#2b3a67" } = {}) {
+  const k = (size / 300) * scale;
+  return `<g transform="translate(${cx} ${cy}) rotate(${rot}) scale(${k})">
+    <path d="M-190 300 Q-190 150 -70 128 L70 128 Q190 150 190 300 Q190 340 150 340 L-150 340 Q-190 340 -190 300 Z" fill="${hoodie}"/>
+    <path d="M-60 128 Q0 190 60 128 Z" fill="#fff" opacity=".28"/>
+    <rect x="-24" y="90" width="48" height="60" rx="20" fill="#f3c9a3"/>
+    <circle cx="0" cy="0" r="128" fill="#ffd9b8"/>
+    <path d="M-132 -6 Q-146 -150 0 -150 Q146 -150 132 -6 Q92 -84 12 -80 Q-70 -78 -132 -6 Z" fill="${hair}"/>
+    <path d="M-60 -4 Q-46 -22 -32 -4" stroke="#3b2f2f" stroke-width="9" fill="none" stroke-linecap="round"/>
+    <path d="M32 -4 Q46 -22 60 -4" stroke="#3b2f2f" stroke-width="9" fill="none" stroke-linecap="round"/>
+    <path d="M-34 40 Q0 82 34 40 Z" fill="#7a3b3b" stroke="#7a3b3b" stroke-width="6" stroke-linejoin="round"/>
+    <ellipse cx="-78" cy="34" rx="24" ry="16" fill="#ffb4a8" opacity=".7"/><ellipse cx="78" cy="34" rx="24" ry="16" fill="#ffb4a8" opacity=".7"/>
+  </g>`;
+}
+
+/* 모도리 로고(app/icon.svg). 표정 없이 귀 달린 체크박스. check는 체크가 그려지는 정도(0~1). */
+function logo(cx, cy, size, check = 1) {
+  return `<g transform="translate(${cx} ${cy}) scale(${size / 64}) translate(-32 -32)">
+    <g fill="#2563eb" stroke="#2563eb" stroke-width="4" stroke-linejoin="round"><path d="M11 22 L15 5 L28 15 Z"/><path d="M53 22 L49 5 L36 15 Z"/><rect x="6" y="14" width="52" height="46" rx="15"/></g>
+    <path d="M20 37 L28.5 45.5 L44 29" fill="none" stroke="#fff" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="40" stroke-dashoffset="${40 * (1 - clamp(check))}"/>
+  </g>`;
+}
+
+/* 장면 3: 모도리 로고가 여러 색으로 채워지고 체크가 그려진다 */
+function fill(s) {
+  const fills = [0, 1, 2, 3].map((i) => outCubic(prog(s, 0.4 + i * 0.45, 1.3 + i * 0.45)));
+  const pop = Math.max(0.001, outBack(prog(s, 0, 0.5)));
+  const bounce = 1 + 0.05 * Math.sin(prog(s, 0.4, 2.4) * Math.PI * 4) * (1 - prog(s, 0.4, 2.4) * 0.5) + 0.1 * Math.sin(prog(s, 2.9, 3.6) * Math.PI);
+  const sparks = Array.from({ length: 18 }, (_, i) => {
+    const p = prog(s, 2.9 + rnd(i) * 0.4, 4.5);
+    if (p <= 0 || p >= 1) return "";
+    const ang = rnd(i + 40) * Math.PI * 2, dist = 400 + rnd(i + 80) * 300;
+    return star(540 + Math.cos(ang) * dist * outCubic(p), 900 + Math.sin(ang) * dist * outCubic(p), (16 + rnd(i + 5) * 26) * (1 - p), COLORS[i % 4], p * 200);
+  }).join("");
+  return `<defs><linearGradient id="g3" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff7ed"/><stop offset="1" stop-color="#e8edff"/></linearGradient></defs>
+  <rect width="${W}" height="${H}" fill="url(#g3)"/>
+  ${cat(540, 900, 760, fills, 0, { scale: pop * bounce, check: prog(s, 2.4, 3.0) })}${sparks}
+  ${s > 0.3 ? kinetic(["끝내면", "색이", "채워져요"], s - 0.3, 540, 1560, 104, { fill: "#1f2937" }) : ""}`;
+}
+
+/* 장면 4: 도리와 친구가 하이파이브 */
+function friends(s) {
+  const approach = inOut(prog(s, 0.5, 1.35));
+  const recoil = outCubic(prog(s, 1.35, 1.8));
+  const lx = lerp(270, 350, approach) - recoil * 24, rx = lerp(810, 730, approach) + recoil * 24;
+  const jump = Math.sin(prog(s, 1.35, 2.2) * Math.PI) * 40;
+  const handY = 880 - approach * 80 - jump;
+  const dHand = lerp(lx + 130, 500, approach) - recoil * 24, fHand = lerp(rx - 130, 580, approach) + recoil * 24;
+  const hand = (x, fill, ink) => `<circle cx="${x}" cy="${handY}" r="52" fill="${fill}" stroke="${ink}" stroke-width="10"/>`;
+  const ringP = prog(s, 1.35, 2.0);
+  const burst = ringP > 0 && ringP < 1
+    ? `<circle cx="540" cy="${handY}" r="${outCubic(ringP) * 250}" fill="none" stroke="#fff" stroke-width="${26 * (1 - ringP)}"/>` +
+      Array.from({ length: 8 }, (_, i) => star(540 + Math.cos(i * 0.785) * 300 * outCubic(ringP), handY + Math.sin(i * 0.785) * 300 * outCubic(ringP), 34 * (1 - ringP), COLORS[i % 4], i * 30)).join("")
+    : "";
+  const floaters = ["🔥", "❤️", "👍", "🔥", "❤️", "👏"].map((e, i) => {
+    const p = prog(s, 1.6 + i * 0.22, 4.6);
+    if (p <= 0) return "";
+    return `<text x="${300 + i * 95 + Math.sin(p * 9 + i) * 26}" y="${580 - outCubic(p) * 180}" font-size="${86 + (i % 3) * 22}" text-anchor="middle" opacity="${1 - prog(p, 0.6, 1)}">${e}</text>`;
+  }).join("");
+  // 앱의 친구 화면과 같은 구성: 끝낸 할 일 줄 + 반응 칩들 + 반응 보내기(♡). 종류가 다양하다.
+  const REACTS = [["🔥", 3], ["❤️", 2], ["👍", 5], ["🎉", 1], ["😍", 4], ["dori", 2]];
+  const cardP = Math.max(0, outBack(prog(s, 2.1, 2.6)));
+  const chips = REACTS.map(([e, n], i) => {
+    const p = Math.max(0, outBack(prog(s, 2.7 + i * 0.28, 3.1 + i * 0.28)));
+    const col = i % 3, row = Math.floor(i / 3);
+    const x = 190 + col * 235, y = 1322 + row * 96;
+    const glyph = e === "dori" ? dori(-34, 4, 58, "happy") : `<text x="-34" y="15" font-size="42" text-anchor="middle">${e}</text>`;
+    return `<g transform="translate(${x} ${y}) scale(${p})"><rect x="-90" y="-38" width="180" height="76" rx="38" fill="#fff" stroke="#dbe4ff" stroke-width="3"/>${glyph}${text(String(n), 42, 14, 38, { fill: "#2563eb" })}</g>`;
+  }).join("");
+  const plus = Math.max(0, outBack(prog(s, 4.4, 4.8)));
+  const card = `<g transform="translate(540 1230) scale(${cardP})" opacity="${Math.min(1, cardP)}"><rect x="-440" y="-70" width="880" height="320" rx="44" fill="#fff" filter="url(#shs)"/>
+    <rect x="-395" y="-32" width="60" height="60" rx="16" fill="#7c3aed"/><path d="M-380 0 l14 15 l24 -28" stroke="#fff" stroke-width="9" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    ${text("알고리즘 2문제", -310, 16, 50, { fill: "#111827", anchor: "start", weight: 800 })}
+    ${text("도리친구 · 코딩", 400, 14, 32, { fill: "#6b7280", anchor: "end", weight: 700 })}</g>`;
+  const heart = `<g transform="translate(895 1418) scale(${plus})"><rect x="-52" y="-38" width="104" height="76" rx="38" fill="#f3f4f6"/>${text("♡", 0, 14, 44, { fill: "#6b7280", weight: 400 })}</g>`;
+  return `<defs><linearGradient id="g4" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fef3c7"/><stop offset="1" stop-color="#fbcfe8"/></linearGradient></defs>
+  <rect width="${W}" height="${H}" fill="url(#g4)"/>
+  ${dori(lx, 900 - jump, 520, s > 1.35 ? "cheer" : "happy", { rot: -6 + approach * 6 })}
+  ${friend(rx, 860 - jump, 340, { rot: 6 - approach * 6 })}
+  ${hand(dHand, D_BODY, D_INK)}${hand(fHand, "#ffd9b8", "#c98f66")}
+  ${burst}${floaters}${card}${chips}${heart}
+  ${kinetic(["친구와", "서로", "응원하고"], s, 540, 340, 104, { fill: "#1f2937" })}`;
+}
+
+/* 장면 5: 하나씩 끝낼 때마다 */
+const CARDS = [["📚", "영어 단어 50개"], ["🏃", "줄넘기 500개"], ["☕", "발표 자료 정리"]];
+function montage(s) {
+  const k = Math.min(2, Math.floor(s / 2));
+  const u = s - k * 2;
+  const color = COLORS[k];
+  const flash = outCubic(prog(u, 0.9, 1.7));
+  let bg = `<rect width="${W}" height="${H}" fill="#f4f6fb"/>`;
+  for (let i = 0; i < k; i += 1) bg += `<rect width="${W}" height="${H}" fill="${COLORS[i]}" opacity=".16"/>`;
+  bg += `<circle cx="540" cy="900" r="${flash * 1500}" fill="${color}" opacity="${0.9 * (1 - prog(u, 1.4, 1.9)) + 0.16 * prog(u, 1.4, 1.9)}"/>`;
+  const enter = 1 - outCubic(prog(u, 0, 0.35));
+  const leave = inOut(prog(u, 1.65, 2.0));
+  const x = 540 + enter * 1300 - leave * 1300;
+  const done = prog(u, 0.9, 1.15) > 0;
+  const checkP = prog(u, 0.9, 1.25);
+  const squish = 1 + 0.06 * Math.sin(prog(u, 0.9, 1.4) * Math.PI);
+  const conf = Array.from({ length: 14 }, (_, i) => {
+    const p = prog(u, 0.95, 1.65);
+    if (p <= 0 || p >= 1) return "";
+    const ang = (i / 14) * Math.PI * 2 + rnd(i + k * 20) * 0.4, d = 260 + rnd(i + 60) * 300;
+    return `<circle cx="${540 + Math.cos(ang) * d * outCubic(p)}" cy="${900 + Math.sin(ang) * d * outCubic(p)}" r="${(10 + rnd(i) * 16) * (1 - p)}" fill="${["#fff", "#fde68a", color][i % 3]}"/>`;
+  }).join("");
+  const bar = COLORS.slice(0, 3).map((c, i) => {
+    const filled = i < k ? 1 : i === k ? outCubic(prog(u, 1.0, 1.6)) : 0;
+    return `<rect x="${140 + i * 267}" y="1400" width="253" height="34" rx="17" fill="#e5e7eb"/><rect x="${140 + i * 267}" y="1400" width="${253 * filled}" height="34" rx="17" fill="${c}"/>`;
+  }).join("");
+  return `${bg}${conf}
+  <g transform="translate(${x} 900) scale(${squish})" filter="url(#sh)">
+    <rect x="-400" y="-130" width="800" height="260" rx="56" fill="#fff"/>
+    <text x="-300" y="30" font-size="100" text-anchor="middle">${CARDS[k][0]}</text>
+    ${text(CARDS[k][1], -210, 26, 62, { fill: "#111827", anchor: "start", weight: 800 })}
+    <rect x="270" y="-50" width="100" height="100" rx="28" fill="${done ? color : "#e5e7eb"}"/>
+    ${done ? `<path d="M292 0 l24 24 l40 -46" stroke="#fff" stroke-width="13" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="120" stroke-dashoffset="${120 * (1 - checkP)}"/>` : ""}
+  </g>${bar}
+  ${kinetic(["하루하루", "색을", "모아"], Math.max(0, s - 0.15), 540, 380, 110, { fill: "#fff", stroke: "rgba(31,41,55,.72)", sw: 14 })}
+  ${s > 0.7 ? kinetic(["나만의", "하루가", "완성돼요"], s - 0.7, 540, 1560, 84, { fill: "#fff", stroke: "rgba(31,41,55,.72)", sw: 14 }) : ""}`;
+}
+
+/* 장면 6: 로고 */
+function sunset(s) {
+  const blobs = COLORS.map((c, i) => {
+    const a = i * 1.57 + s * 0.35;
+    const x = 540 + Math.cos(a) * 380, y = 960 + Math.sin(a * 1.2) * 520;
+    const p = outCubic(prog(s, 0.1 + i * 0.12, 1.2 + i * 0.12));
+    return `<circle cx="${x}" cy="${y}" r="${260 * p}" fill="${c}" opacity=".16"/>`;
+  }).join("");
+  const dots = Array.from({ length: 14 }, (_, i) => {
+    const p = prog(s, 0.4 + rnd(i) * 0.8, 4.8);
+    if (p <= 0) return "";
+    return `<circle cx="${100 + rnd(i + 3) * 880}" cy="${1750 - p * 1500 * (0.4 + rnd(i + 9) * 0.6)}" r="${8 + rnd(i + 20) * 12}" fill="${COLORS[i % 4]}" opacity="${0.5 * (1 - prog(p, 0.6, 1))}"/>`;
+  }).join("");
+  const pop = Math.max(0.001, outBack(prog(s, 0.5, 1.2)));
+  const check = prog(s, 1.0, 1.6);
+  return `<defs><linearGradient id="g6" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f8fbff"/><stop offset="1" stop-color="#e6edff"/></linearGradient></defs>
+  <rect width="${W}" height="${H}" fill="url(#g6)"/>${blobs}${dots}
+  <g transform="translate(540 800) scale(${pop}) translate(-540 -800)" filter="url(#sh)">${logo(540, 800, 380, check)}</g>
+  ${text("모도리", 540, 1130, 120, { fill: "#1f2937", opacity: prog(s, 1.5, 1.9), dy: (1 - prog(s, 1.5, 1.9)) * 30 })}
+  ${text("친구와 함께 매일을 채워가요", 540, 1235, 54, { fill: "#4b5563", weight: 700, opacity: prog(s, 2.0, 2.4), dy: (1 - prog(s, 2.0, 2.4)) * 24 })}
+  <g opacity="${prog(s, 2.6, 3.0)}"><rect x="360" y="1330" width="360" height="90" rx="45" fill="#fff" filter="url(#shs)"/>${text("modori.site", 540, 1393, 46, { fill: "#2563eb", weight: 800 })}</g>`;
+}
+
+const SCENE_LIST = [["desk", desk], ["write", write], ["fill", fill], ["friends", friends], ["montage", montage], ["sunset", sunset]];
+const ENDS = { desk: S.write, write: S.fill, fill: S.friends, friends: S.montage, montage: S.sunset, sunset: 99 };
+
+window.render = (t) => {
+  catId = 0;
+  let body = "";
+  let filters = "";
+  SCENE_LIST.forEach(([name, fn], i) => {
+    const start = S[name], end = ENDS[name];
+    if (t < start - 0.2 || t > end + 0.2) return;
+    const inP = i === 0 ? 1 : outCubic(prog(t, start - 0.2, start + 0.2));
+    const outP = end > 90 ? 0 : inOut(prog(t, end - 0.2, end + 0.2));
+    const dx = (1 - inP) * W - outP * W;
+    const blur = Math.abs(dx) > 4 ? Math.min(60, Math.abs(dx) / 14) : 0;
+    const local = Math.max(0, t - start);
+    const id = `mb${i}`;
+    if (blur) filters += `<filter id="${id}" x="-20%" y="-5%" width="140%" height="110%"><feGaussianBlur stdDeviation="${blur} 0"/></filter>`;
+    body += `<g transform="translate(${dx} 0)" ${blur ? `filter="url(#${id})"` : ""}><clipPath id="clip${i}"><rect width="${W}" height="${H}"/></clipPath><g clip-path="url(#clip${i})">${fn(local)}</g></g>`;
+  });
+  document.getElementById("root").innerHTML =
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}"><defs>${shadow}${filters}</defs>${body}</svg>`;
+};
+window.render(0);
+</script>
