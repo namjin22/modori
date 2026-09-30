@@ -1547,3 +1547,12 @@ VM에 시험 DB(사용자 1000, 할 일 108만, 반응 24만, 280MB)를 만들�
 - 앱 아이콘(적응형 포함)·시작 화면을 앱 로고로 교체(`scripts/mobile-icons.mjs`). 안내서 `docs/mobile-release.md`.
 - **사용자가 할 일:** 업로드 키 만들기 → GitHub 비밀 4개 → android 워크플로 release로 실행 → AAB를 Play Console 내부/비공개 테스트에 올리기.
 - Gradle 변경은 이 PC에 Android SDK가 없어 로컬에서 못 돌렸다. CI(`android` 워크플로)로 확인한다 — 결과는 아래에.
+
+## 2026-09-30 — AAB 만듦, 끝낸 순서 채움
+
+- 사용자가 업로드 키(`upload.jks`)를 만들고 GitHub 비밀 4개를 넣었다. `android` 워크플로 release로 AAB 빌드 성공(실행 36675767322), `modori-android-release` 결과물을 사용자 바탕화면 `modori-aab/`에 내려받았다. Play Console 업로드는 사용자가 한다.
+- 날짜 밑 고양이(`DayFill`)는 끝낸 순서(`doneAt`)대로 위에서부터 채운다(decisions 참고). 달력·주간 줄·친구 화면 조회의 정렬을 바꿨다. 테스트 `calendar.spec` 추가.
+- 첫 전체 검증에서 3개(로그인 후 온보딩 입력칸 기다리다 30초 초과)가 실패했다. 같은 파일 재실행과 전체 재실행은 통과(155/155) — 환경 지연으로 보인다.
+- 홍보 영상: 첫 화면 비율 조정, 로고도 위에서부터 채움.
+
+검증: `npm run verify` 통과 — 단위 158×3, E2E 155/155.
