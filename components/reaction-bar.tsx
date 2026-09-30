@@ -81,11 +81,6 @@ export function ReactionBar({
     return optimistic.some((item) => item.emoji === value && item.mine);
   }
 
-  /** 이모지 하나를 누른 사람들. 내가 눌렀으면 "나"가 맨 앞에 온다. */
-  function whoPressed(emoji: string, mine: boolean) {
-    return [...(mine ? ["나"] : []), ...(others[emoji] ?? [])];
-  }
-
   const whoList = whoOpened
     ? [...optimistic].sort((a, b) => Number(b.emoji === whoOpened) - Number(a.emoji === whoOpened))
     : optimistic;
@@ -136,7 +131,24 @@ export function ReactionBar({
                 <p className="text-sm font-semibold">
                   {labelOfReaction(emoji)} <span className="font-normal text-muted">{count}개</span>
                 </p>
-                <p className="text-sm text-muted">{whoPressed(emoji, mine).join(", ") || "지운 계정"}</p>
+                <p className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm text-muted">
+                  {mine && (
+                    // 내가 누른 것은 여기서 "나"를 눌러 취소한다. 칩을 누르는 것은 보기만 한다.
+                    <button
+                      type="button"
+                      onClick={() => {
+                        send(emoji);
+                        // 이 창에 남은 반응이 없으면 빈 창이 남지 않게 닫는다.
+                        if (optimistic.length === 1 && count === 1) setWhoOpened(null);
+                      }}
+                      aria-label={`${labelOfReaction(emoji)} 내 반응 취소`}
+                      className="rounded-full bg-brand-subtle px-2 py-0.5 text-xs font-semibold text-brand ring-1 ring-brand/40 transition-colors active:scale-95"
+                    >
+                      나 · 취소
+                    </button>
+                  )}
+                  <span>{(others[emoji] ?? []).join(", ") || (mine ? "" : "지운 계정")}</span>
+                </p>
               </div>
             </li>
           ))}

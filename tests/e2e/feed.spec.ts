@@ -165,7 +165,26 @@ test("반응을 누르면 개수가 오르고 다시 누르면 취소된다", as
   await page.keyboard.press("Escape");
   await expect(chip).toBeVisible();
 
-  // 취소는 고르는 창에서 다시 누른다. 아무도 안 누른 반응은 줄에서 빠진다.
+  // 취소는 "누가 눌렀어요" 창에서 "나"를 눌러 한다. 아무도 안 누른 반응은 줄에서 빠진다.
+  await chip.click();
+  await who.getByRole("button", { name: "좋아요 내 반응 취소" }).click();
+  await expect(page.getByRole("button", { name: /^좋아요 \d+개/ })).toHaveCount(0);
+  await expect(who).toHaveCount(0);
+  expect(await prisma.reaction.count({ where: { emoji: "👍", user: { email: accounts.me.email } } })).toBe(0);
+});
+
+test("고르는 창에서 이미 누른 반응을 다시 눌러도 취소된다", async ({ page, accounts }) => {
+  await signIn(page, accounts.friend);
+  await addDoneTodo(page, "고르는 창에서 취소할 일");
+  await signOut(page);
+
+  await signIn(page, accounts.me);
+  await follow(page, accounts.friend.nickname);
+  await page.goto("/feed");
+  await page.getByRole("button", { name: "반응 보내기" }).click();
+  await page.getByRole("button", { name: "좋아요", exact: true }).click();
+  await expect(page.getByRole("button", { name: /^좋아요 1개, 내가 누름/ })).toBeVisible();
+
   await page.getByRole("button", { name: "반응 보내기" }).click();
   await page.getByRole("button", { name: "좋아요", exact: true }).click();
   await expect(page.getByRole("button", { name: /^좋아요 \d+개/ })).toHaveCount(0);
