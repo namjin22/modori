@@ -47,7 +47,7 @@ export default function AccountDeletionPage() {
             </li>
             <li>할 일, 카테고리, 루틴, 일정, 메모</li>
             <li>보낸 반응과 받은 반응, 팔로우와 팔로워 관계, 알림 기록</li>
-            <li>로그인 유지 정보와 모도리를 쓴 날짜 기록</li>
+            <li>로그인 유지 정보, 모바일 앱의 기기 알림 번호, 모도리를 쓴 날짜 기록</li>
           </ul>
         </section>
 
