@@ -1523,3 +1523,12 @@ VM에 시험 DB(사용자 1000, 할 일 108만, 반응 24만, 280MB)를 만들�
 - 남은 일: 서명된 AAB(Play 앱 서명), 스토어 문구·아이콘·그래픽·스크린샷, 심사용 Google 계정 입력(사용자), 푸시.
 
 검증: `npm run verify` 통과 — 단위 158×3, E2E 154/154.
+
+## 2026-09-30 — 스토어 문구·그림, 홍보 영상 녹화
+
+- 스토어 등록정보 문구는 `docs/store-listing.md`, 그림(아이콘·그래픽 이미지·휴대전화 스크린샷 6장, 9:16)은 `docs/screenshots/store-listing/`.
+  스크린샷은 `STORE_ASSETS=1 SCREENSHOT_DIR=store-listing npm run screenshots`.
+- 홍보 영상: `npm run promo`(Playwright 녹화, `docs/promo/`). 데모 시드는 `tests/screenshots/seed.ts`로 빼서 스크린샷과 같이 쓴다.
+  이 PC에는 ffmpeg가 없어 자막·음악은 편집 앱(CapCut)에서 얹는다. 녹화 결과 화면은 눈으로 확인하지 못했다(단계별 단언만 통과) — 사용자가 재생해 보고 어색한 장면을 알려 주면 `beat` 시간을 고친다.
+
+검증: `npm run verify` 통과 — 단위 158×3, E2E 154/154.
