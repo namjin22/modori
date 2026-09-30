@@ -61,7 +61,10 @@ export default async function FeedPage({
       include: {
         user: { select: { id: true, nickname: true } },
         category: { select: { name: true, color: true } },
-        reactions: { select: { emoji: true, userId: true } },
+        reactions: {
+          select: { emoji: true, userId: true, user: { select: { nickname: true } } },
+          orderBy: { createdAt: "asc" },
+        },
       },
     }),
     // 위쪽 친구 줄에 쓴다. 최근에 팔로우한 사람이 앞에 온다. 프로필 사진(한 장 약 9KB)을 같이

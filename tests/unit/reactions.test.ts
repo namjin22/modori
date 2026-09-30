@@ -7,6 +7,7 @@ import {
   groupReceivedReactions,
   isReactionValue,
   labelOfReaction,
+  othersByEmoji,
   summarizeReactions,
 } from "@/lib/reactions";
 
@@ -66,5 +67,21 @@ describe("groupReceivedReactions", () => {
       { emoji: "dori:clap", count: 1, names: ["지훈"] },
       { emoji: "🔥", count: 3, names: ["민아", "서연"] },
     ]);
+  });
+});
+
+describe("othersByEmoji", () => {
+  it("내가 아닌 사람의 닉네임을 이모지별로, 먼저 누른 순서대로 모은다", () => {
+    const names = othersByEmoji(
+      [
+        { emoji: "🔥", userId: "a", user: { nickname: "가" } },
+        { emoji: "🔥", userId: "me", user: { nickname: "나" } },
+        { emoji: "👍", userId: "b", user: { nickname: "나다" } },
+        { emoji: "🔥", userId: "c", user: { nickname: "다" } },
+        { emoji: "👍", userId: "d", user: { nickname: null } },
+      ],
+      "me",
+    );
+    expect(names).toEqual({ "🔥": ["가", "다"], "👍": ["나다"] });
   });
 });

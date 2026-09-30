@@ -154,13 +154,21 @@ test("반응을 누르면 개수가 오르고 다시 누르면 취소된다", as
   // 보낼 때는 창에서 고른다. 열둘을 늘 늘어놓으면 할 일보다 반응 줄이 길어진다.
   await page.getByRole("button", { name: "반응 보내기" }).click();
   await page.getByRole("button", { name: "좋아요", exact: true }).click();
-  await expect(page.getByRole("button", { name: "좋아요 반응 취소" })).toBeVisible();
+  const chip = page.getByRole("button", { name: /^좋아요 1개, 내가 누름/ });
+  await expect(chip).toBeVisible();
 
-  // 다시 누르면 취소되고, 아무도 안 누른 반응은 줄에서 빠진다.
-  await page.getByRole("button", { name: "좋아요 반응 취소" }).click();
-  await expect(
-    page.getByRole("button", { name: /좋아요 반응/ }),
-  ).toHaveCount(0);
+  // 칩을 누르면 같이 눌러지는 게 아니라 누가 눌렀는지 보인다. 반응은 그대로다.
+  await chip.click();
+  const who = page.getByRole("dialog", { name: "누가 눌렀어요" });
+  await expect(who).toContainText("좋아요");
+  await expect(who).toContainText("나");
+  await page.keyboard.press("Escape");
+  await expect(chip).toBeVisible();
+
+  // 취소는 고르는 창에서 다시 누른다. 아무도 안 누른 반응은 줄에서 빠진다.
+  await page.getByRole("button", { name: "반응 보내기" }).click();
+  await page.getByRole("button", { name: "좋아요", exact: true }).click();
+  await expect(page.getByRole("button", { name: /^좋아요 \d+개/ })).toHaveCount(0);
 });
 
 test("도리 표정도 반응으로 보내고 받은 반응 화면에서 본다", async ({ page, accounts }) => {
@@ -174,8 +182,8 @@ test("도리 표정도 반응으로 보내고 받은 반응 화면에서 본다"
   await page.getByRole("button", { name: "반응 보내기" }).click();
   // 이모지 "불타요"와 이름이 겹치지 않게 도리 반응은 "도리"를 붙여 부른다.
   await page.getByRole("button", { name: "도리 불타요", exact: true }).click();
-  await expect(page.getByRole("button", { name: "도리 불타요 반응 취소" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "불타요 반응 취소", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /^도리 불타요 1개/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /^불타요 \d+개/ })).toHaveCount(0);
   await signOut(page);
 
   await signIn(page, accounts.friend);
@@ -197,7 +205,7 @@ test("받은 반응은 뱃지로 알리고 받은 반응 화면을 열면 사라
   await page.goto("/feed");
   await page.getByRole("button", { name: "반응 보내기" }).click();
   await page.getByRole("button", { name: "불타요", exact: true }).click();
-  await expect(page.getByRole("button", { name: "불타요 반응 취소" })).toBeVisible();
+  await expect(page.getByRole("button", { name: /^불타요 1개, 내가 누름/ })).toBeVisible();
   await signOut(page);
 
   await signIn(page, accounts.me);
@@ -253,7 +261,7 @@ test("친구가 보낸 반응은 내 홈 화면의 그 할 일 밑에 보인다"
   const card = page.getByRole("listitem").filter({ hasText: "칭찬 받을 운동" }).last();
   await card.getByRole("button", { name: "반응 보내기" }).click();
   await page.getByRole("button", { name: "불타요", exact: true }).click();
-  await expect(page.getByRole("button", { name: "불타요 반응 취소" })).toBeVisible();
+  await expect(page.getByRole("button", { name: /^불타요 1개, 내가 누름/ })).toBeVisible();
   await signOut(page);
 
   await signIn(page, accounts.me);
@@ -267,4 +275,34 @@ test("친구가 보낸 반응은 내 홈 화면의 그 할 일 밑에 보인다"
   await expect(
     page.getByRole("listitem").filter({ hasText: "반응 없는 일" }).getByRole("list", { name: "받은 반응" }),
   ).toHaveCount(0);
+});
+
+test("반응 칩을 누르면 다른 사람이 누른 이름이 보이고, 내 반응은 생기지 않는다", async ({ page, accounts }) => {
+  await signIn(page, accounts.friend);
+  await addDoneTodo(page, "누가 눌렀나 볼 일");
+  await signOut(page);
+
+  const friend = await prisma.user.findUniqueOrThrow({ where: { email: accounts.friend.email } });
+  const todo = await prisma.todo.findFirstOrThrow({ where: { userId: friend.id, content: "누가 눌렀나 볼 일" } });
+  const otherEmail = `e2e-feed-other-${RUN_TAG}-${todo.id.slice(-6)}@modori.test`;
+  const other = await prisma.user.create({
+    data: { email: otherEmail, nickname: `구경${todo.id.slice(-6)}${RUN_TAG}`, privacyAgreedAt: new Date() },
+  });
+  await prisma.reaction.create({ data: { userId: other.id, todoId: todo.id, todoUserId: friend.id, emoji: "🔥" } });
+
+  try {
+    await signIn(page, accounts.me);
+    await follow(page, accounts.friend.nickname);
+    await page.goto("/feed");
+    const chip = page.getByRole("button", { name: /^불타요 1개, 누가 눌렀는지 보기/ });
+    await chip.click();
+    const who = page.getByRole("dialog", { name: "누가 눌렀어요" });
+    await expect(who).toContainText(other.nickname ?? "");
+    // 같이 눌러지지 않았다: 내 반응은 없고 개수도 그대로다.
+    expect(await prisma.reaction.count({ where: { todoId: todo.id } })).toBe(1);
+    await page.keyboard.press("Escape");
+    await expect(chip).toBeVisible();
+  } finally {
+    await prisma.user.deleteMany({ where: { email: otherEmail } });
+  }
 });

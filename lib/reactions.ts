@@ -125,6 +125,23 @@ export function summarizeReactions(
   );
 }
 
+/**
+ * 이모지별로 내가 아닌 사람들이 누구인지(먼저 누른 순서). 칩을 누르면 누가 눌렀는지 보여주는 데 쓴다.
+ * 내가 누른 것은 화면에서 "나"로 따로 붙인다(방금 누르거나 취소한 것이 바로 반영되게).
+ */
+export function othersByEmoji(
+  reactions: { emoji: string; userId: string; user?: { nickname: string | null } | null }[],
+  viewerId: string,
+): Record<string, string[]> {
+  const names: Record<string, string[]> = {};
+  for (const reaction of reactions) {
+    const nickname = reaction.user?.nickname;
+    if (reaction.userId === viewerId || !nickname) continue;
+    (names[reaction.emoji] ??= []).push(nickname);
+  }
+  return names;
+}
+
 export type ReceivedReaction = { emoji: string; count: number; names: string[] };
 
 /**
