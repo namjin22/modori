@@ -1540,3 +1540,10 @@ VM에 시험 DB(사용자 1000, 할 일 108만, 반응 24만, 280MB)를 만들�
 - 계정 삭제 안내(`/account-deletion`, PR #123)는 배포 완료를 확인했다(200).
 
 검증: `npm run verify` 통과 — 단위 158×3, E2E 154/154.
+
+## 2026-09-30 — 스토어용 AAB 준비
+
+- `mobile/android/app/build.gradle`: 업로드 키를 환경 변수로 받는 서명 설정, 버전 코드·이름을 환경 변수(`MODORI_VERSION_CODE/NAME`)로. `android.yml`에 `aab` 작업(release 입력 또는 `mobile-v*` 태그) 추가.
+- 앱 아이콘(적응형 포함)·시작 화면을 앱 로고로 교체(`scripts/mobile-icons.mjs`). 안내서 `docs/mobile-release.md`.
+- **사용자가 할 일:** 업로드 키 만들기 → GitHub 비밀 4개 → android 워크플로 release로 실행 → AAB를 Play Console 내부/비공개 테스트에 올리기.
+- Gradle 변경은 이 PC에 Android SDK가 없어 로컬에서 못 돌렸다. CI(`android` 워크플로)로 확인한다 — 결과는 아래에.
