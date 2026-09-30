@@ -49,7 +49,7 @@ function cat(cx, cy, size, fills, face, { rot = 0, scale = 1, stripes = COLORS, 
   const share = 64 / stripes.length;
   const rects = stripes.map((c, i) => {
     const h = share * clamp(fills[i] ?? 0) + (fills[i] > 0 ? 0.6 : 0);
-    return `<rect x="0" y="${64 - share * i - h}" width="64" height="${h}" fill="${c}"/>`;
+    return `<rect x="0" y="${share * i}" width="64" height="${h}" fill="${c}"/>`;
   }).join("");
   const f = clamp(face);
   return `<g transform="translate(${cx} ${cy}) rotate(${rot}) scale(${sc}) translate(-32 -32)">
@@ -71,25 +71,25 @@ const shadow = `<filter id="sh" x="-50%" y="-50%" width="200%" height="200%"><fe
 
 /* 장면 1: 회색 책상 */
 function desk(s) {
-  const zoom = 1 + 0.07 * prog(s, 0, 4.4);
-  const notes = [[250, 1330, -8, 260], [590, 1400, 6, 230], [820, 1290, -4, 210]].map(([x, y, r, w], i) => {
+  const zoom = 1 + 0.06 * prog(s, 0, 4.4);
+  const notes = [[260, 1240, -8, 330], [640, 1330, 6, 300], [880, 1200, -4, 250]].map(([x, y, r, w], i) => {
     const sway = Math.sin(s * 1.6 + i) * 2;
-    return `<g transform="translate(${x} ${y}) rotate(${r + sway})"><rect x="${-w / 2}" y="${-w / 2}" width="${w}" height="${w}" rx="10" fill="${["#e4e6eb", "#dcdfe5", "#e9ebef"][i]}"/>
-      ${[0, 1, 2].map((l) => `<rect x="${-w / 2 + 28}" y="${-w / 2 + 50 + l * 46}" width="${w - 56 - l * 40}" height="12" rx="6" fill="#c3c7cf"/>`).join("")}</g>`;
+    return `<g transform="translate(${x} ${y}) rotate(${r + sway})"><rect x="${-w / 2}" y="${-w / 2}" width="${w}" height="${w}" rx="12" fill="${["#e4e6eb", "#dcdfe5", "#e9ebef"][i]}"/>
+      ${[0, 1, 2, 3].map((l) => `<rect x="${-w / 2 + 34}" y="${-w / 2 + 60 + l * 54}" width="${w - 68 - l * 46}" height="14" rx="7" fill="#c3c7cf"/>`).join("")}</g>`;
   }).join("");
   const marks = [0, 1, 2].map((i) => {
     const a = prog(s, 1.2 + i * 0.5, 1.8 + i * 0.5);
-    return text("?", 250 + i * 290, 1000 - a * 60 + Math.sin(s * 3 + i) * 10, 120 + i * 20, { fill: "#a0a5b1", opacity: a * (1 - prog(s, 3.6, 4.2)) });
+    return text("?", 250 + i * 290, 800 - a * 50 + Math.sin(s * 3 + i) * 10, 150 + i * 20, { fill: "#a0a5b1", opacity: a * (1 - prog(s, 3.6, 4.2)) });
   }).join("");
   return `<g transform="translate(540 960) scale(${zoom}) translate(-540 -960)">
     <rect width="${W}" height="${H}" fill="#eceef2"/>
-    <rect y="1130" width="${W}" height="800" fill="#d5d8de"/><rect y="1126" width="${W}" height="8" fill="#c6cad2"/>
+    <rect y="960" width="${W}" height="1000" fill="#d5d8de"/><rect y="956" width="${W}" height="8" fill="#c6cad2"/>
     ${notes}
-    <g transform="translate(730 1620) rotate(-24)"><rect x="-200" y="-14" width="400" height="28" rx="10" fill="#bfc3cb"/><path d="M200 -14 L250 0 L200 14Z" fill="#a9adb6"/></g>
-    <g transform="translate(300 1640) rotate(-10)" filter="url(#sh)"><rect x="-130" y="-260" width="260" height="520" rx="42" fill="#b4b8c1"/><rect x="-112" y="-240" width="224" height="480" rx="30" fill="#cdd0d8"/></g>
+    <g transform="translate(800 1660) rotate(-24)"><rect x="-240" y="-16" width="480" height="32" rx="12" fill="#bfc3cb"/><path d="M240 -16 L300 0 L240 16Z" fill="#a9adb6"/></g>
+    <g transform="translate(330 1600) rotate(-10)" filter="url(#sh)"><rect x="-160" y="-320" width="320" height="640" rx="52" fill="#b4b8c1"/><rect x="-138" y="-296" width="276" height="592" rx="38" fill="#cdd0d8"/></g>
     ${marks}
   </g>
-  ${kinetic(["오늘도", "뭐부터", "하지?"], s, 540, 400, 104, { fill: "#4b5563" })}`;
+  ${kinetic(["오늘도", "뭐부터", "하지?"], s, 540, 420, 90, { fill: "#4b5563" })}`;
 }
 
 /* 장면 2: 적으면 색이 번진다 */
