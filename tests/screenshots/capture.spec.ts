@@ -115,6 +115,20 @@ for (const viewport of STORE ? [] : VIEWPORTS) {
     await page.getByRole("button", { name: "다른 날에 하기" }).click();
     await shoot(page, `${viewport.name}-10-todo-sheet`);
 
+    // 9/30 이후 새로 생긴 화면: 친구의 팔로우 목록, 반응을 누른 사람 창, 일정 만들기 창.
+    await page.goto(`/feed/u/${seeded.friendId}/following`);
+    await shoot(page, `${viewport.name}-11-friend-following`);
+
+    await page.goto("/feed");
+    await page.getByRole("button", { name: /누가 눌렀는지 보기/ }).first().click();
+    await expect(page.getByRole("dialog", { name: "누가 눌렀어요" })).toBeVisible();
+    await shoot(page, `${viewport.name}-12-reaction-who`);
+
+    await page.goto("/");
+    await page.getByRole("button", { name: "일정", exact: true }).click();
+    await expect(page.getByLabel("새 일정 이름")).toBeVisible();
+    await shoot(page, `${viewport.name}-13-event-form`);
+
     await page.emulateMedia({ colorScheme: "dark" });
     await page.goto("/");
     await shoot(page, `${viewport.name}-09-home-dark`);

@@ -39,12 +39,12 @@ test("완료한 할 일이 있는 날에 표시가 생긴다", async ({ page }) 
   await addTodo(page, "캘린더에 남길 할 일");
 
   await expect(
-    page.getByRole("link", { name: `${dayNumber}일, 완료 없음` }),
+    page.getByRole("link", { name: `${dayNumber}일, 완료 없음`, exact: true }),
   ).toBeVisible();
 
   await page.getByRole("button", { name: "완료", exact: true }).click();
   await expect(
-    page.getByRole("link", { name: `${dayNumber}일, 완료 있음` }),
+    page.getByRole("link", { name: `${dayNumber}일, 완료 있음`, exact: true }),
   ).toBeVisible();
   await expect(page.getByText("이번 달 완료 1개")).toBeVisible();
 });
@@ -97,7 +97,7 @@ test("날짜를 누르면 그 날의 할 일 화면으로 간다", async ({ page
 
   await page.goto("/");
   await page
-    .getByRole("link", { name: `${today.getUTCDate()}일, 완료 없음` })
+    .getByRole("link", { name: `${today.getUTCDate()}일, 완료 없음`, exact: true })
     .click();
 
   await expect(page).toHaveURL(`/?date=${formatKST(today)}`);
