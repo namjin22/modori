@@ -39,6 +39,13 @@ export type CapacitorBridge = {
       addListener: (event: "appUrlOpen", handler: (data: { url: string }) => void) => Promise<unknown>;
       getLaunchUrl: () => Promise<{ url: string } | undefined>;
     };
+    // @capacitor/push-notifications. 푸시 알림(받은 반응, 새 팔로워)을 받는 앱 기능.
+    PushNotifications?: {
+      checkPermissions: () => Promise<{ receive: string }>;
+      requestPermissions: () => Promise<{ receive: string }>;
+      register: () => Promise<void>;
+      addListener: (event: string, handler: (data: never) => void) => Promise<unknown>;
+    };
   };
 };
 

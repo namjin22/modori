@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 
 import { BottomNav } from "@/components/bottom-nav";
 import { PageFrame } from "@/components/page-frame";
+import { PushRegistrar } from "@/components/push-registrar";
 import { ToastProvider } from "@/components/toast";
 import { countUnreadNotifications, requireUser } from "@/lib/session";
 
@@ -9,11 +10,12 @@ import { countUnreadNotifications, requireUser } from "@/lib/session";
 export default async function TabsLayout({ children }: { children: ReactNode }) {
   const user = await requireUser();
 
-  // 알림은 만들지 않는다. 접속했을 때 뱃지로만 알린다.
+  // 웹과 데스크톱은 접속했을 때 뱃지로만 알린다. 모바일 앱은 받은 반응·새 팔로워를 푸시로도 알린다(components/push-registrar.tsx).
   const unreadNotifications = await countUnreadNotifications(user.id, user.lastSeenAt);
 
   return (
     <ToastProvider>
+      <PushRegistrar />
       <div className="flex min-h-screen flex-col">
         <PageFrame>{children}</PageFrame>
         <BottomNav unreadNotifications={unreadNotifications} />

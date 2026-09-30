@@ -41,9 +41,18 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths"></meta-data>
         </provider>
+        <!-- 푸시 알림(받은 반응, 새 팔로워): 상태 표시줄 아이콘과 색. Firebase가 이 값을 알림에 쓴다. -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@drawable/ic_stat_modori" />
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_color"
+            android:resource="@color/notification_color" />
     </application>
 
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Android 13부터 알림을 보내려면 사용자가 허용해야 한다. 앱이 처음 켜질 때 묻는다(components/push-registrar.tsx). -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 </manifest>
