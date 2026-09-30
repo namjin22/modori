@@ -63,7 +63,7 @@ export const PRIVACY_SECTIONS: PrivacySection[] = [
     title: "6. 내 정보에 대한 권리",
     items: [
       "마이페이지에서 언제든 내 정보를 보고 고칠 수 있어요.",
-      "\"계정 지우기\"로 모든 정보를 지울 수 있어요.",
+      "\"계정 지우기\"로 모든 정보를 지울 수 있어요. 앱을 쓸 수 없을 때는 modori.site/account-deletion 에서 방법을 볼 수 있어요.",
       "그 밖의 요청은 아래 연락처로 보내 주세요.",
     ],
   },
