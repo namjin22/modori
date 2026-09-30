@@ -1,0 +1,256 @@
+<!doctype html>
+<meta charset="utf-8">
+<style>
+  html, body { margin: 0; background: #fff; overflow: hidden; }
+  svg { display: block; width: 1080px; height: 1920px; }
+  text { font-family: "Noto Sans KR", "Malgun Gothic", "Segoe UI Emoji", sans-serif; }
+</style>
+<div id="root"></div>
+<script>
+const W = 1080, H = 1920;
+const COLORS = ["#2563eb", "#22c55e", "#f97316", "#7c3aed"];
+const S = window.TL.SCENES;
+
+const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const prog = (t, a, b) => clamp((t - a) / (b - a));
+const outCubic = (x) => 1 - Math.pow(1 - x, 3);
+const inOut = (x) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
+const outBack = (x) => { const c1 = 1.70158, c3 = c1 + 1; return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2); };
+const lerp = (a, b, x) => a + (b - a) * x;
+// 시드 고정 난수: 프레임마다 같은 값이 나와야 영상이 떨리지 않는다.
+const rnd = (i) => { const x = Math.sin(i * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); };
+
+const text = (str, x, y, size, { fill = "#111", weight = 900, anchor = "middle", opacity = 1, stroke = "", sw = 0, dy = 0 } = {}) =>
+  `<text x="${x}" y="${y + dy}" font-size="${size}" font-weight="${weight}" fill="${fill}" text-anchor="${anchor}" opacity="${opacity}"` +
+  (stroke ? ` stroke="${stroke}" stroke-width="${sw}" paint-order="stroke" stroke-linejoin="round"` : "") + `>${str}</text>`;
+
+/** 단어 단위로 위로 떠오르며 나타난다. */
+function kinetic(words, s, x, y, size, opts = {}) {
+  const gap = size * 0.28;
+  const widths = words.map((w) => w.length * size * 0.9);
+  const total = widths.reduce((a, b) => a + b, 0) + gap * (words.length - 1);
+  let cursor = x - total / 2;
+  return words.map((w, i) => {
+    const p = outBack(prog(s, i * 0.16, i * 0.16 + 0.45));
+    const a = prog(s, i * 0.16, i * 0.16 + 0.25);
+    const cx = cursor + widths[i] / 2;
+    cursor += widths[i] + gap;
+    return text(w, cx, y + (1 - p) * 50, size, { ...opts, opacity: a });
+  }).join("");
+}
+
+// 앱의 날짜 표시와 같은 고양이 모양(components/day-fill.tsx). 64×64 좌표.
+const CAT_SHAPES = `<path d="M11 22 L15 5 L28 15 Z"/><path d="M53 22 L49 5 L36 15 Z"/><rect x="6" y="14" width="52" height="46" rx="15"/>`;
+let catId = 0;
+/** fills: 색 네 줄이 아래부터 차오르는 정도(0~1). face: 얼굴이 보이는 정도. */
+function cat(cx, cy, size, fills, face, { rot = 0, scale = 1, stripes = COLORS } = {}) {
+  const id = `c${catId++}`;
+  const sc = (size / 64) * scale;
+  const share = 64 / stripes.length;
+  const rects = stripes.map((c, i) => {
+    const h = share * clamp(fills[i] ?? 0) + (fills[i] > 0 ? 0.6 : 0);
+    return `<rect x="0" y="${64 - share * i - h}" width="64" height="${h}" fill="${c}"/>`;
+  }).join("");
+  const f = clamp(face);
+  return `<g transform="translate(${cx} ${cy}) rotate(${rot}) scale(${sc}) translate(-32 -32)">
+    <defs><clipPath id="${id}">${CAT_SHAPES}</clipPath></defs>
+    <g fill="#c9d1e6" stroke="#c9d1e6" stroke-width="10" stroke-linejoin="round">${CAT_SHAPES}</g>
+    <g clip-path="url(#${id})"><rect width="64" height="64" fill="#eef1f8"/>${rects}</g>
+    <g opacity="${f}" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M15 38 Q20 30 25 38"/><path d="M39 38 Q44 30 49 38"/><path d="M27 43 Q32 50 37 43"/>
+    </g>
+    <g opacity="${f}"><ellipse cx="12" cy="44" rx="4" ry="2.6" fill="#ffdbe4" opacity=".85"/><ellipse cx="52" cy="44" rx="4" ry="2.6" fill="#ffdbe4" opacity=".85"/></g>
+  </g>`;
+}
+
+const star = (x, y, r, fill, rot = 0) =>
+  `<path transform="translate(${x} ${y}) rotate(${rot}) scale(${Math.max(r, 0) / 10})" d="M0 -10 L2.6 -2.6 L10 0 L2.6 2.6 L0 10 L-2.6 2.6 L-10 0 L-2.6 -2.6 Z" fill="${fill}"/>`;
+
+const shadow = `<filter id="sh" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="24" stdDeviation="28" flood-color="#1f2937" flood-opacity=".18"/></filter>`;
+
+/* 장면 1: 회색 책상 */
+function desk(s) {
+  const zoom = 1 + 0.07 * prog(s, 0, 4.4);
+  const notes = [[250, 1330, -8, 260], [590, 1400, 6, 230], [820, 1290, -4, 210]].map(([x, y, r, w], i) => {
+    const sway = Math.sin(s * 1.6 + i) * 2;
+    return `<g transform="translate(${x} ${y}) rotate(${r + sway})"><rect x="${-w / 2}" y="${-w / 2}" width="${w}" height="${w}" rx="10" fill="${["#e4e6eb", "#dcdfe5", "#e9ebef"][i]}"/>
+      ${[0, 1, 2].map((l) => `<rect x="${-w / 2 + 28}" y="${-w / 2 + 50 + l * 46}" width="${w - 56 - l * 40}" height="12" rx="6" fill="#c3c7cf"/>`).join("")}</g>`;
+  }).join("");
+  const marks = [0, 1, 2].map((i) => {
+    const a = prog(s, 1.2 + i * 0.5, 1.8 + i * 0.5);
+    return text("?", 250 + i * 290, 1000 - a * 60 + Math.sin(s * 3 + i) * 10, 120 + i * 20, { fill: "#a0a5b1", opacity: a * (1 - prog(s, 3.6, 4.2)) });
+  }).join("");
+  return `<g transform="translate(540 960) scale(${zoom}) translate(-540 -960)">
+    <rect width="${W}" height="${H}" fill="#eceef2"/>
+    <rect y="1130" width="${W}" height="800" fill="#d5d8de"/><rect y="1126" width="${W}" height="8" fill="#c6cad2"/>
+    ${notes}
+    <g transform="translate(730 1620) rotate(-24)"><rect x="-200" y="-14" width="400" height="28" rx="10" fill="#bfc3cb"/><path d="M200 -14 L250 0 L200 14Z" fill="#a9adb6"/></g>
+    <g transform="translate(300 1640) rotate(-10)" filter="url(#sh)"><rect x="-130" y="-260" width="260" height="520" rx="42" fill="#b4b8c1"/><rect x="-112" y="-240" width="224" height="480" rx="30" fill="#cdd0d8"/></g>
+    ${marks}
+  </g>
+  ${kinetic(["오늘도", "뭐부터", "하지?"], s, 540, 400, 104, { fill: "#4b5563" })}`;
+}
+
+/* 장면 2: 적으면 색이 번진다 */
+function write(s) {
+  const cx = 540, cy = 1060;
+  const rings = [2400, 1850, 1350, 900].map((r, i) => {
+    const p = outCubic(prog(s, 2.4 + i * 0.25, 3.6 + i * 0.25));
+    return p > 0 ? `<circle cx="${cx}" cy="${cy}" r="${r * p}" fill="${COLORS[i]}" opacity="1"/>` : "";
+  }).join("");
+  const label = "영어 발표 준비";
+  const typed = label.slice(0, Math.floor(prog(s, 0.5, 1.75) * (label.length + 0.999)));
+  const enter = prog(s, 2.1, 2.4);
+  const phoneScale = 1 + 0.04 * outCubic(prog(s, 0, 1)) + 0.05 * Math.sin(prog(s, 2.3, 2.9) * Math.PI);
+  const cursor = Math.floor(s * 2.5) % 2 === 0 && s < 2.1 ? "|" : "";
+  const dots = [0, 1, 2, 3, 4, 5].map((i) => {
+    const p = prog(s, 2.6 + i * 0.05, 3.5);
+    const ang = i * 60 + 20;
+    return p > 0 ? `<circle cx="${cx + Math.cos(ang * Math.PI / 180) * (300 + outCubic(p) * 260)}" cy="${cy + Math.sin(ang * Math.PI / 180) * (300 + outCubic(p) * 260)}" r="${26 * (1 - p)}" fill="#fff"/>` : "";
+  }).join("");
+  const gone = prog(s, 2.5, 3.6);
+  return `<rect width="${W}" height="${H}" fill="#eceef2"/>${rings}
+  <g transform="translate(${cx} ${cy}) scale(${phoneScale}) translate(${-cx} ${-cy})" filter="url(#sh)">
+    <rect x="${cx - 270}" y="${cy - 540}" width="540" height="1080" rx="72" fill="#fff"/>
+    <rect x="${cx - 270}" y="${cy - 540}" width="540" height="1080" rx="72" fill="none" stroke="#e5e7eb" stroke-width="6"/>
+    ${text("오늘", cx - 220, cy - 430, 46, { fill: "#6b7280", anchor: "start", weight: 700 })}
+    <rect x="${cx - 230}" y="${cy - 360}" width="460" height="120" rx="24" fill="#f3f4f6"/>
+    <rect x="${cx - 214}" y="${cy - 328}" width="56" height="56" rx="14" fill="${enter > 0.5 ? COLORS[0] : "#e5e7eb"}"/>
+    ${enter > 0.5 ? `<path d="M${cx - 200} ${cy - 298} l16 16 l26 -30" stroke="#fff" stroke-width="9" fill="none" stroke-linecap="round" stroke-linejoin="round"/>` : ""}
+    ${text(typed + cursor, cx - 140, cy - 285, 44, { fill: "#111827", anchor: "start", weight: 700 })}
+    <rect x="${cx - 230}" y="${cy - 200}" width="150" height="56" rx="28" fill="${COLORS[0]}" opacity="${prog(s, 0.4, 0.8)}"/>
+    ${text("공부", cx - 155, cy - 160, 32, { fill: "#fff", opacity: prog(s, 0.4, 0.8), weight: 700 })}
+    ${[0, 1, 2].map((i) => `<rect x="${cx - 230}" y="${cy - 100 + i * 120}" width="460" height="90" rx="22" fill="#f3f4f6"/><rect x="${cx - 210}" y="${cy - 78 + i * 120}" width="46" height="46" rx="12" fill="#e5e7eb"/><rect x="${cx - 140}" y="${cy - 62 + i * 120}" width="${260 - i * 50}" height="16" rx="8" fill="#d1d5db"/>`).join("")}
+  </g>${dots}
+  ${kinetic(["적으면"], s, 540, 300, 130, { fill: gone > 0.5 ? "#fff" : "#4b5563", stroke: gone > 0.5 ? "rgba(0,0,0,.18)" : "", sw: 10 })}
+  ${s > 2.7 ? kinetic(["색이", "번져요"], s - 2.7, 540, 1830, 96, { fill: "#fff", stroke: "rgba(0,0,0,.2)", sw: 12 }) : ""}`;
+}
+
+/* 장면 3: 도리가 색으로 차오른다 */
+function fill(s) {
+  const fills = [0, 1, 2, 3].map((i) => outCubic(prog(s, 0.4 + i * 0.45, 1.3 + i * 0.45)));
+  const face = outBack(prog(s, 2.6, 3.1));
+  const bounce = 1 + 0.06 * Math.sin(prog(s, 0.4, 2.4) * Math.PI * 4) * (1 - prog(s, 0.4, 2.4) * 0.5) + 0.1 * Math.sin(prog(s, 2.6, 3.4) * Math.PI);
+  const sparks = Array.from({ length: 18 }, (_, i) => {
+    const p = prog(s, 2.6 + rnd(i) * 0.4, 4.3);
+    if (p <= 0 || p >= 1) return "";
+    const ang = rnd(i + 40) * Math.PI * 2, dist = 330 + rnd(i + 80) * 330;
+    return star(540 + Math.cos(ang) * dist * outCubic(p), 900 + Math.sin(ang) * dist * outCubic(p), (16 + rnd(i + 5) * 26) * (1 - p), COLORS[i % 4], p * 200);
+  }).join("");
+  return `<defs><linearGradient id="g3" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff7ed"/><stop offset="1" stop-color="#e8edff"/></linearGradient></defs>
+  <rect width="${W}" height="${H}" fill="url(#g3)"/>
+  ${cat(540, 900, 720, fills, face, { scale: bounce })}${sparks}
+  ${s > 0.3 ? kinetic(["채워지고"], s - 0.3, 540, 1560, 150, { fill: "#1f2937" }) : ""}`;
+}
+
+/* 장면 4: 친구와 함께 */
+function friends(s) {
+  const approach = inOut(prog(s, 0.5, 1.35));
+  const recoil = outCubic(prog(s, 1.35, 1.8));
+  const lx = lerp(250, 400, approach) - recoil * 28, rx = lerp(830, 680, approach) + recoil * 28;
+  const jump = Math.sin(prog(s, 1.35, 2.2) * Math.PI) * 50;
+  const ringP = prog(s, 1.35, 2.0);
+  const burst = ringP > 0 && ringP < 1
+    ? `<circle cx="540" cy="880" r="${outCubic(ringP) * 260}" fill="none" stroke="#fff" stroke-width="${26 * (1 - ringP)}"/>` +
+      Array.from({ length: 8 }, (_, i) => star(540 + Math.cos(i * 0.785) * 300 * outCubic(ringP), 880 + Math.sin(i * 0.785) * 300 * outCubic(ringP), 34 * (1 - ringP), COLORS[i % 4], i * 30)).join("")
+    : "";
+  const floaters = ["🔥", "❤️", "👍", "🔥", "❤️", "👏"].map((e, i) => {
+    const p = prog(s, 1.6 + i * 0.22, 4.6);
+    if (p <= 0) return "";
+    return `<text x="${300 + i * 95 + Math.sin(p * 9 + i) * 26}" y="${1080 - outCubic(p) * 760}" font-size="${86 + (i % 3) * 22}" text-anchor="middle" opacity="${1 - prog(p, 0.7, 1)}">${e}</text>`;
+  }).join("");
+  const chips = [["🔥", 3], ["❤️", 2], ["👍", 5]].map(([e, n], i) => {
+    const p = Math.max(0, outBack(prog(s, 2.4 + i * 0.2, 3.0 + i * 0.2)));
+    return `<g transform="translate(${340 + i * 200} 1500) scale(${p})"><rect x="-80" y="-44" width="160" height="88" rx="44" fill="#fff" filter="url(#sh)"/><text x="-30" y="16" font-size="44" text-anchor="middle">${e}</text>${text(String(n), 34, 16, 40, { fill: "#2563eb" })}</g>`;
+  }).join("");
+  return `<defs><linearGradient id="g4" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fef3c7"/><stop offset="1" stop-color="#fbcfe8"/></linearGradient></defs>
+  <rect width="${W}" height="${H}" fill="url(#g4)"/>
+  ${cat(lx, 960 - jump, 430, [1, 1, 1, 1], 1, { rot: -8 + approach * 12, stripes: ["#f97316", "#fb923c", "#22c55e", "#4ade80"] })}
+  ${cat(rx, 960 - jump, 430, [1, 1, 1, 1], 1, { rot: 8 - approach * 12, stripes: ["#7c3aed", "#8b5cf6", "#2563eb", "#60a5fa"] })}
+  ${burst}${floaters}${chips}
+  ${kinetic(["친구와", "함께면", "더"], s, 540, 340, 118, { fill: "#1f2937" })}`;
+}
+
+/* 장면 5: 하나씩 끝낼 때마다 */
+const CARDS = [["📚", "영어 단어 50개"], ["🏃", "줄넘기 500개"], ["☕", "발표 자료 정리"]];
+function montage(s) {
+  const k = Math.min(2, Math.floor(s / 2));
+  const u = s - k * 2;
+  const color = COLORS[k];
+  const flash = outCubic(prog(u, 0.9, 1.7));
+  let bg = `<rect width="${W}" height="${H}" fill="#f4f6fb"/>`;
+  for (let i = 0; i < k; i += 1) bg += `<rect width="${W}" height="${H}" fill="${COLORS[i]}" opacity=".16"/>`;
+  bg += `<circle cx="540" cy="900" r="${flash * 1500}" fill="${color}" opacity="${0.9 * (1 - prog(u, 1.4, 1.9)) + 0.16 * prog(u, 1.4, 1.9)}"/>`;
+  const enter = 1 - outCubic(prog(u, 0, 0.35));
+  const leave = inOut(prog(u, 1.65, 2.0));
+  const x = 540 + enter * 1300 - leave * 1300;
+  const done = prog(u, 0.9, 1.15) > 0;
+  const checkP = prog(u, 0.9, 1.25);
+  const squish = 1 + 0.06 * Math.sin(prog(u, 0.9, 1.4) * Math.PI);
+  const conf = Array.from({ length: 14 }, (_, i) => {
+    const p = prog(u, 0.95, 1.65);
+    if (p <= 0 || p >= 1) return "";
+    const ang = (i / 14) * Math.PI * 2 + rnd(i + k * 20) * 0.4, d = 260 + rnd(i + 60) * 300;
+    return `<circle cx="${540 + Math.cos(ang) * d * outCubic(p)}" cy="${900 + Math.sin(ang) * d * outCubic(p)}" r="${(10 + rnd(i) * 16) * (1 - p)}" fill="${["#fff", "#fde68a", color][i % 3]}"/>`;
+  }).join("");
+  const bar = COLORS.slice(0, 3).map((c, i) => {
+    const filled = i < k ? 1 : i === k ? outCubic(prog(u, 1.0, 1.6)) : 0;
+    return `<rect x="${140 + i * 267}" y="1400" width="253" height="34" rx="17" fill="#e5e7eb"/><rect x="${140 + i * 267}" y="1400" width="${253 * filled}" height="34" rx="17" fill="${c}"/>`;
+  }).join("");
+  return `${bg}
+  <g transform="translate(${x} 900) scale(${squish})" filter="url(#sh)">
+    <rect x="-400" y="-130" width="800" height="260" rx="56" fill="#fff"/>
+    <text x="-300" y="30" font-size="100" text-anchor="middle">${CARDS[k][0]}</text>
+    ${text(CARDS[k][1], -210, 26, 62, { fill: "#111827", anchor: "start", weight: 800 })}
+    <rect x="270" y="-50" width="100" height="100" rx="28" fill="${done ? color : "#e5e7eb"}"/>
+    ${done ? `<path d="M292 0 l24 24 l40 -46" stroke="#fff" stroke-width="13" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="120" stroke-dashoffset="${120 * (1 - checkP)}"/>` : ""}
+  </g>${conf}${bar}
+  ${kinetic(["하나씩", "끝낼", "때마다"], Math.max(0, s - 0.15), 540, 380, 118, { fill: flash > 0.1 && u < 1.6 ? "#fff" : "#1f2937", stroke: "rgba(0,0,0,.12)", sw: 8 })}`;
+}
+
+/* 장면 6: 색으로 물든 저녁, 로고 */
+function sunset(s) {
+  const bld = [[0, 300, 260], [120, 200, 340], [260, 260, 300], [400, 230, 420], [540, 300, 330], [700, 220, 380], [830, 260, 300], [960, 240, 250]];
+  const skyline = bld.map(([x, w, h], i) => {
+    const lit = outCubic(prog(s, 0.2 + i * 0.12, 0.9 + i * 0.12));
+    const y = 1920 - h - 40;
+    const wins = Array.from({ length: Math.floor(h / 70) * 3 }, (_, j) => {
+      const on = rnd(i * 31 + j) < lit * 0.85;
+      return `<rect x="${x + 28 + (j % 3) * (w / 3.4)}" y="${y + 24 + Math.floor(j / 3) * 66}" width="${w / 6}" height="34" rx="6" fill="${on ? COLORS[(i + j) % 4] : "#8b7fa8"}" opacity="${on ? 0.95 : 0.35}"/>`;
+    }).join("");
+    return `<rect x="${x}" y="${y}" width="${w - 6}" height="${h + 60}" rx="14" fill="#5b4b7a"/>${wins}`;
+  }).join("");
+  const titleP = Math.max(0, outBack(prog(s, 1.6, 2.2)));
+  const sun = `<circle cx="540" cy="1040" r="${330 + Math.sin(s * 1.3) * 8}" fill="#fff" opacity=".28"/><circle cx="540" cy="1040" r="230" fill="#fff" opacity=".35"/>`;
+  return `<defs><linearGradient id="g6" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffd6bd"/><stop offset=".55" stop-color="#ffb3c9"/><stop offset="1" stop-color="#a99bff"/></linearGradient></defs>
+  <rect width="${W}" height="${H}" fill="url(#g6)"/>${sun}${skyline}
+  ${cat(540, 1040 + Math.sin(s * 2) * 8, 400, [0, 1, 2, 3].map((i) => outCubic(prog(s, 0.1 + i * 0.1, 0.7 + i * 0.1))), prog(s, 0.7, 1.1))}
+  <g transform="translate(540 500) scale(${titleP}) translate(-540 -500)" opacity="${prog(s, 1.6, 1.9)}">${text("모도리", 540, 520, 230, { fill: "#fff", stroke: "rgba(91,75,122,.35)", sw: 16 })}</g>
+  ${text("친구와 함께 매일을 채워가요", 540, 690, 62, { fill: "#fff", weight: 800, opacity: prog(s, 2.1, 2.5), stroke: "rgba(91,75,122,.35)", sw: 10, dy: (1 - prog(s, 2.1, 2.5)) * 30 })}
+  <g opacity="${prog(s, 2.7, 3.1)}"><rect x="360" y="1290" width="360" height="90" rx="45" fill="#fff" filter="url(#sh)"/>${text("modori.site", 540, 1353, 46, { fill: "#2563eb", weight: 800 })}</g>`;
+}
+
+const SCENE_LIST = [["desk", desk], ["write", write], ["fill", fill], ["friends", friends], ["montage", montage], ["sunset", sunset]];
+const ENDS = { desk: S.write, write: S.fill, fill: S.friends, friends: S.montage, montage: S.sunset, sunset: 99 };
+
+window.render = (t) => {
+  catId = 0;
+  let body = "";
+  let filters = "";
+  SCENE_LIST.forEach(([name, fn], i) => {
+    const start = S[name], end = ENDS[name];
+    if (t < start - 0.2 || t > end + 0.2) return;
+    const inP = i === 0 ? 1 : outCubic(prog(t, start - 0.2, start + 0.2));
+    const outP = end > 90 ? 0 : inOut(prog(t, end - 0.2, end + 0.2));
+    const dx = (1 - inP) * W - outP * W;
+    const blur = Math.abs(dx) > 4 ? Math.min(60, Math.abs(dx) / 14) : 0;
+    const local = Math.max(0, t - start);
+    const id = `mb${i}`;
+    if (blur) filters += `<filter id="${id}" x="-20%" y="-5%" width="140%" height="110%"><feGaussianBlur stdDeviation="${blur} 0"/></filter>`;
+    body += `<g transform="translate(${dx} 0)" ${blur ? `filter="url(#${id})"` : ""}><clipPath id="clip${i}"><rect width="${W}" height="${H}"/></clipPath><g clip-path="url(#clip${i})">${fn(local)}</g></g>`;
+  });
+  document.getElementById("root").innerHTML =
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}"><defs>${shadow}${filters}</defs>${body}</svg>`;
+};
+window.render(0);
+</script>
