@@ -1590,3 +1590,12 @@ VM에 시험 DB(사용자 1000, 할 일 108만, 반응 24만, 280MB)를 만들�
 - 스토어 소개 문구에 푸시 알림 한 줄.
 
 검증: `npm run verify` 통과 — 단위 168×3, E2E 161/161(10/1 실제 날짜).
+
+## 2026-10-01 — 카테고리 간 끌어 옮기기
+
+- 할 일을 다른 카테고리 묶음으로 끌어 옮긴다: `components/todo-board.tsx`(묶음 전체를 감싸는 DndContext), 서버 `moveTodoToCategory`(`app/(tabs)/actions.ts`). 옮기면 따로 고른 색은 버린다. 보관한 카테고리 묶음에는 못 놓는다.
+- 끌고 다니는 그림(DragOverlay)이 상위 틀 때문에 32px 어긋나던 것을 body에 그려 고쳤다(키보드 테스트 때 발견).
+- 친구가 보는 내 하루는 공개 카테고리 할 일만 센다: 비공개를 안 끝냈어도 공개를 다 끝냈으면 "다 한 것"(테스트 `friend-private.spec`).
+- 검증: 전체 verify가 두 번 Neon 테스트 DB 연결 끊김(`Can't reach database server`)으로 5개, 12개 실패했고 해당 파일 재실행은 모두 통과, 세 번째 전체 통과.
+
+검증: `npm run verify` 통과 — 단위 168×3, E2E 163/163.
