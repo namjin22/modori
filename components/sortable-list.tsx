@@ -36,9 +36,18 @@ export type SortableItem = {
  * todo: 할 일 줄처럼 바탕 없이 평평하게, 넓은 화면에서는 손잡이를 올렸을 때만 보인다.
  * card: 카테고리처럼 줄마다 카드이고 손잡이가 늘 보인다.
  */
-type Variant = "todo" | "card";
+export type Variant = "todo" | "card";
 
-function Row({ id, node, variant }: Omit<SortableItem, "label"> & { variant: Variant }) {
+/**
+ * 목록 한 줄. 할 일 판(components/todo-board.tsx)도 같이 쓴다.
+ * dragPlaceholder를 켜면 끌고 있는 동안 제자리에는 흐린 자리표시만 남긴다(끌고 다니는 모습은 DragOverlay가 그린다).
+ */
+export function SortableRow({
+  id,
+  node,
+  variant,
+  dragPlaceholder = false,
+}: Omit<SortableItem, "label"> & { variant: Variant; dragPlaceholder?: boolean }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id });
 
@@ -51,7 +60,9 @@ function Row({ id, node, variant }: Omit<SortableItem, "label"> & { variant: Var
       style={{ transform: CSS.Transform.toString(transform), transition }}
       className={`group/row transition-colors ${
         card ? "rounded-2xl bg-surface" : "rounded-xl hover:bg-surface has-[details[open]]:bg-surface"
-      } ${isDragging ? "relative z-10 bg-surface opacity-90 shadow-lg" : ""}`}
+      } ${
+        isDragging ? (dragPlaceholder ? "opacity-30" : "relative z-10 bg-surface opacity-90 shadow-lg") : ""
+      }`}
     >
       <div className={`flex ${card ? "items-center pl-2" : "items-stretch"}`}>
         {/* 손잡이를 따로 둔다. 목록 어디나 잡히면 체크나 수정 버튼을 누를 수 없다. */}
@@ -171,7 +182,7 @@ export function SortableList({
             드래그 직후 새로고침하면 요청이 끊기기 때문이다. */}
         <ul className={`flex flex-col ${variant === "card" ? "gap-3" : ""}`} aria-busy={isSaving}>
           {order.map((id) => (
-            <Row key={id} id={id} node={byId.get(id)} variant={variant} />
+            <SortableRow key={id} id={id} node={byId.get(id)} variant={variant} />
           ))}
         </ul>
       </SortableContext>

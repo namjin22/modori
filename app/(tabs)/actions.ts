@@ -488,3 +488,49 @@ export async function reorderTodos(date: string, ids: string[]) {
 
   revalidatePath("/");
 }
+
+/**
+ * 할 일을 끌어 다른 카테고리 묶음으로 옮긴다. 옮긴 뒤 그 묶음의 화면 순서(orderedIds, 옮긴 할 일 포함)도 같이 저장한다.
+ * 카테고리가 바뀌면 할 일에 따로 골라 둔 색은 버린다(새 카테고리의 색을 따르게). categoryId가 null이면 "카테고리 없음" 묶음이다.
+ * 보관한 카테고리나 남의 카테고리로는 옮기지 않는다. 같은 날 한 묶음에서만 쓴다(날짜가 다르면 무시).
+ */
+export async function moveTodoToCategory(
+  date: string,
+  id: string,
+  categoryId: string | null,
+  ids: string[],
+): Promise<void> {
+  const user = await requireUser();
+  const day = readDay(date);
+  const orderedIds = readIdList(ids, MAX_REORDER);
+  if (!day || !orderedIds || !orderedIds.includes(id) || new Set(orderedIds).size !== orderedIds.length) return;
+
+  if (categoryId !== null) {
+    const category = await prisma.category.findFirst({
+      where: { id: categoryId, userId: user.id, archivedAt: null },
+      select: { id: true },
+    });
+    if (!category) return;
+  }
+
+  const owned = await prisma.todo.findMany({
+    where: { userId: user.id, date: day, id: { in: orderedIds } },
+    select: { id: true, order: true },
+  });
+  if (owned.length !== orderedIds.length) return;
+
+  // 옮긴 할 일이 원래 차지하던 자리도 이 묶음의 자리에 섞어 다시 배정한다. 원래 묶음의 나머지 자리는 그대로다.
+  const slots = owned.map((todo) => todo.order).sort((a, b) => a - b);
+
+  await prisma.$transaction([
+    prisma.todo.updateMany({
+      where: { id, userId: user.id },
+      data: { categoryId, color: null },
+    }),
+    ...orderedIds.map((todoId, index) =>
+      prisma.todo.updateMany({ where: { id: todoId, userId: user.id }, data: { order: slots[index] } }),
+    ),
+  ]);
+
+  revalidatePath("/");
+}

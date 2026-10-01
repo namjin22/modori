@@ -31,7 +31,7 @@ import {
   MonthCalendar,
 } from "@/components/month-calendar";
 import { ScheduledRoutineRow } from "@/components/scheduled-routine-row";
-import { SortableTodoList } from "@/components/sortable-todo-list";
+import { TodoBoard } from "@/components/todo-board";
 import { CalendarIcon } from "@/components/tab-icons";
 import { TodoRow } from "@/components/todo-row";
 import { TodoProgress } from "@/components/todo-progress";
@@ -431,46 +431,47 @@ export default async function FeedPage({
           )}
           canCelebrate={scheduled.length === 0}
         >
-          {todoGroups.map((group) => (
-            <section key={group.key} className="flex flex-col gap-1">
-              <CategoryAdder
-                categoryId={group.categoryId}
-                name={group.name}
-                color={group.color}
-                isPublic={group.isPublic}
-                archived={group.archived || group.categoryId === null}
-                date={formatKST(date)}
-                count={
-                  group.items.length > 0
-                    ? `${group.items.filter((todo) => todo.done).length}/${group.items.length}`
-                    : null
-                }
-              />
-
-              {group.items.length > 0 && (
-                <SortableTodoList
+          <TodoBoard
+            date={formatKST(date)}
+            groups={todoGroups.map((group) => ({
+              key: group.key,
+              categoryId: group.categoryId,
+              label: group.name,
+              droppable: !group.archived,
+              header: (
+                <CategoryAdder
+                  categoryId={group.categoryId}
+                  name={group.name}
+                  color={group.color}
+                  isPublic={group.isPublic}
+                  archived={group.archived || group.categoryId === null}
                   date={formatKST(date)}
-                  items={group.items.map((todo) => ({
-                    id: todo.id,
-                    label: todo.content,
-                    node: (
-                      <TodoRow
-                        todo={todo}
-                        date={formatKST(date)}
-                        quickMove={quickMove}
-                        received={groupReceivedReactions(
-                          todo.reactions.map((reaction) => ({
-                            emoji: reaction.emoji,
-                            nickname: reaction.user.nickname,
-                          })),
-                        )}
-                      />
-                    ),
-                  }))}
+                  count={
+                    group.items.length > 0
+                      ? `${group.items.filter((todo) => todo.done).length}/${group.items.length}`
+                      : null
+                  }
                 />
-              )}
-            </section>
-          ))}
+              ),
+              items: group.items.map((todo) => ({
+                id: todo.id,
+                label: todo.content,
+                node: (
+                  <TodoRow
+                    todo={todo}
+                    date={formatKST(date)}
+                    quickMove={quickMove}
+                    received={groupReceivedReactions(
+                      todo.reactions.map((reaction) => ({
+                        emoji: reaction.emoji,
+                        nickname: reaction.user.nickname,
+                      })),
+                    )}
+                  />
+                ),
+              })),
+            }))}
+          />
         </TodoProgress>
 
         {categories.length > 0 && todos.length === 0 && scheduled.length === 0 && (
