@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { startTransition, useEffect } from "react";
 
 import { Dori } from "@/components/dori";
 
@@ -11,6 +12,8 @@ export default function Error({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const router = useRouter();
+
   useEffect(() => {
     // 화면에는 사람이 읽을 말만 보여주고, 원인은 로그에 남긴다.
     console.error("[error]", error);
@@ -36,7 +39,13 @@ export default function Error({
 
       <button
         type="button"
-        onClick={reset}
+        onClick={() => {
+          // reset만 부르면 서버에서 난 오류(DB가 잠깐 끊김)는 다시 받아오지 않아 같은 오류 화면이 남는다. 새로 받아오며 다시 그린다.
+          startTransition(() => {
+            router.refresh();
+            reset();
+          });
+        }}
         className="h-12 w-full rounded-2xl bg-brand text-sm font-semibold text-brand-contrast"
       >
         다시 시도
