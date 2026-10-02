@@ -6,6 +6,7 @@ import {
   createRoutine,
   type RoutineFormState,
 } from "@/app/(tabs)/routines/actions";
+import { DatePicker } from "@/components/date-picker";
 import { SubmitButton } from "@/components/submit-button";
 import { useFormAction } from "@/components/use-form-action";
 
@@ -120,26 +121,17 @@ export function RoutineForm({
         </fieldset>
       )}
 
-      {/* 날짜 칸은 기본 최소 폭이 있어 가장 좁은 폰(320px)에서 카드 밖으로 밀려났다. min-w-0으로 줄어들게 한다. */}
-      <div className="flex gap-2">
-        <label className="flex min-w-0 flex-1 flex-col gap-1 text-xs text-muted">
+      {/* 날짜는 누르면 달력이 뜬다(components/date-picker.tsx). 한글 날짜가 길어 좁은 폰에서는 한 줄에 하나씩 둔다. */}
+      <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2">
+        <div className="flex min-w-0 flex-col gap-1 text-xs text-muted">
           시작일
-          <input
-            type="date"
-            name="startDate"
-            defaultValue={today}
-            className="h-11 w-full min-w-0 rounded-xl bg-surface-hover px-3 text-sm text-foreground"
-          />
-        </label>
+          <DatePicker label="루틴 시작일" name="startDate" defaultValue={today} />
+        </div>
 
-        <label className="flex min-w-0 flex-1 flex-col gap-1 text-xs text-muted">
+        <div className="flex min-w-0 flex-col gap-1 text-xs text-muted">
           종료일 (없으면 계속)
-          <input
-            type="date"
-            name="endDate"
-            className="h-11 w-full min-w-0 rounded-xl bg-surface-hover px-3 text-sm text-foreground"
-          />
-        </label>
+          <DatePicker label="루틴 종료일" name="endDate" clearable emptyText="계속 (종료일 없음)" />
+        </div>
       </div>
 
       {state && (

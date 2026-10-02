@@ -7,6 +7,7 @@ import {
   type EventFormState,
   updateEvent,
 } from "@/app/(tabs)/events/actions";
+import { DatePicker } from "@/components/date-picker";
 import { LabeledSwitch } from "@/components/labeled-switch";
 import { SubmitButton } from "@/components/submit-button";
 import { TimePicker } from "@/components/time-picker";
@@ -50,11 +51,20 @@ export function EventForm({
   // 만들기 창과 고치기 창이 한 화면에 여럿 떠 있을 수 있다. 이름표를 구분한다.
   const label = event ? "일정" : "새 일정";
   const [allDay, setAllDay] = useState(!event?.startTime);
+  const [startDate, setStartDate] = useState(event?.startDate ?? defaultDate);
+  const [endDate, setEndDate] = useState(event?.endDate ?? defaultDate);
   const [startTime, setStartTime] = useState(event?.startTime ?? "");
   const [endTime, setEndTime] = useState(event?.endTime ?? "");
 
   // 시작을 끝보다 늦게 옮기면 끝을 한 시간 뒤로 따라 옮긴다. 그대로 두면 저장할 때 "끝이 시작보다 이르다"에 걸린다.
   // "HH:MM"은 글자 순서가 시간 순서와 같아 그대로 견준다.
+  // 시작일을 종료일보다 뒤로 옮기면 종료일도 같이 옮긴다. 그대로 두면 저장할 때 "종료일이 시작일보다 앞설 수 없어요"에 걸린다.
+  // "YYYY-MM-DD"도 글자 순서가 날짜 순서와 같다.
+  function changeStartDate(next: string) {
+    setStartDate(next);
+    if (next && endDate && endDate < next) setEndDate(next);
+  }
+
   function changeStart(next: string) {
     setStartTime(next);
     if (next && endTime && endTime <= next) setEndTime(oneHourLater(next));
@@ -86,29 +96,16 @@ export function EventForm({
         className="h-12 w-full rounded-xl bg-surface-hover px-4 text-[15px] outline-none placeholder:text-muted focus:ring-2 focus:ring-brand"
       />
 
-      {/* 360px보다 좁은 폰에서는 날짜 칸이 "2026-09-"까지만 보여서 한 줄에 하나씩 둔다. */}
-      <div className="grid grid-cols-1 gap-3 min-[360px]:grid-cols-2">
-        <label className="flex min-w-0 flex-col gap-1.5 text-xs text-muted">
+      {/* 날짜는 누르면 달력이 뜬다(components/date-picker.tsx). 한글 날짜가 길어 한 줄에 하나씩 둔다. */}
+      <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2">
+        <div className="flex min-w-0 flex-col gap-1.5 text-xs text-muted">
           시작일
-          <input
-            type="date"
-            name="startDate"
-            required
-            defaultValue={event?.startDate ?? defaultDate}
-            aria-label={`${label} 시작일`}
-            className="h-11 w-full min-w-0 rounded-xl bg-surface-hover px-3 text-sm text-foreground"
-          />
-        </label>
-        <label className="flex min-w-0 flex-col gap-1.5 text-xs text-muted">
+          <DatePicker label={`${label} 시작일`} name="startDate" value={startDate} onChange={changeStartDate} />
+        </div>
+        <div className="flex min-w-0 flex-col gap-1.5 text-xs text-muted">
           종료일
-          <input
-            type="date"
-            name="endDate"
-            defaultValue={event?.endDate ?? defaultDate}
-            aria-label={`${label} 종료일`}
-            className="h-11 w-full min-w-0 rounded-xl bg-surface-hover px-3 text-sm text-foreground"
-          />
-        </label>
+          <DatePicker label={`${label} 종료일`} name="endDate" value={endDate} onChange={setEndDate} />
+        </div>
       </div>
 
       <div className="flex flex-col gap-3 rounded-xl border border-border p-3">

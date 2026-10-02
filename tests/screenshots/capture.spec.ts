@@ -129,6 +129,13 @@ for (const viewport of STORE ? [] : VIEWPORTS) {
     await expect(page.getByLabel("새 일정 이름")).toBeVisible();
     await shoot(page, `${viewport.name}-13-event-form`);
 
+    // 날짜 고르는 창(일정 만들기 안에서 시작일을 누른다).
+    await page.getByRole("button", { name: /^새 일정 시작일:/ }).click();
+    await expect(page.getByRole("dialog", { name: "날짜 고르기" })).toBeVisible();
+    // 떠 있는 창은 열리는 움직임이 끝난 뒤, 늘리지 않은 창 크기 그대로 찍는다(늘리면 창이 페이지 가운데로 가 버린다).
+    await page.waitForTimeout(500);
+    await page.screenshot({ path: path.join(OUT, `${viewport.name}-14-date-picker.jpg`), type: "jpeg", quality: 80 });
+
     await page.emulateMedia({ colorScheme: "dark" });
     await page.goto("/");
     await shoot(page, `${viewport.name}-09-home-dark`);

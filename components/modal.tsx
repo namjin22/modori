@@ -55,7 +55,11 @@ export function Modal({
     <dialog
       ref={ref}
       aria-label={title}
-      onClose={onClose}
+      // 창 안에 또 창(날짜 고르기 등)이 있으면 안쪽 창의 close가 React 트리를 타고 올라와 바깥 창까지 닫는다.
+      // 이 창이 직접 닫힌 경우만 받는다.
+      onClose={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
       // 뒤쪽을 누르면 닫는다. <dialog> 자신이 곧 배경이라 target으로 가려낸다.
       onClick={(event) => {
         if (event.target === ref.current) onClose();
