@@ -9,6 +9,7 @@ import {
   parseServiceAccount,
   resetPushCache,
   sendToTokens,
+  shouldNotify,
   type ServiceAccount,
 } from "@/lib/push";
 import { safePushPath } from "@/lib/push-client";
@@ -130,5 +131,15 @@ describe("safePushPath", () => {
     expect(safePushPath("//evil.example")).toBeNull();
     expect(safePushPath("/\\evil.example")).toBeNull();
     expect(safePushPath(undefined)).toBeNull();
+  });
+});
+
+describe("shouldNotify", () => {
+  it("같은 사람이 같은 상대에게 보내는 같은 알림은 10분에 한 번만 보낸다", () => {
+    expect(shouldNotify("reaction:a:b", 1_000)).toBe(true);
+    expect(shouldNotify("reaction:a:b", 1_000 + 9 * 60_000)).toBe(false);
+    expect(shouldNotify("reaction:a:c", 1_000 + 9 * 60_000)).toBe(true);
+    expect(shouldNotify("follow:a:b", 1_000 + 9 * 60_000)).toBe(true);
+    expect(shouldNotify("reaction:a:b", 1_000 + 10 * 60_000 + 1)).toBe(true);
   });
 });

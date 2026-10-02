@@ -33,7 +33,7 @@ export function PushRegistrar() {
     (async () => {
       let status = await push.checkPermissions();
       // 처음이면 한 번 묻는다. 거절하면 다시 조르지 않는다.
-      if (status.receive.startsWith("prompt")) status = await push.requestPermissions();
+      if (status.receive === "prompt") status = await push.requestPermissions();
       if (status.receive === "granted") await push.register();
     })().catch((error: unknown) => console.warn("[push] 알림을 준비하지 못했다.", error));
 

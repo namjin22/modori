@@ -28,11 +28,13 @@ export async function unregisterPushToken(): Promise<void> {
   }
   if (!token) return;
   try {
-    await fetch("/api/push/register", {
+    const response = await fetch("/api/push/register", {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ token }),
     });
+    // 서버가 지우지 못했으면 번호를 남겨 다음에 다시 시도한다(localStorage를 지우지 않는다).
+    if (!response.ok) throw new Error(`알림 번호 삭제 실패 ${response.status}`);
     localStorage.removeItem(PUSH_TOKEN_KEY);
   } catch (error) {
     console.warn("[push] 알림 번호를 지우지 못했다.", error instanceof Error ? error.name : error);
