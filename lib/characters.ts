@@ -30,7 +30,7 @@ export type SpecialMood =
   | "foxfire" // 하루: 여우불(파이팅)
   | "smug" // 하루: 흐뭇
   | "fish" // 펭이: 물고기 냠
-  | "scarf" // 펭이: 목도리(포근)
+  | "snowman" // 펭이: 눈사람 친구
   | "nap" // 펭이: 낮잠
   | "goggles"; // 펭이: 물안경
 
@@ -44,7 +44,7 @@ export const UNIQUE_MOODS: Record<CharacterId, CharacterMood[]> = {
   dori: ["fire", "clap", "hello", "love"],
   mong: ["pant", "bone", "beg", "ball"],
   haru: ["wink", "shy", "foxfire", "smug"],
-  peng: ["fish", "scarf", "nap", "goggles"],
+  peng: ["fish", "snowman", "nap", "goggles"],
 };
 
 /** 캐릭터가 쓰는 표정 열 개(공통 여섯 + 개성 넷). */

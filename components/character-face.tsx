@@ -34,7 +34,7 @@ const SPEC: Record<CharacterMood, { eye: EyeKind; eyeRight?: EyeKind; mouth: Mou
   foxfire: { eye: "arc", mouth: "grin" },
   smug: { eye: "half", mouth: "smirk" },
   fish: { eye: "arc", mouth: "small" },
-  scarf: { eye: "sleepy", mouth: "small" },
+  snowman: { eye: "arc", mouth: "small" },
   nap: { eye: "sleepy", mouth: "none" },
   goggles: { eye: "dot", mouth: "small" },
 };
@@ -80,7 +80,7 @@ function Eye({ kind, x, dir, l, noBrow = false }: { kind: EyeKind; x: number; di
   switch (kind) {
     case "side":
       // 부끄러워 눈을 옆으로 피한다.
-      return <g transform="translate(2.6 1.6)">{dot(0.92)}</g>;
+      return <g transform="translate(1.6 1.6)">{dot(0.92)}</g>;
     case "wink":
       // 안쪽을 가리키는 꺾쇠(>·<)로 감은 눈.
       return <Stroke d={`M${x + dir * 6} ${y - 5} L${x - dir * 5} ${y} L${x + dir * 6} ${y + 5}`} w={3.6} color={color} />;
@@ -326,17 +326,6 @@ function Fish() {
   );
 }
 
-/** 펭이 목도리. 머리 아래쪽을 두르고 끝자락이 한쪽으로 늘어진다. */
-function Scarf() {
-  return (
-    <g>
-      <path d="M78 74 L84 92 L92 89 L85 72Z" fill="#ef4444" stroke="#c53030" strokeWidth={1.2} strokeLinejoin="round" />
-      <path d="M30 69 Q60 86 90 69" stroke="#ef4444" strokeWidth={10} fill="none" strokeLinecap="round" />
-      <path d="M30 69 Q60 86 90 69" stroke="#fff" strokeWidth={10} strokeDasharray="3 7" fill="none" opacity={0.55} />
-    </g>
-  );
-}
-
 /** 펭이 물안경: 눈 위에 둥근 렌즈 둘과 끈. */
 function Goggles({ l }: { l: Layout }) {
   return (
@@ -368,7 +357,6 @@ function PenguinFace({ mood }: { mood: CharacterMood }) {
       )}
       <Beak kind={s.mouth} />
       {mood === "fish" && <Fish />}
-      {mood === "scarf" && <Scarf />}
       {mood === "goggles" && <Goggles l={l} />}
     </>
   );
@@ -436,12 +424,21 @@ export function CharacterProps({ mood }: { mood: CharacterMood }): ReactNode {
     }
     case "smug":
       return <>{[sparkle(104, 40, 5, "#ffb8c6")]}</>;
-    case "scarf":
+    case "snowman":
+      // 눈사람 친구: 눈덩이 둘, 당근 코, 나뭇가지 팔. 위로는 눈송이가 떨어진다.
       return (
-        <g fill="#cfe0ff">
-          {sparkle(16, 36, 5, "#cfe0ff")}
-          {sparkle(104, 30, 6, "#cfe0ff")}
-          {sparkle(110, 52, 3.5, "#cfe0ff")}
+        <g>
+          <path d="M91 92 L82 86 M109 92 L118 86" stroke="#8a6a4a" strokeWidth={2.2} strokeLinecap="round" />
+          <circle cx={100} cy={97} r={12} fill="#fff" stroke="#c9d6ea" strokeWidth={1.6} />
+          <circle cx={100} cy={77} r={9} fill="#fff" stroke="#c9d6ea" strokeWidth={1.6} />
+          <circle cx={97} cy={75} r={1.3} fill="#1e2a47" />
+          <circle cx={103} cy={75} r={1.3} fill="#1e2a47" />
+          <path d="M100 77.5 L106.5 79 L100 80.5Z" fill="#ff8a3d" />
+          <circle cx={100} cy={96} r={1.2} fill="#1e2a47" />
+          <circle cx={100} cy={101} r={1.2} fill="#1e2a47" />
+          {sparkle(18, 40, 5, "#cfe0ff")}
+          {sparkle(108, 54, 4, "#cfe0ff")}
+          {sparkle(26, 26, 3.4, "#cfe0ff")}
         </g>
       );
     case "nap":
