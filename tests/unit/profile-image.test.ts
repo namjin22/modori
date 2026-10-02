@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { isProfileImage, MAX_PROFILE_IMAGE_LENGTH } from "@/lib/profile-image";
+import { isProfileImage, MAX_PROFILE_IMAGE_DIMENSION, MAX_PROFILE_IMAGE_LENGTH } from "@/lib/profile-image";
 
 // 실제 1×1 픽셀 파일(PNG, JPEG, WebP)의 바이트를 사용한다.
 const images = {
@@ -61,5 +61,41 @@ describe("isProfileImage", () => {
     expect(isProfileImage(dataUrl("png", images.png + "A"))).toBe(false);
     expect(isProfileImage(dataUrl("png", "AAAA="))).toBe(false);
     expect(isProfileImage(dataUrl("png", images.png + "A".repeat(MAX_PROFILE_IMAGE_LENGTH)))).toBe(false);
+  });
+});
+
+describe("isProfileImage 픽셀 크기", () => {
+  it("상한(256px) 이하의 큰 그림은 받고, 넘으면 파일이 작아도 거절한다", () => {
+    const png = Buffer.from(images.png, "base64");
+    // IHDR 가로·세로(16~23번째 바이트)를 바꾼다. 파서는 CRC를 보지 않는다.
+    png.writeUInt32BE(MAX_PROFILE_IMAGE_DIMENSION, 16);
+    png.writeUInt32BE(MAX_PROFILE_IMAGE_DIMENSION, 20);
+    expect(isProfileImage(dataUrl("png", png.toString("base64")))).toBe(true);
+
+    png.writeUInt32BE(60000, 16);
+    png.writeUInt32BE(60000, 20);
+    expect(isProfileImage(dataUrl("png", png.toString("base64")))).toBe(false);
+    png.writeUInt32BE(MAX_PROFILE_IMAGE_DIMENSION + 1, 16);
+    png.writeUInt32BE(1, 20);
+    expect(isProfileImage(dataUrl("png", png.toString("base64")))).toBe(false);
+  });
+
+  it("JPEG 프레임 헤더의 크기도 본다", () => {
+    const jpeg = Buffer.from(images.jpeg, "base64");
+    const sof = jpeg.indexOf(Buffer.from([0xff, 0xc0]));
+    expect(sof).toBeGreaterThan(0);
+    jpeg.writeUInt16BE(40000, sof + 5); // 세로
+    jpeg.writeUInt16BE(40000, sof + 7); // 가로
+    expect(isProfileImage(dataUrl("jpeg", jpeg.toString("base64")))).toBe(false);
+  });
+
+  it("WebP(손실)의 크기도 본다", () => {
+    const webp = Buffer.from(images.webp, "base64");
+    const vp8 = webp.indexOf("VP8 ");
+    expect(vp8).toBeGreaterThan(0);
+    const data = vp8 + 8;
+    webp.writeUInt16LE(16000, data + 6);
+    webp.writeUInt16LE(16000, data + 8);
+    expect(isProfileImage(dataUrl("webp", webp.toString("base64")))).toBe(false);
   });
 });
