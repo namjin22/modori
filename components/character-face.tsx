@@ -89,8 +89,17 @@ function Eye({ kind, x, dir, l, noBrow = false }: { kind: EyeKind; x: number; di
       return <Stroke d={`M${x - 6.5} ${y - 1.5} Q${x} ${y + 6} ${x + 6.5} ${y - 1.5}`} w={3.6} color={color} />;
     case "angry":
       return (
-        noBrow ? (
-          dot(0.95, 24, 0.7)
+        noBrow && single ? (
+          // 펭귄: 둥근 눈 위에 하얀 눈꺼풀이 바깥에서 안쪽으로 내려와 화난 눈이 된다(눈썹 없이).
+          <>
+            {dot()}
+            <path
+              d={`M${x + dir * 8.5} ${y - 10} L${x - dir * 8.5} ${y - 10} L${x - dir * 8.5} ${y - 0.5} L${x + dir * 8.5} ${y - 6}Z`}
+              fill="#fffaf2"
+            />
+          </>
+        ) : noBrow ? (
+          dot(0.95, 22, 0.75)
         ) : (
           <>
             {dot(0.92)}
@@ -208,8 +217,8 @@ function FoxFace({ mood }: { mood: DoriMood }) {
   const s = SPEC[mood];
   return (
     <>
-      <Eye kind={s.eye} x={l.left} dir={-1} l={l} />
-      <Eye kind={s.eyeRight ?? s.eye} x={l.right} dir={1} l={l} />
+      <Eye kind={s.eye} x={l.left} dir={-1} l={l} noBrow />
+      <Eye kind={s.eyeRight ?? s.eye} x={l.right} dir={1} l={l} noBrow />
       {s.tear && <path d={`M${l.left - 3} ${l.y + 9.5} q-3 4.2 0 6.6 q3 -2.4 0 -6.6z`} fill="#8ecbff" />}
       <path d="M55.4 53.4 Q60 50.4 64.6 53.4 Q62.4 57.4 60 57.8 Q57.6 57.4 55.4 53.4Z" fill="#3d2b25" />
       <ellipse cx={58.4} cy={52.8} rx={1.4} ry={0.8} fill="#fff" opacity={0.75} />
