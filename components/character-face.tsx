@@ -5,14 +5,13 @@
 
 import type { ReactNode } from "react";
 
-import type { DoriMood } from "@/components/dori";
-import type { CharacterId } from "@/lib/characters";
+import type { CharacterId, CharacterMood } from "@/lib/characters";
 
-type Mouth = "smile" | "grin" | "open" | "shout" | "o" | "frown" | "wavy" | "smirk" | "small";
-type EyeKind = "dot" | "arc" | "angry" | "star" | "sleepy" | "sad" | "wide" | "heart" | "shades" | "tiny";
+type Mouth = "smile" | "grin" | "open" | "shout" | "o" | "frown" | "wavy" | "smirk" | "small" | "tongue" | "none";
+type EyeKind = "dot" | "arc" | "angry" | "star" | "sleepy" | "sad" | "wide" | "heart" | "shades" | "tiny" | "wink" | "beg" | "half";
 
 /** 표정마다 눈·입 종류. 어느 캐릭터든 같은 뜻이고, 그리는 방식만 캐릭터마다 다르다. */
-const SPEC: Record<Exclude<DoriMood, never>, { eye: EyeKind; eyeRight?: EyeKind; mouth: Mouth; tear?: boolean }> = {
+const SPEC: Record<CharacterMood, { eye: EyeKind; eyeRight?: EyeKind; mouth: Mouth; tear?: boolean }> = {
   happy: { eye: "dot", mouth: "smile" },
   like: { eye: "arc", mouth: "smile" },
   fire: { eye: "angry", mouth: "shout" },
@@ -25,6 +24,19 @@ const SPEC: Record<Exclude<DoriMood, never>, { eye: EyeKind; eyeRight?: EyeKind;
   cool: { eye: "shades", mouth: "smirk" },
   wow: { eye: "wide", mouth: "o" },
   love: { eye: "heart", mouth: "grin" },
+  // 개성 표정. 얼굴 밖 소품은 CharacterProps, 얼굴 위 소품(뼈다귀·물고기·목도리·물안경)은 각 얼굴이 그린다.
+  pant: { eye: "arc", mouth: "tongue" },
+  bone: { eye: "arc", mouth: "none" },
+  beg: { eye: "beg", mouth: "small" },
+  ball: { eye: "dot", mouth: "grin" },
+  wink: { eye: "dot", eyeRight: "wink", mouth: "smile" },
+  leaf: { eye: "dot", mouth: "smile" },
+  foxfire: { eye: "arc", mouth: "grin" },
+  smug: { eye: "half", mouth: "smirk" },
+  fish: { eye: "arc", mouth: "small" },
+  scarf: { eye: "sleepy", mouth: "small" },
+  quack: { eye: "wide", mouth: "shout" },
+  goggles: { eye: "dot", mouth: "small" },
 };
 
 type Layout = {
@@ -66,6 +78,27 @@ function Eye({ kind, x, dir, l, noBrow = false }: { kind: EyeKind; x: number; di
     <Stroke d={`M${x + 8.5 * dir} ${y + outerY} L${x - 6.5 * dir} ${y + innerY}`} w={3.2} color={color} />
   );
   switch (kind) {
+    case "wink":
+      // 안쪽을 가리키는 꺾쇠(>·<)로 감은 눈.
+      return <Stroke d={`M${x + dir * 6} ${y - 5} L${x - dir * 5} ${y} L${x + dir * 6} ${y + 5}`} w={3.6} color={color} />;
+    case "beg":
+      // 커다랗고 촉촉한 눈: 하이라이트를 하나 더하고 아래에 맺힌 눈물 선.
+      return (
+        <>
+          {dot(1.2)}
+          <circle cx={x - rx * 0.05} cy={y - ry * 0.02} r={rx * 0.17} fill="#fff" />
+          <path d={`M${x - rx * 1.2} ${y + ry * 0.95} Q${x} ${y + ry * 1.55} ${x + rx * 1.2} ${y + ry * 0.95}`} stroke="#8ecbff" strokeWidth={1.8} fill="none" strokeLinecap="round" />
+        </>
+      );
+    case "half":
+      // 반쯤 감은 흐뭇한 눈: 위쪽을 얼굴색 눈꺼풀이 덮는다.
+      return (
+        <>
+          {dot()}
+          <path d={`M${x - 9} ${y - 11} L${x + 9} ${y - 11} L${x + 9} ${y - 0.6} Q${x} ${y + 1.4} ${x - 9} ${y - 0.6}Z`} fill={lidFill ?? "#fff"} />
+          <Stroke d={`M${x - 7.2} ${y - 0.4} Q${x} ${y + 1.6} ${x + 7.2} ${y - 0.4}`} w={2.4} color={color} />
+        </>
+      );
     case "dot":
       return dot();
     case "tiny":
@@ -127,6 +160,21 @@ function OmegaMouth({ kind, top, w, depth, color, tongue }: { kind: Mouth; top: 
   const base = `M60 ${top} L60 ${t}`;
   const smile = `${base} M60 ${t} Q${60 - w * 0.55} ${t + depth} ${60 - w} ${t + 0.8} M60 ${t} Q${60 + w * 0.55} ${t + depth} ${60 + w} ${t + 0.8}`;
   switch (kind) {
+    case "none":
+      return null;
+    case "tongue":
+      // 헥헥: 벌린 입 아래로 혀가 길게 나온다.
+      return (
+        <>
+          <path
+            d={`M${60 - w} ${t} Q60 ${t + 2} ${60 + w} ${t} Q${60 + w * 0.8} ${t + depth * 2.3} 60 ${t + depth * 2.3} Q${60 - w * 0.8} ${t + depth * 2.3} ${60 - w} ${t}Z`}
+            fill="#5a2f3b"
+          />
+          <path d={`M${60 - w * 0.55} ${t + depth * 1.3} Q${60 - w * 0.6} ${t + depth * 3.6} 60 ${t + depth * 3.6} Q${60 + w * 0.6} ${t + depth * 3.6} ${60 + w * 0.55} ${t + depth * 1.3}Z`} fill={PINK} />
+          <Stroke d={`M60 ${t + depth * 1.6} L60 ${t + depth * 2.9}`} w={1.4} color="#e0607a" />
+          <Stroke d={base} color={color} />
+        </>
+      );
     case "smile":
       return (
         <>
@@ -168,7 +216,23 @@ function OmegaMouth({ kind, top, w, depth, color, tongue }: { kind: Mouth; top: 
   }
 }
 
-function DogFace({ mood }: { mood: DoriMood }) {
+/** 몽이가 입에 문 뼈다귀. */
+function Bone() {
+  return (
+    <g transform="translate(60 63) rotate(-8)">
+      <g fill="#fffaf2" stroke="#c9a37f" strokeWidth={1.6}>
+        <circle cx={-14} cy={-3.2} r={3.8} />
+        <circle cx={-14} cy={3.2} r={3.8} />
+        <circle cx={14} cy={-3.2} r={3.8} />
+        <circle cx={14} cy={3.2} r={3.8} />
+        <rect x={-14} y={-3.2} width={28} height={6.4} rx={3} />
+      </g>
+      <rect x={-12.6} y={-2.3} width={25.2} height={4.6} fill="#fffaf2" />
+    </g>
+  );
+}
+
+function DogFace({ mood }: { mood: CharacterMood }) {
   const l = LAYOUT.mong;
   const s = SPEC[mood];
   return (
@@ -184,11 +248,12 @@ function DogFace({ mood }: { mood: DoriMood }) {
       <ellipse cx={60} cy={54.2} rx={5.2} ry={3.7} fill="#4b392f" />
       <ellipse cx={58.3} cy={52.9} rx={1.7} ry={1} fill="#fff" opacity={0.8} />
       <OmegaMouth kind={s.mouth} top={57.7} w={8.6} depth={4.4} color="#4b392f" tongue={3.4} />
+      {mood === "bone" && <Bone />}
     </>
   );
 }
 
-function FoxFace({ mood }: { mood: DoriMood }) {
+function FoxFace({ mood }: { mood: CharacterMood }) {
   const l = LAYOUT.haru;
   const s = SPEC[mood];
   return (
@@ -240,7 +305,45 @@ function Beak({ kind }: { kind: Mouth }) {
   }
 }
 
-function PenguinFace({ mood }: { mood: DoriMood }) {
+/** 펭이가 부리에 문 물고기. */
+function Fish() {
+  return (
+    <g transform="translate(70 61) rotate(-12)">
+      <path d="M-8 0 Q0 -6.5 9 0 Q0 6.5 -8 0Z" fill="#8fc4e8" stroke="#5b8fb8" strokeWidth={1.2} strokeLinejoin="round" />
+      <path d="M8 0 L14.5 -5 L13.5 0 L14.5 5Z" fill="#8fc4e8" stroke="#5b8fb8" strokeWidth={1.2} strokeLinejoin="round" />
+      <circle cx={-4} cy={-1.2} r={1.2} fill="#1e2a47" />
+    </g>
+  );
+}
+
+/** 펭이 목도리. 머리 아래쪽을 두르고 끝자락이 한쪽으로 늘어진다. */
+function Scarf() {
+  return (
+    <g>
+      <path d="M78 74 L84 92 L92 89 L85 72Z" fill="#ef4444" stroke="#c53030" strokeWidth={1.2} strokeLinejoin="round" />
+      <path d="M30 69 Q60 86 90 69" stroke="#ef4444" strokeWidth={10} fill="none" strokeLinecap="round" />
+      <path d="M30 69 Q60 86 90 69" stroke="#fff" strokeWidth={10} strokeDasharray="3 7" fill="none" opacity={0.55} />
+    </g>
+  );
+}
+
+/** 펭이 물안경: 눈 위에 둥근 렌즈 둘과 끈. */
+function Goggles({ l }: { l: Layout }) {
+  return (
+    <g>
+      <path d={`M24 ${l.y - 2} L${l.left - 9} ${l.y} M${l.left + 9} ${l.y} L${l.right - 9} ${l.y} M${l.right + 9} ${l.y} L96 ${l.y - 2}`} stroke="#2563eb" strokeWidth={3} strokeLinecap="round" />
+      {[l.left, l.right].map((x) => (
+        <g key={x}>
+          <circle cx={x} cy={l.y} r={9} fill="#bfe3ff" opacity={0.45} />
+          <circle cx={x} cy={l.y} r={9} fill="none" stroke="#2563eb" strokeWidth={2.8} />
+          <path d={`M${x - 4.5} ${l.y - 4} q2 -2 4.5 -2.2`} stroke="#fff" strokeWidth={1.8} fill="none" strokeLinecap="round" />
+        </g>
+      ))}
+    </g>
+  );
+}
+
+function PenguinFace({ mood }: { mood: CharacterMood }) {
   const l = LAYOUT.peng;
   const s = SPEC[mood];
   return (
@@ -254,13 +357,109 @@ function PenguinFace({ mood }: { mood: DoriMood }) {
         </>
       )}
       <Beak kind={s.mouth} />
+      {mood === "fish" && <Fish />}
+      {mood === "scarf" && <Scarf />}
+      {mood === "goggles" && <Goggles l={l} />}
     </>
   );
 }
 
 /** 도리를 뺀 캐릭터의 얼굴(눈·코·입). 머리 좌표계 안에서 그린다. */
-export function CharacterFace({ character, mood }: { character: Exclude<CharacterId, "dori">; mood: DoriMood }): ReactNode {
+export function CharacterFace({ character, mood }: { character: Exclude<CharacterId, "dori">; mood: CharacterMood }): ReactNode {
   if (character === "mong") return <DogFace mood={mood} />;
   if (character === "haru") return <FoxFace mood={mood} />;
   return <PenguinFace mood={mood} />;
+}
+
+const SPARK = "#ffd34d";
+const sparkle = (x: number, y: number, r: number, color = SPARK) => (
+  <path
+    key={`${x}-${y}`}
+    d={`M${x} ${y - r} Q${x + r * 0.2} ${y - r * 0.2} ${x + r} ${y} Q${x + r * 0.2} ${y + r * 0.2} ${x} ${y + r} Q${x - r * 0.2} ${y + r * 0.2} ${x - r} ${y} Q${x - r * 0.2} ${y - r * 0.2} ${x} ${y - r}Z`}
+    fill={color}
+  />
+);
+
+/** 개성 표정의 얼굴 밖 소품(120×120 좌표). 공통 표정 소품은 도리 것(하트·고깔 모자 등)을 같이 쓴다. */
+export function CharacterProps({ mood }: { mood: CharacterMood }): ReactNode {
+  switch (mood) {
+    case "pant":
+      // 신나서 흔들리는 선.
+      return (
+        <g stroke="#a8b6d1" strokeWidth={3} fill="none" strokeLinecap="round">
+          <path d="M10 56 q-5 8 0 16" />
+          <path d="M4 52 q-6 12 0 24" />
+          <path d="M110 56 q5 8 0 16" />
+          <path d="M116 52 q6 12 0 24" />
+        </g>
+      );
+    case "beg":
+      return <>{[sparkle(16, 40, 6), sparkle(104, 34, 7), sparkle(108, 54, 4)]}</>;
+    case "ball":
+      // 옆으로 통통 튀는 테니스공.
+      return (
+        <g>
+          <path d="M98 104 q4 -6 8 0 M92 108 q3 -4 6 0" stroke="#a8b6d1" strokeWidth={2.4} fill="none" strokeLinecap="round" />
+          <circle cx={104} cy={84} r={10} fill="#c6e85b" stroke="#8fb33a" strokeWidth={1.6} />
+          <path d="M95.5 79 Q104 84 95.8 90 M112.5 78 Q104 84 112.2 90" stroke="#fff" strokeWidth={1.8} fill="none" strokeLinecap="round" />
+        </g>
+      );
+    case "wink":
+      return <>{[sparkle(102, 34, 7), sparkle(110, 48, 4)]}</>;
+    case "leaf":
+      // 둔갑: 머리에 얹은 나뭇잎과 펑 하는 연기.
+      return (
+        <g>
+          <g fill="#f1f3f8" stroke="#c9d1e6" strokeWidth={1.4}>
+            <circle cx={12} cy={40} r={6} />
+            <circle cx={20} cy={34} r={5} />
+            <circle cx={106} cy={42} r={6} />
+            <circle cx={100} cy={35} r={4.5} />
+          </g>
+          <g transform="translate(60 16) rotate(-18)">
+            <path d="M0 -10 Q10 -2 0 12 Q-10 -2 0 -10Z" fill="#5cb85c" stroke="#3d8b3d" strokeWidth={1.4} strokeLinejoin="round" />
+            <path d="M0 -7 L0 14" stroke="#3d8b3d" strokeWidth={1.4} strokeLinecap="round" />
+          </g>
+        </g>
+      );
+    case "foxfire": {
+      // 여우불: 양옆에 떠 있는 파란 도깨비불.
+      const flame = (x: number, y: number, scale: number) => (
+        <g key={x} transform={`translate(${x} ${y}) scale(${scale})`}>
+          <path d="M0 -14 Q8 -4 6 4 Q4 10 0 10 Q-4 10 -6 4 Q-8 -4 0 -14Z" fill="#7ec8ff" />
+          <path d="M0 -5 Q4 1 3 5 Q1.5 8 0 8 Q-1.5 8 -3 5 Q-4 1 0 -5Z" fill="#e2f3ff" />
+        </g>
+      );
+      return <>{[flame(13, 52, 1), flame(107, 44, 1.2)]}</>;
+    }
+    case "smug":
+      return <>{[sparkle(104, 40, 5, "#ffb8c6")]}</>;
+    case "scarf":
+      return (
+        <g fill="#cfe0ff">
+          {sparkle(16, 36, 5, "#cfe0ff")}
+          {sparkle(104, 30, 6, "#cfe0ff")}
+          {sparkle(110, 52, 3.5, "#cfe0ff")}
+        </g>
+      );
+    case "quack":
+      // 꽥: 부리 옆으로 퍼지는 소리 선.
+      return (
+        <g stroke="#ffb13d" strokeWidth={3.4} fill="none" strokeLinecap="round">
+          <path d="M98 70 L110 66" />
+          <path d="M99 78 L112 79" />
+          <path d="M97 86 L108 92" />
+        </g>
+      );
+    case "goggles":
+      return (
+        <g fill="none" stroke="#8ecbff" strokeWidth={2}>
+          <circle cx={104} cy={40} r={4} />
+          <circle cx={110} cy={28} r={2.6} />
+          <circle cx={100} cy={22} r={1.8} />
+        </g>
+      );
+    default:
+      return null;
+  }
 }

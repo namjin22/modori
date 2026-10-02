@@ -13,8 +13,8 @@
 
 import type { CSSProperties, ReactNode } from "react";
 
-import { CharacterFace } from "@/components/character-face";
-import { DEFAULT_CHARACTER, type CharacterId } from "@/lib/characters";
+import { CharacterFace, CharacterProps } from "@/components/character-face";
+import { DEFAULT_CHARACTER, type CharacterId, type CharacterMood } from "@/lib/characters";
 
 export type DoriMood =
   | "happy"
@@ -85,7 +85,7 @@ function Outlined({ children }: { children: ReactNode }) {
 }
 
 /** 캐릭터마다 달라지는 것: 머리 뒤(귀), 윤곽을 두를 머리 모양, 머리 위(코·무늬·부리). 눈·입은 표정(LOOKS)이 그린다. */
-const SHAPES: Record<CharacterId, { behind?: ReactNode; shape: ReactNode; front?: ReactNode; crest?: ReactNode }> = {
+const SHAPES: Record<CharacterId, { behind?: ReactNode; shape: ReactNode; front?: ReactNode }> = {
   dori: {
     shape: (
       <>
@@ -142,13 +142,9 @@ const SHAPES: Record<CharacterId, { behind?: ReactNode; shape: ReactNode; front?
       </>
     ),
   },
-  // 펭이(펭귄): 통통한 남색 얼굴, 하트 모양 하얀 얼굴 무늬, 머리 위 깃털.
+  // 펭이(펭귄): 통통한 남색 얼굴, 하트 모양 하얀 얼굴 무늬.
   peng: {
     shape: <ellipse cx={60} cy={47} rx={34} ry={31} />,
-    // 머리 위 깃털. 고깔 모자를 쓰는 표정(party)에서는 모자 옆으로 삐죽 나와 어색해서 그리지 않는다.
-    crest: (
-      <path d="M54 15 Q51 6 57 3 M60 15 Q60 4 66 5 M66 15 Q71 8 76 10" stroke={INK} strokeWidth={3.4} fill="none" strokeLinecap="round" />
-    ),
     front: (
       <>
         <g fill="#fffaf2">
@@ -536,7 +532,8 @@ export function Dori({
   avatar = false,
   character = DEFAULT_CHARACTER,
 }: {
-  mood?: DoriMood;
+  // 도리 표정(DoriMood) 또는 캐릭터마다의 개성 표정(lib/characters.ts의 SpecialMood).
+  mood?: CharacterMood;
   size?: number;
   // 그림이 뜻을 전할 때만 이름을 붙인다. 꾸밀 뿐이면 화면 읽기에서 건너뛴다.
   label?: string;
@@ -546,7 +543,9 @@ export function Dori({
   // 어느 캐릭터로 그릴지(lib/characters.ts). 기본은 도리.
   character?: CharacterId;
 }) {
-  const look = LOOKS[mood];
+  // 도리 표정 목록에 없는 개성 표정이면 도리 소품(LOOKS)은 쓰지 않고 캐릭터 소품만 그린다.
+  const isDoriMood = mood in LOOKS;
+  const look = LOOKS[(isDoriMood ? mood : "happy") as DoriMood];
   const parts = SHAPES[character];
 
   return (
@@ -573,7 +572,6 @@ export function Dori({
       </Outlined>
 
       <g transform={HEAD}>
-        {mood !== "party" && parts.crest}
         {parts.front}
         {character !== "peng" && (
           <>
@@ -584,7 +582,8 @@ export function Dori({
         {character === "dori" ? look.face : <CharacterFace character={character} mood={mood} />}
       </g>
 
-      {!avatar && look.props}
+      {!avatar && isDoriMood && look.props}
+      {!avatar && character !== "dori" && <CharacterProps mood={mood} />}
     </svg>
   );
 }
