@@ -40,8 +40,8 @@ type Layout = {
 
 const LAYOUT: Record<Exclude<CharacterId, "dori">, Layout> = {
   mong: { left: 43, right: 77, y: 47.5, rx: 6.6, ry: 7.8, tilt: 0, color: "#4b392f", glint: 1.1 },
-  haru: { left: 42.5, right: 77.5, y: 48, rx: 5.8, ry: 7.2, tilt: 9, color: "#4a2d28", glint: 1 },
-  peng: { left: 41.5, right: 78.5, y: 50.5, rx: 5.6, ry: 6.8, tilt: 0, color: "#1e2a47", glint: 1.1 },
+  haru: { left: 42.5, right: 77.5, y: 47.5, rx: 6.2, ry: 7.6, tilt: 10, color: "#4a2d28", glint: 1.05 },
+  peng: { left: 42, right: 78, y: 50, rx: 6.4, ry: 7.6, tilt: 0, color: "#1e2a47", glint: 1.1 },
 };
 
 const PINK = "#ff8fa5";
@@ -186,11 +186,17 @@ function FoxFace({ mood }: { mood: DoriMood }) {
   const s = SPEC[mood];
   return (
     <>
+      {/* 눈썹 자리의 크림색 점: 여우의 하얀 눈썹 무늬. */}
+      <g fill="#fff1dc">
+        <ellipse cx={l.left - 1} cy={l.y - 11.5} rx={2.6} ry={1.8} />
+        <ellipse cx={l.right + 1} cy={l.y - 11.5} rx={2.6} ry={1.8} />
+      </g>
       <Eye kind={s.eye} x={l.left} dir={-1} l={l} />
       <Eye kind={s.eyeRight ?? s.eye} x={l.right} dir={1} l={l} />
       {s.tear && <path d={`M${l.left - 3} ${l.y + 9.5} q-3 4.2 0 6.6 q3 -2.4 0 -6.6z`} fill="#8ecbff" />}
-      <path d="M56.4 53 Q60 50.8 63.6 53 Q62.2 56 60 56.6 Q57.8 56 56.4 53Z" fill="#3d2b25" />
-      <OmegaMouth kind={s.mouth} top={56.2} w={7.2} depth={4} color="#4a2d28" tongue={2.8} />
+      <path d="M55.4 53.4 Q60 50.4 64.6 53.4 Q62.4 57.4 60 57.8 Q57.6 57.4 55.4 53.4Z" fill="#3d2b25" />
+      <ellipse cx={58.4} cy={52.8} rx={1.4} ry={0.8} fill="#fff" opacity={0.75} />
+      <OmegaMouth kind={s.mouth} top={58} w={7.4} depth={4} color="#4a2d28" tongue={2.8} />
     </>
   );
 }
@@ -202,7 +208,7 @@ function Beak({ kind }: { kind: Mouth }) {
   const closed = (rot = 0) => (
     <path
       transform={`rotate(${rot} 60 57)`}
-      d="M54 54.2 Q60 51.2 66 54.2 Q64 60.8 60 61.8 Q56 60.8 54 54.2Z"
+      d="M52.5 54.6 Q60 49.8 67.5 54.6 Q65.5 62.4 60 63 Q54.5 62.4 52.5 54.6Z"
       fill={orange}
       stroke={edge}
       strokeWidth={1.3}
@@ -216,19 +222,19 @@ function Beak({ kind }: { kind: Mouth }) {
     case "o":
       return (
         <>
-          <path d="M55.5 59.5 Q60 58.6 64.5 59.5 Q63 66 60 66.6 Q57 66 55.5 59.5Z" fill="#5a2f3b" />
-          <ellipse cx={60} cy={63.6} rx={2.8} ry={1.8} fill={PINK} />
-          <path d="M54.2 54.4 Q60 51.2 65.8 54.4 Q64.4 58.6 60 59.4 Q55.6 58.6 54.2 54.4Z" fill={orange} stroke={edge} strokeWidth={1.3} strokeLinejoin="round" />
+          <path d="M54.5 60 Q60 59 65.5 60 Q64 67.4 60 68 Q56 67.4 54.5 60Z" fill="#5a2f3b" />
+          <ellipse cx={60} cy={65} rx={3.2} ry={2} fill={PINK} />
+          <path d="M52.8 54.8 Q60 50 67.2 54.8 Q65.2 59.6 60 60.2 Q54.8 59.6 52.8 54.8Z" fill={orange} stroke={edge} strokeWidth={1.3} strokeLinejoin="round" />
         </>
       );
     case "frown":
-      return <>{closed()}<Stroke d="M54.5 66 Q60 62.5 65.5 66" w={2.4} color="#e68a1f" /></>;
+      return <>{closed()}<Stroke d="M54.5 67.4 Q60 63.8 65.5 67.4" w={2.4} color="#e68a1f" /></>;
     case "wavy":
       return closed(-9);
     case "smirk":
       return closed(8);
     case "smile":
-      return <>{closed()}<Stroke d="M54.5 63.8 Q60 67.2 65.5 63.8" w={2.4} color="#e68a1f" /></>;
+      return <>{closed()}<Stroke d="M54.5 65.2 Q60 69 65.5 65.2" w={2.4} color="#e68a1f" /></>;
     default:
       return closed();
   }
