@@ -61,6 +61,10 @@ export async function addTodo(formData: FormData): Promise<TodoAdd> {
 
   const date = readDay(readId(formData, "date"));
   if (!date) return { ok: false, message: "날짜를 읽지 못했어요. 새로 고쳐 주세요." };
+  // 옮기기(moveTodo)와 같은 범위만 받는다. 날짜를 마음대로 바꿔 가며 하루 상한을 피해 무한히 쌓지 못하게 한다.
+  if (Math.abs(daysBetween(todayKST(), date)) > MAX_SCHEDULED_DAYS) {
+    return { ok: false, message: "너무 먼 날짜예요." };
+  }
   const categoryId = readId(formData, "categoryId") || null;
 
   // 남의 카테고리 id를 끼워 넣어도 붙지 않게 한다. 보관한 카테고리에도 새로 적지 않는다.
