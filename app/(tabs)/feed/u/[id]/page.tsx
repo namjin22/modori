@@ -103,7 +103,7 @@ export default async function FriendDayPage({
     select: {
       id: true,
       nickname: true,
-      profileImage: true,
+      profileImage: true, avatarCharacter: true,
       bio: true,
       // 가입을 마치지 않은(닉네임 없는) 계정은 목록에도 안 나오므로 세지 않는다.
       _count: {
@@ -121,7 +121,7 @@ export default async function FriendDayPage({
         ? null
         : await prisma.user.findFirst({
             where: { id, nickname: { not: null } },
-            select: { id: true, nickname: true, profileImage: true },
+            select: { id: true, nickname: true, profileImage: true, avatarCharacter: true },
           });
     if (!stranger?.nickname) notFound();
     return (

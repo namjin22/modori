@@ -26,7 +26,7 @@ export default async function FollowersPage() {
       where: { followingId: user.id },
       orderBy: { createdAt: "desc" },
       select: {
-        follower: { select: { id: true, nickname: true, profileImage: true } },
+        follower: { select: { id: true, nickname: true, profileImage: true, avatarCharacter: true } },
       },
     }),
     prisma.follow.findMany({

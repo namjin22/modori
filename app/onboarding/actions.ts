@@ -13,6 +13,7 @@ import {
   validateNickname,
 } from "@/lib/nickname";
 import { prisma } from "@/lib/prisma";
+import { isCharacterId } from "@/lib/characters";
 import { isProfileImage } from "@/lib/profile-image";
 import { getCurrentUser } from "@/lib/session";
 
@@ -42,6 +43,8 @@ export async function saveNickname(
 
   // 가입할 때 고른 프로필 사진. 비어 있으면 도리 얼굴을 쓴다(components/avatar-choice.tsx).
   const profileImage = String(formData.get("profileImage") ?? "").trim();
+  const characterValue = String(formData.get("avatarCharacter") ?? "");
+  if (characterValue && !isCharacterId(characterValue)) return { message: "캐릭터를 고르지 못했어요. 다시 골라주세요." };
   if (formData.get("profileImageBusy")) {
     return { message: "사진을 줄이는 중이에요. 잠깐 뒤에 눌러주세요." };
   }
@@ -57,7 +60,7 @@ export async function saveNickname(
     // 언제 동의했는지 남긴다. 방침이 바뀌면 이 시각과 시행일을 견줘 다시 물을 수 있다.
     await prisma.user.update({
       where: { id: userId },
-      data: { nickname, privacyAgreedAt: new Date(), ...(profileImage && { profileImage }) },
+      data: { nickname, privacyAgreedAt: new Date(), ...(profileImage && { profileImage }), ...(characterValue && { avatarCharacter: characterValue }) },
     });
   } catch (error) {
     // 같은 순간에 같은 이름으로 둘이 저장하면 여기서 걸린다.

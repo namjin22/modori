@@ -65,3 +65,15 @@ test("사진을 골랐다가 도리로 바꾸면 사진 없이 시작한다", as
   await expect(homeReady(page)).toBeVisible();
   expect((await prisma.user.findUniqueOrThrow({ where: { email } })).profileImage).toBeNull();
 });
+
+test("가입할 때 캐릭터(몽이)를 고르면 그 캐릭터로 시작한다", async ({ page, email }, testInfo) => {
+  await startOnboarding(page, email, `몽이${testInfo.testId.slice(-6)}${RUN_TAG}`);
+  await page.getByRole("radio", { name: "몽이" }).click();
+  await expect(page.getByRole("radio", { name: "몽이" })).toHaveAttribute("aria-checked", "true");
+  await page.getByRole("button", { name: "시작하기" }).click();
+  await expect(homeReady(page)).toBeVisible();
+  const saved = await prisma.user.findUniqueOrThrow({ where: { email } });
+  expect(saved.avatarCharacter).toBe("mong");
+  expect(saved.profileImage).toBeNull();
+  await expect(page.locator("[data-avatar='mong'] svg").first()).toBeVisible();
+});

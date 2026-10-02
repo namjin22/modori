@@ -26,6 +26,8 @@ model User {
   nickname        String?   @unique
   // 올린 사진을 128×128로 줄인 data URL. 없으면 화면에서 도리 얼굴을 쓴다.
   profileImage    String?
+  // 프로필 사진으로 고른 캐릭터(lib/characters.ts의 id). 없으면 도리. 사진(profileImage)이 있으면 사진이 먼저다.
+  avatarCharacter String?
   bio             String?
   lastSeenAt      DateTime  @default(now()) // 안 읽은 반응 뱃지 기준점
   privacyAgreedAt DateTime? // 가입할 때 개인정보 수집·이용에 동의한 시각

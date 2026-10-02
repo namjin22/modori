@@ -1,4 +1,6 @@
 import { Dori } from "@/components/dori";
+import { CHARACTER_SRC_PREFIX } from "@/lib/avatar";
+import { DEFAULT_CHARACTER, isCharacterId, type CharacterId } from "@/lib/characters";
 
 /**
  * 사람 자리에 들어가는 동그란 그림. 올린 사진이 없으면 도리 얼굴을 쓴다.
@@ -14,6 +16,12 @@ export function Avatar({
   className?: string;
 }) {
   const round = "shrink-0 rounded-full object-cover";
+
+  // 사진 대신 고른 캐릭터(lib/avatar.ts).
+  if (src?.startsWith(CHARACTER_SRC_PREFIX)) {
+    const id = src.slice(CHARACTER_SRC_PREFIX.length);
+    return <DoriFace size={size} character={isCharacterId(id) ? id : DEFAULT_CHARACTER} className={`${round} ${className}`} />;
+  }
 
   if (src) {
     return (
@@ -40,18 +48,21 @@ export function Avatar({
 export function DoriFace({
   size = 40,
   className = "",
+  character = DEFAULT_CHARACTER,
 }: {
   size?: number;
   className?: string;
+  character?: CharacterId;
 }) {
   return (
     <span
       aria-hidden
-      data-avatar="dori"
+      data-avatar={character}
       className={`inline-flex shrink-0 items-center justify-center overflow-hidden bg-brand-subtle ${className}`}
       style={{ width: size, height: size }}
     >
-      <Dori mood="like" size={size} avatar />
+      {/* 도리는 예전부터 웃는 눈(like)이라 그대로 두고, 다른 캐릭터는 기본 표정이다. */}
+      <Dori mood={character === DEFAULT_CHARACTER ? "like" : "happy"} size={size} avatar character={character} />
     </span>
   );
 }

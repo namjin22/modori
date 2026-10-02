@@ -1,3 +1,5 @@
+import { DEFAULT_CHARACTER, isCharacterId } from "@/lib/characters";
+
 /**
  * 프로필 사진을 가리키는 주소.
  *
@@ -12,10 +14,18 @@
 export function avatarUrl(user: {
   id: string;
   profileImage: string | null;
+  avatarCharacter?: string | null;
 }): string | null {
-  if (!user.profileImage) return null;
-  return `/api/avatar/${user.id}?v=${version(user.profileImage)}`;
+  if (user.profileImage) return `/api/avatar/${user.id}?v=${version(user.profileImage)}`;
+  // 사진이 없으면 고른 캐릭터. 도리(기본)는 값을 비워 둔 것과 같아 null이다.
+  if (isCharacterId(user.avatarCharacter) && user.avatarCharacter !== DEFAULT_CHARACTER) {
+    return `${CHARACTER_SRC_PREFIX}${user.avatarCharacter}`;
+  }
+  return null;
 }
+
+/** Avatar의 src에 사진 주소 대신 "char:몽이id"가 오면 캐릭터 얼굴로 그린다. */
+export const CHARACTER_SRC_PREFIX = "char:";
 
 /** FNV-1a 32비트. 암호용이 아니라 사진이 바뀌었는지 가리는 용도다. */
 function version(value: string): string {

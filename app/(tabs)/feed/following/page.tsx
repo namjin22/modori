@@ -20,7 +20,7 @@ export default async function FollowingPage() {
     where: { followerId: user.id },
     orderBy: { createdAt: "desc" },
     select: {
-      following: { select: { id: true, nickname: true, profileImage: true } },
+      following: { select: { id: true, nickname: true, profileImage: true, avatarCharacter: true } },
     },
   });
 

@@ -4,18 +4,25 @@ import { useRef, useState } from "react";
 
 import { DoriFace } from "@/components/avatar";
 import { toSquareDataUrl } from "@/components/profile-image-field";
+import { CHARACTERS, DEFAULT_CHARACTER, type CharacterId } from "@/lib/characters";
 
 /**
- * 가입할 때 고르는 기본 프로필 사진: 캐릭터 또는 내 사진. 나중에 마이페이지에서 바꿀 수 있다.
+ * 프로필 사진 고르기: 캐릭터 넷(도리·몽이·하루·펭이) 중 하나 또는 내 사진. 가입할 때와 마이페이지에서 같이 쓴다.
+ * 캐릭터는 프로필 사진에만 쓴다. 반응에는 어느 캐릭터든 누구나 쓸 수 있다(components/reaction-bar.tsx).
  *
- * 캐릭터는 지금 도리 하나다. 사진이 없으면 화면이 도리 얼굴을 그리므로 "도리"는 사진을 비워 두는 것과 같다.
- * 캐릭터가 늘면(강아지·여우·펭귄 예정) CHARACTERS에 더하고, 어느 캐릭터인지 저장할 열을 그때 만든다.
+ * 폼에는 두 값이 실린다: profileImage(내 사진이면 data URL, 아니면 빈 값)와 avatarCharacter(고른 캐릭터).
+ * 사진을 골랐다가 캐릭터로 돌아와도 직전에 고른 캐릭터가 남아 있게 둘 다 따로 쥔다.
  */
-const CHARACTERS = [{ key: "dori", label: "도리" }] as const;
-
-export function AvatarChoice() {
-  const [choice, setChoice] = useState<"photo" | (typeof CHARACTERS)[number]["key"]>("dori");
-  const [photo, setPhoto] = useState<string | null>(null);
+export function AvatarChoice({
+  defaultCharacter = DEFAULT_CHARACTER,
+  defaultPhoto = null,
+}: {
+  defaultCharacter?: CharacterId;
+  defaultPhoto?: string | null;
+} = {}) {
+  const [character, setCharacter] = useState<CharacterId>(defaultCharacter);
+  const [choice, setChoice] = useState<"photo" | "character">(defaultPhoto ? "photo" : "character");
+  const [photo, setPhoto] = useState<string | null>(defaultPhoto);
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -42,20 +49,26 @@ export function AvatarChoice() {
   return (
     <fieldset className="flex flex-col gap-2">
       <legend className="mb-2 px-1 text-sm font-medium">프로필 사진</legend>
-      <div role="radiogroup" aria-label="프로필 사진" className="flex gap-3">
-        {CHARACTERS.map((character) => (
-          <button
-            key={character.key}
-            type="button"
-            role="radio"
-            aria-checked={choice === character.key}
-            onClick={() => setChoice(character.key)}
-            className={tile(choice === character.key)}
-          >
-            <DoriFace size={64} className="rounded-full" />
-            {character.label}
-          </button>
-        ))}
+      <div role="radiogroup" aria-label="프로필 사진" className="grid grid-cols-3 gap-3 min-[420px]:grid-cols-5">
+        {CHARACTERS.map((item) => {
+          const selected = choice === "character" && character === item.id;
+          return (
+            <button
+              key={item.id}
+              type="button"
+              role="radio"
+              aria-checked={selected}
+              onClick={() => {
+                setCharacter(item.id);
+                setChoice("character");
+              }}
+              className={tile(selected)}
+            >
+              <DoriFace size={64} character={item.id} className="rounded-full" />
+              {item.name}
+            </button>
+          );
+        })}
 
         <button
           type="button"
@@ -100,6 +113,7 @@ export function AvatarChoice() {
         tabIndex={-1}
       />
       <input type="hidden" name="profileImage" value={choice === "photo" && photo ? photo : ""} />
+      <input type="hidden" name="avatarCharacter" value={character} />
       {/* 줄이는 동안 시작하기를 누르면 사진이 빠진 채 가입된다. 서버가 이 값을 보고 막는다. */}
       {busy && <input type="hidden" name="profileImageBusy" value="1" />}
 
