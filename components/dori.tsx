@@ -122,14 +122,12 @@ const SHAPES: Record<CharacterId, { behind?: ReactNode; shape: ReactNode; front?
       </>
     ),
   },
-  // 하루(여우): 큰 뾰족 귀(안쪽은 크림색, 끝은 짙은 갈색), 볼에서 삐죽 나온 털, 하얀 아랫얼굴.
+  // 하루(여우): 큰 뾰족 귀(안쪽은 크림색, 끝은 짙은 갈색), 하얀 아랫얼굴. 무늬는 이 정도로만 둔다(많으면 얼굴이 어수선하다).
   haru: {
     shape: (
       <>
         <path d="M36 29 L28 2 Q47 6 57 22 Z" />
         <path d="M84 29 L92 2 Q73 6 63 22 Z" />
-        <path d="M33 49 L14 59 L35 68 Z" />
-        <path d="M87 49 L106 59 L85 68 Z" />
         <circle cx={60} cy={46} r={32} />
       </>
     ),
@@ -141,9 +139,6 @@ const SHAPES: Record<CharacterId, { behind?: ReactNode; shape: ReactNode; front?
         <path d="M90 6.5 L92 2 Q82 4 73.5 10.5 Q83 8.5 90 6.5Z" fill="#5b3a2e" stroke="#5b3a2e" strokeWidth={1.4} strokeLinejoin="round" />
         {/* 하얀 아랫얼굴: 머리 원 안쪽에서 끊어 윤곽 밖으로 번지지 않게 한다. */}
         <path d="M32.3 62 Q44 52 60 60.5 Q76 52 87.7 62 A32 32 0 0 1 32.3 62Z" fill="#fffaf2" />
-        <path d="M33.5 52 L19.5 59.2 L36 66 Q31.5 59.5 33.5 52Z" fill="#fffaf2" />
-        <path d="M86.5 52 L100.5 59.2 L84 66 Q88.5 59.5 86.5 52Z" fill="#fffaf2" />
-        <path d="M54 22 Q60 28 66 22 Q63 33 60 36 Q57 33 54 22Z" fill="#fff1dc" />
       </>
     ),
   },
@@ -178,7 +173,7 @@ const SHAPES: Record<CharacterId, { behind?: ReactNode; shape: ReactNode; front?
 /** 캐릭터마다 다른 색. 도리는 기본값(코드 위쪽 상수)이라 적지 않는다. */
 const PALETTES: Partial<Record<CharacterId, CSSProperties>> = {
   mong: { "--ch-ink": "#a07a5a", "--ch-body": "#fff6e8", "--ch-ear": "#c98f5f", "--ch-blush": "#ffd9d0" } as CSSProperties,
-  haru: { "--ch-ink": "#cf6f26", "--ch-body": "#ffa65c", "--ch-ear": "#5b3a2e", "--ch-blush": "#ff8f73" } as CSSProperties,
+  haru: { "--ch-ink": "#cf6f26", "--ch-body": "#ffa65c", "--ch-ear": "#5b3a2e", "--ch-blush": "#ffc4a3" } as CSSProperties,
   peng: { "--ch-ink": "#2f3b5c", "--ch-body": "#566a9c", "--ch-ear": "#ffb13d", "--ch-blush": "#ffb8c6" } as CSSProperties,
 };
 

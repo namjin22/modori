@@ -50,11 +50,12 @@ function Stroke({ d, w = 2.8, color }: { d: string; w?: number; color: string })
   return <path d={d} stroke={color} strokeWidth={w} fill="none" strokeLinecap="round" strokeLinejoin="round" />;
 }
 
-function Eye({ kind, x, dir, l }: { kind: EyeKind; x: number; dir: 1 | -1; l: Layout }) {
+function Eye({ kind, x, dir, l, noBrow = false }: { kind: EyeKind; x: number; dir: 1 | -1; l: Layout; noBrow?: boolean }) {
   const { y, rx, ry, color, glint, tilt } = l;
-  const dot = (scale = 1) => (
-    <g transform={`rotate(${-dir * tilt} ${x} ${y})`}>
-      <ellipse cx={x} cy={y} rx={rx * scale} ry={ry * scale} fill={color} />
+  // squash: 세로를 줄인다(화난 눈). turn: 안쪽 끝을 내리면(+) 화난 눈, 올리면(-) 슬픈 눈. 눈썹을 못 그리는 캐릭터(펭귄)가 눈 모양으로 표정을 낸다.
+  const dot = (scale = 1, turn = 0, squash = 1) => (
+    <g transform={`rotate(${-dir * (tilt + turn)} ${x} ${y})`}>
+      <ellipse cx={x} cy={y} rx={rx * scale} ry={ry * scale * squash} fill={color} />
       <circle cx={x + rx * 0.36 * scale} cy={y - ry * 0.36 * scale} r={rx * 0.44 * glint * scale} fill="#fff" />
       <circle cx={x - rx * 0.42 * scale} cy={y + ry * 0.4 * scale} r={rx * 0.2 * glint * scale} fill="#fff" />
     </g>
@@ -75,17 +76,25 @@ function Eye({ kind, x, dir, l }: { kind: EyeKind; x: number; dir: 1 | -1; l: La
       return <Stroke d={`M${x - 6.5} ${y - 1.5} Q${x} ${y + 6} ${x + 6.5} ${y - 1.5}`} w={3.6} color={color} />;
     case "angry":
       return (
-        <>
-          {dot(0.92)}
-          {brow(-10, -5.5)}
-        </>
+        noBrow ? (
+          dot(0.95, 24, 0.7)
+        ) : (
+          <>
+            {dot(0.92)}
+            {brow(-10, -5.5)}
+          </>
+        )
       );
     case "sad":
       return (
-        <>
-          {dot()}
-          {brow(-6.5, -11)}
-        </>
+        noBrow ? (
+          dot(1, -18, 0.9)
+        ) : (
+          <>
+            {dot()}
+            {brow(-6.5, -11)}
+          </>
+        )
       );
     case "star":
       return (
@@ -186,11 +195,6 @@ function FoxFace({ mood }: { mood: DoriMood }) {
   const s = SPEC[mood];
   return (
     <>
-      {/* 눈썹 자리의 크림색 점: 여우의 하얀 눈썹 무늬. */}
-      <g fill="#fff1dc">
-        <ellipse cx={l.left - 1} cy={l.y - 11.5} rx={2.6} ry={1.8} />
-        <ellipse cx={l.right + 1} cy={l.y - 11.5} rx={2.6} ry={1.8} />
-      </g>
       <Eye kind={s.eye} x={l.left} dir={-1} l={l} />
       <Eye kind={s.eyeRight ?? s.eye} x={l.right} dir={1} l={l} />
       {s.tear && <path d={`M${l.left - 3} ${l.y + 9.5} q-3 4.2 0 6.6 q3 -2.4 0 -6.6z`} fill="#8ecbff" />}
@@ -201,19 +205,19 @@ function FoxFace({ mood }: { mood: DoriMood }) {
   );
 }
 
-/** 펭귄은 표정을 부리로 한다: 닫힌 부리, 열린 부리(혀), 기울인 부리. 눈은 작게 넓고 낮게 둬서 아기처럼 보이게 한다. */
+/**
+ * 펭귄은 입이 따로 없고 부리만 있다. 표정은 부리 모양으로: 닫힌 부리, 살짝 열린 부리(위아래가 갈라짐), 기울인 부리.
+ * 눈썹도 없어서 눈 모양(기울기·크기)으로 표정을 낸다. 눈은 작게 넓고 낮게 둬서 아기처럼 보이게 한다.
+ */
 function Beak({ kind }: { kind: Mouth }) {
   const orange = "var(--ch-ear, #ffb13d)";
   const edge = "#e68a1f";
-  const closed = (rot = 0) => (
-    <path
-      transform={`rotate(${rot} 60 57)`}
-      d="M52.5 54.6 Q60 49.8 67.5 54.6 Q65.5 62.4 60 63 Q54.5 62.4 52.5 54.6Z"
-      fill={orange}
-      stroke={edge}
-      strokeWidth={1.3}
-      strokeLinejoin="round"
-    />
+  const upper = "M52.8 54.6 Q60 49.8 67.2 54.6 Q65.2 59.8 60 60.4 Q54.8 59.8 52.8 54.6Z";
+  const closed = (rot = 0, dy = 0) => (
+    <g transform={`translate(0 ${dy}) rotate(${rot} 60 57)`}>
+      <path d="M52.5 54.6 Q60 49.8 67.5 54.6 Q65.5 62.4 60 63 Q54.5 62.4 52.5 54.6Z" fill={orange} stroke={edge} strokeWidth={1.3} strokeLinejoin="round" />
+      <ellipse cx={57.6} cy={53.6} rx={2.2} ry={1} fill="#fff" opacity={0.55} />
+    </g>
   );
   switch (kind) {
     case "open":
@@ -222,19 +226,17 @@ function Beak({ kind }: { kind: Mouth }) {
     case "o":
       return (
         <>
-          <path d="M54.5 60 Q60 59 65.5 60 Q64 67.4 60 68 Q56 67.4 54.5 60Z" fill="#5a2f3b" />
-          <ellipse cx={60} cy={65} rx={3.2} ry={2} fill={PINK} />
-          <path d="M52.8 54.8 Q60 50 67.2 54.8 Q65.2 59.6 60 60.2 Q54.8 59.6 52.8 54.8Z" fill={orange} stroke={edge} strokeWidth={1.3} strokeLinejoin="round" />
+          <path d="M54.4 60.6 Q60 59.6 65.6 60.6 Q64 65.6 60 66 Q56 65.6 54.4 60.6Z" fill="#f59e2b" stroke={edge} strokeWidth={1.2} strokeLinejoin="round" />
+          <path d={upper} fill={orange} stroke={edge} strokeWidth={1.3} strokeLinejoin="round" />
+          <ellipse cx={57.6} cy={53.6} rx={2.2} ry={1} fill="#fff" opacity={0.55} />
         </>
       );
     case "frown":
-      return <>{closed()}<Stroke d="M54.5 67.4 Q60 63.8 65.5 67.4" w={2.4} color="#e68a1f" /></>;
+      return closed(0, 1.4);
     case "wavy":
       return closed(-9);
     case "smirk":
       return closed(8);
-    case "smile":
-      return <>{closed()}<Stroke d="M54.5 65.2 Q60 69 65.5 65.2" w={2.4} color="#e68a1f" /></>;
     default:
       return closed();
   }
@@ -245,9 +247,9 @@ function PenguinFace({ mood }: { mood: DoriMood }) {
   const s = SPEC[mood];
   return (
     <>
-      <Eye kind={s.eye} x={l.left} dir={-1} l={l} />
-      <Eye kind={s.eyeRight ?? s.eye} x={l.right} dir={1} l={l} />
-      {s.tear && <path d={`M${l.left - 2} ${l.y + 8} q-3 4.2 0 6.6 q3 -2.4 0 -6.6z`} fill="#8ecbff" />}
+      <Eye kind={s.eye} x={l.left} dir={-1} l={l} noBrow />
+      <Eye kind={s.eyeRight ?? s.eye} x={l.right} dir={1} l={l} noBrow />
+      {s.tear && <path d={`M${l.left - 2} ${l.y + 9} q-3 4.2 0 6.6 q3 -2.4 0 -6.6z`} fill="#8ecbff" />}
       <Beak kind={s.mouth} />
     </>
   );
