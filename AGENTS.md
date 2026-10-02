@@ -1,3 +1,8 @@
+# 먼저 읽기
+
+작업 전에 `CLAUDE.md`(절대 규칙·일하는 방식)와 `docs/handoff.md`(인수인계), `docs/roadmap.md`, `docs/decisions.md`, `docs/backlog.md`를 읽는다.
+Claude와 Codex가 교대로 작업한다(CLAUDE.md "AI 교대 작업 규칙").
+
 <!-- BEGIN:nextjs-agent-rules -->
 
 # This is NOT the Next.js you know

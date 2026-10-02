@@ -18,6 +18,8 @@ const nextConfig: NextConfig = {
           { key: "X-Content-Type-Options", value: "nosniff" },
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
           { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
+          // 스크립트 출처 제한은 화면이 깨지지 않는지 더 시험한 뒤에 넣는다. 먼저 넣어도 안전한 것만 둔다.
+          { key: "Content-Security-Policy", value: "frame-ancestors 'none'; object-src 'none'; base-uri 'self'" },
         ],
       },
     ];
