@@ -86,19 +86,14 @@ function Outlined({ children }: { children: ReactNode }) {
 
 /** 캐릭터마다 달라지는 것: 머리 뒤(귀), 윤곽을 두를 머리 모양, 머리 위(코·무늬·부리). 눈·입은 표정(LOOKS)이 그린다. */
 const SHAPES: Record<CharacterId, { behind?: ReactNode; shape: ReactNode; front?: ReactNode }> = {
+  // 도리: 고양이는 모티브일 뿐, 우리만의 캐릭터다. 귀 없이 동글동글한 모찌 같은 몸에, 머리 위에 체크(할 일 완료) 새싹을 달았다.
   dori: {
-    shape: (
-      <>
-        <path d="M40 25 L35 9 Q48 11 55 21 Z" />
-        <path d="M80 25 L85 9 Q72 11 65 21 Z" />
-        <circle cx={60} cy={46} r={32} />
-      </>
-    ),
+    shape: <ellipse cx={60} cy={47} rx={34.5} ry={31} />,
     front: (
       <>
-        {/* 귀 안쪽. 귀 삼각형을 가운데로 45% 줄인 모양이다. 타원으로 그리면 귀를 거의 다 덮어 귀 전체가 분홍으로 보였다. */}
-        <path d="M41.8 21.3 L39.6 14.1 L48.6 19.5 Z" fill={EAR} stroke={EAR} strokeWidth={1.6} strokeLinejoin="round" />
-        <path d="M78.2 21.3 L80.4 14.1 L71.4 19.5 Z" fill={EAR} stroke={EAR} strokeWidth={1.6} strokeLinejoin="round" />
+        {/* 체크 새싹: 앱 아이콘의 체크를 머리에 단 모양. 흰 테두리를 둘러 머리 선과 겹쳐도 읽힌다. */}
+        <path d="M51 13.5 L58 20.5 L71 5" stroke="#fff" strokeWidth={9} fill="none" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M51 13.5 L58 20.5 L71 5" stroke="#2563eb" strokeWidth={5.4} fill="none" strokeLinecap="round" strokeLinejoin="round" />
       </>
     ),
   },
@@ -216,9 +211,7 @@ function SadEye({ x, dir }: { x: number; dir: 1 | -1 }) {
 // 입꼬리만 살짝 올린 웃는 입. 기본 표정이다.
 const SmileMouth = () => <Stroke d="M53.5 55 Q60 62 66.5 55" width={3.4} />;
 
-const CatMouth = () => (
-  <Stroke d="M54 55 Q57 60 60 55 Q63 60 66 55" width={3.2} />
-);
+const CatMouth = () => <Stroke d="M54 55.5 Q60 63 66 55.5" width={3.4} />;
 
 const WavyMouth = () => (
   <Stroke d="M54 58 Q57 54 60 57 Q63 60 66 56" width={3.2} />

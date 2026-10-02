@@ -16,7 +16,7 @@ const SPEC: Record<Exclude<DoriMood, never>, { eye: EyeKind; eyeRight?: EyeKind;
   happy: { eye: "dot", mouth: "smile" },
   like: { eye: "arc", mouth: "smile" },
   fire: { eye: "angry", mouth: "shout" },
-  clap: { eye: "star", eyeRight: "dot", mouth: "open" },
+  clap: { eye: "star", eyeRight: "star", mouth: "open" },
   party: { eye: "arc", mouth: "grin" },
   calm: { eye: "sleepy", mouth: "small" },
   sad: { eye: "sad", mouth: "frown", tear: true },
@@ -36,14 +36,14 @@ type Layout = {
   tilt: number; // 바깥쪽 눈꼬리를 올리는 각도(여우)
   color: string;
   glint: number; // 하이라이트 크기 배율
-  almond?: boolean; // 옆으로 긴 아몬드 눈 + 윗눈꺼풀 선(여우)
   single?: boolean; // 하이라이트 하나만(펭귄, 새 눈처럼 자연스럽게)
+  lidFill?: string; // 눈썹 없이 화난·슬픈 눈을 만드는 눈꺼풀 색(얼굴 바탕색)
 };
 
 const LAYOUT: Record<Exclude<CharacterId, "dori">, Layout> = {
   mong: { left: 43, right: 77, y: 47.5, rx: 6.6, ry: 7.8, tilt: 0, color: "#4b392f", glint: 1.1 },
-  haru: { left: 42, right: 78, y: 48, rx: 7.4, ry: 5.6, tilt: 13, color: "#5a2f1c", glint: 0.95, almond: true },
-  peng: { left: 43, right: 77, y: 50.5, rx: 5.2, ry: 6.2, tilt: 0, color: "#1e2a47", glint: 1, single: true },
+  haru: { left: 42, right: 78, y: 48, rx: 6.8, ry: 6.4, tilt: 6, color: "#5a2f1c", glint: 1, lidFill: "var(--ch-body)" },
+  peng: { left: 43, right: 77, y: 50.5, rx: 5.2, ry: 6.2, tilt: 0, color: "#1e2a47", glint: 1, single: true, lidFill: "#fffaf2" },
 };
 
 const PINK = "#ff8fa5";
@@ -53,24 +53,13 @@ function Stroke({ d, w = 2.8, color }: { d: string; w?: number; color: string })
 }
 
 function Eye({ kind, x, dir, l, noBrow = false }: { kind: EyeKind; x: number; dir: 1 | -1; l: Layout; noBrow?: boolean }) {
-  const { y, rx, ry, color, glint, tilt, almond, single } = l;
+  const { y, rx, ry, color, glint, tilt, single, lidFill } = l;
   // squash: 세로를 줄인다(화난 눈). turn: 안쪽 끝을 내리면(+) 화난 눈, 올리면(-) 슬픈 눈. 눈썹을 못 그리는 캐릭터(펭귄)가 눈 모양으로 표정을 낸다.
   const dot = (scale = 1, turn = 0, squash = 1) => (
     <g transform={`rotate(${-dir * (tilt + turn)} ${x} ${y})`}>
       <ellipse cx={x} cy={y} rx={rx * scale} ry={ry * scale * squash} fill={color} />
       <circle cx={x + rx * 0.34 * scale} cy={y - ry * 0.34 * scale} r={rx * (single ? 0.36 : 0.44) * glint * scale} fill="#fff" />
       {!single && <circle cx={x - rx * 0.42 * scale} cy={y + ry * 0.4 * scale} r={rx * 0.2 * glint * scale} fill="#fff" />}
-      {/* 여우: 윗눈꺼풀 선이 눈꼬리에서 살짝 뻗어 올라가 눈매가 길어 보인다. */}
-      {almond && (
-        <path
-          d={`M${x - dir * 7.6} ${y - 3.4} Q${x} ${y - 8.6 * scale} ${x + dir * 8.2} ${y - 2.6} L${x + dir * 10.2} ${y - 5.2}`}
-          stroke={color}
-          strokeWidth={2.2}
-          fill="none"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      )}
     </g>
   );
   const brow = (outerY: number, innerY: number) => (
@@ -88,35 +77,22 @@ function Eye({ kind, x, dir, l, noBrow = false }: { kind: EyeKind; x: number; di
     case "sleepy":
       return <Stroke d={`M${x - 6.5} ${y - 1.5} Q${x} ${y + 6} ${x + 6.5} ${y - 1.5}`} w={3.6} color={color} />;
     case "angry":
+      if (!noBrow) return <>{dot(0.92)}{brow(-10, -5.5)}</>;
+      // 눈꺼풀이 바깥에서 안쪽으로 내려와 화난 눈이 된다(눈썹 없이).
       return (
-        noBrow && single ? (
-          // 펭귄: 둥근 눈 위에 하얀 눈꺼풀이 바깥에서 안쪽으로 내려와 화난 눈이 된다(눈썹 없이).
-          <>
-            {dot()}
-            <path
-              d={`M${x + dir * 8.5} ${y - 10} L${x - dir * 8.5} ${y - 10} L${x - dir * 8.5} ${y - 0.5} L${x + dir * 8.5} ${y - 6}Z`}
-              fill="#fffaf2"
-            />
-          </>
-        ) : noBrow ? (
-          dot(0.95, 22, 0.75)
-        ) : (
-          <>
-            {dot(0.92)}
-            {brow(-10, -5.5)}
-          </>
-        )
+        <>
+          {dot()}
+          <path d={`M${x + dir * 8.8} ${y - 10} L${x - dir * 8.8} ${y - 10} L${x - dir * 8.8} ${y - 0.5} L${x + dir * 8.8} ${y - 6}Z`} fill={lidFill} />
+        </>
       );
     case "sad":
+      if (!noBrow) return <>{dot()}{brow(-6.5, -11)}</>;
+      // 눈꺼풀이 안쪽에서 바깥으로 처져 눈꼬리가 내려간 슬픈 눈이 된다.
       return (
-        noBrow ? (
-          dot(1, -18, 0.9)
-        ) : (
-          <>
-            {dot()}
-            {brow(-6.5, -11)}
-          </>
-        )
+        <>
+          {dot()}
+          <path d={`M${x - dir * 8.8} ${y - 10} L${x + dir * 8.8} ${y - 10} L${x + dir * 8.8} ${y + 0.5} L${x - dir * 8.8} ${y - 6.5}Z`} fill={lidFill} />
+        </>
       );
     case "star":
       return (
@@ -254,7 +230,7 @@ function Beak({ kind }: { kind: Mouth }) {
         </>
       );
     case "frown":
-      return closed(0, 1.4);
+      return closed(0, 2.4);
     case "wavy":
       return closed(-9);
     case "smirk":
@@ -271,7 +247,12 @@ function PenguinFace({ mood }: { mood: DoriMood }) {
     <>
       <Eye kind={s.eye} x={l.left} dir={-1} l={l} noBrow />
       <Eye kind={s.eyeRight ?? s.eye} x={l.right} dir={1} l={l} noBrow />
-      {s.tear && <path d={`M${l.left - 2} ${l.y + 9} q-3 4.2 0 6.6 q3 -2.4 0 -6.6z`} fill="#8ecbff" />}
+      {s.tear && (
+        <>
+          <path d={`M${l.left - 2} ${l.y + 7.5} q-4 5.4 0 8.6 q4 -3.2 0 -8.6z`} fill="#8ecbff" />
+          <path d={`M${l.right + 2} ${l.y + 7.5} q-4 5.4 0 8.6 q4 -3.2 0 -8.6z`} fill="#8ecbff" />
+        </>
+      )}
       <Beak kind={s.mouth} />
     </>
   );
