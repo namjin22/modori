@@ -3,7 +3,7 @@ import { expect, test as base, type Page } from "@playwright/test";
 import { addDays, formatKST, formatMonthDayKST, todayKST } from "@/lib/date";
 import { prisma } from "@/lib/prisma";
 
-import { addTodo, homeReady, openTodo } from "./todo-helpers";
+import { addTodo, chooseDate, homeReady, openTodo } from "./todo-helpers";
 
 import { RUN_TAG } from "./run-tag";
 
@@ -38,9 +38,11 @@ test("다른 날에 하기로 할 일을 고른 날로 옮긴다", async ({ page
   await page.getByRole("button", { name: "다른 날에 하기" }).click();
   // 처음 값은 다음 날이다.
   const tomorrow = addDays(todayKST(), 1);
-  await expect(page.getByLabel("옮길 날짜")).toHaveValue(formatKST(tomorrow));
+  await expect(page.getByRole("button", { name: /^옮길 날짜:/ })).toHaveAccessibleName(
+    new RegExp(`${tomorrow.getUTCFullYear()}년 ${tomorrow.getUTCMonth() + 1}월 ${tomorrow.getUTCDate()}일`),
+  );
   const target = addDays(todayKST(), 3);
-  await page.getByLabel("옮길 날짜").fill(formatKST(target));
+  await chooseDate(page, "옮길 날짜", formatKST(target));
   await page.getByRole("button", { name: "옮기기" }).click();
 
   await expect(page.getByText(`${formatMonthDayKST(target)}로 옮겼어요`)).toBeVisible();
@@ -52,7 +54,7 @@ test("다른 날에 하기로 할 일을 고른 날로 옮긴다", async ({ page
   // 같은 날로는 옮기지 않는다.
   await openTodo(page, "영어 단어 외우기");
   await page.getByRole("button", { name: "다른 날에 하기" }).click();
-  await page.getByLabel("옮길 날짜").fill(formatKST(target));
+  await chooseDate(page, "옮길 날짜", formatKST(target));
   await page.getByRole("button", { name: "옮기기" }).click();
   await expect(page.getByRole("dialog").getByRole("alert")).toHaveText("이미 그날의 할 일이에요.");
 });
@@ -68,7 +70,7 @@ test("루틴 할 일을 옮기면 원래 날에 다시 생기지 않는다", asy
   await page.reload();
   await openTodo(page, "줄넘기");
   await page.getByRole("button", { name: "다른 날에 하기" }).click();
-  await page.getByLabel("옮길 날짜").fill(formatKST(addDays(today, -1)));
+  await chooseDate(page, "옮길 날짜", formatKST(addDays(today, -1)));
   await page.getByRole("button", { name: "옮기기" }).click();
   await expect(page.getByText("로 옮겼어요")).toBeVisible();
 

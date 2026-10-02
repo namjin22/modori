@@ -55,10 +55,20 @@ export function Modal({
     <dialog
       ref={ref}
       aria-label={title}
-      onClose={onClose}
+      // 창 안에 또 창(날짜 고르기 등)이 있으면 안쪽 창의 close가 React 트리를 타고 올라와 바깥 창까지 닫는다.
+      // 이 창이 직접 닫힌 경우만 받는다.
+      onClose={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
       // 뒤쪽을 누르면 닫는다. <dialog> 자신이 곧 배경이라 target으로 가려낸다.
       onClick={(event) => {
-        if (event.target === ref.current) onClose();
+        const dialog = ref.current;
+        if (event.target !== dialog || !dialog) return;
+        // 창 안쪽 여백(p-5)을 눌러도 target이 dialog 자신이다. 좌표가 창 밖일 때만 배경으로 본다(안 그러면 쓰던 글이 사라진다).
+        const box = dialog.getBoundingClientRect();
+        const inside =
+          event.clientX >= box.left && event.clientX <= box.right && event.clientY >= box.top && event.clientY <= box.bottom;
+        if (!inside) onClose();
       }}
       // m-auto가 있어야 가운데에 뜬다. Tailwind 기본 설정이 모든 요소의 margin을
       // 0으로 만들어서, <dialog>가 원래 갖고 있는 가운데 정렬이 지워진다.

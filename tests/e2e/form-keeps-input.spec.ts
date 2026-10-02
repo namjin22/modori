@@ -2,6 +2,8 @@ import { expect, test, type Page } from "@playwright/test";
 
 import { prisma } from "@/lib/prisma";
 
+import { chooseDate } from "./todo-helpers";
+
 import { RUN_TAG } from "./run-tag";
 
 const TEST_EMAIL = `e2e-form-keep-${RUN_TAG}@modori.test`;
@@ -52,7 +54,7 @@ test("일정 날짜가 잘못돼도 적은 이름이 남는다", async ({ page }
   await page.getByRole("button", { name: "일정", exact: true }).click();
   const title = page.getByLabel("새 일정 이름");
   await title.fill("중간고사");
-  await page.getByLabel("새 일정 종료일").fill("2020-01-01");
+  await chooseDate(page, "새 일정 종료일", "2020-01-01");
   await page.getByRole("button", { name: "저장", exact: true }).click();
 
   await expect(page.getByText("종료일이 시작일보다 앞설 수 없어요.")).toBeVisible();

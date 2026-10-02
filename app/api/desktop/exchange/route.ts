@@ -16,6 +16,9 @@ const SESSION_MAX_AGE = 30 * 24 * 60 * 60;
  * 평소에는 DB 세션이라 Session 행을 만들고, 테스트용 우회 모드는 JWT 세션이라 Auth.js의 encode로 만든다.
  */
 export async function GET(request: Request) {
+  // 다른 사이트의 링크·이미지가 남의 코드로 이 주소를 열어 피해자를 공격자 계정으로 로그인시키지 못하게 한다(로그인 CSRF).
+  // 앱은 직접 연 주소(none)나 같은 사이트(same-origin)로 온다.
+  if (request.headers.get("sec-fetch-site") === "cross-site") return new Response(null, { status: 403 });
   const url = new URL(request.url);
   const userId = await redeemDesktopCode(
     url.searchParams.get("code") ?? "",

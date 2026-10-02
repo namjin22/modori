@@ -5,7 +5,7 @@
  * 수집 항목·보관 위치는 실제 코드와 맞아야 한다. 무엇을 저장하는지(prisma/schema.prisma, lib/auth.ts),
  * 어디에 두는지(docs/gsmsv-migration.md)를 바꾸면 여기도 고친다.
  */
-export const PRIVACY_EFFECTIVE = "2026년 9월 30일";
+export const PRIVACY_EFFECTIVE = "2026년 10월 2일";
 export const PRIVACY_MANAGER = { name: "이남진", email: "penamjin@gmail.com" };
 
 export type PrivacySection = { title: string; items: string[] };
@@ -46,6 +46,7 @@ export const PRIVACY_SECTIONS: PrivacySection[] = [
     title: "4. 다른 사람에게 보이는 정보",
     items: [
       "모도리에 가입한 사람은 닉네임으로 나를 찾을 수 있고, 찾은 목록에는 닉네임과 프로필 사진이 보여요.",
+      "내가 친구의 할 일에 보낸 반응은, 그 할 일 주인과 그 주인을 팔로우한 사람들에게 내 닉네임과 함께 보여요.",
       "나를 팔로우한 사람에게는 닉네임, 프로필 사진, 소개, 내가 팔로우하는 사람과 나를 팔로우하는 사람의 목록(닉네임·프로필 사진), 그리고 공개로 둔 카테고리의 할 일(끝냈는지 여부 포함)이 보여요.",
       "원하지 않는 사람은 마이페이지의 팔로워 목록에서 끊을 수 있어요.",
       "비공개 카테고리의 할 일과 일정, 할 일·일정의 메모는 나만 봐요.",
@@ -59,6 +60,7 @@ export const PRIVACY_SECTIONS: PrivacySection[] = [
       "Cloudflare(미국): 접속을 안전하게 연결하고 보호해요. 오가는 데이터가 이 회사의 네트워크를 거쳐요.",
       "Neon(미국 오하이오): 서버 사고에 대비해 모든 정보의 백업을 매일 새벽 4시에 암호화된 연결로 옮겨 보관해요. 최신 백업 한 벌만 남아요.",
       "Google, DataGSM: 로그인할 때 본인 확인을 맡겨요.",
+      "jsDelivr(Cloudflare·Fastly 등 CDN): 화면 글꼴(Pretendard)을 내려받을 때 접속 주소(IP)와 브라우저 정보가 이 서비스에 전달돼요. 모도리는 그 정보를 저장하지 않아요.",
       "Google(Firebase Cloud Messaging, 미국): 모바일 앱 알림을 기기에 전달해요. 알림에는 상대 닉네임과 \"반응이 왔어요\" 같은 안내 문구만 들어가요.",
     ],
   },
@@ -74,7 +76,7 @@ export const PRIVACY_SECTIONS: PrivacySection[] = [
     title: "7. 쿠키와 브라우저 저장소",
     items: [
       "로그인을 유지하는 쿠키만 써요. 광고나 추적용 쿠키는 쓰지 않아요.",
-      "화면 테마(라이트·다크)는 내 브라우저에만 저장돼요.",
+      "화면 테마(라이트·다크)와, 모바일 앱에서는 알림용 기기 번호가 내 기기에만 저장돼요.",
     ],
   },
   {

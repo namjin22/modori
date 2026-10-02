@@ -10,6 +10,24 @@ import { prisma } from "@/lib/prisma";
  * 알림을 못 보내도 반응·팔로우 자체는 성공해야 하므로 오류는 삼키지 않고 기록만 남기고 넘긴다.
  */
 
+const recentNotices = new Map<string, number>();
+const NOTICE_COOLDOWN_MS = 10 * 60 * 1000;
+
+/**
+ * 같은 사람이 같은 상대에게 보내는 같은 종류의 알림은 10분에 한 번만 보낸다. 반응이나 팔로우를 껐다 켜며 상대 폰을 계속
+ * 울리지 못하게 한다. 서버 메모리에만 두므로(저장하지 않음) 재시작하면 비워진다.
+ */
+export function shouldNotify(key: string, now: number = Date.now()): boolean {
+  const last = recentNotices.get(key);
+  if (last !== undefined && now - last < NOTICE_COOLDOWN_MS) return false;
+  recentNotices.set(key, now);
+  // 오래된 것을 가끔 비운다. 사람 수만큼만 쌓이지만 끝없이 자라지 않게 한다.
+  if (recentNotices.size > 5000) {
+    for (const [k, t] of recentNotices) if (now - t >= NOTICE_COOLDOWN_MS) recentNotices.delete(k);
+  }
+  return true;
+}
+
 export type PushMessage = {
   title: string;
   body: string;

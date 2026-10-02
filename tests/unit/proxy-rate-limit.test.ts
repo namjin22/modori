@@ -30,7 +30,7 @@ afterEach(() => {
 
 describe("proxy rate-limit identity", () => {
   it("rotating forged session cookies shares one anonymous IP bucket", async () => {
-    for (let i = 0; i < 300; i += 1) {
+    for (let i = 0; i < 1200; i += 1) {
       expect((await proxy(request(`forged-${i}`))).status).not.toBe(429);
     }
     expect((await proxy(request("another-forgery"))).status).toBe(429);
@@ -49,7 +49,7 @@ describe("proxy rate-limit identity", () => {
   it("tampering with a signed session does not create a new bucket", async () => {
     const signed = generateSignedSessionToken(SECRET);
     const tampered = `${signed.slice(0, -1)}${signed.endsWith("A") ? "B" : "A"}`;
-    for (let i = 0; i < 300; i += 1) await proxy(request(`fake-${i}`));
+    for (let i = 0; i < 1200; i += 1) await proxy(request(`fake-${i}`));
     expect((await proxy(request(tampered))).status).toBe(429);
   });
 
@@ -63,7 +63,7 @@ describe("proxy rate-limit identity", () => {
   });
 
   it("legacy database cookies and spoofed x-forwarded-for cannot escape the IP bucket", async () => {
-    for (let i = 0; i < 300; i += 1) {
+    for (let i = 0; i < 1200; i += 1) {
       const legacy = randomUUID();
       const incoming = request(legacy);
       incoming.headers.set("x-forwarded-for", `203.0.113.${i % 100}`);
@@ -74,7 +74,7 @@ describe("proxy rate-limit identity", () => {
 
   it("a session signed with another secret falls back to IP", async () => {
     const other = generateSignedSessionToken("old-secret");
-    for (let i = 0; i < 300; i += 1) await proxy(request(`fake-${i}`));
+    for (let i = 0; i < 1200; i += 1) await proxy(request(`fake-${i}`));
     expect((await proxy(request(other))).status).toBe(429);
   });
 

@@ -6,7 +6,7 @@ import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 
 import { prisma } from "@/lib/prisma";
-import { sendPushToUser } from "@/lib/push";
+import { sendPushToUser, shouldNotify } from "@/lib/push";
 import { isReactionValue } from "@/lib/reactions";
 import { requireUser } from "@/lib/session";
 
@@ -33,7 +33,7 @@ export async function followUser(formData: FormData) {
     skipDuplicates: true,
   });
   // 새로 팔로우했을 때만 알린다. 응답은 알림을 보내는 것을 기다리지 않는다.
-  if (created.count > 0) {
+  if (created.count > 0 && shouldNotify(`follow:${user.id}:${target.id}`)) {
     after(() =>
       sendPushToUser(target.id, {
         title: "새 팔로워",
@@ -89,6 +89,17 @@ export async function toggleReaction(formData: FormData) {
 
   if (!isReactionValue(emoji)) return;
 
+  // 내가 이미 보낸 반응은 언팔로우·비공개 전환 뒤에도 취소할 수 있어야 한다. 새로 보내는 것만 아래 검사를 거친다.
+  const mineAlready = await prisma.reaction.findFirst({
+    where: { userId: user.id, todoId, emoji },
+    select: { id: true },
+  });
+  if (mineAlready) {
+    await prisma.reaction.deleteMany({ where: { id: mineAlready.id } });
+    revalidatePath("/feed", "layout");
+    return;
+  }
+
   // 피드에서 볼 수 있는 할 일에만 반응할 수 있다.
   // 팔로우한 사람의, 완료된, 공개 카테고리 할 일.
   const todo = await prisma.todo.findFirst({
@@ -116,7 +127,7 @@ export async function toggleReaction(formData: FormData) {
       });
       // 같은 할 일에 이 사람의 첫 반응일 때만 알린다. 반응을 껐다 켜며 알림이 쌓이지 않게 한다.
       const mine = await prisma.reaction.count({ where: { userId: user.id, todoId } });
-      if (mine === 1) {
+      if (mine === 1 && shouldNotify(`reaction:${user.id}:${todo.userId}`)) {
         after(() =>
           sendPushToUser(todo.userId, {
             title: "반응이 왔어요",

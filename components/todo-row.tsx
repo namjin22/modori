@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 
 import { deleteTodo, moveTodo, restoreTodo, updateTodo } from "@/app/(tabs)/actions";
+import { DatePicker } from "@/components/date-picker";
 import { Modal } from "@/components/modal";
 import { ReceivedReactions } from "@/components/received-reactions";
 import { SubmitButton } from "@/components/submit-button";
@@ -139,7 +140,7 @@ export function TodoRow({
 
 /**
  * 할 일을 다음 날이나 고른 날로 옮긴다. 할 일 폼 안에 들어가므로(폼 안에 폼을 둘 수 없다) 버튼으로 보낸다.
- * 날짜 칸의 Enter는 할 일 저장이 아니라 옮기기로 받는다.
+ * 날짜는 달력 창에서 고르고(components/date-picker.tsx), "옮기기"를 눌러야 옮겨진다.
  */
 function MoveToDay({
   id,
@@ -199,18 +200,9 @@ function MoveToDay({
         <div className="flex flex-col gap-2 rounded-xl border border-border p-3">
           <p className="text-xs text-muted">어느 날로 옮길까요?</p>
           <div className="flex items-center gap-2">
-            <input
-              type="date"
-              value={day}
-              onChange={(event) => setDay(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key !== "Enter") return;
-                event.preventDefault();
-                if (day) move(day);
-              }}
-              aria-label="옮길 날짜"
-              className="h-10 min-w-0 flex-1 rounded-xl bg-surface-hover px-3 text-sm"
-            />
+            <div className="min-w-0 flex-1">
+              <DatePicker label="옮길 날짜" value={day} onChange={setDay} compact />
+            </div>
             <button
               type="button"
               disabled={pending || !day}

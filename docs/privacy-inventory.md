@@ -36,7 +36,7 @@
 | 서버 프로그램 기록 | Docker 로그(json-file 10MB × 3) | 30MB를 넘으면 오래된 것부터 |
 | 백업 | VM `/opt/modori/backups`(파일 권한 600), 백업용 Neon | VM 7일, Neon은 최신 한 벌(매일 덮어씀) |
 
-Cloudflare(접속을 잇는 곳)와 Google·DataGSM(로그인)은 방침 5번에 적었다. 푸시 알림은 Google(Firebase Cloud Messaging)이 기기에 전달한다(알림 문구: 닉네임과 "반응/팔로우" 안내 한 줄, 이것도 방침 5번).
+Cloudflare(접속을 잇는 곳)와 Google·DataGSM(로그인), 글꼴을 내려받는 jsDelivr(IP·브라우저 정보가 전달됨, 우리는 저장 안 함)는 방침 5번에 적었다. 반응을 보낸 사람의 닉네임은 그 할 일 주인의 팔로워에게 보인다(방침 4번). 푸시 알림은 Google(Firebase Cloud Messaging)이 기기에 전달한다(알림 문구: 닉네임과 "반응/팔로우" 안내 한 줄, 이것도 방침 5번).
 
 ## 2. 없앨 수 있는 것
 

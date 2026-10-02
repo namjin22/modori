@@ -3,7 +3,7 @@ import { expect, test as base, type Page } from "@playwright/test";
 import { addDays, daysInMonthKST, formatKST, formatMonthKST, todayKST } from "@/lib/date";
 import { prisma } from "@/lib/prisma";
 
-import { addEvent, addTodo, homeReady, openEvent } from "./todo-helpers";
+import { addEvent, addTodo, chooseDate, homeReady, openEvent } from "./todo-helpers";
 
 import { RUN_TAG } from "./run-tag";
 
@@ -111,7 +111,7 @@ test("일정 만들기 칸은 이름을 비운 채 다른 곳을 누르면 닫�
   await page.getByRole("button", { name: "일정", exact: true }).click();
   await expect(title).toBeFocused();
   // 날짜 칸으로 옮겨 가는 것은 같은 칸 안이라 닫히지 않는다.
-  await page.getByLabel("새 일정 시작일").focus();
+  await page.getByRole("button", { name: /^새 일정 시작일:/ }).focus();
   await expect(title).toBeVisible();
 
   await page.getByRole("heading", { level: 1 }).click();
@@ -144,7 +144,7 @@ test("하루에 일정을 다섯 개까지 연달아 넣고, 여섯째는 막는
   await page.goto(`/?date=${formatKST(addDays(today, -1))}`);
   await page.getByRole("button", { name: "시험이나 행사 적어두기" }).click();
   await page.getByLabel("새 일정 이름").fill("이틀짜리");
-  await page.getByLabel("새 일정 종료일").fill(formatKST(today));
+  await chooseDate(page, "새 일정 종료일", formatKST(today));
   await page.getByRole("button", { name: "저장", exact: true }).click();
   await expect(page.getByRole("alert").filter({ hasText: "일정이 벌써 5개예요" })).toBeVisible();
   const user = await prisma.user.findUniqueOrThrow({ where: { email } });

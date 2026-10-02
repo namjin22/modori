@@ -17,6 +17,14 @@ describe("safeNext", () => {
     expect(safeNext(["/feed"])).toBeNull();
   });
 
+  it("브라우저가 지워 읽는 제어문자(탭·줄바꿈)로 //나쁜곳을 만드는 우회를 막는다", () => {
+    expect(safeNext("/\t/evil.example")).toBeNull();
+    expect(safeNext("/\n/evil.example")).toBeNull();
+    expect(safeNext("/\r/evil.example")).toBeNull();
+    expect(safeNext("/feed\u0000/x")).toBeNull();
+    expect(safeNext("/feed\\evil")).toBeNull();
+  });
+
   it("로그인·닉네임 화면과 홈은 돌아갈 곳으로 두지 않는다", () => {
     expect(safeNext("/login")).toBeNull();
     expect(safeNext("/onboarding?next=/feed")).toBeNull();

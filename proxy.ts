@@ -7,7 +7,8 @@ import { isSignedSessionToken } from "@/lib/signed-session-token";
 // 로그인한 사람은 세션마다 센다. 화면 하나에 요청이 6개쯤 가므로 사람 손으로는 닿지 않는다.
 const SESSION_RULE: RateRule = { capacity: 60, refillPerSecond: 6 };
 // 로그인 전 요청은 IP마다 센다. 학교 와이파이는 학생 전원이 공인 IP 하나로 나가서 넉넉히 잡는다.
-const ANONYMOUS_RULE: RateRule = { capacity: 300, refillPerSecond: 30 };
+// 학교 와이파이는 공인 IP 하나를 여럿이 쓴다. 출시 공지 직후 180명이 몰려도 로그인이 429가 되지 않게 넉넉히 둔다.
+const ANONYMOUS_RULE: RateRule = { capacity: 1200, refillPerSecond: 60 };
 
 // 브라우저 오류 보고는 따로 더 좁게 센다. 화면이 오류를 되풀이하거나 누가 일부러 보내도
 // 오류 기록 표가 몇 줄 이상 늘지 않는다. 10개를 넘으면 1분에 하나씩만 받는다.

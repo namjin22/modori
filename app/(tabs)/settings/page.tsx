@@ -3,7 +3,7 @@ import Link from "next/link";
 import { LogoutButton } from "@/components/logout-button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { isAdmin } from "@/lib/admin";
-import { isDesktopApp, isMobileApp } from "@/lib/desktop";
+import { isDesktopApp, isMobileApp, isWindowsBrowser } from "@/lib/desktop";
 import { DesktopDownload } from "@/components/desktop-download";
 import { prisma } from "@/lib/prisma";
 import { PRIVACY_MANAGER } from "@/lib/privacy";
@@ -15,6 +15,8 @@ import { avatarUrl } from "@/lib/avatar";
 export default async function SettingsPage() {
   const user = await requireUser();
   const desktop = (await isDesktopApp()) || (await isMobileApp());
+  // 설치 파일은 Windows용이라 폰·Mac 접속자에게는 보이지 않는다.
+  const windows = await isWindowsBrowser();
   const [following, followers, admin] = await Promise.all([
     prisma.follow.count({ where: { followerId: user.id } }),
     prisma.follow.count({ where: { followingId: user.id } }),
@@ -78,7 +80,7 @@ export default async function SettingsPage() {
       </section>
 
       {/* 앱 안에서는 받을 필요가 없어 숨긴다. */}
-      {!desktop && <DesktopDownload />}
+      {!desktop && windows && <DesktopDownload />}
 
       <LogoutButton />
 

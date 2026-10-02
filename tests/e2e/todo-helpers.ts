@@ -49,11 +49,23 @@ export async function openEvent(page: Page, title: string) {
   await expect(page.getByLabel("일정 이름", { exact: true })).toBeVisible();
 }
 
+/**
+ * 날짜 단추(components/date-picker.tsx)를 눌러 달력 창을 열고 날짜를 직접 입력해 정한다.
+ * 달을 몇 번씩 넘기지 않아도 어떤 날짜든 한 번에 고를 수 있다. date는 "YYYY-MM-DD".
+ */
+export async function chooseDate(page: Page, label: string, date: string) {
+  await page.getByRole("button", { name: new RegExp(`^${label}:`) }).click();
+  const dialog = page.getByRole("dialog", { name: "날짜 고르기" });
+  await dialog.getByLabel("날짜 직접 입력").fill(date);
+  await dialog.getByRole("button", { name: "적용", exact: true }).click();
+  await expect(dialog).toBeHidden();
+}
+
 /** "일정"을 눌러 만들기 창을 열고 하나 만든다. */
 export async function addEvent(page: Page, title: string, endDate?: string) {
   await page.getByRole("button", { name: "일정", exact: true }).click();
   await page.getByLabel("새 일정 이름").fill(title);
-  if (endDate) await page.getByLabel("새 일정 종료일").fill(endDate);
+  if (endDate) await chooseDate(page, "새 일정 종료일", endDate);
   await page.getByRole("button", { name: "저장", exact: true }).click();
   await expect(page.getByRole("listitem").filter({ hasText: title })).toBeVisible();
 }
