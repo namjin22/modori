@@ -142,18 +142,8 @@ const SHAPES: Record<CharacterId, { behind?: ReactNode; shape: ReactNode; front?
       </>
     ),
   },
-  // 펭이(펭귄): 통통한 남색 얼굴, 하트 모양 하얀 얼굴 무늬, 양옆 작은 지느러미, 머리 위 깃털.
+  // 펭이(펭귄): 통통한 남색 얼굴, 하트 모양 하얀 얼굴 무늬, 머리 위 깃털.
   peng: {
-    behind: (
-      <>
-        <g fill={INK} stroke={INK} strokeWidth={7.3} strokeLinejoin="round">
-          <ellipse cx={19} cy={72} rx={6} ry={12.5} transform="rotate(52 19 72)" />
-          <ellipse cx={101} cy={72} rx={6} ry={12.5} transform="rotate(-52 101 72)" />
-        </g>
-        <ellipse cx={19} cy={72} rx={6} ry={12.5} transform="rotate(52 19 72)" fill={BODY} />
-        <ellipse cx={101} cy={72} rx={6} ry={12.5} transform="rotate(-52 101 72)" fill={BODY} />
-      </>
-    ),
     shape: <ellipse cx={60} cy={47} rx={34} ry={31} />,
     front: (
       <>

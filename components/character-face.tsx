@@ -36,12 +36,14 @@ type Layout = {
   tilt: number; // 바깥쪽 눈꼬리를 올리는 각도(여우)
   color: string;
   glint: number; // 하이라이트 크기 배율
+  almond?: boolean; // 옆으로 긴 아몬드 눈 + 윗눈꺼풀 선(여우)
+  single?: boolean; // 하이라이트 하나만(펭귄, 새 눈처럼 자연스럽게)
 };
 
 const LAYOUT: Record<Exclude<CharacterId, "dori">, Layout> = {
   mong: { left: 43, right: 77, y: 47.5, rx: 6.6, ry: 7.8, tilt: 0, color: "#4b392f", glint: 1.1 },
-  haru: { left: 42.5, right: 77.5, y: 47.5, rx: 6.2, ry: 7.6, tilt: 10, color: "#4a2d28", glint: 1.05 },
-  peng: { left: 42, right: 78, y: 50, rx: 6.4, ry: 7.6, tilt: 0, color: "#1e2a47", glint: 1.1 },
+  haru: { left: 42, right: 78, y: 48, rx: 7.4, ry: 5.6, tilt: 13, color: "#5a2f1c", glint: 0.95, almond: true },
+  peng: { left: 43, right: 77, y: 50.5, rx: 5.2, ry: 6.2, tilt: 0, color: "#1e2a47", glint: 1, single: true },
 };
 
 const PINK = "#ff8fa5";
@@ -51,13 +53,24 @@ function Stroke({ d, w = 2.8, color }: { d: string; w?: number; color: string })
 }
 
 function Eye({ kind, x, dir, l, noBrow = false }: { kind: EyeKind; x: number; dir: 1 | -1; l: Layout; noBrow?: boolean }) {
-  const { y, rx, ry, color, glint, tilt } = l;
+  const { y, rx, ry, color, glint, tilt, almond, single } = l;
   // squash: 세로를 줄인다(화난 눈). turn: 안쪽 끝을 내리면(+) 화난 눈, 올리면(-) 슬픈 눈. 눈썹을 못 그리는 캐릭터(펭귄)가 눈 모양으로 표정을 낸다.
   const dot = (scale = 1, turn = 0, squash = 1) => (
     <g transform={`rotate(${-dir * (tilt + turn)} ${x} ${y})`}>
       <ellipse cx={x} cy={y} rx={rx * scale} ry={ry * scale * squash} fill={color} />
-      <circle cx={x + rx * 0.36 * scale} cy={y - ry * 0.36 * scale} r={rx * 0.44 * glint * scale} fill="#fff" />
-      <circle cx={x - rx * 0.42 * scale} cy={y + ry * 0.4 * scale} r={rx * 0.2 * glint * scale} fill="#fff" />
+      <circle cx={x + rx * 0.34 * scale} cy={y - ry * 0.34 * scale} r={rx * (single ? 0.36 : 0.44) * glint * scale} fill="#fff" />
+      {!single && <circle cx={x - rx * 0.42 * scale} cy={y + ry * 0.4 * scale} r={rx * 0.2 * glint * scale} fill="#fff" />}
+      {/* 여우: 윗눈꺼풀 선이 눈꼬리에서 살짝 뻗어 올라가 눈매가 길어 보인다. */}
+      {almond && (
+        <path
+          d={`M${x - dir * 7.6} ${y - 3.4} Q${x} ${y - 8.6 * scale} ${x + dir * 8.2} ${y - 2.6} L${x + dir * 10.2} ${y - 5.2}`}
+          stroke={color}
+          strokeWidth={2.2}
+          fill="none"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      )}
     </g>
   );
   const brow = (outerY: number, innerY: number) => (
