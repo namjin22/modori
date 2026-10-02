@@ -17,6 +17,12 @@ export async function isDesktopApp(): Promise<boolean> {
   return (await userAgent()).includes(DESKTOP_UA_MARK);
 }
 
+/** 윈도 PC의 브라우저인지. Windows 설치 파일 안내를 폰·Mac 접속자에게 보이지 않게 하는 데만 쓴다. */
+export async function isWindowsBrowser(): Promise<boolean> {
+  const ua = await userAgent();
+  return ua.includes("Windows NT") && !/Mobile|Android/i.test(ua);
+}
+
 /** 카카오톡·인스타그램 등 앱 안 브라우저. Google은 이런 곳에서 로그인을 막는다(403 disallowed_useragent). */
 export async function isInAppBrowser(): Promise<boolean> {
   return /KAKAOTALK|Instagram|FBAN|FBAV|NAVER\(inapp|DaumApps|Line\//i.test(await userAgent());
