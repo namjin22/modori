@@ -26,12 +26,12 @@ export type SpecialMood =
   | "beg" // 몽이: 부탁해(반짝 눈)
   | "ball" // 몽이: 공놀이
   | "wink" // 하루: 찡긋
-  | "leaf" // 하루: 둔갑(머리에 나뭇잎)
+  | "shy" // 하루: 수줍
   | "foxfire" // 하루: 여우불(파이팅)
   | "smug" // 하루: 흐뭇
   | "fish" // 펭이: 물고기 냠
   | "scarf" // 펭이: 목도리(포근)
-  | "quack" // 펭이: 꽥!
+  | "nap" // 펭이: 낮잠
   | "goggles"; // 펭이: 물안경
 
 export type CharacterMood = DoriMood | SpecialMood;
@@ -43,38 +43,11 @@ export const COMMON_MOODS: CharacterMood[] = ["happy", "like", "party", "sad", "
 export const UNIQUE_MOODS: Record<CharacterId, CharacterMood[]> = {
   dori: ["fire", "clap", "hello", "love"],
   mong: ["pant", "bone", "beg", "ball"],
-  haru: ["wink", "leaf", "foxfire", "smug"],
-  peng: ["fish", "scarf", "quack", "goggles"],
+  haru: ["wink", "shy", "foxfire", "smug"],
+  peng: ["fish", "scarf", "nap", "goggles"],
 };
 
 /** 캐릭터가 쓰는 표정 열 개(공통 여섯 + 개성 넷). */
 export function moodsOf(character: CharacterId): CharacterMood[] {
   return [...COMMON_MOODS, ...UNIQUE_MOODS[character]];
 }
-
-export const MOOD_NAMES: Record<CharacterMood, string> = {
-  happy: "기본",
-  like: "좋아요",
-  party: "축하",
-  sad: "시무룩",
-  confused: "갸웃",
-  cool: "쿨",
-  fire: "불타요",
-  clap: "박수",
-  hello: "인사",
-  love: "사랑",
-  calm: "졸려",
-  wow: "놀람",
-  pant: "헥헥",
-  bone: "뼈다귀",
-  beg: "부탁해",
-  ball: "놀자",
-  wink: "찡긋",
-  leaf: "둔갑",
-  foxfire: "여우불",
-  smug: "흐뭇",
-  fish: "냠냠",
-  scarf: "포근",
-  quack: "꽥!",
-  goggles: "수영",
-};

@@ -8,7 +8,7 @@ import type { ReactNode } from "react";
 import type { CharacterId, CharacterMood } from "@/lib/characters";
 
 type Mouth = "smile" | "grin" | "open" | "shout" | "o" | "frown" | "wavy" | "smirk" | "small" | "tongue" | "none";
-type EyeKind = "dot" | "arc" | "angry" | "star" | "sleepy" | "sad" | "wide" | "heart" | "shades" | "tiny" | "wink" | "beg" | "half";
+type EyeKind = "dot" | "arc" | "angry" | "star" | "sleepy" | "sad" | "wide" | "heart" | "shades" | "tiny" | "wink" | "beg" | "half" | "side";
 
 /** 표정마다 눈·입 종류. 어느 캐릭터든 같은 뜻이고, 그리는 방식만 캐릭터마다 다르다. */
 const SPEC: Record<CharacterMood, { eye: EyeKind; eyeRight?: EyeKind; mouth: Mouth; tear?: boolean }> = {
@@ -30,12 +30,12 @@ const SPEC: Record<CharacterMood, { eye: EyeKind; eyeRight?: EyeKind; mouth: Mou
   beg: { eye: "beg", mouth: "small" },
   ball: { eye: "dot", mouth: "grin" },
   wink: { eye: "dot", eyeRight: "wink", mouth: "smile" },
-  leaf: { eye: "dot", mouth: "smile" },
+  shy: { eye: "side", mouth: "small" },
   foxfire: { eye: "arc", mouth: "grin" },
   smug: { eye: "half", mouth: "smirk" },
   fish: { eye: "arc", mouth: "small" },
   scarf: { eye: "sleepy", mouth: "small" },
-  quack: { eye: "wide", mouth: "shout" },
+  nap: { eye: "sleepy", mouth: "none" },
   goggles: { eye: "dot", mouth: "small" },
 };
 
@@ -78,6 +78,9 @@ function Eye({ kind, x, dir, l, noBrow = false }: { kind: EyeKind; x: number; di
     <Stroke d={`M${x + 8.5 * dir} ${y + outerY} L${x - 6.5 * dir} ${y + innerY}`} w={3.2} color={color} />
   );
   switch (kind) {
+    case "side":
+      // 부끄러워 눈을 옆으로 피한다.
+      return <g transform="translate(2.6 1.6)">{dot(0.92)}</g>;
     case "wink":
       // 안쪽을 가리키는 꺾쇠(>·<)로 감은 눈.
       return <Stroke d={`M${x + dir * 6} ${y - 5} L${x - dir * 5} ${y} L${x + dir * 6} ${y + 5}`} w={3.6} color={color} />;
@@ -261,6 +264,13 @@ function FoxFace({ mood }: { mood: CharacterMood }) {
       <Eye kind={s.eye} x={l.left} dir={-1} l={l} noBrow />
       <Eye kind={s.eyeRight ?? s.eye} x={l.right} dir={1} l={l} noBrow />
       {s.tear && <path d={`M${l.left - 3} ${l.y + 9.5} q-3 4.2 0 6.6 q3 -2.4 0 -6.6z`} fill="#8ecbff" />}
+      {mood === "shy" && (
+        <g>
+          <ellipse cx={37} cy={59} rx={9} ry={6.5} fill="#ff6f6f" opacity={0.5} />
+          <ellipse cx={83} cy={59} rx={9} ry={6.5} fill="#ff6f6f" opacity={0.5} />
+          <path d="M31 57 l3 4 M36 56 l3 4 M41 56 l3 4 M76 56 l3 4 M81 56 l3 4 M86 57 l3 4" stroke="#ff4d4d" strokeWidth={1.4} strokeLinecap="round" opacity={0.7} />
+        </g>
+      )}
       <path d="M55.4 53.4 Q60 50.4 64.6 53.4 Q62.4 57.4 60 57.8 Q57.6 57.4 55.4 53.4Z" fill="#3d2b25" />
       <ellipse cx={58.4} cy={52.8} rx={1.4} ry={0.8} fill="#fff" opacity={0.75} />
       <OmegaMouth kind={s.mouth} top={58} w={7.4} depth={4} color="#4a2d28" tongue={2.8} />
@@ -406,20 +416,12 @@ export function CharacterProps({ mood }: { mood: CharacterMood }): ReactNode {
       );
     case "wink":
       return <>{[sparkle(102, 34, 7), sparkle(110, 48, 4)]}</>;
-    case "leaf":
-      // 둔갑: 머리에 얹은 나뭇잎과 펑 하는 연기.
+    case "shy":
+      // 수줍: 식은땀 한 방울과 작은 하트.
       return (
         <g>
-          <g fill="#f1f3f8" stroke="#c9d1e6" strokeWidth={1.4}>
-            <circle cx={12} cy={40} r={6} />
-            <circle cx={20} cy={34} r={5} />
-            <circle cx={106} cy={42} r={6} />
-            <circle cx={100} cy={35} r={4.5} />
-          </g>
-          <g transform="translate(60 16) rotate(-18)">
-            <path d="M0 -10 Q10 -2 0 12 Q-10 -2 0 -10Z" fill="#5cb85c" stroke="#3d8b3d" strokeWidth={1.4} strokeLinejoin="round" />
-            <path d="M0 -7 L0 14" stroke="#3d8b3d" strokeWidth={1.4} strokeLinecap="round" />
-          </g>
+          <path d="M100 36 q-5 7 0 11 q5 -4 0 -11z" fill="#8ecbff" />
+          <path d="M16 36 c-3 -5 -9 -2 -6 3 l6 6 l6 -6 c3 -5 -3 -8 -6 -3z" fill="#ff8fa5" transform="scale(0.8) translate(6 10)" />
         </g>
       );
     case "foxfire": {
@@ -442,13 +444,15 @@ export function CharacterProps({ mood }: { mood: CharacterMood }): ReactNode {
           {sparkle(110, 52, 3.5, "#cfe0ff")}
         </g>
       );
-    case "quack":
-      // 꽥: 부리 옆으로 퍼지는 소리 선.
+    case "nap":
+      // 낮잠: 빨간 나이트캡(방울이 늘어짐)과 Zzz.
       return (
-        <g stroke="#ffb13d" strokeWidth={3.4} fill="none" strokeLinecap="round">
-          <path d="M98 70 L110 66" />
-          <path d="M99 78 L112 79" />
-          <path d="M97 86 L108 92" />
+        <g>
+          <path d="M36 42 Q38 20 64 22 Q96 24 106 56 Q84 40 36 42Z" fill="#ef4444" stroke="#c53030" strokeWidth={1.4} strokeLinejoin="round" />
+          <path d="M33 43 Q62 52 90 43 L90 37 Q62 46 33 37Z" fill="#fffaf2" stroke="#e5e7eb" strokeWidth={1} strokeLinejoin="round" />
+          <circle cx={106} cy={58} r={5.4} fill="#fffaf2" stroke="#e5e7eb" strokeWidth={1} />
+          <text x={92} y={22} fontSize={13} fontWeight={800} fill="#a8b6d1" fontFamily="sans-serif">z</text>
+          <text x={102} y={12} fontSize={10} fontWeight={800} fill="#a8b6d1" fontFamily="sans-serif">z</text>
         </g>
       );
     case "goggles":
