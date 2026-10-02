@@ -3,12 +3,14 @@
 import { useOptimistic, useState, useTransition, type ReactNode } from "react";
 
 import { toggleReaction } from "@/app/(tabs)/feed/actions";
+import { DoriFace } from "@/components/avatar";
 import { Dori } from "@/components/dori";
+import { CHARACTERS, DEFAULT_CHARACTER, type CharacterId } from "@/lib/characters";
 import { Modal } from "@/components/modal";
 import { ReactionGlyph } from "@/components/reaction-glyph";
 import { useSaveFailure } from "@/components/use-save-failure";
 import {
-  DORI_REACTIONS,
+  CHARACTER_REACTIONS,
   labelOfReaction,
   REACTIONS,
   type ReactionSummary,
@@ -38,6 +40,8 @@ export function ReactionBar({
   // 도리·이모지 모두 같은 크기 칸에 그린다(reaction-glyph). 칩 높이에 거의 꽉 차게 둔다.
   const glyphSize = compact ? 20 : 24;
   const [picking, setPicking] = useState(false);
+  // 고르는 창에서 보고 있는 캐릭터. 반응으로는 어느 캐릭터든 보낼 수 있다.
+  const [tab, setTab] = useState<CharacterId>(DEFAULT_CHARACTER);
   // 누가 눌렀는지 보는 창. 누른 칩의 이모지를 기억해 그 반응을 맨 위에 둔다.
   const [whoOpened, setWhoOpened] = useState<string | null>(null);
   const [, startTransition] = useTransition();
@@ -161,17 +165,26 @@ export function ReactionBar({
         title="반응 보내기"
       >
         <section className="flex flex-col gap-2">
-          <h3 className="text-xs font-semibold text-muted">도리</h3>
-          <ul className="grid grid-cols-4 gap-2">
-            {DORI_REACTIONS.map(({ value, mood, name, label }) => (
+          <div role="tablist" aria-label="캐릭터" className="flex gap-2">
+            {CHARACTERS.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                role="tab"
+                aria-selected={tab === item.id}
+                aria-label={item.name}
+                onClick={() => setTab(item.id)}
+                className={`rounded-full p-1 transition-colors ${tab === item.id ? "bg-brand-subtle ring-2 ring-brand" : "bg-surface-hover"}`}
+              >
+                <DoriFace size={40} character={item.id} className="rounded-full" />
+              </button>
+            ))}
+          </div>
+          <ul role="tabpanel" aria-label={CHARACTERS.find((item) => item.id === tab)?.name} className="grid grid-cols-5 gap-2">
+            {CHARACTER_REACTIONS.filter((reaction) => reaction.character === tab).map(({ value, mood, character, label }) => (
               <li key={value}>
-                <PickButton
-                  label={label}
-                  name={name}
-                  mine={isMine(value)}
-                  onPick={() => pick(value)}
-                >
-                  <Dori mood={mood} size={44} />
+                <PickButton label={label} mine={isMine(value)} onPick={() => pick(value)}>
+                  <Dori mood={mood} character={character} size={46} />
                 </PickButton>
               </li>
             ))}
@@ -202,7 +215,7 @@ export function ReactionBar({
   );
 }
 
-/** 고르는 창의 칸 하나. 그림 아래에 짧은 이름을 적는다. */
+/** 고르는 창의 칸 하나. 이모지는 그림 아래에 짧은 이름을 적고, 캐릭터 표정은 이름을 붙이지 않는다. */
 function PickButton({
   label,
   name,
@@ -211,7 +224,7 @@ function PickButton({
   children,
 }: {
   label: string;
-  name: string;
+  name?: string;
   mine: boolean;
   onPick: () => void;
   children: ReactNode;
@@ -227,7 +240,7 @@ function PickButton({
       }`}
     >
       <span className="flex h-11 items-center justify-center">{children}</span>
-      <span className={`text-[11px] ${mine ? "text-brand" : "text-muted"}`}>{name}</span>
+      {name && <span className={`text-[11px] ${mine ? "text-brand" : "text-muted"}`}>{name}</span>}
     </button>
   );
 }

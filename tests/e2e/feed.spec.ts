@@ -200,15 +200,15 @@ test("도리 표정도 반응으로 보내고 받은 반응 화면에서 본다"
   await page.goto("/feed");
   await page.getByRole("button", { name: "반응 보내기" }).click();
   // 이모지 "불타요"와 이름이 겹치지 않게 도리 반응은 "도리"를 붙여 부른다.
-  await page.getByRole("button", { name: "도리 불타요", exact: true }).click();
-  await expect(page.getByRole("button", { name: /^도리 불타요 1개/ })).toBeVisible();
+  await page.getByRole("button", { name: "도리 표정 7", exact: true }).click();
+  await expect(page.getByRole("button", { name: /^도리 표정 7 1개/ })).toBeVisible();
   await expect(page.getByRole("button", { name: /^불타요 \d+개/ })).toHaveCount(0);
   await signOut(page);
 
   await signIn(page, accounts.friend);
   await page.goto("/feed/reactions");
   await expect(page.getByText("도리 받을 일")).toBeVisible();
-  await expect(page.getByRole("img", { name: "도리 불타요" })).toBeVisible();
+  await expect(page.getByRole("img", { name: "도리 표정 7" })).toBeVisible();
 });
 
 test("받은 반응은 뱃지로 알리고 받은 반응 화면을 열면 사라진다", async ({
@@ -324,4 +324,27 @@ test("반응 칩을 누르면 다른 사람이 누른 이름이 보이고, 내 �
   } finally {
     await prisma.user.deleteMany({ where: { email: otherEmail } });
   }
+});
+
+test("반응 창의 캐릭터 탭에서 다른 캐릭터의 표정도 보낼 수 있고, 프로필 캐릭터와 상관없다", async ({ page, accounts }) => {
+  await signIn(page, accounts.friend);
+  await addDoneTodo(page, "캐릭터 반응 받을 일");
+  await signOut(page);
+
+  await signIn(page, accounts.me);
+  await follow(page, accounts.friend.nickname);
+  await page.goto("/feed");
+  await page.getByRole("button", { name: "반응 보내기" }).click();
+
+  // 탭: 도리·몽이·하루·펭이. 각 캐릭터는 표정 열 개를 가진다.
+  const dialog = page.getByRole("dialog", { name: "반응 보내기" });
+  await expect(dialog.getByRole("tab")).toHaveCount(4);
+  await dialog.getByRole("tab", { name: "몽이" }).click();
+  await expect(dialog.getByRole("tabpanel").getByRole("button")).toHaveCount(10);
+  await dialog.getByRole("button", { name: "몽이 표정 7", exact: true }).click();
+  await expect(page.getByRole("button", { name: /^몽이 표정 7 1개, 내가 누름/ })).toBeVisible();
+  // 저장은 화면이 바뀐 뒤에 끝난다.
+  await expect
+    .poll(() => prisma.reaction.count({ where: { emoji: "mong:pant", user: { email: accounts.me.email } } }))
+    .toBe(1);
 });
