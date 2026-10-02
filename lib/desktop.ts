@@ -17,6 +17,11 @@ export async function isDesktopApp(): Promise<boolean> {
   return (await userAgent()).includes(DESKTOP_UA_MARK);
 }
 
+/** 카카오톡·인스타그램 등 앱 안 브라우저. Google은 이런 곳에서 로그인을 막는다(403 disallowed_useragent). */
+export async function isInAppBrowser(): Promise<boolean> {
+  return /KAKAOTALK|Instagram|FBAN|FBAV|NAVER\(inapp|DaumApps|Line\//i.test(await userAgent());
+}
+
 /** 모바일 앱(Capacitor)에서 왔는지. 쓰임과 주의는 isDesktopApp과 같다. */
 export async function isMobileApp(): Promise<boolean> {
   return (await userAgent()).includes(MOBILE_UA_MARK);

@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 
 import { Logo } from "@/components/logo";
 import { isDataGSMConfigured, isMockAuth, signIn } from "@/lib/auth";
-import { isDesktopApp, isMobileApp } from "@/lib/desktop";
+import { isDesktopApp, isInAppBrowser, isMobileApp } from "@/lib/desktop";
 import { safeNext } from "@/lib/next-path";
 import { getCurrentUser } from "@/lib/session";
 
@@ -33,6 +33,7 @@ export default async function LoginPage({
   if (await getCurrentUser()) redirect(next);
   const desktop = await isDesktopApp();
   const mobile = await isMobileApp();
+  const inApp = !desktop && !mobile && (await isInAppBrowser());
 
   const message = error
     ? (ERROR_MESSAGES[error] ?? "로그인하지 못했어요. 다시 시도해주세요.")
@@ -60,6 +61,13 @@ export default async function LoginPage({
             className="rounded-2xl bg-surface p-4 text-center text-sm text-danger"
           >
             {message}
+          </p>
+        )}
+
+        {inApp && (
+          <p role="note" className="rounded-2xl bg-surface p-4 text-center text-sm">
+            카카오톡 같은 앱 안에서는 Google 로그인이 막혀요. 오른쪽 위 메뉴에서 <b>다른 브라우저로 열기</b>(크롬·사파리)를 눌러
+            주세요.
           </p>
         )}
 
