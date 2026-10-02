@@ -13,6 +13,7 @@
 
 import type { CSSProperties, ReactNode } from "react";
 
+import { CharacterFace } from "@/components/character-face";
 import { DEFAULT_CHARACTER, type CharacterId } from "@/lib/characters";
 
 export type DoriMood =
@@ -116,10 +117,8 @@ const SHAPES: Record<CharacterId, { behind?: ReactNode; shape: ReactNode; front?
     shape: <circle cx={60} cy={46} r={32} />,
     front: (
       <>
-        <ellipse cx={74} cy={44} rx={11} ry={12} fill={EAR} opacity={0.85} />
-        <ellipse cx={60} cy={55} rx={11} ry={8} fill="#fffaf2" />
-        <ellipse cx={60} cy={49.6} rx={4.6} ry={3.4} fill="#5b4636" />
-        <circle cx={58.6} cy={48.5} r={1} fill="#fff" />
+        <ellipse cx={77} cy={46} rx={11} ry={12} fill={EAR} opacity={0.85} />
+        <ellipse cx={60} cy={57.5} rx={14} ry={10} fill="#fffaf2" />
       </>
     ),
   },
@@ -138,7 +137,6 @@ const SHAPES: Record<CharacterId, { behind?: ReactNode; shape: ReactNode; front?
         <path d="M87.8 11.5 L90 4 Q81.5 6 75.5 12.5 Z" fill="#5b3a2e" stroke="#5b3a2e" strokeWidth={1.4} strokeLinejoin="round" />
         <path d="M28 51 Q29 69 50 72 Q40 62 45 51 Z" fill="#fffaf2" />
         <path d="M92 51 Q91 69 70 72 Q80 62 75 51 Z" fill="#fffaf2" />
-        <ellipse cx={60} cy={52} rx={4.2} ry={3} fill="#3d2b25" />
       </>
     ),
   },
@@ -159,19 +157,6 @@ const SHAPES: Record<CharacterId, { behind?: ReactNode; shape: ReactNode; front?
     ),
   },
 };
-
-/** 부리는 입 위에 얹는다(입이 부리 아래로 보인다). 펭귄만. */
-function Beak() {
-  return (
-    <path
-      d="M52.5 52.5 Q60 49 67.5 52.5 Q64 61.5 60 62.5 Q56 61.5 52.5 52.5 Z"
-      fill={EAR}
-      stroke="#e68a1f"
-      strokeWidth={1.4}
-      strokeLinejoin="round"
-    />
-  );
-}
 
 /** 캐릭터마다 다른 색. 도리는 기본값(코드 위쪽 상수)이라 적지 않는다. */
 const PALETTES: Partial<Record<CharacterId, CSSProperties>> = {
@@ -590,8 +575,7 @@ export function Dori({
             <ellipse cx={80} cy={59} rx={8} ry={6} fill={BLUSH} />
           </>
         )}
-        {look.face}
-        {character === "peng" && <Beak />}
+        {character === "dori" ? look.face : <CharacterFace character={character} mood={mood} />}
       </g>
 
       {!avatar && look.props}
