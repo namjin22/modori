@@ -33,7 +33,8 @@ export function validateNickname(
 /**
  * DB 제약은 대소문자를 구분하므로 "Modori"와 "modori"가 둘 다 들어갈 수 있다.
  * 사람 눈에는 같은 이름이라 여기서 한 번 더 막는다.
- * 동시 요청으로 빠져나가는 경우는 unique 제약이 잡는다(P2002).
+ * 동시 요청으로 빠져나가는 경우는 DB의 unique 제약이 잡는다(P2002). 대소문자를 무시하는 식 인덱스
+ * User_nickname_lower_key가 있다(prisma/migrations/20261003120000_nickname_lower_unique).
  */
 export async function isNicknameTaken(
   nickname: string,
