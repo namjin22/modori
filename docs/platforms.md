@@ -1,7 +1,7 @@
 # 플랫폼별 기능 분담
 
-웹(modori.site), 데스크톱 앱(`desktop/`, Electron), 모바일 앱(지금은 없음. iOS·Android 개발자 계정은 받았고 2026-09-29 준비를 시작한다)이
-무엇을 나눠 맡는지 정한다. 2026-09-29 초안.
+웹(modori.site), 데스크톱 앱(`desktop/`, Electron), 모바일 앱(Android는 Capacitor로 웹을 감싼 앱 `mobile/`을 Google Play 비공개 테스트에 올리는 중, iOS는 나중)이
+무엇을 나눠 맡는지 정한다. 2026-09-29 초안, 2026-10-03 모바일 현황 갱신.
 
 ## 원칙
 
