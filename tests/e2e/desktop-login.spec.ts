@@ -129,3 +129,18 @@ test("마이페이지에 Windows 앱 받기가 있고, 앱 안에서는 숨긴�
   await expect(appPage.getByRole("link", { name: /Windows 앱 받기/ })).toHaveCount(0);
   await desktop.close();
 });
+
+test("앱에서 로그인 버튼을 눌렀는데 이 브라우저가 이미 로그인돼 있으면 계정을 묻는다", async ({ page, email }, testInfo) => {
+  const { challenge } = pkce();
+  const nickname = `묻기${testInfo.testId.slice(-6)}${RUN_TAG}`;
+  // 이전에 앱 로그인을 하며 이 브라우저에 로그인이 남은 상태.
+  await codeFromBrowser(page, email, nickname, challenge);
+
+  await page.goto(`/desktop/login?challenge=${challenge}&provider=google`);
+  await expect(page.getByRole("heading", { name: `${nickname}님으로 로그인할까요?` })).toBeVisible();
+  await expect(page.getByRole("button", { name: "다른 계정으로 로그인" })).toBeVisible();
+
+  // "이 계정으로 계속"을 누르면 그 계정으로 앱을 연다.
+  await page.getByRole("link", { name: `${nickname}님으로 계속` }).click();
+  await expect(page.getByRole("link", { name: "모도리 앱 열기" })).toBeVisible();
+});
