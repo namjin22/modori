@@ -29,6 +29,7 @@ import {
 
 import { moveTodoToCategory, reorderTodos } from "@/app/(tabs)/actions";
 import { SortableRow, type SortableItem } from "@/components/sortable-list";
+import { useOptimisticDoneIds } from "@/components/todo-progress";
 import { useSaveFailure } from "@/components/use-save-failure";
 
 export type BoardGroup = {
@@ -264,6 +265,7 @@ function BoardSection({
 }) {
   const id = containerId(group.key);
   const { setNodeRef, isOver } = useDroppable({ id, disabled: !group.droppable });
+  const shown = useDoneBelow(ids, items, dragging);
   const empty = ids.length === 0;
   const hidden = empty && !(dragging && group.droppable);
   const emptyLook = `min-h-10 rounded-xl border border-dashed ${isOver ? "border-brand bg-brand-subtle" : "border-border"}`;
@@ -271,14 +273,14 @@ function BoardSection({
   return (
     <section className="flex flex-col gap-1">
       {group.header}
-      <SortableContext id={id} items={ids} strategy={verticalListSortingStrategy}>
+      <SortableContext id={id} items={shown} strategy={verticalListSortingStrategy}>
         {/* 끌고 있는 동안에는 빈 카테고리도 놓을 자리를 보인다. 평소에는 빈 묶음이 자리를 차지하지 않는다. */}
         <ul
           ref={setNodeRef}
           aria-busy={empty ? undefined : saving}
           className={`flex flex-col ${hidden ? "hidden" : ""} ${empty ? emptyLook : ""}`}
         >
-          {ids.map((todoId) => {
+          {shown.map((todoId) => {
             const item = items.get(todoId);
             return item ? (
               <SortableRow key={todoId} id={todoId} node={item.node} variant="todo" dragPlaceholder />
@@ -288,4 +290,20 @@ function BoardSection({
       </SortableContext>
     </section>
   );
+}
+
+/**
+ * 방금 체크한 할 일을 서버 응답을 기다리지 않고 바로 끝낸 일 쪽(묶음 맨 아래)으로 내린다.
+ * 서버는 끝낸 일을 아래에 두고 끝낸 시각순으로 놓으므로, 방금 체크한 것은 이미 끝낸 일들 뒤에 붙여야 응답이 와도 줄이 튀지 않는다.
+ * 체크를 푼 것은 서버 응답이 올 때까지 제자리에 둔다. 끄는 중에는 끄는 쪽의 순서를 그대로 쓴다.
+ */
+function useDoneBelow(ids: string[], items: Map<string, SortableItem>, dragging: boolean): string[] {
+  const doneNow = useOptimisticDoneIds();
+  if (dragging) return ids;
+  const serverDone = (id: string) => items.get(id)?.done === true;
+  return [
+    ...ids.filter((id) => !serverDone(id) && !doneNow.has(id)),
+    ...ids.filter(serverDone),
+    ...ids.filter((id) => !serverDone(id) && doneNow.has(id)),
+  ];
 }

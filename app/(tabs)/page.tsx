@@ -456,6 +456,7 @@ export default async function FeedPage({
               items: group.items.map((todo) => ({
                 id: todo.id,
                 label: todo.content,
+                done: todo.done,
                 node: (
                   <TodoRow
                     todo={todo}

@@ -12,6 +12,13 @@ type ChangeDone = (id: string, done: boolean) => void;
 export type ProgressItem = { id: string; done: boolean; color: string | null };
 
 const CompletionContext = createContext<ChangeDone | null>(null);
+// 지금 화면에서 끝낸 것으로 보이는 할 일 id들(체크한 직후, 서버 응답 전 것까지 포함).
+const DoneIdsContext = createContext<ReadonlySet<string>>(new Set());
+
+/** 할 일 판이 체크한 즉시 그 줄을 끝낸 일 쪽으로 내리려고 읽는다. */
+export function useOptimisticDoneIds(): ReadonlySet<string> {
+  return useContext(DoneIdsContext);
+}
 
 /**
  * 체크박스가 완료 개수와 막대를 함께 움직이게 해준다.
@@ -54,6 +61,7 @@ export function TodoProgress({
 
   return (
     <CompletionContext.Provider value={(id, done) => changeDone({ id, done })}>
+      <DoneIdsContext.Provider value={new Set(doneItems.map((item) => item.id))}>
       {celebrating && (
         <div className="flex items-center gap-3 rounded-2xl bg-brand-subtle px-4 py-3">
           <Dori mood="party" size={56} />
@@ -101,6 +109,7 @@ export function TodoProgress({
           </div>
       </div>
       {children}
+      </DoneIdsContext.Provider>
     </CompletionContext.Provider>
   );
 }

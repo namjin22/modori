@@ -136,6 +136,18 @@ for (const viewport of STORE ? [] : VIEWPORTS) {
     await page.waitForTimeout(500);
     await page.screenshot({ path: path.join(OUT, `${viewport.name}-14-date-picker.jpg`), type: "jpeg", quality: 80 });
 
+    // 반응 보내기 창: 캐릭터 탭과 이모지 탭. 떠 있는 창이라 14번처럼 창 크기 그대로 찍는다.
+    await page.goto("/feed");
+    await page.getByRole("button", { name: "반응 보내기" }).first().click();
+    const picker = page.getByRole("dialog", { name: "반응 보내기" });
+    await expect(picker).toBeVisible();
+    await picker.getByRole("tab", { name: "몽이" }).click();
+    await page.waitForTimeout(500);
+    await page.screenshot({ path: path.join(OUT, `${viewport.name}-15-reaction-picker.jpg`), type: "jpeg", quality: 80 });
+    await picker.getByRole("tab", { name: "이모지" }).click();
+    await page.waitForTimeout(300);
+    await page.screenshot({ path: path.join(OUT, `${viewport.name}-16-reaction-emoji.jpg`), type: "jpeg", quality: 80 });
+
     await page.emulateMedia({ colorScheme: "dark" });
     await page.goto("/");
     await shoot(page, `${viewport.name}-09-home-dark`);
