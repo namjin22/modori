@@ -11,6 +11,7 @@ import {
   validateNickname,
 } from "@/lib/nickname";
 import { prisma } from "@/lib/prisma";
+import { isCharacterId } from "@/lib/characters";
 import { isProfileImage } from "@/lib/profile-image";
 import { requireUser } from "@/lib/session";
 
@@ -27,6 +28,8 @@ export async function updateProfile(
   const nickname = normalizeNickname(formData.get("nickname"));
   const profileImage = String(formData.get("profileImage") ?? "").trim();
   const bio = String(formData.get("bio") ?? "").trim();
+  const characterValue = String(formData.get("avatarCharacter") ?? "");
+  if (characterValue && !isCharacterId(characterValue)) return { message: "캐릭터를 고르지 못했어요. 다시 골라주세요." };
 
   const valid = validateNickname(nickname);
   if (!valid.ok) {
@@ -54,7 +57,13 @@ export async function updateProfile(
   try {
     await prisma.user.update({
       where: { id: user.id },
-      data: { nickname, profileImage: profileImage || null, bio: bio || null },
+      data: {
+        nickname,
+        profileImage: profileImage || null,
+        // 사진을 쓰는 동안에도 마지막에 고른 캐릭터를 남겨 둔다(사진을 지우면 그 캐릭터로 돌아간다).
+        ...(characterValue && { avatarCharacter: characterValue }),
+        bio: bio || null,
+      },
     });
   } catch (error) {
     // 같은 순간에 같은 이름으로 둘이 저장하면 여기서 걸린다.

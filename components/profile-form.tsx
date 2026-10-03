@@ -4,17 +4,20 @@ import {
   updateProfile,
   type ProfileFormState,
 } from "@/app/(tabs)/settings/profile/actions";
-import { ProfileImageField } from "@/components/profile-image-field";
+import { AvatarChoice } from "@/components/avatar-choice";
 import { SubmitButton } from "@/components/submit-button";
 import { useFormAction } from "@/components/use-form-action";
+import type { CharacterId } from "@/lib/characters";
 
 export function ProfileForm({
   nickname,
   profileImage,
+  avatarCharacter,
   bio,
 }: {
   nickname: string;
   profileImage: string | null;
+  avatarCharacter: CharacterId;
   bio: string;
 }) {
   const [state, formAction, pending] = useFormAction<ProfileFormState>(
@@ -35,7 +38,7 @@ export function ProfileForm({
         />
       </label>
 
-      <ProfileImageField defaultValue={profileImage} />
+      <AvatarChoice defaultCharacter={avatarCharacter} defaultPhoto={profileImage} />
 
       <label className="flex flex-col gap-1 text-xs text-muted">
         소개 (선택)

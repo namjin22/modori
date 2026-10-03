@@ -12,6 +12,7 @@
 | 이메일 | `User.email` | Google·DataGSM 로그인 | 계정이 있는 동안 | 계정 지우기 |
 | 로그인 계정 번호 | `Account.provider`, `providerAccountId` | 로그인 | 계정이 있는 동안 | 계정 지우기 |
 | 닉네임·소개 | `User.nickname`, `bio` | 가입·프로필 화면 | 계정이 있는 동안 | 고치면 덮어씀, 계정 지우기 |
+| 프로필 캐릭터 | `User.avatarCharacter` (도리·몽이·하루·펭이 중 고른 id, 개인정보 아님: 고정된 목록 값) — 내 사진이 없을 때 프로필 사진 대신 쓴다 | 가입·마이페이지 | 계정이 있는 동안 | 바꾸면 덮어씀, 계정 지우기 |
 | 프로필 사진 | `User.profileImage` (128px로 줄인 data URL) | 프로필 화면 | 계정이 있는 동안 | 바꾸거나 지우면 덮어씀, 계정 지우기 |
 | 개인정보 동의 시각 | `User.privacyAgreedAt` | 가입 | 계정이 있는 동안 | 계정 지우기 |
 | 가입 시각·알림 본 시각 | `User.createdAt`, `lastSeenAt` | 자동 | 계정이 있는 동안 | 계정 지우기 |

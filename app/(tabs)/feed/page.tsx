@@ -73,7 +73,7 @@ export default async function FeedPage({
       where: { followerId: user.id },
       orderBy: { createdAt: "desc" },
       take: FRIEND_ROW_SIZE,
-      select: { following: { select: { id: true, nickname: true, profileImage: true } } },
+      select: { following: { select: { id: true, nickname: true, profileImage: true, avatarCharacter: true } } },
     }),
     prisma.follow.count({ where: { followerId: user.id } }),
     // 레이아웃이 같은 값을 이미 셌다. cache()가 막아주므로 질의는 한 번이다.
@@ -87,7 +87,7 @@ export default async function FeedPage({
   // 할 일마다 사진(약 9KB)을 끌어오면 같은 사람 사진을 수십 번 읽는다. 사람마다 한 번.
   const authors = await prisma.user.findMany({
     where: { id: { in: [...new Set(todos.map((todo) => todo.user.id))] } },
-    select: { id: true, profileImage: true },
+    select: { id: true, profileImage: true, avatarCharacter: true },
   });
   const friends = follows.map((follow) => follow.following);
   const avatars = new Map(authors.map((author) => [author.id, avatarUrl(author)]));

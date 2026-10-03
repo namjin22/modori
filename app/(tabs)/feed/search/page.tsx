@@ -34,7 +34,7 @@ export default async function SearchPage({
           },
           orderBy: { nickname: "asc" },
           take: MAX_RESULTS,
-          select: { id: true, nickname: true, profileImage: true },
+          select: { id: true, nickname: true, profileImage: true, avatarCharacter: true },
         })
       : Promise.resolve([]),
     prisma.follow.findMany({

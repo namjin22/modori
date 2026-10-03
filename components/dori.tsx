@@ -11,7 +11,10 @@
 // 배경에서 떠오른다. 24px(반응 줄)까지 줄어들기 때문에 눈·입은 크고 단순하게 그린다.
 // 서버 컴포넌트에서도 쓰므로 상태나 훅을 두지 않는다.
 
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
+
+import { CharacterFace, CharacterProps } from "@/components/character-face";
+import { DEFAULT_CHARACTER, type CharacterId, type CharacterMood } from "@/lib/characters";
 
 export type DoriMood =
   | "happy"
@@ -27,11 +30,12 @@ export type DoriMood =
   | "wow"
   | "love";
 
-const INK = "#6e82ad";
-const BODY = "#fdfbf7";
+// 색은 캐릭터마다 다르다. <svg>에 CSS 변수(--ch-*)로 넣고, 없으면 도리 색이다.
+const INK = "var(--ch-ink, #6e82ad)";
+const BODY = "var(--ch-body, #fdfbf7)";
 const EYE = "#5d6f96";
-const EAR = "#ffd0dc";
-const BLUSH = "#ffdbe4";
+const EAR = "var(--ch-ear, #ffd0dc)";
+const BLUSH = "var(--ch-blush, #ffdbe4)";
 const HINT = "#a8b6d1";
 
 /** 실루엣 바깥으로 번지는 테두리 두께. 위아래 두 겹이 같은 값을 쓴다. */
@@ -80,16 +84,87 @@ function Outlined({ children }: { children: ReactNode }) {
   );
 }
 
-/** 귀와 얼굴. 키운 만큼 선을 가늘게 줘서 테두리 굵기를 다른 그림과 맞춘다. */
-function Head() {
-  return (
-    <g transform={HEAD} strokeWidth={OUTLINE / HEAD_SCALE}>
-      <path d="M40 25 L35 9 Q48 11 55 21 Z" />
-      <path d="M80 25 L85 9 Q72 11 65 21 Z" />
-      <circle cx={60} cy={46} r={32} />
-    </g>
-  );
-}
+/** 캐릭터마다 달라지는 것: 머리 뒤(귀), 윤곽을 두를 머리 모양, 머리 위(코·무늬·부리). 눈·입은 표정(LOOKS)이 그린다. */
+const SHAPES: Record<CharacterId, { behind?: ReactNode; shape: ReactNode; front?: ReactNode }> = {
+  dori: {
+    shape: (
+      <>
+        <path d="M40 25 L35 9 Q48 11 55 21 Z" />
+        <path d="M80 25 L85 9 Q72 11 65 21 Z" />
+        <circle cx={60} cy={46} r={32} />
+      </>
+    ),
+    front: (
+      <>
+        {/* 귀 안쪽. 귀 삼각형을 가운데로 45% 줄인 모양이다. 타원으로 그리면 귀를 거의 다 덮어 귀 전체가 분홍으로 보였다. */}
+        <path d="M41.8 21.3 L39.6 14.1 L48.6 19.5 Z" fill={EAR} stroke={EAR} strokeWidth={1.6} strokeLinejoin="round" />
+        <path d="M78.2 21.3 L80.4 14.1 L71.4 19.5 Z" fill={EAR} stroke={EAR} strokeWidth={1.6} strokeLinejoin="round" />
+      </>
+    ),
+  },
+  // 몽이(강아지): 축 처진 갈색 귀, 한쪽 눈 둘레 얼룩, 동그란 코.
+  mong: {
+    behind: (
+      <>
+        <g fill={INK} stroke={INK} strokeWidth={7.3} strokeLinejoin="round">
+          <ellipse cx={30} cy={44} rx={11} ry={21} transform="rotate(14 30 44)" />
+          <ellipse cx={90} cy={44} rx={11} ry={21} transform="rotate(-14 90 44)" />
+        </g>
+        <ellipse cx={30} cy={44} rx={11} ry={21} transform="rotate(14 30 44)" fill={EAR} />
+        <ellipse cx={90} cy={44} rx={11} ry={21} transform="rotate(-14 90 44)" fill={EAR} />
+      </>
+    ),
+    shape: <circle cx={60} cy={46} r={32} />,
+    front: (
+      <>
+        <ellipse cx={77} cy={46} rx={11} ry={12} fill={EAR} opacity={0.85} />
+        <ellipse cx={60} cy={57.5} rx={14} ry={10} fill="#fffaf2" />
+      </>
+    ),
+  },
+  // 하루(여우): 큰 뾰족 귀(안쪽은 크림색, 끝은 짙은 갈색), 하얀 아랫얼굴. 무늬는 이 정도로만 둔다(많으면 얼굴이 어수선하다).
+  haru: {
+    shape: (
+      <>
+        <path d="M36 29 L28 2 Q47 6 57 22 Z" />
+        <path d="M84 29 L92 2 Q73 6 63 22 Z" />
+        <circle cx={60} cy={46} r={32} />
+      </>
+    ),
+    front: (
+      <>
+        <path d="M39.5 24 L34.5 9.5 Q43 12 50 20.5 Z" fill="#fff1dc" />
+        <path d="M80.5 24 L85.5 9.5 Q77 12 70 20.5 Z" fill="#fff1dc" />
+        <path d="M30 6.5 L28 2 Q38 4 46.5 10.5 Q37 8.5 30 6.5Z" fill="#5b3a2e" stroke="#5b3a2e" strokeWidth={1.4} strokeLinejoin="round" />
+        <path d="M90 6.5 L92 2 Q82 4 73.5 10.5 Q83 8.5 90 6.5Z" fill="#5b3a2e" stroke="#5b3a2e" strokeWidth={1.4} strokeLinejoin="round" />
+        {/* 하얀 아랫얼굴: 머리 원 안쪽에서 끊어 윤곽 밖으로 번지지 않게 한다. */}
+        <path d="M32.3 62 Q44 52 60 60.5 Q76 52 87.7 62 A32 32 0 0 1 32.3 62Z" fill="#fffaf2" />
+      </>
+    ),
+  },
+  // 펭이(펭귄): 통통한 남색 얼굴, 하트 모양 하얀 얼굴 무늬.
+  peng: {
+    shape: <ellipse cx={60} cy={47} rx={34} ry={31} />,
+    front: (
+      <>
+        <g fill="#fffaf2">
+          <circle cx={46} cy={50} r={17} />
+          <circle cx={74} cy={50} r={17} />
+          <ellipse cx={60} cy={60} rx={23} ry={14} />
+        </g>
+        <ellipse cx={37} cy={60} rx={7.5} ry={5.2} fill="#ffb8c6" opacity={0.9} />
+        <ellipse cx={83} cy={60} rx={7.5} ry={5.2} fill="#ffb8c6" opacity={0.9} />
+      </>
+    ),
+  },
+};
+
+/** 캐릭터마다 다른 색. 도리는 기본값(코드 위쪽 상수)이라 적지 않는다. */
+const PALETTES: Partial<Record<CharacterId, CSSProperties>> = {
+  mong: { "--ch-ink": "#a07a5a", "--ch-body": "#fff6e8", "--ch-ear": "#c98f5f", "--ch-blush": "#ffd9d0" } as CSSProperties,
+  haru: { "--ch-ink": "#cf6f26", "--ch-body": "#ffa65c", "--ch-ear": "#5b3a2e", "--ch-blush": "#ffc4a3" } as CSSProperties,
+  peng: { "--ch-ink": "#2f3b5c", "--ch-body": "#566a9c", "--ch-ear": "#ffb13d", "--ch-blush": "#ffb8c6" } as CSSProperties,
+};
 
 const DotEye = ({ x }: { x: number }) => (
   <>
@@ -455,16 +530,23 @@ export function Dori({
   label,
   className,
   avatar = false,
+  character = DEFAULT_CHARACTER,
 }: {
-  mood?: DoriMood;
+  // 도리 표정(DoriMood) 또는 캐릭터마다의 개성 표정(lib/characters.ts의 SpecialMood).
+  mood?: CharacterMood;
   size?: number;
-  // 그림이 뜻을 전할 때만 이름을 붙인다. 꾸밈이면 화면 읽기에서 건너뛴다.
+  // 그림이 뜻을 전할 때만 이름을 붙인다. 꾸밀 뿐이면 화면 읽기에서 건너뛴다.
   label?: string;
   className?: string;
   // 프로필 사진 자리. 얼굴만 둥근 틀 가운데에 작게 두고 둘레 소품은 뺀다.
   avatar?: boolean;
+  // 어느 캐릭터로 그릴지(lib/characters.ts). 기본은 도리.
+  character?: CharacterId;
 }) {
-  const look = LOOKS[mood];
+  // 도리 표정 목록에 없는 개성 표정이면 도리 소품(LOOKS)은 쓰지 않고 캐릭터 소품만 그린다.
+  const isDoriMood = mood in LOOKS;
+  const look = LOOKS[(isDoriMood ? mood : "happy") as DoriMood];
+  const parts = SHAPES[character];
 
   return (
     <svg
@@ -476,34 +558,32 @@ export function Dori({
       aria-label={label}
       aria-hidden={label ? undefined : true}
       className={className}
+      style={PALETTES[character]}
     >
+      {parts.behind && (
+        <g transform={HEAD} strokeWidth={OUTLINE / HEAD_SCALE}>
+          {parts.behind}
+        </g>
+      )}
       <Outlined>
-        <Head />
+        <g transform={HEAD} strokeWidth={OUTLINE / HEAD_SCALE}>
+          {parts.shape}
+        </g>
       </Outlined>
 
       <g transform={HEAD}>
-        {/* 귀 안쪽. 귀 삼각형을 가운데로 45% 줄인 모양이다. 타원으로 그리면 귀를 거의 다 덮어
-            귀 전체가 분홍으로 보였다. 모서리는 같은 색 선으로 둥글린다. */}
-        <path
-          d="M41.8 21.3 L39.6 14.1 L48.6 19.5 Z"
-          fill={EAR}
-          stroke={EAR}
-          strokeWidth={1.6}
-          strokeLinejoin="round"
-        />
-        <path
-          d="M78.2 21.3 L80.4 14.1 L71.4 19.5 Z"
-          fill={EAR}
-          stroke={EAR}
-          strokeWidth={1.6}
-          strokeLinejoin="round"
-        />
-        <ellipse cx={40} cy={59} rx={8} ry={6} fill={BLUSH} />
-        <ellipse cx={80} cy={59} rx={8} ry={6} fill={BLUSH} />
-        {look.face}
+        {parts.front}
+        {character !== "peng" && (
+          <>
+            <ellipse cx={40} cy={59} rx={8} ry={6} fill={BLUSH} />
+            <ellipse cx={80} cy={59} rx={8} ry={6} fill={BLUSH} />
+          </>
+        )}
+        {character === "dori" ? look.face : <CharacterFace character={character} mood={mood} />}
       </g>
 
-      {!avatar && look.props}
+      {!avatar && isDoriMood && look.props}
+      {!avatar && character !== "dori" && <CharacterProps mood={mood} />}
     </svg>
   );
 }

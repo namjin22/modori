@@ -1,3 +1,4 @@
+import { DEFAULT_CHARACTER, isCharacterId } from "@/lib/characters";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 
@@ -9,7 +10,7 @@ export default async function ProfilePage() {
 
   const profile = await prisma.user.findUniqueOrThrow({
     where: { id: user.id },
-    select: { nickname: true, profileImage: true, bio: true },
+    select: { nickname: true, profileImage: true, avatarCharacter: true, bio: true },
   });
 
   return (
@@ -23,6 +24,7 @@ export default async function ProfilePage() {
         <ProfileForm
           nickname={profile.nickname ?? ""}
           profileImage={profile.profileImage}
+          avatarCharacter={isCharacterId(profile.avatarCharacter) ? profile.avatarCharacter : DEFAULT_CHARACTER}
           bio={profile.bio ?? ""}
         />
       </section>

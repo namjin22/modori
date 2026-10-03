@@ -1,13 +1,14 @@
-import type { DoriMood } from "@/components/dori";
+import { CHARACTERS, moodsOf, type CharacterId, type CharacterMood } from "@/lib/characters";
 
 /**
- * 친구가 끝낸 일에 보낼 수 있는 반응. 도리 표정 열둘과 이모지 열둘이다.
+ * 친구가 끝낸 일에 보낼 수 있는 반응. 캐릭터 넷(도리·몽이·하루·펭이)의 표정 각 열 개와 이모지 열둘이다.
+ * 캐릭터는 누구나 어느 것이든 쓸 수 있다(프로필 사진으로 고른 캐릭터와 상관없다).
  *
  * 한때 반응을 도리 표정 넷으로만 그렸다가, 24px로 줄어든 얼굴은 서로 구별되지 않아 이모지로
  * 바꿨다. 지금은 표정마다 소품(모자·불꽃·선글라스·하트 눈)이 있어 작아도 구별되고, 사용자가
  * 도리 표정을 반응으로 보내고 싶어 해서 이모지 옆에 다시 둔다.
  *
- * 저장하는 값은 이모지 문자이거나 "dori:표정"이다. 이모지의 앞 넷은 예전에 저장된 값이라
+ * 저장하는 값은 이모지 문자이거나 "캐릭터id:표정"(예: "dori:fire", "mong:pant")이다. 이모지의 앞 넷은 예전에 저장된 값이라
  * 순서와 글자를 그대로 둔다. 새로 더한 것은 뒤에 붙인다.
  *
  * "use server" 파일은 async 함수만 내보낼 수 있어서 상수는 여기 둔다.
@@ -27,37 +28,32 @@ export const REACTIONS = [
   { emoji: "☕", label: "고생했어" },
 ] as const;
 
-const DORI_PREFIX = "dori:";
-
 /**
- * 도리 표정 반응. name은 고르는 창에서 얼굴 아래 적는 말이고, label은 화면 읽기용 이름이다.
- * 이모지와 이름이 겹치는 것(불타요·대단해·축하해·놀라워)이 있어 label 앞에 "도리"를 붙인다.
+ * 캐릭터 표정 반응. label은 화면 읽기용 이름이고, 표정마다 이름을 붙이지 않는다("몽이 표정 7" 식으로 번호만 단다).
+ * 도리의 "졸려"와 "놀람"은 예전에 보낸 반응이 남아 있어 계속 받고 보여주지만(LEGACY), 고르는 창에는 더 두지 않는다.
  */
-export const DORI_REACTIONS: { value: string; mood: DoriMood; name: string; label: string }[] = (
-  [
-    ["happy", "방긋"],
-    ["love", "반했어"],
-    ["like", "좋아해"],
-    ["clap", "대단해"],
-    ["fire", "불타요"],
-    ["party", "축하해"],
-    ["cool", "멋져"],
-    ["wow", "놀라워"],
-    ["hello", "안녕"],
-    ["calm", "느긋해"],
-    ["confused", "갸웃"],
-    ["sad", "아쉬워"],
-  ] as const
-).map(([mood, name]) => ({
-  value: `${DORI_PREFIX}${mood}`,
+export type CharacterReaction = { value: string; character: CharacterId; mood: CharacterMood; label: string };
+
+export const CHARACTER_REACTIONS: CharacterReaction[] = CHARACTERS.flatMap((character) =>
+  moodsOf(character.id).map((mood, index) => ({
+    value: `${character.id}:${mood}`,
+    character: character.id,
+    mood,
+    label: `${character.name} 표정 ${index + 1}`,
+  })),
+);
+
+const LEGACY_REACTIONS: CharacterReaction[] = (["calm", "wow"] as const).map((mood) => ({
+  value: `dori:${mood}`,
+  character: "dori" as const,
   mood,
-  name,
-  label: `도리 ${name}`,
+  label: `도리 표정 ${mood === "calm" ? "졸려" : "놀람"}`,
 }));
 
-/** 고르는 창과 반응 줄의 순서. 도리가 먼저다. */
+/** 고르는 창과 반응 줄의 순서. 캐릭터가 먼저, 이모지가 뒤다. */
 const ORDER: string[] = [
-  ...DORI_REACTIONS.map((reaction) => reaction.value),
+  ...CHARACTER_REACTIONS.map((reaction) => reaction.value),
+  ...LEGACY_REACTIONS.map((reaction) => reaction.value),
   ...REACTIONS.map((reaction) => reaction.emoji),
 ];
 
@@ -68,18 +64,21 @@ export function isReactionValue(value: string): boolean {
   return ALLOWED.has(value);
 }
 
-const DORI_MOODS = new Map<string, DoriMood>(
-  DORI_REACTIONS.map((reaction) => [reaction.value, reaction.mood]),
+const CHARACTER_MOODS = new Map<string, { character: CharacterId; mood: CharacterMood }>(
+  [...CHARACTER_REACTIONS, ...LEGACY_REACTIONS].map((reaction) => [
+    reaction.value,
+    { character: reaction.character, mood: reaction.mood },
+  ]),
 );
 
-/** 도리 반응이면 표정을, 이모지면 null을 준다. */
-export function doriMoodOf(value: string): DoriMood | null {
-  return DORI_MOODS.get(value) ?? null;
+/** 캐릭터 반응이면 어느 캐릭터의 어떤 표정인지, 이모지면 null을 준다. */
+export function characterMoodOf(value: string): { character: CharacterId; mood: CharacterMood } | null {
+  return CHARACTER_MOODS.get(value) ?? null;
 }
 
 const LABELS = new Map<string, string>([
   ...REACTIONS.map((reaction): [string, string] => [reaction.emoji, reaction.label]),
-  ...DORI_REACTIONS.map((reaction): [string, string] => [reaction.value, reaction.label]),
+  ...[...CHARACTER_REACTIONS, ...LEGACY_REACTIONS].map((reaction): [string, string] => [reaction.value, reaction.label]),
 ]);
 
 /** 목록에 없는 값이 저장되어 있어도 화면은 이모지를 그대로 보여준다. */

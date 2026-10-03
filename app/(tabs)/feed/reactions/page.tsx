@@ -45,7 +45,7 @@ export default async function NotificationsPage() {
       take: MAX_ITEMS,
       select: {
         createdAt: true,
-        follower: { select: { id: true, nickname: true, profileImage: true } },
+        follower: { select: { id: true, nickname: true, profileImage: true, avatarCharacter: true } },
       },
     }),
     prisma.follow.findMany({ where: { followerId: user.id }, select: { followingId: true } }),

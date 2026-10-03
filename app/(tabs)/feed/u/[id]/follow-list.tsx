@@ -34,14 +34,14 @@ export async function FriendFollowList({ id, kind }: { id: string; kind: FollowL
           .findMany({
             where: { followerId: friend.id, following: { nickname: { not: null } } },
             orderBy: { createdAt: "desc" },
-            select: { following: { select: { id: true, nickname: true, profileImage: true } } },
+            select: { following: { select: { id: true, nickname: true, profileImage: true, avatarCharacter: true } } },
           })
           .then((list) => list.map((row) => row.following))
       : prisma.follow
           .findMany({
             where: { followingId: friend.id, follower: { nickname: { not: null } } },
             orderBy: { createdAt: "desc" },
-            select: { follower: { select: { id: true, nickname: true, profileImage: true } } },
+            select: { follower: { select: { id: true, nickname: true, profileImage: true, avatarCharacter: true } } },
           })
           .then((list) => list.map((row) => row.follower)),
     prisma.follow.findMany({ where: { followerId: viewer.id }, select: { followingId: true } }),
