@@ -10,6 +10,17 @@ export const OFFLINE_MESSAGE = "인터넷에 연결되어 있지 않아요. 연�
 // "인터넷을 확인하라"고 하면 사용자가 엉뚱한 곳을 살핀다.
 export const STALE_MESSAGE = "화면이 오래돼서 저장하지 못했어요. 새로고침하면 해결돼요.";
 
+/** 화면이 오래됐다는 알림을 띄워 달라는 신호. components/stale-banner.tsx가 듣는다. */
+export const STALE_EVENT = "modori:stale";
+
+/**
+ * 화면이 오래돼서 실패했을 때, 어느 화면에서든 보이는 새로고침 배너를 띄운다. 모바일 앱에는 새로고침 버튼이 없어서
+ * 알림이 사라지면 사용자가 빠져나올 길이 없다. 배너는 새로고침할 때까지 남는다.
+ */
+function announceStale() {
+  window.dispatchEvent(new Event(STALE_EVENT));
+}
+
 /** 인터넷이 끊겨서 실패한 것인지. 브라우저가 알려 주는 오프라인 상태와 fetch가 던지는 네트워크 오류를 함께 본다. */
 function isOffline(error: unknown): boolean {
   if (typeof navigator !== "undefined" && navigator.onLine === false) return true;
@@ -37,16 +48,7 @@ export function useSaveFailure(): (error: unknown) => void {
         toast({ message: OFFLINE_MESSAGE });
         return;
       }
-      toast({
-        message: STALE_MESSAGE,
-        durationMs: 10000,
-        action: {
-          label: "새로고침",
-          run: async () => {
-            window.location.reload();
-          },
-        },
-      });
+      announceStale();
     },
     [toast],
   );
@@ -67,7 +69,9 @@ export function orSaveFailure<State extends FormState>(
     } catch (error) {
       unstable_rethrow(error);
       console.error("[save] 서버에 저장하지 못했다.", error);
-      return { message: isOffline(error) ? OFFLINE_MESSAGE : STALE_MESSAGE } as State;
+      if (isOffline(error)) return { message: OFFLINE_MESSAGE } as State;
+      announceStale();
+      return { message: STALE_MESSAGE } as State;
     }
   };
 }
