@@ -1,7 +1,7 @@
 import { expect, type Page } from "@playwright/test";
 
 /** 가입하면 처음 하나만 만들어지는 카테고리. */
-export const FIRST_CATEGORY = "Today's";
+export const FIRST_CATEGORY = "오늘";
 
 /**
  * 카테고리 칩의 +를 눌러 할 일을 적는다. 화면에 있는 유일한 추가 방법이라

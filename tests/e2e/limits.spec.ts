@@ -87,7 +87,7 @@ test("되돌리기도 하루 상한을 넘기지 않고 이유를 알린다", as
 
 test("카테고리가 10개면 추가 폼 대신 이유를 보여준다", async ({ page }) => {
   const user = await prisma.user.findUniqueOrThrow({ where: { email: TEST_EMAIL } });
-  // 가입할 때 생긴 Today's에 더해 9개를 채운다.
+  // 가입할 때 생긴 오늘 카테고리에 더해 9개를 채운다.
   await prisma.category.createMany({
     data: Array.from({ length: 9 }, (_, index) => ({
       userId: user.id,
