@@ -30,6 +30,8 @@ export type SortableItem = {
   // 화면 읽기 프로그램이 "무엇을" 옮기는지 말할 때 쓴다.
   label: string;
   node: ReactNode;
+  // 서버가 그린 시점에 끝낸 할 일인지. 할 일 판이 체크 직후 줄을 아래로 내릴 때 쓴다(할 일 줄이 아니면 비운다).
+  done?: boolean;
 };
 
 /**
