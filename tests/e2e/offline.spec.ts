@@ -84,9 +84,12 @@ test("연결은 되는데 서버가 응답하지 못하면(오래 열어 둔 화
   );
   await page.getByRole("button", { name: "완료", exact: true }).click();
 
-  const alert = page.getByRole("status", { name: "알림" });
+  // 몇 초 뒤 사라지는 알림이 아니라, 새로고침할 때까지 남는 배너다(모바일 앱에는 새로고침 수단이 없다).
+  const alert = page.getByRole("alert", { name: "새로고침 안내" });
   await expect(alert).toContainText("화면이 오래돼서 저장하지 못했어요. 새로고침하면 해결돼요.");
   await expect(alert).not.toContainText("인터넷");
+  await page.waitForTimeout(6000);
+  await expect(alert).toBeVisible();
 
   // 새로고침을 누르면 화면을 다시 불러온다(체크는 저장되지 않았으니 그대로 안 한 상태).
   await page.unroute("**/*");

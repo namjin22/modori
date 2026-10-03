@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import type { Metadata, Viewport } from "next";
 
 import { NativeBridge } from "@/components/native-bridge";
+import { StaleBanner } from "@/components/stale-banner";
 import { ValidationBubble } from "@/components/validation-bubble";
 
 import "./globals.css";
@@ -85,6 +86,8 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         {children}
         {/* 브라우저 기본 입력 말풍선 대신 앱 모양의 말풍선을 띄운다. */}
         <ValidationBubble />
+        {/* 화면이 오래돼 저장하지 못했을 때 새로고침 버튼을 띄운다(모바일 앱에는 새로고침 수단이 없다). */}
+        <StaleBanner />
       </body>
     </html>
   );
