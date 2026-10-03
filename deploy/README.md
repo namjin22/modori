@@ -55,6 +55,13 @@ systemctl list-timers modori-backup.timer
 Windows(Git Bash)에서 `openssl rand -hex 24`로 만들면 줄 끝에 `\r\n`이 붙는다. `tr -d '\r\n'`으로 둘 다 지운다
 (`\n`만 지웠다가 49자가 되어 한 번 틀렸다). 오류 내용은 운영자 계정으로 `/admin/errors`에서 본다.
 
+### 백업 감시와 컨테이너 상태 켜기 (2026-10-03, 사람이 VM에서 한 번)
+
+`/api/health/backup`은 앱 컨테이너가 `/opt/modori/backups`를 읽기 전용으로 붙여야 동작한다(안 붙이면 "skipped"로 200).
+`deploy/docker-compose.yml`의 새 내용(앱 `healthcheck`와 `./backups:/backups:ro`)을 VM의 `/opt/modori/docker-compose.yml`에 복사하고
+`cd /opt/modori && docker compose up -d app`으로 앱만 다시 띄운다. 25초쯤 뒤 `docker compose ps`에 앱이 `(healthy)`로 보이고
+`curl -s localhost:3000/api/health/backup`이 `{"status":"ok",...}`를 주면 된다. 이후 `health` 워크플로가 백업이 36시간 넘게 멈추면 메일을 보낸다.
+
 ## 되살리기
 
 VM 안 파일에서: `docker compose exec -T db pg_restore --clean --if-exists --no-owner -U modori -d modori < backups/<파일>.dump`
