@@ -47,7 +47,8 @@ test("날짜를 골라 보는 화면은 날짜가 바뀌어도 그대로 둔다"
 
   let refreshed = false;
   page.on("request", (request) => {
-    if (request.headers()["rsc"] === "1" && !request.headers()["next-router-prefetch"]) refreshed = true;
+    // 하단 탭을 미리 받아 두는 요청(주소에 date가 없다)은 새로 그리는 것이 아니다. 이 화면 자신을 다시 받는 요청만 센다.
+    if (request.headers()["rsc"] === "1" && new URL(request.url()).searchParams.get("date") === "2026-01-05") refreshed = true;
   });
   await page.clock.fastForward("24:01:00");
   await page.waitForTimeout(1500);

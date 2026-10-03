@@ -5,6 +5,11 @@ const nextConfig: NextConfig = {
   output: "standalone",
   // 어떤 서버로 만들었는지 알려줄 이유가 없다. 공격하는 쪽에 버전 힌트만 준다.
   poweredByHeader: false,
+  // 탭 화면은 전부 서버에서 그리는 동적 화면이라 기본값(0초)이면 탭을 누를 때마다 서버를 다녀온다.
+  // 폰에서 탭 이동이 느린 가장 큰 이유라, 방금 본 화면을 30초 동안 다시 쓴다. 내가 바꾼 것은 서버 액션이
+  // 캐시를 비워 낡아 보이지 않는다. 가입·로그인처럼 리다이렉트가 낡으면 안 되는 곳은 액션이 따로 비운다
+  // (app/onboarding/actions.ts). static 30은 하단 탭을 미리 받아 둔 것의 유효 시간이다(30초 미만은 못 준다).
+  experimental: { staleTimes: { dynamic: 30, static: 30 } },
   async headers() {
     return [
       {

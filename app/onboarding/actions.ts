@@ -2,6 +2,7 @@
 
 import { Prisma } from "@prisma/client";
 
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { safeNext } from "@/lib/next-path";
@@ -85,6 +86,8 @@ export async function saveNickname(
     });
   }
 
+  // 가입 전에 열어 둔 화면(온보딩으로 보내는 응답)을 브라우저가 기억하고 있으면 홈으로 가도 되돌아온다. 전부 비운다.
+  revalidatePath("/", "layout");
   // 친구가 보낸 링크로 처음 가입했으면 그 화면으로 보낸다.
   redirect(safeNext(formData.get("next")) ?? "/");
 }
