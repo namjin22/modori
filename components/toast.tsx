@@ -20,6 +20,8 @@ type Toast = {
   id: number;
   message: string;
   action?: ToastAction;
+  // 기본(5초)보다 오래 보여줄 때. 읽고 눌러야 하는 안내에 쓴다.
+  durationMs?: number;
 };
 
 type ShowToast = (toast: Omit<Toast, "id">) => void;
@@ -51,7 +53,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     if (!toast) return;
     const timer = setTimeout(() => {
       setToast((current) => (current?.id === toast.id ? null : current));
-    }, VISIBLE_MS);
+    }, toast.durationMs ?? VISIBLE_MS);
     return () => clearTimeout(timer);
   }, [toast]);
 
@@ -62,7 +64,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         setToast(message ? { id: Date.now(), message } : null);
       } catch (error) {
         console.error("[toast] 알림의 동작이 실패했다.", error);
-        setToast({ id: Date.now(), message: "되돌리지 못했어요. 다시 시도해주세요." });
+        setToast({ id: Date.now(), message: "처리하지 못했어요. 다시 시도해주세요." });
       }
     });
   }
@@ -93,7 +95,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
                 onClick={() => toast.action && runAction(toast.action)}
                 className="h-8 shrink-0 rounded-xl px-3 font-semibold underline-offset-4 hover:underline disabled:opacity-50"
               >
-                {isRunning ? "되돌리는 중" : toast.action.label}
+                {isRunning ? "처리 중" : toast.action.label}
               </button>
             )}
           </div>
