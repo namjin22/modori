@@ -28,3 +28,19 @@ jobs:
           done
           echo "::error::modori.site/api/health가 세 번 연속 200이 아니다"
           exit 1
+
+      # 백업이 멈추면 서버는 멀쩡해도 데이터를 지킬 수 없다. 가장 최근 백업이 36시간을 넘으면 실패한다.
+      - name: 백업이 최근 것인지 확인
+        run: |
+          for attempt in 1 2 3; do
+            code=$(curl -s -o /dev/null -m 20 -w "%{http_code}" https://modori.site/api/health/backup || true)
+            if [ "$code" = "200" ]; then
+              echo "정상 (${attempt}번째)"
+              exit 0
+            fi
+            echo "응답 ${code} (${attempt}번째)"
+            sleep 30
+          done
+          echo "::error::백업이 36시간 넘게 새로 만들어지지 않았다(또는 백업 폴더를 읽지 못한다). VM에서 backup.sh 결과를 확인한다"
+          exit 1
+

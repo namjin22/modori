@@ -29,6 +29,16 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    # 앱이 응답하는지 Docker가 스스로 본다. `docker compose ps`에 (unhealthy)로 보인다. 이미지에 curl이 없어 node로 부른다.
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/health').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    # 백업이 멈췄는지 /api/health/backup이 파일 날짜만 본다. 읽기 전용이다.
+    volumes:
+      - ./backups:/backups:ro
     # cloudflared(VM에 직접 설치)만 붙는다. 바깥에서는 Cloudflare Tunnel로만 들어온다.
     ports:
       - "127.0.0.1:${APP_PORT:-3000}:3000"

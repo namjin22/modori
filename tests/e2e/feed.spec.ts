@@ -153,6 +153,7 @@ test("반응을 누르면 개수가 오르고 다시 누르면 취소된다", as
 
   // 보낼 때는 창에서 고른다. 열둘을 늘 늘어놓으면 할 일보다 반응 줄이 길어진다.
   await page.getByRole("button", { name: "반응 보내기" }).click();
+  await page.getByRole("tab", { name: "이모지" }).click();
   await page.getByRole("button", { name: "좋아요", exact: true }).click();
   const chip = page.getByRole("button", { name: /^좋아요 1개, 내가 누름/ });
   await expect(chip).toBeVisible();
@@ -182,10 +183,12 @@ test("고르는 창에서 이미 누른 반응을 다시 눌러도 취소된다"
   await follow(page, accounts.friend.nickname);
   await page.goto("/feed");
   await page.getByRole("button", { name: "반응 보내기" }).click();
+  await page.getByRole("tab", { name: "이모지" }).click();
   await page.getByRole("button", { name: "좋아요", exact: true }).click();
   await expect(page.getByRole("button", { name: /^좋아요 1개, 내가 누름/ })).toBeVisible();
 
   await page.getByRole("button", { name: "반응 보내기" }).click();
+  await page.getByRole("tab", { name: "이모지" }).click();
   await page.getByRole("button", { name: "좋아요", exact: true }).click();
   await expect(page.getByRole("button", { name: /^좋아요 \d+개/ })).toHaveCount(0);
 });
@@ -223,6 +226,7 @@ test("받은 반응은 뱃지로 알리고 받은 반응 화면을 열면 사라
   await follow(page, accounts.me.nickname);
   await page.goto("/feed");
   await page.getByRole("button", { name: "반응 보내기" }).click();
+  await page.getByRole("tab", { name: "이모지" }).click();
   await page.getByRole("button", { name: "불타요", exact: true }).click();
   await expect(page.getByRole("button", { name: /^불타요 1개, 내가 누름/ })).toBeVisible();
   await signOut(page);
@@ -279,6 +283,7 @@ test("친구가 보낸 반응은 내 홈 화면의 그 할 일 밑에 보인다"
   await page.goto("/feed");
   const card = page.getByRole("listitem").filter({ hasText: "칭찬 받을 운동" }).last();
   await card.getByRole("button", { name: "반응 보내기" }).click();
+  await page.getByRole("tab", { name: "이모지" }).click();
   await page.getByRole("button", { name: "불타요", exact: true }).click();
   await expect(page.getByRole("button", { name: /^불타요 1개, 내가 누름/ })).toBeVisible();
   await signOut(page);
@@ -338,7 +343,7 @@ test("반응 창의 캐릭터 탭에서 다른 캐릭터의 표정도 보낼 수
 
   // 탭: 도리·몽이·하루·펭이. 각 캐릭터는 표정 열 개를 가진다.
   const dialog = page.getByRole("dialog", { name: "반응 보내기" });
-  await expect(dialog.getByRole("tab")).toHaveCount(4);
+  await expect(dialog.getByRole("tab")).toHaveCount(5);
   await dialog.getByRole("tab", { name: "몽이" }).click();
   await expect(dialog.getByRole("tabpanel").getByRole("button")).toHaveCount(10);
   await dialog.getByRole("button", { name: "몽이 표정 7", exact: true }).click();

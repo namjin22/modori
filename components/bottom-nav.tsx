@@ -47,11 +47,12 @@ export function BottomNav({ unreadNotifications }: { unreadNotifications: number
 
           return (
             <li key={href} className="flex-1">
-              {/* 미리 불러오기는 탭 바에만 켠다. 가장 자주 오가는 세 곳이다. 다른 링크까지
+              {/* 미리 불러오기는 탭 바에만 켠다(화면 전체를 미리 받아 두어 탭을 누르면 바로 열린다). 가장 자주 오가는 세 곳이다. 다른 링크까지
                   켜 두면 화면 하나 열 때 서버가 14~21번 돌아서 VM 한 대가 먼저 지치고, 요청 속도 제한
                   (세션마다 한 번에 60)도 금방 닿는다(docs/capacity.md). */}
               <Link
                 href={href}
+                prefetch
                 aria-current={isActive ? "page" : undefined}
                 className={`flex h-14 flex-col items-center justify-center gap-0.5 transition-colors active:scale-95 ${
                   isActive ? "text-brand" : "text-muted hover:text-foreground"

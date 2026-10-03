@@ -2,6 +2,7 @@
 
 import { Prisma } from "@prisma/client";
 
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { safeNext } from "@/lib/next-path";
@@ -20,7 +21,7 @@ import { getCurrentUser } from "@/lib/session";
 // 빈 화면으로 시작하면 무엇부터 해야 할지 모른다. 지우거나 바꿀 수 있는 기본값을 하나 준다.
 // 여러 개를 미리 만들어 두면 쓰지도 않는 칸이 화면을 채운다.
 // 브랜드 파랑과 겹치는 색은 피한다. 카테고리 색인지 버튼 색인지 구분이 안 된다.
-const DEFAULT_CATEGORIES = [{ name: "Today's", color: "#2563eb" }];
+const DEFAULT_CATEGORIES = [{ name: "오늘", color: "#2563eb" }];
 
 export type OnboardingState = { message: string } | null;
 
@@ -85,6 +86,8 @@ export async function saveNickname(
     });
   }
 
+  // 가입 전에 열어 둔 화면(온보딩으로 보내는 응답)을 브라우저가 기억하고 있으면 홈으로 가도 되돌아온다. 전부 비운다.
+  revalidatePath("/", "layout");
   // 친구가 보낸 링크로 처음 가입했으면 그 화면으로 보낸다.
   redirect(safeNext(formData.get("next")) ?? "/");
 }

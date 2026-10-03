@@ -1,7 +1,7 @@
 import { CHARACTERS, moodsOf, type CharacterId, type CharacterMood } from "@/lib/characters";
 
 /**
- * 친구가 끝낸 일에 보낼 수 있는 반응. 캐릭터 넷(도리·몽이·하루·펭이)의 표정 각 열 개와 이모지 열둘이다.
+ * 친구가 끝낸 일에 보낼 수 있는 반응. 캐릭터 넷(도리·몽이·하루·펭이)의 표정 각 열 개와 이모지 서른여섯이다.
  * 캐릭터는 누구나 어느 것이든 쓸 수 있다(프로필 사진으로 고른 캐릭터와 상관없다).
  *
  * 한때 반응을 도리 표정 넷으로만 그렸다가, 24px로 줄어든 얼굴은 서로 구별되지 않아 이모지로
@@ -26,6 +26,30 @@ export const REACTIONS = [
   { emoji: "🥹", label: "감동이야" },
   { emoji: "🌱", label: "꾸준하다" },
   { emoji: "☕", label: "고생했어" },
+  { emoji: "😍", label: "반했어" },
+  { emoji: "🥳", label: "신나요" },
+  { emoji: "😂", label: "웃겨요" },
+  { emoji: "🙌", label: "만세" },
+  { emoji: "🤝", label: "같이해요" },
+  { emoji: "🌟", label: "빛나요" },
+  { emoji: "💖", label: "사랑해" },
+  { emoji: "😎", label: "멋져요" },
+  { emoji: "🤩", label: "우와" },
+  { emoji: "😭", label: "울컥해" },
+  { emoji: "🥰", label: "귀여워" },
+  { emoji: "😊", label: "흐뭇해" },
+  { emoji: "🙏", label: "고마워" },
+  { emoji: "💡", label: "좋은 생각" },
+  { emoji: "🚀", label: "달려가요" },
+  { emoji: "🏆", label: "일등이야" },
+  { emoji: "🍀", label: "행운이야" },
+  { emoji: "🌈", label: "좋은 날" },
+  { emoji: "🎯", label: "딱이야" },
+  { emoji: "📚", label: "열공 중" },
+  { emoji: "🏃", label: "달리는 중" },
+  { emoji: "😴", label: "푹 쉬어" },
+  { emoji: "🍰", label: "맛있겠다" },
+  { emoji: "🤗", label: "안아줄게" },
 ] as const;
 
 /**

@@ -3,7 +3,6 @@
 import { useOptimistic, useState, useTransition, type ReactNode } from "react";
 
 import { toggleReaction } from "@/app/(tabs)/feed/actions";
-import { DoriFace } from "@/components/avatar";
 import { Dori } from "@/components/dori";
 import { CHARACTERS, DEFAULT_CHARACTER, type CharacterId } from "@/lib/characters";
 import { Modal } from "@/components/modal";
@@ -15,6 +14,8 @@ import {
   REACTIONS,
   type ReactionSummary,
 } from "@/lib/reactions";
+
+const EMOJI_TAB = "emoji";
 
 /**
  * 받은 반응은 이모지 칩으로 쌓인다. 칩을 누르면 누가 눌렀는지 창으로 보여준다(같이 누르는 것이 아니다).
@@ -41,7 +42,7 @@ export function ReactionBar({
   const glyphSize = compact ? 20 : 24;
   const [picking, setPicking] = useState(false);
   // 고르는 창에서 보고 있는 캐릭터. 반응으로는 어느 캐릭터든 보낼 수 있다.
-  const [tab, setTab] = useState<CharacterId>(DEFAULT_CHARACTER);
+  const [tab, setTab] = useState<CharacterId | typeof EMOJI_TAB>(DEFAULT_CHARACTER);
   // 누가 눌렀는지 보는 창. 누른 칩의 이모지를 기억해 그 반응을 맨 위에 둔다.
   const [whoOpened, setWhoOpened] = useState<string | null>(null);
   const [, startTransition] = useTransition();
@@ -164,22 +165,32 @@ export function ReactionBar({
         onClose={() => setPicking(false)}
         title="반응 보내기"
       >
-        <section className="flex flex-col gap-2">
-          <div role="tablist" aria-label="캐릭터" className="flex gap-2">
-            {CHARACTERS.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                role="tab"
-                aria-selected={tab === item.id}
-                aria-label={item.name}
-                onClick={() => setTab(item.id)}
-                className={`rounded-full p-1 transition-colors ${tab === item.id ? "bg-brand-subtle ring-2 ring-brand" : "bg-surface-hover"}`}
-              >
-                <DoriFace size={40} character={item.id} className="rounded-full" />
-              </button>
+        <div role="tablist" aria-label="반응 종류" className="grid grid-cols-5 gap-2">
+          {CHARACTERS.map((item) => (
+            <PickTab key={item.id} label={item.name} selected={tab === item.id} onSelect={() => setTab(item.id)}>
+              <Dori mood={item.id === DEFAULT_CHARACTER ? "like" : "happy"} character={item.id} size={40} />
+            </PickTab>
+          ))}
+          <PickTab label="이모지" selected={tab === EMOJI_TAB} onSelect={() => setTab(EMOJI_TAB)}>
+            <span aria-hidden className="text-2xl leading-none">
+              😊
+            </span>
+          </PickTab>
+        </div>
+
+        {tab === EMOJI_TAB ? (
+          <ul role="tabpanel" aria-label="이모지" className="grid grid-cols-4 gap-2">
+            {REACTIONS.map(({ emoji, label }) => (
+              <li key={emoji}>
+                <PickButton label={label} name={label} mine={isMine(emoji)} onPick={() => pick(emoji)}>
+                  <span aria-hidden className="text-2xl leading-none">
+                    {emoji}
+                  </span>
+                </PickButton>
+              </li>
             ))}
-          </div>
+          </ul>
+        ) : (
           <ul role="tabpanel" aria-label={CHARACTERS.find((item) => item.id === tab)?.name} className="grid grid-cols-5 gap-2">
             {CHARACTER_REACTIONS.filter((reaction) => reaction.character === tab).map(({ value, mood, character, label }) => (
               <li key={value}>
@@ -189,29 +200,37 @@ export function ReactionBar({
               </li>
             ))}
           </ul>
-        </section>
-
-        <section className="flex flex-col gap-2">
-          <h3 className="text-xs font-semibold text-muted">이모지</h3>
-          <ul className="grid grid-cols-4 gap-2">
-            {REACTIONS.map(({ emoji, label }) => (
-              <li key={emoji}>
-                <PickButton
-                  label={label}
-                  name={label}
-                  mine={isMine(emoji)}
-                  onPick={() => pick(emoji)}
-                >
-                  <span aria-hidden className="text-2xl leading-none">
-                    {emoji}
-                  </span>
-                </PickButton>
-              </li>
-            ))}
-          </ul>
-        </section>
+        )}
       </Modal>
     </div>
+  );
+}
+
+/** 탭 하나. 다섯 개가 같은 칸 크기로 늘어서고, 고른 것만 색과 테두리가 바뀐다(크기는 그대로). */
+function PickTab({
+  label,
+  selected,
+  onSelect,
+  children,
+}: {
+  label: string;
+  selected: boolean;
+  onSelect: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      role="tab"
+      aria-selected={selected}
+      aria-label={label}
+      onClick={onSelect}
+      className={`flex h-14 items-center justify-center rounded-2xl transition-colors ${
+        selected ? "bg-brand-subtle ring-2 ring-inset ring-brand" : "bg-surface-hover"
+      }`}
+    >
+      {children}
+    </button>
   );
 }
 

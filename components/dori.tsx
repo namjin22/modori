@@ -122,12 +122,12 @@ const SHAPES: Record<CharacterId, { behind?: ReactNode; shape: ReactNode; front?
       </>
     ),
   },
-  // 하루(여우): 큰 뾰족 귀(안쪽은 크림색, 끝은 짙은 갈색), 하얀 아랫얼굴. 무늬는 이 정도로만 둔다(많으면 얼굴이 어수선하다).
+  // 하루(여우): 큰 뾰족 귀(귀 안쪽 끝을 머리 꼭대기까지 이어 귀 사이에 머리가 튀어나오지 않게 한다. 안쪽은 크림색, 끝은 짙은 갈색), 하얀 아랫얼굴. 무늬는 이 정도로만 둔다(많으면 얼굴이 어수선하다).
   haru: {
     shape: (
       <>
-        <path d="M36 29 L28 2 Q47 6 57 22 Z" />
-        <path d="M84 29 L92 2 Q73 6 63 22 Z" />
+        <path d="M36 29 L28 2 Q48 5 60 14 Z" />
+        <path d="M84 29 L92 2 Q72 5 60 14 Z" />
         <circle cx={60} cy={46} r={32} />
       </>
     ),
@@ -135,8 +135,8 @@ const SHAPES: Record<CharacterId, { behind?: ReactNode; shape: ReactNode; front?
       <>
         <path d="M39.5 24 L34.5 9.5 Q43 12 50 20.5 Z" fill="#fff1dc" />
         <path d="M80.5 24 L85.5 9.5 Q77 12 70 20.5 Z" fill="#fff1dc" />
-        <path d="M30 6.5 L28 2 Q38 4 46.5 10.5 Q37 8.5 30 6.5Z" fill="#5b3a2e" stroke="#5b3a2e" strokeWidth={1.4} strokeLinejoin="round" />
-        <path d="M90 6.5 L92 2 Q82 4 73.5 10.5 Q83 8.5 90 6.5Z" fill="#5b3a2e" stroke="#5b3a2e" strokeWidth={1.4} strokeLinejoin="round" />
+        <path d="M30 6.5 L28 2 Q39 3.7 47.6 7.1 Q38 8.2 30 6.5Z" fill="#5b3a2e" stroke="#5b3a2e" strokeWidth={1.4} strokeLinejoin="round" />
+        <path d="M90 6.5 L92 2 Q81 3.7 72.4 7.1 Q82 8.2 90 6.5Z" fill="#5b3a2e" stroke="#5b3a2e" strokeWidth={1.4} strokeLinejoin="round" />
         {/* 하얀 아랫얼굴: 머리 원 안쪽에서 끊어 윤곽 밖으로 번지지 않게 한다. */}
         <path d="M32.3 62 Q44 52 60 60.5 Q76 52 87.7 62 A32 32 0 0 1 32.3 62Z" fill="#fffaf2" />
       </>
