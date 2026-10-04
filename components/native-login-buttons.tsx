@@ -24,6 +24,8 @@ export function NativeLoginButtons({ providers }: { providers: { id: "google" | 
       const login = new URL("/desktop/login", window.location.origin);
       login.searchParams.set("challenge", challenge);
       login.searchParams.set("provider", provider);
+      // 가입은 시스템 브라우저에서 이뤄지니, 앱에서 왔다는 표시를 링크에 실어 보낸다(lib/signup-source.ts).
+      login.searchParams.set("from", "app-android");
       await browser.open({ url: login.toString() });
     } catch (error) {
       console.error("[native-login] 로그인 창을 열지 못했다.", error);

@@ -36,7 +36,7 @@ const db = vi.hoisted(() => {
         return { count: 1 };
       }),
     },
-    user: { count: vi.fn(async () => 0), findMany: vi.fn(async () => []) },
+    user: { count: vi.fn(async () => 0), findMany: vi.fn(async () => []), groupBy: vi.fn(async () => []) },
     todo: { count: vi.fn(async () => 0) },
     reaction: { count: vi.fn(async () => 0) },
     follow: { count: vi.fn(async () => 0) },
