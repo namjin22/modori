@@ -24,11 +24,14 @@ const db = vi.hoisted(() => {
         const first = [...state.snapshots].sort()[0];
         return first ? { date: asDate(first) } : null;
       }),
-      findMany: vi.fn(async ({ where }: { where: { date: { gte: Date; lte: Date } } }) =>
-        [...state.snapshots]
-          .filter((day) => day >= key(where.date.gte) && day <= key(where.date.lte))
-          .map((day) => ({ date: asDate(day) })),
-      ),
+      findMany: vi.fn(async ({ where }: { where: { date?: { gte: Date; lte: Date } } }) => {
+        const range = where.date;
+        // 새 열 채우기(sources가 빈 행 찾기)는 날짜 조건이 없다. 이 시험에서는 채울 행이 없다.
+        if (!range) return [];
+        return [...state.snapshots]
+          .filter((day) => day >= key(range.gte) && day <= key(range.lte))
+          .map((day) => ({ date: asDate(day) }));
+      }),
       createMany: vi.fn(async ({ data }: { data: { date: Date }[] }) => {
         const day = key(data[0].date);
         if (state.failSnapshotOn === day) throw new Error("잠깐 DB 오류");

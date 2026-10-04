@@ -60,6 +60,8 @@ test("모바일 앱의 로그인 버튼은 시스템 로그인 창을 열고, �
   const opened = new URL(await page.evaluate(() => (window as unknown as { __opened: string[] }).__opened[0]));
   expect(opened.pathname).toBe("/desktop/login");
   expect(opened.searchParams.get("provider")).toBe("google");
+  // 가입은 시스템 브라우저에서 이뤄져서, 앱에서 왔다는 표시를 링크에 실어 보낸다(lib/signup-source.ts).
+  expect(opened.searchParams.get("from")).toBe("app-android");
   const challenge = opened.searchParams.get("challenge")!;
   // 서버에는 verifier의 해시만 가고, verifier는 앱 안에만 남는다.
   const verifier = await page.evaluate(() => localStorage.getItem("modori-login-verifier"));
