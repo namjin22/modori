@@ -1,5 +1,8 @@
 import { addDays, formatKST, startOfKSTDayInstant, todayKST, weekdayKST } from "@/lib/date";
 import { prisma } from "@/lib/prisma";
+import { CHARACTERS, DEFAULT_CHARACTER } from "@/lib/characters";
+import { characterMoodOf } from "@/lib/reactions";
+import { DIRECT_SOURCE } from "@/lib/signup-source";
 
 /** 이용한 날(ActiveDay)을 두는 기간. 재방문율(가입 뒤 7일)과 주간 활성에는 넉넉하고, 긴 추이는 DailyStat에 남는다. */
 const KEEP_ACTIVE_DAYS = 90;
@@ -172,16 +175,34 @@ export async function cohortOf(signupDay: Date): Promise<{ size: number; returne
   return { size: cohort.length, returned };
 }
 
+/** 어느 시각까지 가입을 마친 사람을 가입 경로별로 센 누적. 경로를 모르면 "direct". */
+export async function signupsBySource(end: Date): Promise<Record<string, number>> {
+  const rows = await prisma.user.groupBy({
+    by: ["signupSource"],
+    where: { createdAt: { lt: end }, nickname: { not: null } },
+    _count: { _all: true },
+  });
+  const counts: Record<string, number> = {};
+  for (const row of rows) {
+    const key = row.signupSource ?? DIRECT_SOURCE;
+    counts[key] = (counts[key] ?? 0) + row._count._all;
+  }
+  return counts;
+}
+
 /** 그 날 하루의 합계를 남긴다. 이미 있으면 먼저 찍은 것을 둔다. */
 export async function snapshotDay(day: Date): Promise<void> {
   const start = startOfKSTDayInstant(day);
   const end = startOfKSTDayInstant(addDays(day, 1));
-  const [totals, dau, wau, todosCreated, reactionsCreated, cohort] = await Promise.all([
+  const [totals, dau, wau, todosCreated, reactionsCreated, reactionsCharacter, sources, cohort] = await Promise.all([
     totalsBefore(end),
     prisma.activeDay.count({ where: { date: day } }),
     activeUsers(addDays(day, -6), day),
     prisma.todo.count({ where: { routineId: null, createdAt: { gte: start, lt: end } } }),
     prisma.reaction.count({ where: { createdAt: { gte: start, lt: end } } }),
+    // 캐릭터 표정 반응은 값이 "캐릭터id:표정"이라 ":"가 들어 있고 이모지에는 없다(lib/reactions.ts).
+    prisma.reaction.count({ where: { createdAt: { gte: start, lt: end }, emoji: { contains: ":" } } }),
+    signupsBySource(end),
     cohortOf(addDays(day, -7)),
   ]);
   await prisma.dailyStat.createMany({
@@ -193,6 +214,8 @@ export async function snapshotDay(day: Date): Promise<void> {
         wau,
         todosCreated,
         reactionsCreated,
+        reactionsCharacter,
+        sources,
         cohortSize: cohort.size,
         cohortReturned: cohort.returned,
       },
@@ -207,6 +230,7 @@ export type DailyRow = {
   wau: number;
   todosCreated: number;
   reactionsCreated: number;
+  reactionsCharacter: number;
   cohortSize: number;
   cohortReturned: number;
 };
@@ -220,6 +244,7 @@ export type WeekRow = {
   signups: number | null;
   todosCreated: number;
   reactionsCreated: number;
+  reactionsCharacter: number;
   cohortSize: number;
   cohortReturned: number;
 };
@@ -241,6 +266,7 @@ export function groupByWeek(rows: DailyRow[]): WeekRow[] {
       signups: null,
       todosCreated: 0,
       reactionsCreated: 0,
+      reactionsCharacter: 0,
       cohortSize: 0,
       cohortReturned: 0,
     };
@@ -248,6 +274,7 @@ export function groupByWeek(rows: DailyRow[]): WeekRow[] {
     week.wau = row.wau;
     week.todosCreated += row.todosCreated;
     week.reactionsCreated += row.reactionsCreated;
+    week.reactionsCharacter += row.reactionsCharacter;
     week.cohortSize += row.cohortSize;
     week.cohortReturned += row.cohortReturned;
     weeks.set(key, week);
@@ -264,4 +291,91 @@ export function groupByWeek(rows: DailyRow[]): WeekRow[] {
 export function percent(part: number, whole: number): number | null {
   if (whole === 0) return null;
   return Math.round((part / whole) * 100);
+}
+
+export type SourceRow = {
+  source: string;
+  users: number;
+  withTodo: number;
+  withFollow: number;
+  withReaction: number;
+  // 최근 7일 안에 쓴 사람
+  active7: number;
+};
+
+/** 가입 경로별로 가입 단계를 어디까지 왔는지(지금 계정 기준). 많은 순. */
+export async function sourceBreakdown(today: Date): Promise<SourceRow[]> {
+  const [members, activeIds] = await Promise.all([
+    prisma.user.findMany({
+      where: { nickname: { not: null } },
+      select: { id: true, signupSource: true, _count: { select: { todos: true, following: true, reactions: true } } },
+    }),
+    prisma.activeDay.groupBy({ by: ["userId"], where: { date: { gte: addDays(today, -6), lte: today } } }),
+  ]);
+  const active = new Set(activeIds.map((row) => row.userId));
+  const rows = new Map<string, SourceRow>();
+  for (const member of members) {
+    const source = member.signupSource ?? DIRECT_SOURCE;
+    const row = rows.get(source) ?? { source, users: 0, withTodo: 0, withFollow: 0, withReaction: 0, active7: 0 };
+    row.users += 1;
+    if (member._count.todos > 0) row.withTodo += 1;
+    if (member._count.following > 0) row.withFollow += 1;
+    if (member._count.reactions > 0) row.withReaction += 1;
+    if (active.has(member.id)) row.active7 += 1;
+    rows.set(source, row);
+  }
+  return [...rows.values()].sort((a, b) => b.users - a.users);
+}
+
+export type ReactionKinds = {
+  emoji: number;
+  // 캐릭터 id별 표정 반응 수(도리 포함)
+  byCharacter: { id: string; name: string; count: number }[];
+  // 많이 쓰인 이모지 다섯
+  topEmoji: { emoji: string; count: number }[];
+};
+
+/** 지금 남아 있는 반응을 종류별로(이모지 / 캐릭터 표정, 캐릭터마다). 하루 합계에는 캐릭터 반응 수만 남는다. */
+export async function reactionKinds(): Promise<ReactionKinds> {
+  const rows = await prisma.reaction.groupBy({ by: ["emoji"], _count: { _all: true } });
+  const byCharacter = new Map<string, number>(CHARACTERS.map((character) => [character.id, 0]));
+  const emoji: { emoji: string; count: number }[] = [];
+  for (const row of rows) {
+    const parsed = characterMoodOf(row.emoji);
+    if (parsed) byCharacter.set(parsed.character, (byCharacter.get(parsed.character) ?? 0) + row._count._all);
+    else emoji.push({ emoji: row.emoji, count: row._count._all });
+  }
+  return {
+    emoji: emoji.reduce((sum, row) => sum + row.count, 0),
+    byCharacter: CHARACTERS.map((character) => ({
+      id: character.id,
+      name: character.name,
+      count: byCharacter.get(character.id) ?? 0,
+    })),
+    topEmoji: emoji.sort((a, b) => b.count - a.count).slice(0, 5),
+  };
+}
+
+export type ProfileChoices = { photo: number; byCharacter: { id: string; name: string; count: number }[] };
+
+/** 가입을 마친 사람이 프로필 사진을 올렸는지, 아니면 어느 캐릭터를 골랐는지. 사진이 있으면 사진으로 센다. */
+export async function profileChoices(): Promise<ProfileChoices> {
+  const members = await prisma.user.findMany({
+    where: { nickname: { not: null } },
+    select: { profileImage: true, avatarCharacter: true },
+  });
+  const counts = new Map<string, number>(CHARACTERS.map((character) => [character.id, 0]));
+  let photo = 0;
+  for (const member of members) {
+    if (member.profileImage) {
+      photo += 1;
+      continue;
+    }
+    const id = member.avatarCharacter ?? DEFAULT_CHARACTER;
+    counts.set(id, (counts.get(id) ?? 0) + 1);
+  }
+  return {
+    photo,
+    byCharacter: CHARACTERS.map((character) => ({ id: character.id, name: character.name, count: counts.get(character.id) ?? 0 })),
+  };
 }

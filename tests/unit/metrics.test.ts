@@ -10,6 +10,7 @@ function row(date: string, values: Partial<DailyRow> = {}): DailyRow {
     wau: 0,
     todosCreated: 0,
     reactionsCreated: 0,
+    reactionsCharacter: 0,
     cohortSize: 0,
     cohortReturned: 0,
     ...values,
@@ -34,6 +35,14 @@ describe("groupByWeek", () => {
       cohortSize: 3,
       cohortReturned: 2,
     });
+  });
+
+  it("캐릭터 반응도 주마다 더한다", () => {
+    const weeks = groupByWeek([
+      row("2026-09-28", { reactionsCreated: 3, reactionsCharacter: 2 }),
+      row("2026-09-29", { reactionsCreated: 4, reactionsCharacter: 1 }),
+    ]);
+    expect(weeks[0]).toMatchObject({ reactionsCreated: 7, reactionsCharacter: 3 });
   });
 
   it("가입 수는 앞 주 마지막 누적과의 차이다", () => {

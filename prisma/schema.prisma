@@ -31,6 +31,8 @@ model User {
   bio             String?
   lastSeenAt      DateTime  @default(now()) // 안 읽은 반응 뱃지 기준점
   privacyAgreedAt DateTime? // 가입할 때 개인정보 수집·이용에 동의한 시각
+  // 어느 링크로 와서 가입했는지(초대 링크의 ?from=discord 같은 표시, lib/signup-source.ts). 합계로만 본다. 가입 때 한 번 적는다.
+  signupSource    String?
   createdAt       DateTime  @default(now())
 
   accounts      Account[]
@@ -296,18 +298,21 @@ model ActiveDay {
 // 하루에 한 번 찍는 합계. 사람을 알 수 없는 숫자만 둔다. 계정·할 일이 나중에 지워지거나 ActiveDay가 90일 뒤
 // 지워져도 그날의 숫자는 남는다. 값은 그날 끝(한국 자정) 기준이다.
 model DailyStat {
-  date             DateTime @id @db.Date
-  accounts         Int // 로그인한 적 있는 계정(닉네임 전 포함)
-  users            Int // 가입을 마친 계정(닉네임 있음)
-  withTodo         Int // 할 일을 하나라도 적은 사람
-  withFollow       Int // 한 명 이상 팔로우한 사람
-  withReaction     Int // 반응을 한 번이라도 보낸 사람
-  dau              Int // 그날 쓴 사람
-  wau              Int // 그날까지 7일 동안 쓴 사람
-  todosCreated     Int // 그날 직접 적은 할 일(루틴이 만든 것 빼고)
-  follows          Int // 팔로우 연결 수
-  reactionsCreated Int // 그날 보낸 반응
-  cohortSize       Int // 7일 전에 가입한 사람
-  cohortReturned   Int // 그 가운데 가입 다음 날부터 7일 안에 다시 쓴 사람
-  createdAt        DateTime @default(now())
+  date               DateTime @id @db.Date
+  accounts           Int // 로그인한 적 있는 계정(닉네임 전 포함)
+  users              Int // 가입을 마친 계정(닉네임 있음)
+  withTodo           Int // 할 일을 하나라도 적은 사람
+  withFollow         Int // 한 명 이상 팔로우한 사람
+  withReaction       Int // 반응을 한 번이라도 보낸 사람
+  dau                Int // 그날 쓴 사람
+  wau                Int // 그날까지 7일 동안 쓴 사람
+  todosCreated       Int // 그날 직접 적은 할 일(루틴이 만든 것 빼고)
+  follows            Int // 팔로우 연결 수
+  reactionsCreated   Int // 그날 보낸 반응
+  reactionsCharacter Int      @default(0) // 그 가운데 캐릭터 표정 반응(나머지는 이모지)
+  cohortSize         Int // 7일 전에 가입한 사람
+  cohortReturned     Int // 그 가운데 가입 다음 날부터 7일 안에 다시 쓴 사람
+  // 그날까지 가입을 마친 사람의 가입 경로별 누적({"discord": 12, "kakao": 3}). 경로를 모르는 사람은 "direct". 계정이 지워져도 남는 합계다.
+  sources            Json?
+  createdAt          DateTime @default(now())
 }

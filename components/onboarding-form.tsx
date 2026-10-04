@@ -4,13 +4,26 @@ import {
   saveNickname,
   type OnboardingState,
 } from "@/app/onboarding/actions";
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 
 import { AvatarChoice } from "@/components/avatar-choice";
 import { Modal } from "@/components/modal";
 import { PrivacyPolicy } from "@/components/privacy-policy";
 import { SubmitButton } from "@/components/submit-button";
 import { useFormAction } from "@/components/use-form-action";
+import { SOURCE_KEY } from "@/lib/signup-source";
+
+// localStorage는 바뀌어도 이 화면에서 알아야 할 일이 없다(가입 화면이 열린 뒤에는 읽기만 한다).
+const subscribeNothing = () => () => undefined;
+
+function readSource(): string {
+  try {
+    return localStorage.getItem(SOURCE_KEY) ?? "";
+  } catch (error) {
+    console.warn("[source] 가입 경로를 읽지 못했다.", error instanceof Error ? error.name : error);
+    return "";
+  }
+}
 
 export function OnboardingForm({ next }: { next: string | null }) {
   const [state, formAction, pending] = useFormAction<OnboardingState>(
@@ -19,10 +32,13 @@ export function OnboardingForm({ next }: { next: string | null }) {
   );
   const [agreed, setAgreed] = useState(false);
   const [reading, setReading] = useState(false);
+  // 처음 닿은 링크의 경로 이름(components/source-capture.tsx가 적어 둔다). 없으면 빈 값이고, 서버가 경로를 모르는 가입으로 센다.
+  const source = useSyncExternalStore(subscribeNothing, readSource, () => "");
 
   return (
     <form onSubmit={formAction} className="flex flex-col gap-4">
       {next && <input type="hidden" name="next" value={next} />}
+      {source && <input type="hidden" name="source" value={source} />}
       <input
         name="nickname"
         type="text"
