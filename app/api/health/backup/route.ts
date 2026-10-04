@@ -15,7 +15,8 @@ export async function GET() {
   const dir = process.env.BACKUP_DIR ?? "/backups";
   let names: string[];
   try {
-    names = await readdir(dir);
+    // 경로가 환경 변수라 번들러가 프로젝트 전체를 서버 이미지에 넣으려 한다. 런타임에만 읽는 폴더라 무시하게 한다.
+    names = await readdir(/*turbopackIgnore: true*/ dir);
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === "ENOENT") {
       return NextResponse.json({ status: "skipped" });
@@ -25,7 +26,7 @@ export async function GET() {
   }
 
   const times = await Promise.all(
-    names.filter((name) => name.endsWith(".dump")).map(async (name) => (await stat(path.join(dir, name))).mtimeMs),
+    names.filter((name) => name.endsWith(".dump")).map(async (name) => (await stat(path.join(/*turbopackIgnore: true*/ dir, name))).mtimeMs),
   );
   const newest = Math.max(0, ...times);
   const ageHours = Math.round((Date.now() - newest) / 3_600_000);
