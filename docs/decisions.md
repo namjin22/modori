@@ -1709,3 +1709,5 @@ Prisma 스키마로 표현할 수 없는 식 인덱스라 `schema.prisma`에는 
 **대가**
 `npm audit`에 high 3건이 계속 남는다(이 근거를 이 문서에 둔다). Next 패치 버전이 또 나오면 같은 식으로 올려야 한다.
 
+**후속 (2026-10-04)**: 수정판(`deepmerge-ts` 8.0.x)이 있어서 `package.json`의 `overrides`로 8.0.2를 넣었다. `npm audit --omit=dev`가 0건이 되었고 `prisma validate`·`generate`와 전체 `verify`(단위 168×3, E2E 177)가 통과했다. 위의 "받아들인다"는 판단은 이 덮어쓰기로 대체됐다. 배포의 마이그레이션 이미지(`Dockerfile`의 migrator)는 prisma를 따로 설치해 이 덮어쓰기를 받지 않지만, 배포 때 한 번 도는 도구이고 외부 입력이 닿지 않는다. prisma가 `deepmerge-ts` 8을 기본으로 쓰게 되면 `overrides`를 지운다.
+
