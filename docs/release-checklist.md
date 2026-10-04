@@ -46,3 +46,24 @@
 - 이관 기록: `docs/gsmsv-migration.md`
 - 용량·부하 시험: `docs/capacity.md`
 - 설계 결정: `docs/decisions.md`
+
+## 정식 공개 전 단계별 검증 (2026-10-04)
+
+기준을 먼저 정하고, 못 넘으면 고쳤다. 공개일 10/6.
+
+| 단계 | 기준 | 결과 |
+|---|---|---|
+| A 외부 노출 | 보호 주소는 401/307/404, 보안 헤더, http→https, mock 로그인 없음, OAuth 리다이렉트 주소 맞음, p95 300ms 이하 | 통과(p95 0.12초) |
+| B 서버 상태 | 마이그레이션 18/18, 백업 36시간 이내(VM+Neon), 디스크 70% 미만, 재시작 0 | 통과(디스크 40%, 백업 8시간 전) |
+| C 개인정보 목록 | 모든 모델이 `privacy-inventory.md`에 있음 | 통과 |
+| D 의존성 보안 | 운영 의존성 critical 0 | 처음 미달(Next 16.3.5 critical) → 16.3.8로 올려 통과. high 3(prisma 도구)은 `decisions.md`에 근거 |
+| E 모니터링 | `health`·`errors` 최근 6회 성공 | 통과 |
+| F 몰림 | 예상 최대(180명 중 30% 동시, 30초에 3화면)가 한계(초당 50화면)의 20% 이하 | 통과(분석으로. 운영 부하 시험은 자동 승인 장치가 막아 하지 못함) |
+| H 모바일 앱 설정 | 서버 주소·허용 도메인 운영과 같음, 디버그·평문 통신·백업 허용 꺼짐 | 통과(targetSdk 36) |
+| I 방침 일치 | 방침의 "로그인 토큰은 저장하지 않아요"가 사실과 같음 | **미달**: 이미 저장된 OAuth 토큰이 운영 13행에 남아 있다(DataGSM refresh_token 8). 지우는 일이 자동 승인 장치에 막혀 사용자 몫으로 남김 |
+| J 가입 동의 | 닉네임을 정한 모든 계정에 동의 시각 | 통과(20/20) |
+
+### 아직 사람이 할 일
+- 운영 `Account`의 토큰 비우기(I단계). VM에서: `cd /opt/modori && docker compose exec -T db psql -U modori -d modori -c "update \"Account\" set access_token=null, refresh_token=null, id_token=null;"` 뒤 `select count(*) from "Account" where access_token is not null or refresh_token is not null or id_token is not null;`이 0인지 본다. 이미 쌓인 백업 덤프(7일)에는 토큰이 남아 7일 뒤 사라진다.
+- 실제 아이폰·안드로이드에서 로그인, 할 일 추가·체크, 반응 창(탭 5개), 앱 로그인 계정 선택 확인.
+
