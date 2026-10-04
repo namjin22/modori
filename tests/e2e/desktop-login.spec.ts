@@ -48,6 +48,8 @@ async function codeFromBrowser(page: Page, email: string, nickname: string, chal
 test("브라우저에서 받은 코드와 verifier로 앱 창이 로그인된다", async ({ page, browser, email }, testInfo) => {
   const { verifier, challenge } = pkce();
   const code = await codeFromBrowser(page, email, `앱${testInfo.testId.slice(-6)}${RUN_TAG}`, challenge);
+  // 데스크톱 앱이 연 브라우저에서 가입했으니 가입 경로는 app-desktop이다(lib/signup-source.ts).
+  expect((await prisma.user.findUniqueOrThrow({ where: { email } })).signupSource).toBe("app-desktop");
 
   // 앱 창: 쿠키가 하나도 없는 새 창에서 교환 주소를 연다.
   const app = await browser.newContext();

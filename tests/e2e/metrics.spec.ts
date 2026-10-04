@@ -123,3 +123,40 @@ test("지표 CSV는 운영자만 받는다", async ({ page, request }) => {
     await prisma.user.deleteMany({ where: { email: PRIVACY_MANAGER.email } });
   }
 });
+
+test("새 열이 생기기 전에 찍힌 하루 합계는 캐릭터 반응 수와 가입 경로별 누적으로 채워지고 한 번만 채운다", async () => {
+  const day = new Date(Date.UTC(2001, 0, 3));
+  try {
+    await prisma.dailyStat.deleteMany({ where: { date: day } });
+    // 옛 모양의 행: 새 열(reactionsCharacter 0, sources 비어 있음)을 모르고 찍힌 것.
+    await prisma.dailyStat.create({
+      data: {
+        date: day,
+        accounts: 0,
+        users: 0,
+        withTodo: 0,
+        withFollow: 0,
+        withReaction: 0,
+        dau: 0,
+        wau: 0,
+        todosCreated: 0,
+        follows: 0,
+        reactionsCreated: 0,
+        cohortSize: 0,
+        cohortReturned: 0,
+      },
+    });
+    const { backfillStatColumns } = await import("@/lib/metrics");
+    expect(await backfillStatColumns()).toBe(true);
+    const row = await prisma.dailyStat.findUniqueOrThrow({ where: { date: day } });
+    expect(row.sources).not.toBeNull();
+    expect(row.reactionsCharacter).toBe(0);
+
+    // 채운 행은 다시 건드리지 않는다.
+    await prisma.dailyStat.update({ where: { date: day }, data: { reactionsCharacter: 7 } });
+    expect(await backfillStatColumns()).toBe(true);
+    expect((await prisma.dailyStat.findUniqueOrThrow({ where: { date: day } })).reactionsCharacter).toBe(7);
+  } finally {
+    await prisma.dailyStat.deleteMany({ where: { date: day } });
+  }
+});

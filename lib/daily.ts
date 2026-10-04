@@ -1,11 +1,12 @@
 import { addDays, formatKST, todayKST } from "@/lib/date";
-import { cleanExpiredActiveDays, ensureSnapshots } from "@/lib/metrics";
+import { backfillStatColumns, cleanExpiredActiveDays, ensureSnapshots } from "@/lib/metrics";
 import { prisma } from "@/lib/prisma";
 
 // 서버가 하나라 메모리로 하루 한 번을 센다. 재시작하면 한 번 더 돌지만 이미 된 일은 건너뛴다.
 type DailyTask = { doneFor: string | null; running: Promise<boolean> | null };
 const sessionCleanup: DailyTask = { doneFor: null, running: null };
 const activeDayCleanup: DailyTask = { doneFor: null, running: null };
+const statBackfill: DailyTask = { doneFor: null, running: null };
 
 /**
  * 하루 한 번 하는 정리. 로그인한 요청(requireUser)과 /api/health가 부른다. 아무도 오지 않는 날에도
@@ -21,6 +22,8 @@ export async function runDailyOnce(): Promise<void> {
   ensureSnapshots(addDays(today, -1));
   await runTask(sessionCleanup, key, deleteExpiredSessions);
   await runTask(activeDayCleanup, key, () => cleanExpiredActiveDays(today));
+  // 새 열이 생기기 전에 찍은 하루 합계를 채운다. 채울 행이 없으면 질의 한 번으로 끝난다.
+  await runTask(statBackfill, key, backfillStatColumns);
 }
 
 /** 같은 날 성공한 일은 건너뛰고, 동시에 온 요청은 도는 중인 것을 같이 기다린다. */

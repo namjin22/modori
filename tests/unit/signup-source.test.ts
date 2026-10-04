@@ -33,6 +33,9 @@ describe("가입 경로", () => {
     expect(sourceFromSearch("?next=%2Ffeed%2Fu%2F1%3Ffrom%3Dsns&error=x")).toBe("sns");
     // 맨 앞의 from이 있으면 그것이 먼저다.
     expect(sourceFromSearch("?from=a&next=%2F%3Ffrom%3Db")).toBe("a");
+    // 데스크톱 앱이 연 로그인(provider 없음)은 app-desktop. 모바일 앱처럼 provider가 있으면 아니다.
+    expect(sourceFromSearch("?next=%2Fdesktop%2Flogin%3Fchallenge%3Dabc")).toBe("app-desktop");
+    expect(sourceFromSearch("?next=%2Fdesktop%2Flogin%3Fchallenge%3Dabc%26provider%3Dgoogle")).toBeNull();
     expect(sourceFromSearch("")).toBeNull();
     expect(sourceFromSearch("?next=https%3A%2F%2Fevil.example%2F%3Ffrom%3Dx")).toBeNull();
     expect(sourceFromSearch("?next=%2F%3Ffrom%3D%3Cb%3E")).toBeNull();

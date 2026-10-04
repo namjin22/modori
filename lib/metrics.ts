@@ -1,3 +1,5 @@
+import { Prisma } from "@prisma/client";
+
 import { addDays, formatKST, startOfKSTDayInstant, todayKST, weekdayKST } from "@/lib/date";
 import { prisma } from "@/lib/prisma";
 import { CHARACTERS, DEFAULT_CHARACTER } from "@/lib/characters";
@@ -379,3 +381,32 @@ export async function profileChoices(): Promise<ProfileChoices> {
     byCharacter: CHARACTERS.map((character) => ({ id: character.id, name: character.name, count: counts.get(character.id) ?? 0 })),
   };
 }
+
+/**
+ * 캐릭터 반응 수·가입 경로별 누적 열이 생기기 전에 찍힌 하루 합계(sources가 비어 있는 행)를 채운다. 새 열이 없던 날의 값은
+ * 그때 그 순간에는 셀 수 없으니, 지금 남아 있는 반응·계정에서 그 날짜 기준으로 다시 센다(지운 계정만큼 적을 수 있다).
+ * 한 번 채우면 sources가 비지 않으므로 다시 하지 않는다. 성공하면 true.
+ */
+export async function backfillStatColumns(): Promise<boolean> {
+  try {
+    const rows = await prisma.dailyStat.findMany({
+      where: { sources: { equals: Prisma.DbNull } },
+      select: { date: true },
+    });
+    for (const { date } of rows) {
+      const start = startOfKSTDayInstant(date);
+      const end = startOfKSTDayInstant(addDays(date, 1));
+      const [reactionsCharacter, sources] = await Promise.all([
+        prisma.reaction.count({ where: { createdAt: { gte: start, lt: end }, emoji: { contains: ":" } } }),
+        signupsBySource(end),
+      ]);
+      await prisma.dailyStat.update({ where: { date }, data: { reactionsCharacter, sources } });
+    }
+    if (rows.length > 0) console.info(`[metrics] 하루 합계 ${rows.length}일의 새 열을 채웠다.`);
+    return true;
+  } catch (error) {
+    console.error("[metrics] 하루 합계의 새 열을 채우지 못했다. 다음 요청 때 다시 한다.", error);
+    return false;
+  }
+}
+

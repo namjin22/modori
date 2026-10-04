@@ -28,7 +28,15 @@ export function sourceFromSearch(search: string): string | null {
   const next = params.get("next");
   if (!next || !next.startsWith("/")) return null;
   try {
-    return parseSource(new URL(next, "https://modori.site").searchParams.get("from"));
+    const target = new URL(next, "https://modori.site");
+    const nested = parseSource(target.searchParams.get("from"));
+    if (nested) return nested;
+    // 데스크톱 앱은 평소 브라우저로 /desktop/login?challenge=…를 연다(provider 없이). 로그인 전이라 /login?next=…로 보내지므로
+    // 거기서 알아본다. 모바일 앱은 provider와 from을 직접 달고 온다.
+    if (target.pathname === "/desktop/login" && target.searchParams.has("challenge") && !target.searchParams.has("provider")) {
+      return "app-desktop";
+    }
+    return null;
   } catch (error) {
     console.warn("[source] next 주소를 읽지 못했다.", error instanceof Error ? error.name : error);
     return null;
