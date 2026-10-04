@@ -1693,3 +1693,19 @@ Prisma 스키마로 표현할 수 없는 식 인덱스라 `schema.prisma`에는 
 **대가**
 체크를 푼 줄은 응답이 올 때까지 아래에 있다가 올라간다. 방금 둘 이상을 거의 동시에 체크하면 서버가 끝낸 시각으로 다시 정렬해 순서가 한 번 바뀔 수 있다.
 
+### 출시 전 보안 점검: Next.js 16.3.8로 올리고 prisma의 deepmerge-ts 경고는 받아들인다 (2026-10-04)
+
+**상황**
+`npm audit --omit=dev`가 high 3·critical 1을 냈다. critical은 Next.js 16.2.0~16.3.5의 `next/og` ImageResponse 원격 코드 실행(GHSA-vcvr-r3jv-pc5j). high 3은 `prisma` CLI가 끌어오는 `@prisma/config` → `deepmerge-ts`(재귀 객체 병합 때 스택 소진, GHSA-ggr8-5vv4-36mx).
+
+**선택지**
+1. 그대로 둔다
+2. Next를 16.3.8(수정판, 같은 16.3 계열의 패치)로 올린다. prisma는 `npm audit fix --force`가 6.12.0으로 내리라고 하므로 따르지 않는다
+3. 둘 다 `--force`로 맞춘다(Prisma 6.19 → 6.12 하향, 규칙 "6.x 안정판 고정"과 마이그레이션 호환을 깬다)
+
+**선택**
+2번. 우리 코드는 `next/og`를 쓰지 않지만(검색 결과 0건, 미리보기 그림은 정적 `og.png`) critical이라 올렸다. 새 의존성이 아니라 기존 패키지의 패치 버전이다. 올린 뒤 전체 `verify` 통과(단위 168×3, E2E 177). deepmerge-ts는 서비스 요청을 처리하는 코드가 아니라 `prisma` 명령(배포 때 마이그레이션, 로컬 `generate`)이 설정을 읽을 때만 돌아서 외부 입력이 닿지 않는다. prisma가 수정판을 낼 때 올린다.
+
+**대가**
+`npm audit`에 high 3건이 계속 남는다(이 근거를 이 문서에 둔다). Next 패치 버전이 또 나오면 같은 식으로 올려야 한다.
+
