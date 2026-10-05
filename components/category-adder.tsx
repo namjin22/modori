@@ -4,6 +4,7 @@ import { useRef, useState, useTransition } from "react";
 
 import { addTodo } from "@/app/(tabs)/actions";
 import { useToast } from "@/components/toast";
+import { useBlurOutside } from "@/components/use-blur-outside";
 import { useSaveFailure } from "@/components/use-save-failure";
 import { onColorText } from "@/lib/colors";
 
@@ -31,6 +32,10 @@ export function CategoryAdder({
 }) {
   const [open, setOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  // 빈 칸인 채로 다른 곳을 누르면 닫는다(Safari에서는 칸 안의 버튼을 눌러도 포커스가 안 와서 use-blur-outside가 따로 본다).
+  const blurOutside = useBlurOutside(() => {
+    if (inputRef.current?.value.trim() === "") setOpen(false);
+  });
   const [, startTransition] = useTransition();
   const saveFailed = useSaveFailure();
   const toast = useToast();
@@ -114,11 +119,7 @@ export function CategoryAdder({
               }
             });
           }}
-          // 빈 칸인 채로 다른 곳을 누르면 닫는다. 닫기 버튼처럼 폼 안으로 옮겨 가는 것은 그대로 둔다.
-          onBlur={(event) => {
-            if (event.currentTarget.contains(event.relatedTarget as Node | null)) return;
-            if (inputRef.current?.value.trim() === "") setOpen(false);
-          }}
+          {...blurOutside}
           className="flex items-center gap-2 border-b-2 pb-1 pl-1"
           style={{ borderColor: color ?? "var(--color-border)" }}
         >
