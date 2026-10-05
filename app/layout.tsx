@@ -3,9 +3,10 @@ import type { ReactNode } from "react";
 import type { Metadata, Viewport } from "next";
 
 import { NativeBridge } from "@/components/native-bridge";
-import { SourceCapture } from "@/components/source-capture";
 import { StaleBanner } from "@/components/stale-banner";
 import { ValidationBubble } from "@/components/validation-bubble";
+
+import { SOURCE_SCRIPT } from "@/lib/signup-source";
 
 import "./globals.css";
 
@@ -81,11 +82,11 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <link rel="preload" as="style" href={FONT_CSS} />
         <script dangerouslySetInnerHTML={{ __html: FONT_SCRIPT }} />
         <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+        {/* 초대 링크의 ?from= 값을 가입할 때 쓰려고 적어 둔다. 화면이 준비되기 전에 로그인 버튼을 눌러도 놓치지 않게 head에서 바로 돈다(lib/signup-source.ts). */}
+        <script dangerouslySetInnerHTML={{ __html: SOURCE_SCRIPT }} />
       </head>
       <body className="flex min-h-full flex-col bg-background text-foreground">
         <NativeBridge />
-        {/* 초대 링크의 ?from= 값을 가입할 때 쓰려고 적어 둔다(lib/signup-source.ts). */}
-        <SourceCapture />
         {children}
         {/* 브라우저 기본 입력 말풍선 대신 앱 모양의 말풍선을 띄운다. */}
         <ValidationBubble />

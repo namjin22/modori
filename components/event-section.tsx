@@ -5,6 +5,7 @@ import { useState } from "react";
 import { EventForm } from "@/components/event-form";
 import { Modal } from "@/components/modal";
 import { UndoableDeleteButton } from "@/components/undoable-delete-button";
+import { useBlurOutside } from "@/components/use-blur-outside";
 import { formatKST, formatMonthDayKST, parseKSTDate } from "@/lib/date";
 import { ddayLabel } from "@/lib/dday";
 import { describeEventWhen, formatTime } from "@/lib/event-time";
@@ -46,6 +47,10 @@ export function EventSection({
   today: string;
 }) {
   const [creating, setCreating] = useState(false);
+  const blurOutside = useBlurOutside((container) => {
+    const title = container.querySelector<HTMLInputElement>('input[name="title"]');
+    if (title && title.value.trim() === "") setCreating(false);
+  });
   const [editing, setEditing] = useState<DayEvent | null>(null);
   const todayDate = parseKSTDate(today);
 
@@ -66,12 +71,8 @@ export function EventSection({
 
       {creating && (
         <div
-          // 이름을 비운 채 다른 곳을 누르면 닫는다. 날짜 칸으로 옮겨 가는 것은 이 안이라 그대로 둔다.
-          onBlur={(event) => {
-            if (event.currentTarget.contains(event.relatedTarget as Node | null)) return;
-            const title = event.currentTarget.querySelector<HTMLInputElement>('input[name="title"]');
-            if (title && title.value.trim() === "") setCreating(false);
-          }}
+          // 이름을 비운 채 다른 곳을 누르면 닫는다. 날짜 칸으로 옮겨 가는 것은 이 안이라 그대로 둔다(Safari 대응은 use-blur-outside).
+          {...blurOutside}
           className="rounded-2xl bg-surface p-4"
         >
           <EventForm

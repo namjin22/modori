@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { parseSource, sourceFromSearch, sourceFromUserAgent } from "@/lib/signup-source";
+import { parseSource, SOURCE_KEY, SOURCE_SCRIPT, sourceFromSearch, sourceFromUserAgent } from "@/lib/signup-source";
 
 describe("가입 경로", () => {
   it("소문자·숫자·하이픈 20자까지만 경로 이름으로 받는다", () => {
@@ -41,3 +41,44 @@ describe("가입 경로", () => {
     expect(sourceFromSearch("?next=%2F%3Ffrom%3D%3Cb%3E")).toBeNull();
   });
 });
+
+// head에서 바로 도는 스크립트(SOURCE_SCRIPT)는 위의 함수와 같은 규칙이어야 한다. 같은 입력을 넣어 저장되는 값을 견준다.
+function runScript(search: string, userAgent: string, existing?: string): string | null {
+  const store = new Map<string, string>(existing ? [[SOURCE_KEY, existing]] : []);
+  const localStorage = {
+    getItem: (key: string) => store.get(key) ?? null,
+    setItem: (key: string, value: string) => void store.set(key, value),
+  };
+  new Function("localStorage", "location", "navigator", SOURCE_SCRIPT)(
+    localStorage,
+    { search, origin: "https://modori.site" },
+    { userAgent },
+  );
+  return store.get(SOURCE_KEY) ?? null;
+}
+
+describe("head 스크립트", () => {
+  const cases: [string, string][] = [
+    ["?from=Discord", "Mozilla/5.0 Chrome"],
+    ["?next=%2F%3Ffrom%3Dkakao", "Mozilla/5.0 Safari"],
+    ["?next=%2Fdesktop%2Flogin%3Fchallenge%3Dabc", "Mozilla/5.0 Chrome"],
+    ["?next=%2Fdesktop%2Flogin%3Fchallenge%3Dabc%26provider%3Dgoogle", "Mozilla/5.0 Chrome"],
+    ["", "Mozilla/5.0 (Linux; Android 14) ModoriMobile/1.0.0"],
+    ["", "Mozilla/5.0 (Windows NT 10.0) ModoriDesktop/1.0.0"],
+    ["?from=%3Cscript%3E", "Mozilla/5.0 Chrome"],
+    ["?next=https%3A%2F%2Fevil.example%2F%3Ffrom%3Dx", "Mozilla/5.0 Chrome"],
+    ["", "Mozilla/5.0 Chrome"],
+  ];
+
+  it("링크·next·앱 꼬리표에서 TypeScript 함수와 같은 값을 저장한다", () => {
+    for (const [search, userAgent] of cases) {
+      const expected = sourceFromSearch(search) ?? sourceFromUserAgent(userAgent);
+      expect(runScript(search, userAgent), `${search} / ${userAgent}`).toBe(expected);
+    }
+  });
+
+  it("이미 저장된 경로는 덮어쓰지 않는다(처음 닿은 링크를 센다)", () => {
+    expect(runScript("?from=sns", "Mozilla/5.0", "discord")).toBe("discord");
+  });
+});
+

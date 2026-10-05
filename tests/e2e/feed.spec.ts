@@ -171,7 +171,10 @@ test("반응을 누르면 개수가 오르고 다시 누르면 취소된다", as
   await who.getByRole("button", { name: "좋아요 내 반응 취소" }).click();
   await expect(page.getByRole("button", { name: /^좋아요 \d+개/ })).toHaveCount(0);
   await expect(who).toHaveCount(0);
-  expect(await prisma.reaction.count({ where: { emoji: "👍", user: { email: accounts.me.email } } })).toBe(0);
+  // 화면은 눌리자마자(서버 응답 전) 바뀌므로 DB는 곧 따라온다. 바로 세면 속도에 따라 먼저 세는 경쟁이 된다.
+  await expect
+    .poll(() => prisma.reaction.count({ where: { emoji: "👍", user: { email: accounts.me.email } } }))
+    .toBe(0);
 });
 
 test("고르는 창에서 이미 누른 반응을 다시 눌러도 취소된다", async ({ page, accounts }) => {
