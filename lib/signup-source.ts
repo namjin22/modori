@@ -49,3 +49,41 @@ export function sourceFromUserAgent(userAgent: string): string | null {
   if (userAgent.includes("ModoriDesktop")) return "app-desktop";
   return null;
 }
+
+/**
+ * 페이지 맨 앞(`<head>`)에서 바로 도는 스크립트. 화면이 준비(하이드레이션)되기를 기다리면, 느린 폰에서 사람이 그 전에 로그인 버튼을 눌러
+ * 페이지를 떠나 경로가 저장되지 않는다. 위의 `sourceFromSearch`·`sourceFromUserAgent`와 같은 규칙이고, 둘이 어긋나지 않게
+ * tests/unit/signup-source.test.ts가 같은 입력으로 비교한다.
+ */
+export const SOURCE_SCRIPT = `
+(function () {
+  try {
+    var KEY = ${JSON.stringify(SOURCE_KEY)};
+    if (localStorage.getItem(KEY)) return;
+    var PATTERN = /^[a-z0-9-]{1,20}$/;
+    var ok = function (v) {
+      v = String(v || "").trim().toLowerCase();
+      return PATTERN.test(v) ? v : null;
+    };
+    var query = new URLSearchParams(location.search);
+    var found = ok(query.get("from"));
+    var next = query.get("next");
+    if (!found && next && next.charAt(0) === "/") {
+      var target = new URL(next, location.origin);
+      found = ok(target.searchParams.get("from"));
+      if (!found && target.pathname === "/desktop/login" && target.searchParams.has("challenge") && !target.searchParams.has("provider")) {
+        found = "app-desktop";
+      }
+    }
+    if (!found) {
+      var ua = navigator.userAgent;
+      if (ua.indexOf("ModoriMobile") > -1) found = "app-android";
+      else if (ua.indexOf("ModoriDesktop") > -1) found = "app-desktop";
+    }
+    if (found) localStorage.setItem(KEY, found);
+  } catch (e) {
+    // 저장소가 막힌 브라우저에서는 경로를 모르는 채로 가입한다. 화면에는 영향이 없다.
+  }
+})();
+`;
+
