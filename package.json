@@ -15,7 +15,8 @@
     "promo": "playwright test --config playwright.promo.config.ts",
     "promo:edit": "node scripts/promo-edit.mjs",
     "promo:anim": "node scripts/promo-anim.mjs",
-    "verify": "tsc --noEmit && npm run lint && npm run test:tz && npm run test:e2e"
+    "verify": "tsc --noEmit && npm run lint && npm run test:tz && npm run test:e2e",
+    "test:webkit": "playwright test --config playwright.webkit.config.ts"
   },
   "dependencies": {
     "@auth/prisma-adapter": "2.11.3",
