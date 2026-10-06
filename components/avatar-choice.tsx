@@ -42,14 +42,15 @@ export function AvatarChoice({
   }
 
   const tile = (selected: boolean) =>
-    `flex flex-col items-center gap-1.5 rounded-2xl p-3 text-sm transition-colors ${
+    `flex min-w-0 flex-col items-center gap-1.5 rounded-2xl p-3 text-sm transition-colors ${
       selected ? "bg-brand-subtle font-semibold text-brand ring-2 ring-brand" : "bg-surface text-muted hover:bg-surface-hover"
     }`;
 
   return (
     <fieldset className="flex flex-col gap-2">
       <legend className="mb-2 px-1 text-sm font-medium">프로필 사진</legend>
-      <div role="radiogroup" aria-label="프로필 사진" className="grid grid-cols-3 gap-3 min-[420px]:grid-cols-5">
+      <div role="radiogroup" aria-label="프로필 사진" // 칸 폭이 5rem(원 56px + 좌우 여백) 아래로 줄지 않게 열 수를 정한다. 가입 화면은 폭이 좁아(최대 336px) 5열로 고정하면 칸보다 원이 커져 삐져나왔다.
+        className="grid grid-cols-[repeat(auto-fit,minmax(5rem,1fr))] gap-3">
         {CHARACTERS.map((item) => {
           const selected = choice === "character" && character === item.id;
           return (
@@ -64,7 +65,7 @@ export function AvatarChoice({
               }}
               className={tile(selected)}
             >
-              <DoriFace size={64} character={item.id} className="rounded-full" />
+              <DoriFace size={56} character={item.id} className="rounded-full" />
               {item.name}
             </button>
           );
@@ -82,9 +83,9 @@ export function AvatarChoice({
           {photo ? (
             // 브라우저에서 줄인 data URL이라 next/image가 할 일이 없다.
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={photo} alt="" width={64} height={64} className="size-16 rounded-full object-cover" />
+            <img src={photo} alt="" width={56} height={56} className="size-14 rounded-full object-cover" />
           ) : (
-            <span aria-hidden className="flex size-16 items-center justify-center rounded-full bg-surface-hover text-2xl">
+            <span aria-hidden className="flex size-14 items-center justify-center rounded-full bg-surface-hover text-2xl">
               +
             </span>
           )}
