@@ -10,7 +10,7 @@ import {
   parseKSTDate,
   parseKSTMonth,
   startOfMonthKST,
-  todayKST,
+  todayIn,
   weekdayKST,
 } from "@/lib/date";
 import { NO_CATEGORY_COLOR } from "@/lib/colors";
@@ -33,14 +33,14 @@ import { avatarUrl } from "@/lib/avatar";
 
 const WEEKDAY_NAMES = ["일", "월", "화", "수", "목", "금", "토"];
 
-function readDate(raw: string | undefined): Date {
-  if (!raw) return todayKST();
+function readDate(raw: string | undefined, today: Date): Date {
+  if (!raw) return today;
 
   try {
     return parseKSTDate(raw);
   } catch (error) {
     console.error("[친구] 날짜 형식이 잘못됐다.", error);
-    return todayKST();
+    return today;
   }
 }
 
@@ -134,8 +134,8 @@ export default async function FriendDayPage({
     );
   }
 
-  const today = todayKST();
-  const date = readDate(params_.date);
+  const today = todayIn(viewer.timezone);
+  const date = readDate(params_.date, today);
   const monthStart = readMonth(params_.month, date);
   const monthEnd = endOfMonthKST(monthStart);
   const weekStart = addDays(date, -weekdayKST(date));

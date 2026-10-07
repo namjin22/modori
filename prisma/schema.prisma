@@ -35,6 +35,8 @@ model User {
   signupSource      String?
   // 켜면 친구 찾기의 "추천 친구"에 나오지 않는다(마이페이지에서 고른다). 닉네임 검색에는 그대로 나온다.
   hideFromRecommend Boolean   @default(false)
+  // 이 사람의 "오늘"을 정하는 시간대(IANA 이름, lib/timezones.ts의 목록 중 하나). 날짜 값(@db.Date)은 시각 없는 달력의 날이라 시간대와 무관하다.
+  timezone          String    @default("Asia/Seoul")
   createdAt         DateTime  @default(now())
 
   accounts      Account[]

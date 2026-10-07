@@ -4,7 +4,7 @@ import { Prisma, type RoutineFreq } from "@prisma/client";
 
 import { revalidatePath } from "next/cache";
 
-import { formatKST, parseKSTDate, todayKST } from "@/lib/date";
+import { formatKST, parseKSTDate, todayIn } from "@/lib/date";
 import { isId, readIdList } from "@/lib/ids";
 import { LIMITS } from "@/lib/limits";
 import { prisma } from "@/lib/prisma";
@@ -70,7 +70,7 @@ export async function createRoutine(
     return { message: "반복할 날짜를 하나 이상 골라주세요." };
   }
 
-  const startDate = readDate(formData, "startDate") ?? todayKST();
+  const startDate = readDate(formData, "startDate") ?? todayIn(user.timezone);
   const endDate = readDate(formData, "endDate");
   if (endDate && endDate < startDate) {
     return { message: "종료일이 시작일보다 앞설 수 없어요." };
@@ -295,7 +295,7 @@ export async function endRoutineToday(formData: FormData) {
 
   await prisma.routine.updateMany({
     where: { id: readText(formData, "id"), userId: user.id },
-    data: { endDate: parseKSTDate(formatKST(todayKST())) },
+    data: { endDate: parseKSTDate(formatKST(todayIn(user.timezone))) },
   });
 
   revalidatePath("/routines");

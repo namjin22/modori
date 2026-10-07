@@ -5,7 +5,7 @@ import { Prisma } from "@prisma/client";
 import { isPaletteColor } from "@/lib/colors";
 import { revalidatePath } from "next/cache";
 
-import { daysBetween, formatKST, formatMonthDayKST, isSameKSTDate, parseKSTDate, todayKST } from "@/lib/date";
+import { daysBetween, formatKST, formatMonthDayKST, isSameKSTDate, parseKSTDate, todayIn } from "@/lib/date";
 import { isId, readIdList } from "@/lib/ids";
 import { LIMITS } from "@/lib/limits";
 import { readMemo } from "@/lib/memo";
@@ -62,7 +62,7 @@ export async function addTodo(formData: FormData): Promise<TodoAdd> {
   const date = readDay(readId(formData, "date"));
   if (!date) return { ok: false, message: "날짜를 읽지 못했어요. 새로 고쳐 주세요." };
   // 옮기기(moveTodo)와 같은 범위만 받는다. 날짜를 마음대로 바꿔 가며 하루 상한을 피해 무한히 쌓지 못하게 한다.
-  if (Math.abs(daysBetween(todayKST(), date)) > MAX_SCHEDULED_DAYS) {
+  if (Math.abs(daysBetween(todayIn(user.timezone), date)) > MAX_SCHEDULED_DAYS) {
     return { ok: false, message: "너무 먼 날짜예요." };
   }
   const categoryId = readId(formData, "categoryId") || null;
@@ -299,7 +299,7 @@ export async function moveTodo(id: string, day: string): Promise<TodoMove> {
   const user = await requireUser();
   const date = readDay(day);
   if (!date) return { ok: false, message: "옮길 날짜를 골라주세요." };
-  if (Math.abs(daysBetween(todayKST(), date)) > MAX_MOVE_DAYS) {
+  if (Math.abs(daysBetween(todayIn(user.timezone), date)) > MAX_MOVE_DAYS) {
     return { ok: false, message: "1년 안의 날짜로만 옮길 수 있어요." };
   }
 
@@ -350,7 +350,7 @@ export async function moveUndoneToToday(fromDay: string): Promise<UndoneMove> {
   const user = await requireUser();
   const from = readDay(fromDay);
   if (!from) return { ok: false, message: "날짜를 읽지 못했어요. 새로 고쳐 주세요." };
-  const today = todayKST();
+  const today = todayIn(user.timezone);
   if (daysBetween(from, today) <= 0) return { ok: false, message: "지난 날의 할 일만 오늘로 옮길 수 있어요." };
 
   const [undone, todayCount, last] = await Promise.all([
@@ -419,7 +419,7 @@ export async function completeScheduledRoutine(formData: FormData) {
   });
   if (!routine) return;
 
-  const ahead = daysBetween(todayKST(), date);
+  const ahead = daysBetween(todayIn(user.timezone), date);
   if (ahead <= 0 || ahead > MAX_SCHEDULED_DAYS || !matchesRule(routine, date)) return;
 
   const count = await prisma.todo.count({ where: { userId: user.id, date } });

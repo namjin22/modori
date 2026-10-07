@@ -3,7 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
-import { formatKST, todayKST } from "@/lib/date";
+import { useTimezone } from "@/components/timezone-context";
+import { formatKST, todayIn } from "@/lib/date";
 
 /**
  * "오늘"을 보고 있는 화면이 자정을 넘기면 새 날짜로 다시 그린다.
@@ -14,10 +15,12 @@ import { formatKST, todayKST } from "@/lib/date";
  */
 export function DayRollover({ day }: { day: string }) {
   const router = useRouter();
+  // 자정은 이 사람이 고른 시간대의 자정이다(캐나다 사람은 서울 자정이 아니라 현지 자정에 날이 바뀐다).
+  const timezone = useTimezone();
 
   useEffect(() => {
     function check() {
-      if (formatKST(todayKST()) !== day) router.refresh();
+      if (formatKST(todayIn(timezone)) !== day) router.refresh();
     }
     function onVisible() {
       if (document.visibilityState === "visible") check();
@@ -29,7 +32,7 @@ export function DayRollover({ day }: { day: string }) {
       document.removeEventListener("visibilitychange", onVisible);
       clearInterval(timer);
     };
-  }, [day, router]);
+  }, [day, router, timezone]);
 
   return null;
 }

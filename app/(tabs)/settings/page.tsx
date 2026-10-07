@@ -3,6 +3,9 @@ import Link from "next/link";
 import { LogoutButton } from "@/components/logout-button";
 import { RecommendSwitch } from "@/components/recommend-switch";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { TimezoneSelect } from "@/components/timezone-select";
+import { dateIn, formatMonthDayKST, weekdayKST } from "@/lib/date";
+import { timezoneOrDefault } from "@/lib/timezones";
 import { isAdmin } from "@/lib/admin";
 import { isDesktopApp, isMobileApp, isWindowsBrowser } from "@/lib/desktop";
 import { DesktopDownload } from "@/components/desktop-download";
@@ -13,11 +16,15 @@ import { requireUser } from "@/lib/session";
 import { Avatar } from "@/components/avatar";
 import { avatarUrl } from "@/lib/avatar";
 
+const WEEKDAY_NAMES = ["일", "월", "화", "수", "목", "금", "토"];
+
 export default async function SettingsPage() {
   const user = await requireUser();
   const desktop = (await isDesktopApp()) || (await isMobileApp());
   // 설치 파일은 Windows용이라 폰·Mac 접속자에게는 보이지 않는다.
   const windows = await isWindowsBrowser();
+  const timezone = timezoneOrDefault(user.timezone);
+  const todayHere = dateIn(new Date(), timezone);
   const [following, followers, admin] = await Promise.all([
     prisma.follow.count({ where: { followerId: user.id } }),
     prisma.follow.count({ where: { followingId: user.id } }),
@@ -78,6 +85,11 @@ export default async function SettingsPage() {
       <section className="flex flex-col gap-4 rounded-2xl bg-surface p-5">
         <h2 className="text-sm font-semibold text-muted">화면</h2>
         <ThemeToggle />
+      </section>
+
+      <section className="flex flex-col gap-4 rounded-2xl bg-surface p-5">
+        <h2 className="text-sm font-semibold text-muted">시간대</h2>
+        <TimezoneSelect current={timezone} todayLabel={`${formatMonthDayKST(todayHere)} (${WEEKDAY_NAMES[weekdayKST(todayHere)]})`} />
       </section>
 
       <section className="flex flex-col gap-4 rounded-2xl bg-surface p-5">

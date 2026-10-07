@@ -16,9 +16,45 @@ export function toKSTDateOnly(d: Date): Date {
   return new Date(Math.floor(kstWallClock / DAY_MS) * DAY_MS);
 }
 
+/** 시간대를 정하지 않은 사람과 운영자 지표의 기준. */
+export const DEFAULT_TIMEZONE = "Asia/Seoul";
+
+/** IANA 시간대 이름(예: "America/Toronto")으로 쓸 수 있는 값인가. */
+export function isValidTimezone(value: unknown): value is string {
+  if (typeof value !== "string" || value.length === 0 || value.length > 64) return false;
+  try {
+    new Intl.DateTimeFormat("en-US", { timeZone: value });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+const formatters = new Map<string, Intl.DateTimeFormat>();
+
+/**
+ * 그 시각에 그 시간대의 달력이 가리키는 날짜. 날짜 표현은 이 파일의 다른 값과 같다(그 날짜의 UTC 자정).
+ * 시간대마다 서머타임과 30분·45분 시차가 있어 오프셋을 직접 더하지 않고 Intl이 계산하게 한다.
+ */
+export function dateIn(instant: Date, timezone: string): Date {
+  let formatter = formatters.get(timezone);
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat("en-US", { timeZone: timezone, year: "numeric", month: "2-digit", day: "2-digit" });
+    formatters.set(timezone, formatter);
+  }
+  const parts = formatter.formatToParts(instant);
+  const read = (type: string) => Number(parts.find((part) => part.type === type)?.value);
+  return new Date(Date.UTC(read("year"), read("month") - 1, read("day")));
+}
+
+/** 그 시간대에서 지금의 "오늘". 사용자 화면은 이것을, 운영자 지표는 todayKST를 쓴다. */
+export function todayIn(timezone: string): Date {
+  return dateIn(new Date(), timezone);
+}
+
 /** 오늘의 KST 날짜. */
 export function todayKST(): Date {
-  return toKSTDateOnly(new Date());
+  return todayIn(DEFAULT_TIMEZONE);
 }
 
 /** "YYYY-MM-DD" */

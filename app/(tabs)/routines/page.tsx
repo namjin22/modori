@@ -3,7 +3,7 @@ import Link from "next/link";
 import { CategoryChip } from "@/components/category-chip";
 import { RoutineForm } from "@/components/routine-form";
 import { UndoableDeleteButton } from "@/components/undoable-delete-button";
-import { formatKST, todayKST } from "@/lib/date";
+import { formatKST, todayIn } from "@/lib/date";
 import { groupByCategory } from "@/lib/group-by-category";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
@@ -105,7 +105,7 @@ export default async function RoutinesPage() {
           </svg>
         </summary>
         <div className="mt-3 rounded-2xl bg-surface p-4">
-          <RoutineForm categories={categories} today={formatKST(todayKST())} />
+          <RoutineForm categories={categories} today={formatKST(todayIn(user.timezone))} />
         </div>
       </details>
       )}
