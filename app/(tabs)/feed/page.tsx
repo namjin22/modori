@@ -8,6 +8,7 @@ import { countUnreadNotifications, requireUser } from "@/lib/session";
 
 import { Dori } from "@/components/dori";
 import { FeedItem } from "@/components/feed-item";
+import { RecommendedFriends } from "@/components/recommended-friends";
 import { avatarUrl } from "@/lib/avatar";
 
 const FRIEND_ROW_SIZE = 20;
@@ -31,10 +32,10 @@ function writeCursor(todo: { doneAt: Date | null; id: string }): string {
 export default async function FeedPage({
   searchParams,
 }: {
-  searchParams: Promise<{ after?: string }>;
+  searchParams: Promise<{ after?: string; r?: string }>;
 }) {
   const user = await requireUser();
-  const { after } = await searchParams;
+  const { after, r } = await searchParams;
   const cursor = readCursor(after);
 
   const [page, follows, followingCount, unreadCount] = await Promise.all([
@@ -166,6 +167,7 @@ export default async function FeedPage({
       )}
 
       {todos.length === 0 ? (
+        <>
         <div className="flex flex-col items-center rounded-2xl bg-surface p-8 text-center">
           <Dori mood={followingCount === 0 ? "hello" : "calm"} size={88} className="mb-2" />
           <p className="text-sm text-muted">
@@ -184,6 +186,9 @@ export default async function FeedPage({
             </Link>
           )}
         </div>
+        {/* 아무도 팔로우하지 않은 사람은 누구를 찾아야 할지 모른다. 이름을 몰라도 바로 팔로우할 사람을 보여 준다. */}
+        {followingCount === 0 && !after && <RecommendedFriends userId={user.id} seed={r} shufflePath="/feed" />}
+        </>
       ) : (
         // 같은 사람이 같은 날 끝낸 일은 카드 한 장에 한 줄씩 묶는다. 할 일마다
         // 카드를 따로 쓰면 이름과 날짜가 줄마다 반복되고 한 화면에 서너 개밖에 안 보인다.

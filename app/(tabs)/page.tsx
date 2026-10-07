@@ -24,6 +24,7 @@ import { CategoryAdder } from "@/components/category-adder";
 import { DayRollover } from "@/components/day-rollover";
 import { Dori } from "@/components/dori";
 import { type DayEvent, EventSection } from "@/components/event-section";
+import { FirstTodoButton } from "@/components/first-todo-button";
 import { MoveUndoneButton } from "@/components/move-undone-button";
 import {
   type CalendarEvent,
@@ -480,7 +481,9 @@ export default async function FeedPage({
             {/* 지난 날은 느긋하게, 오늘과 앞날은 반갑게. */}
             <Dori mood={daysBetween(today, date) < 0 ? "calm" : "hello"} size={80} />
             <p className="text-sm text-muted">아직 할 일이 없어요</p>
-            <p className="text-xs text-muted">
+            {/* 지난 날은 쓰는 날이 아니라 오늘·앞날에만 큰 버튼을 둔다. */}
+            {daysBetween(today, date) >= 0 && <FirstTodoButton />}
+            <p className="mt-3 text-xs text-muted">
               카테고리 이름을 눌러 적어보세요.{" "}
               <Link prefetch={false} href="/routines" className="text-brand">
                 반복되는 일이라면 루틴으로 →
