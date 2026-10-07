@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { LogoutButton } from "@/components/logout-button";
+import { RecommendSwitch } from "@/components/recommend-switch";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { isAdmin } from "@/lib/admin";
 import { isDesktopApp, isMobileApp, isWindowsBrowser } from "@/lib/desktop";
@@ -79,6 +80,11 @@ export default async function SettingsPage() {
         <ThemeToggle />
       </section>
 
+      <section className="flex flex-col gap-4 rounded-2xl bg-surface p-5">
+        <h2 className="text-sm font-semibold text-muted">친구 찾기</h2>
+        <RecommendSwitch hidden={user.hideFromRecommend} />
+      </section>
+
       {/* 앱 안에서는 받을 필요가 없어 숨긴다. */}
       {!desktop && windows && <DesktopDownload />}
 
@@ -99,6 +105,8 @@ export default async function SettingsPage() {
               <FooterLink href="/admin/errors">오류 기록</FooterLink>
               <Dot />
               <FooterLink href="/admin/metrics">지표</FooterLink>
+              <Dot />
+              <FooterLink href="/admin/users">사용자</FooterLink>
             </>
           )}
         </nav>

@@ -1,8 +1,8 @@
-import { Prisma } from "@prisma/client";
 import Link from "next/link";
 
 import { MAX_NICKNAME_LENGTH, normalizeNickname } from "@/lib/nickname";
 import { prisma } from "@/lib/prisma";
+import { recommendPeople } from "@/lib/recommend";
 import { requireUser } from "@/lib/session";
 
 import { ShuffleButton } from "@/components/shuffle-button";
@@ -16,29 +16,6 @@ import { BackLink } from "@/components/back-link";
 import { avatarUrl } from "@/lib/avatar";
 
 const MAX_RESULTS = 20;
-// 검색하기 전에 보여 주는 추천 인원.
-const RECOMMEND_COUNT = 3;
-
-/**
- * 아직 팔로우하지 않은 사람 가운데 무작위 세 명. 새로고침 버튼이 주소의 r 값을 바꾸면 다른 세 명이 뽑힌다.
- * 같은 r이면 같은 사람이 나와서(r과 id로 섞는다), 팔로우한 직후 화면을 다시 그려도 나머지 둘이 바뀌지 않는다.
- */
-async function recommendPeople(userId: string, seed: string) {
-  const picked = await prisma.$queryRaw<{ id: string }[]>(Prisma.sql`
-    SELECT u."id" FROM "User" u
-    WHERE u."nickname" IS NOT NULL AND u."id" <> ${userId}
-      AND NOT EXISTS (SELECT 1 FROM "Follow" f WHERE f."followerId" = ${userId} AND f."followingId" = u."id")
-    ORDER BY md5(u."id" || ${seed})
-    LIMIT ${RECOMMEND_COUNT}`);
-  if (picked.length === 0) return [];
-  const rows = await prisma.user.findMany({
-    where: { id: { in: picked.map((row) => row.id) } },
-    select: { id: true, nickname: true, profileImage: true, avatarCharacter: true },
-  });
-  // 뽑힌 차례를 지킨다.
-  return picked.flatMap((row) => rows.filter((person) => person.id === row.id));
-}
-
 /** 주소에 r이 없을 때(처음 연 화면) 쓸 무작위 값. 요청마다 달라야 해서 서버에서 새로 뽑는다. */
 function newSeed(): string {
   return Math.random().toString(36).slice(2, 10);

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { BackLink } from "@/components/back-link";
@@ -70,10 +71,17 @@ export default async function MetricsPage() {
         <BackLink href="/settings" label="마이페이지로" />
         <h1 className="text-2xl font-bold">지표</h1>
         {/* 포트폴리오 그래프용. 전체 기간의 하루 합계를 CSV로 받는다. */}
+        <Link
+          prefetch={false}
+          href="/admin/users"
+          className="ml-auto rounded-xl bg-surface px-3 py-2 text-sm font-medium text-brand"
+        >
+          사용자별 보기
+        </Link>
         <a
           href="/admin/metrics/export"
           download
-          className="ml-auto rounded-xl bg-surface px-3 py-2 text-sm font-medium text-brand"
+          className="rounded-xl bg-surface px-3 py-2 text-sm font-medium text-brand"
         >
           CSV 받기
         </a>
