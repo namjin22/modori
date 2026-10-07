@@ -47,10 +47,10 @@ export function AvatarChoice({
     }`;
 
   return (
-    <fieldset className="flex flex-col gap-2">
-      <legend className="mb-2 px-1 text-sm font-medium">프로필 사진</legend>
+    <fieldset className="flex flex-col gap-4">
+      <legend className="mb-4 px-1 text-sm font-medium">프로필 사진</legend>
       <div role="radiogroup" aria-label="프로필 사진" // 칸 폭이 5rem(원 56px + 좌우 여백) 아래로 줄지 않게 열 수를 정한다. 가입 화면은 폭이 좁아(최대 336px) 5열로 고정하면 칸보다 원이 커져 삐져나왔다.
-        className="grid grid-cols-[repeat(auto-fit,minmax(5rem,1fr))] gap-3">
+        className="grid grid-cols-[repeat(auto-fit,minmax(5rem,1fr))] gap-4">
         {CHARACTERS.map((item) => {
           const selected = choice === "character" && character === item.id;
           return (
