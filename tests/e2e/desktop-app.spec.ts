@@ -1,4 +1,5 @@
 import { existsSync } from "node:fs";
+import { createServer } from "node:net";
 import { createRequire } from "node:module";
 import path from "node:path";
 
@@ -127,6 +128,28 @@ test("연결 안내 화면에서 F5(새로고침)를 누르면 원래 주소를 
     });
     expect(loads).toBeGreaterThanOrEqual(1);
     await expect(win.getByRole("heading", { name: "모도리에 연결하지 못했어요" })).toBeVisible();
+  } finally {
+    await app.close();
+  }
+});
+
+/** 지금은 아무도 듣지 않는 포트 하나(열었다 닫아서 얻는다). */
+async function closedPort(): Promise<number> {
+  const server = createServer();
+  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+  const { port } = server.address() as { port: number };
+  await new Promise((resolve) => server.close(resolve));
+  return port;
+}
+
+test("서버에 닿지 못하면 안내 화면에 오류 이름과 원인 안내가 뜬다", async () => {
+  // 연결이 거절된다(ERR_CONNECTION_REFUSED, -102). 네트워크마다 원인이 달라서 오류 이름을 보여 주는 것이 핵심이다.
+  const app = await launch(`http://127.0.0.1:${await closedPort()}`);
+  try {
+    const win = await app.firstWindow();
+    await expect(win.getByRole("heading", { name: "모도리에 연결하지 못했어요" })).toBeVisible();
+    await expect(win.getByText(/ERR_CONNECTION_REFUSED \(-102\)/)).toBeVisible();
+    await expect(win.getByText(/다른 와이파이나 핫스팟/)).toBeVisible();
   } finally {
     await app.close();
   }

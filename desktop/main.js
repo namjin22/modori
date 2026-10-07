@@ -8,6 +8,9 @@ const { app, BrowserWindow, Menu, shell } = require("electron");
 const crypto = require("node:crypto");
 const path = require("node:path");
 
+// 일부 공유기·학교 망은 UDP 443(QUIC, HTTP/3)을 막아 연결이 늦거나 끊긴다. 모도리는 TCP(HTTPS)로 충분해서 앱에서는 쓰지 않는다.
+app.commandLine.appendSwitch("disable-quic");
+
 const BASE = new URL(process.env.MODORI_URL || "https://modori.site");
 const PROTOCOL = "modori";
 // 웹의 lib/desktop.ts와 같아야 한다. 로그인 화면이 이 표시를 보고 버튼을 바꾼다.
@@ -134,12 +137,15 @@ function createWindow() {
     return { action: "deny" };
   });
   // 서버에 닿지 못하면 흰 화면 대신 안내를 띄운다. 다시 시도는 원래 가려던 주소로.
-  contents.on("did-fail-load", (_event, errorCode, _description, url, isMainFrame) => {
+  contents.on("did-fail-load", (_event, errorCode, description, url, isMainFrame) => {
     // -3은 사용자가 다른 곳으로 옮겨 간 경우(ERR_ABORTED)라 오류가 아니다.
     if (!isMainFrame || errorCode === -3) return;
     const retry = isOurs(url) ? url : BASE.toString();
     retryUrl = retry;
-    win.loadFile(path.join(__dirname, "offline.html"), { query: { retry } });
+    // 어떤 오류였는지 화면에 보여 주려고 이름과 번호를 넘긴다(원인은 네트워크마다 달라서, 사용자가 알려 줄 단서가 필요하다).
+    win.loadFile(path.join(__dirname, "offline.html"), {
+      query: { retry, error: String(description || ""), code: String(errorCode) },
+    });
   });
 
   win.on("closed", () => {
