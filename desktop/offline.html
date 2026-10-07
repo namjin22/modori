@@ -21,7 +21,8 @@
     <main>
       <img src="build/icon.png" alt="" />
       <h1>모도리에 연결하지 못했어요</h1>
-      <p>인터넷 연결을 확인해 주세요. 연결되면 자동으로 다시 시도하고, F5를 눌러도 돼요.</p>
+      <p id="hint">인터넷 연결을 확인해 주세요. 연결되면 자동으로 다시 시도하고, F5를 눌러도 돼요.</p>
+      <p id="detail" style="font-size: 12px; margin-top: -8px"></p>
       <button id="retry" type="button">다시 시도</button>
     </main>
     <script>
@@ -30,6 +31,23 @@
       const go = () => {
         if (retry) location.href = retry;
       };
+      // 오류 이름으로 흔한 원인을 안내한다. 번호는 Chromium의 net 오류 번호다.
+      const params = new URLSearchParams(location.search);
+      const error = params.get("error");
+      const code = Number(params.get("code"));
+      const HINTS = [
+        [[-105], "이 인터넷이 모도리 주소(modori.site)를 찾지 못했어요. 공유기(iptime 등)나 학교 망의 DNS 문제일 수 있어요. 다른 와이파이나 휴대폰 핫스팟으로 바꿔 보세요."],
+        [[-106], "이 컴퓨터가 인터넷에 연결되어 있지 않아요. 와이파이가 인터넷에 연결되어 있는지 확인해 주세요."],
+        [[-7, -118], "모도리 서버에서 응답이 오지 않아요. 이 인터넷이 느리거나 막혀 있을 수 있어요. 다른 와이파이나 핫스팟으로 바꿔 보세요."],
+        [[-101, -102, -109, -324], "이 인터넷에서 모도리 서버로 가는 길이 막혀 있어요. 공유기·학교 망의 차단일 수 있어요. 다른 와이파이나 핫스팟으로 바꿔 보세요."],
+      ];
+      const hint = HINTS.find(([codes]) => codes.includes(code));
+      if (hint) document.getElementById("hint").textContent = hint[1];
+      else if (code <= -200 && code > -300) {
+        document.getElementById("hint").textContent =
+          "보안 연결을 확인하지 못했어요. 컴퓨터의 날짜·시간이 맞는지 보고, 이 인터넷이 연결을 가로채는 곳(학교·카페 로그인 화면)이 아닌지 확인해 주세요.";
+      }
+      if (error) document.getElementById("detail").textContent = "오류: " + error + " (" + code + ") — 문의할 때 알려 주세요";
       document.getElementById("retry").addEventListener("click", go);
       // 잠깐 끊겼다 돌아온 경우를 위해 스스로도 다시 시도한다. 네트워크가 돌아오면 바로, 아니면 15초마다.
       window.addEventListener("online", go);
