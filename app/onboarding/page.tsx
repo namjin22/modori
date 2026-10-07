@@ -6,6 +6,8 @@ import { getCurrentUser } from "@/lib/session";
 import { Dori } from "@/components/dori";
 import { OnboardingForm } from "@/components/onboarding-form";
 
+import { leaveOnboarding } from "./actions";
+
 export default async function OnboardingPage({
   searchParams,
 }: {
@@ -27,6 +29,14 @@ export default async function OnboardingPage({
       </div>
 
       <OnboardingForm next={next} />
+
+      {/* 가입을 마치지 않은 계정은 다른 화면으로 못 간다. 잘못 고른 계정에서 빠져나오는 길을 둔다. */}
+      <form action={leaveOnboarding} className="-mt-6 flex flex-col items-center gap-1 pb-8 text-center">
+        <p className="text-xs text-muted">이 계정이 아닌가요?</p>
+        <button type="submit" className="h-10 rounded-xl px-4 text-sm font-semibold text-brand underline-offset-4 hover:underline">
+          로그아웃하고 다른 계정으로 로그인
+        </button>
+      </form>
     </main>
   );
 }
