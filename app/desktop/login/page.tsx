@@ -8,7 +8,7 @@ import { getCurrentUser, requireUser } from "@/lib/session";
 
 import { continueDesktopLogin, switchDesktopAccount } from "./actions";
 
-export const metadata: Metadata = { title: "앱으로 돌아가기 · 모도리" };
+export const metadata: Metadata = { title: "앱으로 돌아가기 · 모도리", robots: { index: false } };
 
 /**
  * 데스크톱 앱이 연 브라우저 화면. 로그인이 안 돼 있으면 requireUser가 로그인(가입) 뒤 이리로 돌려보낸다.

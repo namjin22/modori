@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
@@ -8,6 +9,9 @@ import { safeNext } from "@/lib/next-path";
 import { getCurrentUser } from "@/lib/session";
 
 import { NativeLoginButtons } from "@/components/native-login-buttons";
+
+// ?next=·?error=·?switch=가 붙은 주소는 모두 같은 화면이다. 대표 주소를 알려야 검색 엔진이 중복으로 보지 않는다.
+export const metadata: Metadata = { alternates: { canonical: "/login" } };
 
 // Auth.js가 붙여 보내는 오류 코드. 사람이 읽을 말로 바꾼다.
 // 모르는 코드는 일반 안내로 받는다.
