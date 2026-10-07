@@ -41,8 +41,9 @@ Tailwind v3) 기준이다.
 
 1. **테스트를 고쳐서 통과시키지 않는다.** 테스트가 실패하면 구현 코드를 고친다.
    테스트가 틀렸다고 판단되면 고치기 전에 이유를 설명하고 승인을 받는다.
-2. 날짜는 전부 **Asia/Seoul** 기준. DB의 날짜 컬럼은 `@db.Date`(시각 없음).
-   `new Date()`를 날짜 비교에 직접 쓰지 말고 `lib/date.ts`의 헬퍼만 쓴다.
+2. 날짜는 **사용자가 고른 시간대**(`User.timezone`, 기본 Asia/Seoul)의 달력으로 센다. 운영자 지표·하루 합계는 **Asia/Seoul** 기준이다.
+   DB의 날짜 컬럼은 `@db.Date`(시각 없음, 시간대와 무관한 "달력의 날"). `new Date()`를 날짜 비교에 직접 쓰지 말고
+   `lib/date.ts`의 헬퍼(`todayIn(timezone)`, `dateIn(instant, timezone)`, 운영자용 `todayKST`)만 쓴다.
 3. **`.env`는 읽지도 수정하지도 않는다.** 시크릿이 들어 있다.
    값이 필요하면 물어본다. 새 환경 변수를 추가하면 `.env.example`에
    키 이름만 추가한다.

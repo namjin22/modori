@@ -5,8 +5,8 @@ import {
   daysBetween,
   formatKST,
   parseKSTDate,
-  toKSTDateOnly,
-  todayKST,
+  dateIn,
+  todayIn,
 } from "@/lib/date";
 import { prisma } from "@/lib/prisma";
 import { matchesRule } from "@/lib/routine";
@@ -14,16 +14,17 @@ import { matchesRule } from "@/lib/routine";
 // 과거로 스크롤할 때 미완료 루틴이 우수수 생기면 통계가 망가진다.
 const PAST_LIMIT_DAYS = 30;
 
-type Owner = { id: string; createdAt: Date };
+type Owner = { id: string; createdAt: Date; timezone: string };
 
 /** 그 날짜에 실제로 할 일을 만들어도 되는 구간인가. */
 function isMaterializable(owner: Owner, date: Date): boolean {
-  const today = todayKST();
+  const today = todayIn(owner.timezone);
 
   // 미래는 만들지 않는다. 캘린더를 몇 번 넘기는 것만으로 수천 행이 생긴다.
   if (daysBetween(today, date) > 0) return false;
 
-  const createdAt = toKSTDateOnly(owner.createdAt);
+  // 가입한 날도 그 사람의 시간대로 센다(캐나다에서 가입한 저녁이 서울로는 다음 날이라, 서울로 세면 가입 첫날 루틴이 안 생긴다).
+  const createdAt = dateIn(owner.createdAt, owner.timezone);
   const thirtyDaysAgo = addDays(today, -PAST_LIMIT_DAYS);
   const lowerBound =
     daysBetween(createdAt, thirtyDaysAgo) > 0 ? thirtyDaysAgo : createdAt;

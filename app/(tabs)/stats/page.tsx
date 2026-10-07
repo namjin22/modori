@@ -10,7 +10,7 @@ import {
   formatMonthKST,
   parseKSTMonth,
   startOfMonthKST,
-  todayKST,
+  todayIn,
 } from "@/lib/date";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
@@ -36,7 +36,7 @@ export default async function StatsPage({
   searchParams: Promise<{ month?: string }>;
 }) {
   const user = await requireUser();
-  const today = todayKST();
+  const today = todayIn(user.timezone);
 
   const { month } = await searchParams;
   const monthStart = readMonth(month, today);

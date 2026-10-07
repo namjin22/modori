@@ -5,7 +5,7 @@
  * 수집 항목·보관 위치는 실제 코드와 맞아야 한다. 무엇을 저장하는지(prisma/schema.prisma, lib/auth.ts),
  * 어디에 두는지(docs/gsmsv-migration.md)를 바꾸면 여기도 고친다.
  */
-export const PRIVACY_EFFECTIVE = "2026년 10월 7일";
+export const PRIVACY_EFFECTIVE = "2026년 10월 8일";
 export const PRIVACY_MANAGER = { name: "이남진", email: "penamjin@gmail.com" };
 
 export type PrivacySection = { title: string; items: string[] };
@@ -16,7 +16,7 @@ export const PRIVACY_SECTIONS: PrivacySection[] = [
     items: [
       "로그인할 때: 이메일, 로그인한 계정(Google·DataGSM)의 고유 번호, 로그인을 유지하기 위한 인증 정보. Google·DataGSM이 함께 보내는 이름·사진 주소·로그인 토큰은 저장하지 않아요.",
       "모바일 앱에서 알림을 허용하면: 기기 알림 번호(받은 반응과 새 팔로워를 알리는 데만 써요)",
-      "직접 적는 것: 닉네임, 소개, 프로필 사진(내 사진 또는 고른 캐릭터), 할 일·카테고리·루틴·일정(할 일·일정의 메모 포함), 보낸 반응, 팔로우",
+      "직접 적는 것: 닉네임, 소개, 프로필 사진(내 사진 또는 고른 캐릭터), 시간대(\"오늘\"을 정하려고 고른 나라·도시), 할 일·카테고리·루틴·일정(할 일·일정의 메모 포함), 보낸 반응, 팔로우",
       "가입할 때: 어느 링크로 왔는지 보여 주는 경로 이름(초대 링크에 붙은 표시, 예: discord. 없으면 비워 둬요)",
       "쓰는 동안 자동으로: 로그인 유지용 쿠키, 마지막으로 알림을 본 시각, 개인정보 동의 시각, 모도리를 쓴 날짜(시각 없이 날짜만), 오류가 났을 때의 기록(화면 주소, 오류 내용 첫 줄, 시각)",
       "요청이 한꺼번에 몰리는 것을 막으려고 접속 IP 주소를 서버 메모리에 10분 안쪽으로만 둬요. 파일이나 데이터베이스에 저장하지 않아요.",

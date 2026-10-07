@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { BottomNav } from "@/components/bottom-nav";
 import { PageFrame } from "@/components/page-frame";
 import { PushRegistrar } from "@/components/push-registrar";
+import { TimezoneProvider } from "@/components/timezone-context";
 import { ToastProvider } from "@/components/toast";
 import { countUnreadNotifications, requireUser } from "@/lib/session";
 
@@ -15,11 +16,13 @@ export default async function TabsLayout({ children }: { children: ReactNode }) 
 
   return (
     <ToastProvider>
+      <TimezoneProvider timezone={user.timezone}>
       <PushRegistrar />
       <div className="flex min-h-screen flex-col">
         <PageFrame>{children}</PageFrame>
         <BottomNav unreadNotifications={unreadNotifications} />
       </div>
+      </TimezoneProvider>
     </ToastProvider>
   );
 }

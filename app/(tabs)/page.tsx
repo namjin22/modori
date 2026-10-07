@@ -9,7 +9,7 @@ import {
   parseKSTDate,
   parseKSTMonth,
   startOfMonthKST,
-  todayKST,
+  todayIn,
   weekdayKST,
 } from "@/lib/date";
 import { groupByCategory } from "@/lib/group-by-category";
@@ -47,15 +47,15 @@ import { NO_CATEGORY_COLOR } from "@/lib/colors";
 
 const WEEKDAY_NAMES = ["일", "월", "화", "수", "목", "금", "토"];
 
-function readDate(raw: string | undefined): Date {
-  if (!raw) return todayKST();
+function readDate(raw: string | undefined, today: Date): Date {
+  if (!raw) return today;
 
   try {
     return parseKSTDate(raw);
   } catch (error) {
     // 주소창을 손으로 고친 경우. 오늘로 돌린다.
     console.error("[feed] 날짜 형식이 잘못됐다.", error);
-    return todayKST();
+    return today;
   }
 }
 
@@ -155,8 +155,8 @@ export default async function FeedPage({
 }) {
   const user = await requireUser();
   const params = await searchParams;
-  const date = readDate(params.date);
-  const today = todayKST();
+  const today = todayIn(user.timezone);
+  const date = readDate(params.date, today);
   const isToday = isSameKSTDate(date, today);
   const isPast = daysBetween(today, date) < 0;
   // 할 일 창의 한 번에 옮기기: 지난 날은 오늘로, 오늘·앞날은 다음 날로.

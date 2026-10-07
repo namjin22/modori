@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 
+import { useTimezone } from "@/components/timezone-context";
 import { Modal } from "@/components/modal";
 import {
   addDays,
@@ -9,7 +10,7 @@ import {
   formatKST,
   parseKSTDate,
   startOfMonthKST,
-  todayKST,
+  todayIn,
   weekdayKST,
 } from "@/lib/date";
 
@@ -103,7 +104,7 @@ function PickerBody({
   clearable: boolean;
   onChoose: (value: string) => void;
 }) {
-  const today = todayKST();
+  const today = todayIn(useTimezone());
   const selected = longLabel(current) ? current : "";
   // 처음에는 고른 날이 있는 달, 없으면 이번 달을 보여준다.
   const [view, setView] = useState(() => startOfMonthKST(selected ? parseKSTDate(selected) : today));

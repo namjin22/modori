@@ -7,7 +7,7 @@ import { MarkNotificationsSeen, NewMark, NotificationRow } from "@/components/no
 import { ReactionGlyph } from "@/components/reaction-glyph";
 import { SubmitButton } from "@/components/submit-button";
 import { avatarUrl } from "@/lib/avatar";
-import { formatMonthDayKST } from "@/lib/date";
+import { dateIn, formatMonthDayKST } from "@/lib/date";
 import { prisma } from "@/lib/prisma";
 import { labelOfReaction } from "@/lib/reactions";
 import { requireUser } from "@/lib/session";
@@ -95,7 +95,7 @@ export default async function NotificationsPage() {
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-semibold">{person.nickname}</p>
                     <p className="truncate text-xs text-muted">
-                      나를 팔로우했어요 · {formatMonthDayKST(item.at)}
+                      나를 팔로우했어요 · {formatMonthDayKST(dateIn(item.at, user.timezone))}
                     </p>
                   </div>
                   {newMark}
