@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { BackLink } from "@/components/back-link";
 import { TermsOfService } from "@/components/terms-of-service";
 
-export const metadata: Metadata = { title: "이용약관 · 모도리" };
+export const metadata: Metadata = { title: "이용약관 · 모도리", alternates: { canonical: "/terms" } };
 
 // 개인정보처리방침처럼 로그인하지 않아도 볼 수 있다.
 export default function TermsPage() {

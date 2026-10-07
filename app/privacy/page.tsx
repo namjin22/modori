@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { BackLink } from "@/components/back-link";
 import { PrivacyPolicy } from "@/components/privacy-policy";
 
-export const metadata: Metadata = { title: "개인정보처리방침 · 모도리" };
+export const metadata: Metadata = { title: "개인정보처리방침 · 모도리", alternates: { canonical: "/privacy" } };
 
 // 로그인하지 않아도 볼 수 있어야 한다. 가입하기 전에 읽는 글이다.
 export default function PrivacyPage() {
