@@ -5,6 +5,7 @@ import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
+import { signOut } from "@/lib/auth";
 import { safeNext } from "@/lib/next-path";
 
 import {
@@ -95,3 +96,12 @@ export async function saveNickname(
   // 친구가 보낸 링크로 처음 가입했으면 그 화면으로 보낸다.
   redirect(safeNext(formData.get("next")) ?? "/");
 }
+
+/**
+ * 닉네임을 정하기 전에 이 계정을 빠져나간다. 가입을 마치지 않은 계정은 어느 화면으로 가도 이 화면으로 돌아와서
+ * (requireUser), 다른 계정으로 로그인하려는 사람이 갇혔다. switch=1은 로그인 화면이 Google 계정 선택 창을 띄우게 한다.
+ */
+export async function leaveOnboarding() {
+  await signOut({ redirectTo: "/login?switch=1" });
+}
+

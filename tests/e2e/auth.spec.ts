@@ -133,3 +133,25 @@ test.describe("개인정보 동의", () => {
     await expect(page.getByText("Neon(미국 오하이오)", { exact: false })).toBeVisible();
   });
 });
+
+test("닉네임을 정하기 전에도 로그아웃하고 다른 계정으로 로그인할 수 있다", async ({ page }) => {
+  const email = `e2e-onboard-out-${RUN_TAG}@modori.test`;
+  try {
+    await page.goto("/login");
+    await page.getByLabel("테스트 이메일").fill(email);
+    await page.getByRole("button", { name: "테스트 로그인" }).click();
+    await expect(page.getByPlaceholder("닉네임")).toBeVisible();
+    // 어느 화면으로 가도 가입 화면으로 돌아온다(그래서 빠져나갈 길이 있어야 한다).
+    await page.goto("/");
+    await expect(page).toHaveURL(/\/onboarding/);
+
+    await page.getByRole("button", { name: "로그아웃하고 다른 계정으로 로그인" }).click();
+    await expect(page).toHaveURL(/\/login\?switch=1/);
+    await expect(page.getByLabel("테스트 이메일")).toBeVisible();
+    // 로그아웃됐으니 이 화면에서 다시 로그인 화면으로 튕기지 않고, 보호된 화면은 로그인으로 보낸다.
+    await page.goto("/feed");
+    await expect(page).toHaveURL(/\/login/);
+  } finally {
+    await prisma.user.deleteMany({ where: { email } });
+  }
+});

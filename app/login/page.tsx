@@ -23,9 +23,9 @@ const ERROR_MESSAGES: Record<string, string> = {
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; next?: string }>;
+  searchParams: Promise<{ error?: string; next?: string; switch?: string }>;
 }) {
-  const { error, next: rawNext } = await searchParams;
+  const { error, next: rawNext, switch: switchAccount } = await searchParams;
   // 로그인 뒤에 돌아갈 곳. 친구가 보낸 링크를 로그인 전에 열었으면 그 화면이다.
   const next = safeNext(rawNext) ?? "/";
 
@@ -106,7 +106,8 @@ export default async function LoginPage({
             <form
               action={async () => {
                 "use server";
-                await signIn("google", { redirectTo: next });
+                // 계정을 바꾸러 온 사람(온보딩에서 로그아웃)은 Google이 이전 계정으로 바로 들어가지 않게 계정 선택 창을 띄운다.
+                await signIn("google", { redirectTo: next }, switchAccount === "1" ? { prompt: "select_account" } : undefined);
               }}
             >
               <button
