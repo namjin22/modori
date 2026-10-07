@@ -38,7 +38,7 @@ export function OnboardingForm({ next }: { next: string | null }) {
         const input = event.currentTarget.elements.namedItem("source");
         if (input instanceof HTMLInputElement) input.value = readSource();
       }}
-      className="flex flex-col gap-4"
+      className="flex flex-col gap-8"
     >
       {next && <input type="hidden" name="next" value={next} />}
       <input type="hidden" name="source" defaultValue="" />
@@ -78,7 +78,7 @@ export function OnboardingForm({ next }: { next: string | null }) {
         </button>
       </div>
       {/* 만 14세 미만도 가입할 수 있다. 법에 따라 개인정보 처리에는 보호자 동의가 필요해서 먼저 알린다. */}
-      <p className="-mt-1 px-1 text-xs text-muted">만 14세 미만이면 보호자의 동의를 받은 뒤 가입해 주세요.</p>
+      <p className="-mt-4 px-1 text-xs leading-relaxed text-muted">만 14세 미만이면 보호자의 동의를 받은 뒤 가입해 주세요.</p>
 
       <Modal open={reading} onClose={() => setReading(false)} title="개인정보 수집·이용 동의">
         <PrivacyPolicy />
@@ -103,7 +103,7 @@ export function OnboardingForm({ next }: { next: string | null }) {
       <SubmitButton
         pending={pending}
         pendingLabel="확인 중"
-        className="h-14 rounded-2xl bg-brand text-base font-semibold text-brand-contrast"
+        className="mt-2 h-14 rounded-2xl bg-brand text-base font-semibold text-brand-contrast"
       >
         시작하기
       </SubmitButton>
