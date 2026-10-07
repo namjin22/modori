@@ -205,21 +205,22 @@ export default async function FriendDayPage({
             {friend.bio && (
               <p className="truncate text-sm text-muted">{friend.bio}</p>
             )}
-            <p className="mt-0.5 flex items-center gap-3 text-xs text-muted">
-              <Link prefetch={false} href={`${basePath}/following`} className="hover:text-foreground">
+            {/* 좁은 화면에서는 줄이 바뀌어 버튼이 다음 줄로 내려간다. 글자가 한 글자씩 꺾이지 않게 각 조각은 한 덩어리로 둔다. */}
+            <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-muted">
+              <Link prefetch={false} href={`${basePath}/following`} className="whitespace-nowrap hover:text-foreground">
                 팔로우 <b className="font-semibold text-foreground">{friend._count.following}</b>
               </Link>
-              <Link prefetch={false} href={`${basePath}/followers`} className="hover:text-foreground">
+              <Link prefetch={false} href={`${basePath}/followers`} className="whitespace-nowrap hover:text-foreground">
                 팔로워 <b className="font-semibold text-foreground">{friend._count.followers}</b>
               </Link>
               {/* 이미 팔로우한 사람이라 여기서 바로 끊을 수 있다. 끊으면 이 화면이 팔로우 안내로 바뀐다. */}
-              <form action={unfollowUser} className="ml-auto">
+              <form action={unfollowUser}>
                 <input type="hidden" name="targetId" value={friend.id} />
-                <SubmitButton pendingLabel="처리 중" className="h-7 rounded-full bg-surface px-3 text-xs font-medium text-muted">
+                <SubmitButton pendingLabel="처리 중" className="h-7 whitespace-nowrap rounded-full bg-surface px-3 text-xs font-medium text-muted">
                   언팔로우
                 </SubmitButton>
               </form>
-            </p>
+            </div>
           </div>
           {/* 좁은 화면에서 달력 버튼 하나가 한 줄을 차지하지 않게 이름 옆에 둔다. */}
           <Link prefetch={false}
