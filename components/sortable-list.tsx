@@ -35,7 +35,7 @@ export type SortableItem = {
 };
 
 /**
- * todo: 할 일 줄처럼 바탕 없이 평평하게, 넓은 화면에서는 손잡이를 올렸을 때만 보인다.
+ * todo: 할 일 줄처럼 바탕 없이 평평하게. 손잡이는 늘 보이되 흐리고, 올리면 또렷해진다.
  * card: 카테고리처럼 줄마다 카드이고 손잡이가 늘 보인다.
  */
 export type Variant = "todo" | "card";
@@ -71,9 +71,10 @@ export function SortableRow({
         <button
           type="button"
           aria-label="순서 바꾸기 손잡이"
-          // 넓은 화면에서는 마우스를 올렸을 때만 드러낸다. 손가락에는 올림이 없으니 늘 보인다.
-          className={`flex w-6 shrink-0 cursor-grab touch-none justify-center py-2.5 text-muted active:cursor-grabbing ${
-            card ? "" : "self-start lg:opacity-0 lg:group-hover/row:opacity-100 lg:focus-visible:opacity-100"
+          // 마우스를 올려야만 보이면 PC 사용자는 끌 수 있다는 것을 모른다(커서만 바뀐다). 늘 보이되 흐리게 두고, 올리면 또렷해진다.
+          title="끌어서 순서 바꾸기"
+          className={`flex w-6 shrink-0 cursor-grab touch-none justify-center rounded-lg py-2.5 text-muted/60 transition-colors hover:bg-surface-hover hover:text-foreground focus-visible:text-foreground active:cursor-grabbing ${
+            card ? "" : "self-start"
           }`}
           {...attributes}
           {...listeners}
