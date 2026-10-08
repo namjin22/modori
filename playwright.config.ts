@@ -20,7 +20,8 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? "github" : "list",
-  use: { baseURL, trace: "on-first-retry" },
+  // 브라우저(기기) 시간대는 서울로 고정한다. 시험하는 사람의 PC 시간대가 달라도 "시간대 안내" 카드(기기와 저장된 시간대가 다르면 뜸)가 끼어들지 않게 한다.
+  use: { baseURL, trace: "on-first-retry", timezoneId: "Asia/Seoul" },
   // 기본 5초는 이 앱에 빠듯하다. DB가 싱가포르에 있어 개발 PC에서는 질의 하나가
   // 90ms, 한 화면이 대여섯 번 오간다. 무엇을 확인하는지는 그대로 두고 여유만 준다.
   expect: { timeout: 10_000 },

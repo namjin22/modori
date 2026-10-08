@@ -11,6 +11,7 @@ import { Modal } from "@/components/modal";
 import { PrivacyPolicy } from "@/components/privacy-policy";
 import { SubmitButton } from "@/components/submit-button";
 import { useFormAction } from "@/components/use-form-action";
+import { deviceTimezone } from "@/lib/device-timezone";
 import { SOURCE_KEY } from "@/lib/signup-source";
 
 function readSource(): string {
@@ -37,10 +38,14 @@ export function OnboardingForm({ next }: { next: string | null }) {
       onSubmitCapture={(event) => {
         const input = event.currentTarget.elements.namedItem("source");
         if (input instanceof HTMLInputElement) input.value = readSource();
+        // 기기의 시간대를 같이 보낸다. 서버는 목록에 있을 때만 받는다(없으면 서울).
+        const zone = event.currentTarget.elements.namedItem("timezone");
+        if (zone instanceof HTMLInputElement) zone.value = deviceTimezone();
       }}
       className="flex flex-col gap-8"
     >
       {next && <input type="hidden" name="next" value={next} />}
+      <input type="hidden" name="timezone" defaultValue="" />
       <input type="hidden" name="source" defaultValue="" />
       <input
         name="nickname"

@@ -18,6 +18,7 @@ import { prisma } from "@/lib/prisma";
 import { isCharacterId } from "@/lib/characters";
 import { isProfileImage } from "@/lib/profile-image";
 import { parseSource } from "@/lib/signup-source";
+import { isAllowedTimezone } from "@/lib/timezones";
 import { getCurrentUser } from "@/lib/session";
 
 // 빈 화면으로 시작하면 무엇부터 해야 할지 모른다. 지우거나 바꿀 수 있는 기본값을 하나 준다.
@@ -57,6 +58,8 @@ export async function saveNickname(
 
   // 가입 경로는 링크에 붙은 정해진 모양의 이름만 받는다. 모양이 틀리면 버리고(경로 모름) 가입은 그대로 진행한다.
   const signupSource = parseSource(formData.get("source"));
+  // 가입하는 기기의 시간대를 "오늘"의 기본으로 쓴다. 목록 밖이거나 비었으면 서울(열의 기본값)로 둔다.
+  const timezone = formData.get("timezone");
 
   if (await isNicknameTaken(nickname, userId)) {
     return { message: "이미 쓰고 있는 닉네임이에요. 다른 이름으로 해주세요." };
@@ -66,7 +69,7 @@ export async function saveNickname(
     // 언제 동의했는지 남긴다. 방침이 바뀌면 이 시각과 시행일을 견줘 다시 물을 수 있다.
     await prisma.user.update({
       where: { id: userId },
-      data: { nickname, privacyAgreedAt: new Date(), ...(signupSource && { signupSource }), ...(profileImage && { profileImage }), ...(characterValue && { avatarCharacter: characterValue }) },
+      data: { nickname, privacyAgreedAt: new Date(), ...(signupSource && { signupSource }), ...(isAllowedTimezone(timezone) && { timezone }), ...(profileImage && { profileImage }), ...(characterValue && { avatarCharacter: characterValue }) },
     });
   } catch (error) {
     // 같은 순간에 같은 이름으로 둘이 저장하면 여기서 걸린다.

@@ -4,19 +4,8 @@ import { useOptimistic, useSyncExternalStore, useTransition } from "react";
 
 import { setTimezone } from "@/app/(tabs)/settings/actions";
 import { useSaveFailure } from "@/components/use-save-failure";
+import { deviceTimezone, subscribeNothing } from "@/lib/device-timezone";
 import { isAllowedTimezone, TIMEZONES } from "@/lib/timezones";
-
-const subscribeNothing = () => () => undefined;
-
-/** 이 기기가 쓰는 시간대. 서버에는 없어서 처음 그릴 때는 빈 값이다(그 뒤 한 번 맞춘다). */
-function deviceTimezone(): string {
-  try {
-    return Intl.DateTimeFormat().resolvedOptions().timeZone;
-  } catch (error) {
-    console.warn("[timezone] 기기 시간대를 읽지 못했다.", error instanceof Error ? error.name : error);
-    return "";
-  }
-}
 
 /**
  * 나라·도시로 시간대를 고른다. 고르면 바로 저장되고 모든 화면의 "오늘"이 그 기준으로 바뀐다.

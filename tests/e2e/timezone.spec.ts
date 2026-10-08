@@ -81,3 +81,51 @@ test("목록에 없는 시간대는 서버가 받지 않는다", async ({ page }
   await page.waitForTimeout(1500);
   expect((await prisma.user.findUniqueOrThrow({ where: { id: me.id } })).timezone).toBe("Asia/Seoul");
 });
+
+// ---- 해외에 사는 사람이 설정을 못 찾는 문제(캐나다 친구가 하루 어긋난 채 썼다): 기기 시간대가 다르면 먼저 물어본다.
+test.describe("기기 시간대가 저장된 시간대와 다를 때", () => {
+  test.use({ timezoneId: "America/Toronto" });
+
+  test("안내 카드의 '맞추기'를 누르면 저장되고 오늘이 그 시간대 기준이 된다", async ({ page }) => {
+    await signUp(page);
+    // 가입할 때 기기 시간대(토론토)가 기본으로 저장되므로, 안내가 뜨는 상황(저장은 서울)을 만든다.
+    await prisma.user.update({ where: { email: EMAIL }, data: { timezone: "Asia/Seoul" } });
+    await page.goto("/");
+
+    const card = page.getByRole("region", { name: "시간대 안내" });
+    await expect(card).toContainText("토론토");
+    await card.getByRole("button", { name: "맞추기" }).click();
+    await expect(card).toHaveCount(0);
+    await expect.poll(async () => (await prisma.user.findUniqueOrThrow({ where: { email: EMAIL } })).timezone).toBe("America/Toronto");
+    await page.goto("/");
+    await expect(page.getByRole("heading", { name: heading("America/Toronto"), level: 1 })).toBeVisible();
+    // 같은 시간대이므로 다시 묻지 않는다.
+    await expect(page.getByRole("region", { name: "시간대 안내" })).toHaveCount(0);
+  });
+
+  test("'지금 그대로'를 누르면 시간대는 그대로이고 같은 기기에서는 다시 묻지 않는다", async ({ page }) => {
+    await signUp(page);
+    await prisma.user.update({ where: { email: EMAIL }, data: { timezone: "Asia/Seoul" } });
+    await page.goto("/");
+    await page.getByRole("region", { name: "시간대 안내" }).getByRole("button", { name: "지금 그대로" }).click();
+    await expect(page.getByRole("region", { name: "시간대 안내" })).toHaveCount(0);
+    await page.reload();
+    await expect(page.getByRole("heading", { name: heading("Asia/Seoul"), level: 1 })).toBeVisible();
+    await expect(page.getByRole("region", { name: "시간대 안내" })).toHaveCount(0);
+    expect((await prisma.user.findUniqueOrThrow({ where: { email: EMAIL } })).timezone).toBe("Asia/Seoul");
+  });
+
+  test("새로 가입하면 기기 시간대가 기본으로 저장되어 안내가 뜨지 않는다", async ({ page }) => {
+    await signUp(page);
+    expect((await prisma.user.findUniqueOrThrow({ where: { email: EMAIL } })).timezone).toBe("America/Toronto");
+    await expect(page.getByRole("heading", { name: heading("America/Toronto"), level: 1 })).toBeVisible();
+    await expect(page.getByRole("region", { name: "시간대 안내" })).toHaveCount(0);
+  });
+});
+
+test("기기 시간대가 목록에 없거나 서울이면 안내하지 않고 서울로 가입된다", async ({ page }) => {
+  await signUp(page);
+  expect((await prisma.user.findUniqueOrThrow({ where: { email: EMAIL } })).timezone).toBe("Asia/Seoul");
+  await page.goto("/");
+  await expect(page.getByRole("region", { name: "시간대 안내" })).toHaveCount(0);
+});
