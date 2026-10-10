@@ -100,3 +100,29 @@ test("운영자가 아니면 사용자 화면은 없는 주소다", async ({ pag
   await page.goto("/settings");
   await expect(page.getByRole("link", { name: "사용자", exact: true })).toHaveCount(0);
 });
+
+test("운영자가 뺀 사람은 본인 스위치와 상관없이 추천에 나오지 않는다", async ({ page, browser }) => {
+  await prisma.user.deleteMany({ where: { email: { in: emails } } });
+  const other = await browser.newContext();
+  await signUp(await other.newPage(), emails[1], `운영제외${RUN_TAG}`);
+  await other.close();
+  await signUp(page, emails[0], `보는이${RUN_TAG}`);
+  const me = await prisma.user.findUniqueOrThrow({ where: { email: emails[0] } });
+  const them = await prisma.user.findUniqueOrThrow({ where: { email: emails[1] } });
+  const ids = async () => (await recommendPeople(me.id, "seed", 1000)).map((person) => person.id);
+
+  expect(await ids()).toContain(them.id);
+  // 본인 스위치는 "추천에 나오기"(hideFromRecommend=false)인 채로, 운영자가 뺀다.
+  await prisma.user.update({ where: { id: them.id }, data: { recommendBlocked: true } });
+  expect((await prisma.user.findUniqueOrThrow({ where: { id: them.id } })).hideFromRecommend).toBe(false);
+  expect(await ids()).not.toContain(them.id);
+
+  // 본인이 스위치를 꺼 뒀다 켜도(되돌려도) 여전히 나오지 않는다. 닉네임 검색에는 나온다.
+  await prisma.user.update({ where: { id: them.id }, data: { hideFromRecommend: true } });
+  await prisma.user.update({ where: { id: them.id }, data: { hideFromRecommend: false } });
+  expect(await ids()).not.toContain(them.id);
+  await page.goto("/feed/search");
+  await page.getByLabel("닉네임 검색").fill(`운영제외${RUN_TAG}`);
+  await page.getByRole("button", { name: "검색" }).click();
+  await expect(page.getByText(`운영제외${RUN_TAG}`, { exact: true })).toBeVisible();
+});
