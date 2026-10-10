@@ -36,7 +36,7 @@ export function usersToCsv(rows: UserRow[]): string {
         row.providers.join("+"),
         row.profile,
         row.character,
-        row.hideFromRecommend ? 1 : 0,
+        row.hideFromRecommend || row.recommendBlocked ? 1 : 0,
         row.lastActive ? formatKST(row.lastActive) : "",
         row.activeDays,
         row.todos,

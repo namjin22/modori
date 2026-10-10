@@ -41,7 +41,7 @@ export default async function AdminUsersPage({
   const noTodo = all.filter((row) => row.todos === 0).length;
   const noFollow = all.filter((row) => row.following === 0).length;
   const active7 = all.filter((row) => row.active7).length;
-  const hidden = all.filter((row) => row.hideFromRecommend).length;
+  const hidden = all.filter((row) => row.hideFromRecommend || row.recommendBlocked).length;
   const pushOn = all.filter((row) => row.pushDevices > 0).length;
 
   return (
@@ -144,8 +144,8 @@ export default async function AdminUsersPage({
                 </td>
                 <td>{row.profile === "photo" ? "사진" : row.character}</td>
                 <td>{row.pushDevices > 0 ? row.pushDevices : "–"}</td>
-                <td className={row.hideFromRecommend ? "text-danger" : "text-muted"}>
-                  {row.hideFromRecommend ? "뺌" : "나옴"}
+                <td className={row.hideFromRecommend || row.recommendBlocked ? "text-danger" : "text-muted"}>
+                  {row.recommendBlocked ? "운영자가 뺌" : row.hideFromRecommend ? "뺌" : "나옴"}
                 </td>
               </tr>
             ))}
@@ -160,8 +160,8 @@ export default async function AdminUsersPage({
         </table>
       </div>
       <p className="text-xs text-muted">
-        개수와 날짜만 보여요. 할 일·메모·소개 같은 내용은 이 화면에 나오지 않아요. 추천 &quot;뺌&quot;은 그 사람이 마이페이지에서 끈 것이거나 운영자가 뺀
-        것이에요. CSV에는 닉네임·이메일이 들어 있지 않아요.
+        개수와 날짜만 보여요. 할 일·메모·소개 같은 내용은 이 화면에 나오지 않아요. 추천 &quot;뺌&quot;은 그 사람이 마이페이지에서 끈 것이고, &quot;운영자가 뺌&quot;은 본인 설정과 상관없이 빠진 것이에요.
+        CSV에는 닉네임·이메일이 들어 있지 않아요.
       </p>
     </div>
   );

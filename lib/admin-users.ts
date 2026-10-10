@@ -13,6 +13,7 @@ export type UserRow = {
   profile: "photo" | "character";
   character: string;
   hideFromRecommend: boolean;
+  recommendBlocked: boolean;
   lastActive: Date | null;
   activeDays: number;
   active7: boolean;
@@ -67,6 +68,7 @@ export async function loadUserRows(query: string): Promise<UserRow[]> {
         profileImage: true,
         avatarCharacter: true,
         hideFromRecommend: true,
+        recommendBlocked: true,
         accounts: { select: { provider: true } },
         _count: {
           select: {
@@ -106,6 +108,7 @@ export async function loadUserRows(query: string): Promise<UserRow[]> {
       profile: user.profileImage ? "photo" : "character",
       character: user.avatarCharacter ?? "dori",
       hideFromRecommend: user.hideFromRecommend,
+      recommendBlocked: user.recommendBlocked,
       lastActive,
       activeDays: user._count.activeDays,
       active7: lastActive !== null && lastActive >= weekAgo,
