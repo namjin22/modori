@@ -161,7 +161,8 @@ test("반응을 누르면 개수가 오르고 다시 누르면 취소된다", as
   // 칩을 누르면 같이 눌러지는 게 아니라 누가 눌렀는지 보인다. 반응은 그대로다.
   await chip.click();
   const who = page.getByRole("dialog", { name: "누가 눌렀어요" });
-  await expect(who).toContainText("좋아요");
+  // 반응 이름 글자는 빼 달라는 요청으로 화면에서 없앴다. 그림(👍)과 개수가 보인다.
+  await expect(who).toContainText("👍");
   await expect(who).toContainText("나");
   await page.keyboard.press("Escape");
   await expect(chip).toBeVisible();
@@ -297,7 +298,7 @@ test("친구가 보낸 반응은 내 홈 화면의 그 할 일 밑에 보인다"
   // 칩을 누르면 누가 보냈는지 창으로 보인다.
   await row.getByRole("button", { name: "불타요 1개, 누가 보냈는지 보기" }).click();
   const dialog = page.getByRole("dialog", { name: "받은 반응" });
-  await expect(dialog).toContainText("불타요");
+  await expect(dialog).toContainText("🔥");
   await expect(dialog).toContainText(accounts.friend.nickname);
   await expect(
     page.getByRole("listitem").filter({ hasText: "반응 없는 일" }).getByRole("list", { name: "받은 반응" }),
@@ -351,6 +352,13 @@ test("반응 창의 캐릭터 탭에서 다른 캐릭터의 표정도 보낼 수
   await expect(dialog.getByRole("tabpanel").getByRole("button")).toHaveCount(10);
   await dialog.getByRole("button", { name: "몽이 표정 7", exact: true }).click();
   await expect(page.getByRole("button", { name: /^몽이 표정 7 1개, 내가 누름/ })).toBeVisible();
+  // 반응의 이름("몽이 표정 7")은 눈에 보이는 글자로 나오지 않는다(요청). 칩을 눌러 연 창에도 개수만 있다.
+  await page.getByRole("button", { name: /^몽이 표정 7 1개/ }).click();
+  const who = page.getByRole("dialog", { name: "누가 눌렀어요" });
+  await expect(who).toBeVisible();
+  await expect(who).toContainText("1개");
+  await expect(who).not.toContainText("표정");
+  await page.keyboard.press("Escape");
   // 저장은 화면이 바뀐 뒤에 끝난다.
   await expect
     .poll(() => prisma.reaction.count({ where: { emoji: "mong:pant", user: { email: accounts.me.email } } }))

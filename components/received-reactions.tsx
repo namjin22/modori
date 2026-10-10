@@ -48,9 +48,8 @@ export function ReceivedReactions({ received }: { received: ReceivedReaction[] }
                 <ReactionGlyph value={emoji} size={28} />
               </span>
               <div className="min-w-0 flex-1 pt-0.5">
-                <p className="text-sm font-semibold">
-                  {labelOfReaction(emoji)} <span className="font-normal text-muted">{count}개</span>
-                </p>
+                {/* 반응의 이름("펭이 표정 7" 같은 번호)은 화면에 보이지 않는다(요청). 그림과 개수만 보인다. 이름은 화면 읽기용 aria-label에만 있다. */}
+                <p className="text-sm font-semibold">{count}개</p>
                 <p className="text-sm text-muted">{names.length > 0 ? names.join(", ") : "지운 계정"}</p>
               </div>
             </li>

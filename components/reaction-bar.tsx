@@ -133,9 +133,8 @@ export function ReactionBar({
                 <ReactionGlyph value={emoji} size={28} />
               </span>
               <div className="min-w-0 flex-1 pt-0.5">
-                <p className="text-sm font-semibold">
-                  {labelOfReaction(emoji)} <span className="font-normal text-muted">{count}개</span>
-                </p>
+                {/* 반응의 이름("펭이 표정 7" 같은 번호)은 화면에 보이지 않는다(요청). 그림과 개수만 보인다. 이름은 화면 읽기용 aria-label에만 있다. */}
+                <p className="text-sm font-semibold">{count}개</p>
                 <p className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm text-muted">
                   {mine && (
                     // 내가 누른 것은 여기서 "나"를 눌러 취소한다. 칩을 누르는 것은 보기만 한다.
@@ -182,7 +181,7 @@ export function ReactionBar({
           <ul role="tabpanel" aria-label="이모지" className="grid grid-cols-4 gap-2">
             {REACTIONS.map(({ emoji, label }) => (
               <li key={emoji}>
-                <PickButton label={label} name={label} mine={isMine(emoji)} onPick={() => pick(emoji)}>
+                <PickButton label={label} mine={isMine(emoji)} onPick={() => pick(emoji)}>
                   <span aria-hidden className="text-2xl leading-none">
                     {emoji}
                   </span>
@@ -234,7 +233,7 @@ function PickTab({
   );
 }
 
-/** 고르는 창의 칸 하나. 이모지는 그림 아래에 짧은 이름을 적고, 캐릭터 표정은 이름을 붙이지 않는다. */
+/** 고르는 창의 칸 하나. 반응의 이름은 화면에 적지 않는다(화면 읽기용 aria-label에만 있다). */
 function PickButton({
   label,
   name,
