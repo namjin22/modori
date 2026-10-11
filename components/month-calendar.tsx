@@ -6,6 +6,7 @@ import type { ReactNode } from "react";
 
 import {
   addMonths,
+  daysBetween,
   daysInMonthKST,
   formatKST,
   formatMonthKST,
@@ -46,12 +47,15 @@ export function MonthCalendar({
   dayHref,
   monthHref,
   compact = false,
+  eagerDays,
   editableEvents = false,
 }: {
   // 내 달력에서만 일정 이름표를 끌어 기간을 바꾼다.
   editableEvents?: boolean;
   // 친구 화면처럼 일정 이름이 들어가지 않는 곳에서는 칸을 낮춰 한눈에 보이게 한다.
   compact?: boolean;
+  // 고른 날 앞뒤 며칠을 보이자마자 미리 받을지. 주간 줄을 없애고 달력만 두면서(폰) 가까운 날로 옮기는 것이 다시 느려지지 않게 한다.
+  eagerDays?: number;
   monthStart: Date;
   selected: Date;
   today: Date;
@@ -145,13 +149,15 @@ export function MonthCalendar({
               <IntentLink
                 key={key}
                 href={dayHref(key)}
+                // 고른 날 자신은 이미 보고 있는 화면이라 받지 않는다.
+                eager={eagerDays !== undefined && Math.abs(daysBetween(selected, day)) > 0 && Math.abs(daysBetween(selected, day)) <= eagerDays}
                 // 한 달치 날짜 칸이 서른 개라 보이는 대로 미리 받지 않고, 손가락·마우스가 닿는 순간 받는다(IntentLink).
                 aria-label={`${day.getUTCDate()}일, 완료 ${doneColors.length > 0 ? "있음" : "없음"}`}
                 aria-describedby={events.length ? `calendar-events-${key}` : undefined}
                 aria-current={isSelected ? "date" : undefined}
                 data-date={key}
                 // 일정 이름표를 끄는 동안 바뀔 기간의 칸(EventDragGrid가 붙인다).
-                className={`relative flex flex-col items-center gap-0.5 rounded-lg px-0.5 py-1 transition-colors hover:bg-surface-hover data-[drag-range]:bg-brand-subtle data-[drag-range]:ring-1 data-[drag-range]:ring-brand/50 ${compact ? "min-h-10" : "min-h-16"}`}
+                className={`relative flex flex-col items-center gap-0.5 rounded-lg px-0.5 py-1 transition-colors hover:bg-surface-hover data-[drag-range]:bg-brand-subtle data-[drag-range]:ring-1 data-[drag-range]:ring-brand/50 ${compact ? "min-h-10" : "min-h-12 sm:min-h-16"}`}
               >
                 <span
                   className={`flex size-6 items-center justify-center rounded-full text-xs ${

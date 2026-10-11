@@ -36,6 +36,8 @@ async function signInAndOnboard(page: Page, email: string, nickname: string) {
 
 /** 손가락을 from에 대고 to까지 천천히 끈 뒤 뗀다. */
 async function touchDrag(page: Page, from: Locator, to: Locator, dy = 0) {
+  // 폰 화면에 한 달 달력이 늘 있어 목록이 화면 아래에 있을 수 있다. 사람처럼 먼저 그 줄까지 스크롤한다.
+  await from.scrollIntoViewIfNeeded();
   const a = await from.boundingBox();
   const b = await to.boundingBox();
   if (!a || !b) throw new Error("끌 곳을 찾지 못했다");

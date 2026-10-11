@@ -33,10 +33,8 @@ import {
 } from "@/components/month-calendar";
 import { ScheduledRoutineRow } from "@/components/scheduled-routine-row";
 import { TodoBoard } from "@/components/todo-board";
-import { CalendarIcon } from "@/components/tab-icons";
 import { TodoRow } from "@/components/todo-row";
 import { TodoProgress } from "@/components/todo-progress";
-import { WeekStrip } from "@/components/week-strip";
 
 import { Avatar } from "@/components/avatar";
 import { avatarUrl } from "@/lib/avatar";
@@ -165,23 +163,13 @@ export default async function FeedPage({
     : { label: isToday ? "내일 하기" : "다음 날에 하기", target: formatKST(addDays(date, 1)) };
   const monthStart = readMonth(params.month, date);
 
-  // 좁은 화면에서는 주간 줄이 기본이고, 달력은 눌렀을 때만 편다.
-  // 넓은 화면에서는 이 값과 상관없이 왼쪽에 늘 달력이 있다.
-  const monthOpen = params.view === "month";
-  const viewQuery = monthOpen ? "&view=month" : "";
-  const dayHref = (key: string) => `/?date=${key}${viewQuery}`;
-  const monthHref = (month: string) =>
-    `/?date=${formatKST(date)}&month=${month}${viewQuery}`;
-  const toggleHref = monthOpen
-    ? `/?date=${formatKST(date)}`
-    : `/?date=${formatKST(date)}&view=month`;
+  // 한 달 달력을 모든 화면 폭에서 늘 보인다. 예전에는 좁은 화면에서 주간 줄이 기본이고 달력은 눌러야 폈는데,
+  // 폰 사용자가 "주 단위 말고 달 단위로 넘기고 싶다"고 해서 바꿨다(docs/decisions.md). 예전 주소의 view=month는 무시한다.
+  const dayHref = (key: string) => `/?date=${key}`;
+  const monthHref = (month: string) => `/?date=${formatKST(date)}&month=${month}`;
 
   // 이 날짜를 여는 순간 루틴 할 일이 없으면 만든다. 미래 날짜에는 만들지 않는다.
   await ensureRoutineTodos(user, date);
-
-  // 이번 주 일요일부터 토요일까지. 주간 줄에 쓴다.
-  const weekStart = addDays(date, -weekdayKST(date));
-  const weekEnd = addDays(weekStart, 6);
 
   const monthEnd = endOfMonthKST(monthStart);
 
@@ -189,7 +177,6 @@ export default async function FeedPage({
     todos,
     categories,
     scheduled,
-    weekTodos,
     monthTodos,
     dayEvents,
     monthEvents,
@@ -214,12 +201,6 @@ export default async function FeedPage({
         select: { id: true, name: true, color: true, isPublic: true },
       }),
       listScheduledRoutines(user.id, date),
-      prisma.todo.findMany({
-        where: { userId: user.id, date: { gte: weekStart, lte: weekEnd } },
-        // 끝낸 순서대로. 날짜 밑 고양이가 끝낸 차례로 위에서부터 채워진다(components/day-fill.tsx).
-        orderBy: [{ doneAt: { sort: "asc", nulls: "last" } }, { order: "asc" }],
-        select: RANGE_SELECT,
-      }),
       prisma.todo.findMany({
         where: {
           userId: user.id,
@@ -261,18 +242,6 @@ export default async function FeedPage({
       }),
     ]);
 
-  const weekSummaries = summarizeByDate(weekTodos);
-  const weekDays = Array.from({ length: 7 }, (_, index) => {
-    const day = addDays(weekStart, index);
-    const summary = weekSummaries.get(formatKST(day));
-    return {
-      date: day,
-      total: summary?.total ?? 0,
-      done: summary?.doneColors.length ?? 0,
-      doneColors: summary?.doneColors ?? [],
-    };
-  });
-
   // 투두메이트처럼 카테고리마다 칩과 +를 두고, 할 일이 없는 카테고리도 보여준다.
   // 끝낸 일은 묶음 아래로 내린다(남은 일이 위에 모인다). 같은 쪽 안에서는 원래 순서를 지킨다(sort는 안정 정렬).
   const undoneCount = todos.filter((todo) => !todo.done).length;
@@ -306,8 +275,9 @@ export default async function FeedPage({
           </span>
         </Link>
 
-        <div className={monthOpen ? "" : "hidden lg:block"}>
+        <div>
           <MonthCalendar
+            eagerDays={3}
             monthStart={monthStart}
             selected={date}
             today={today}
@@ -324,7 +294,7 @@ export default async function FeedPage({
       <div id="day-list" tabIndex={-1} className="flex flex-col gap-6 outline-none lg:pb-12">
         <header className="flex items-center justify-between">
           <Link prefetch
-            href={`/?date=${formatKST(addDays(date, -1))}${viewQuery}`}
+            href={`/?date=${formatKST(addDays(date, -1))}`}
             aria-label="이전 날"
             className="flex size-9 items-center justify-center rounded-full text-lg text-muted hover:bg-surface-hover"
           >
@@ -339,19 +309,13 @@ export default async function FeedPage({
           </div>
 
           <Link prefetch
-            href={`/?date=${formatKST(addDays(date, 1))}${viewQuery}`}
+            href={`/?date=${formatKST(addDays(date, 1))}`}
             aria-label="다음 날"
             className="flex size-9 items-center justify-center rounded-full text-lg text-muted hover:bg-surface-hover"
           >
             ›
           </Link>
         </header>
-
-        {!monthOpen && (
-          <div className="lg:hidden">
-            <WeekStrip days={weekDays} selected={date} today={today} />
-          </div>
-        )}
 
         {/* 카테고리와 루틴은 할 일을 적다가 바로 손보는 것이라 설정이 아니라 여기 둔다. */}
         {/* 가장 좁은 폰(320px)에서 달력 버튼만 다음 줄로 떨어지지 않게 여백을 줄인다. */}
@@ -376,22 +340,12 @@ export default async function FeedPage({
           </Link>
           {!isToday && (
             <Link prefetch={false}
-              href={monthOpen ? "/?view=month" : "/"}
+              href="/"
               className="flex h-8 items-center rounded-full px-3 text-sm text-brand hover:bg-surface-hover"
             >
               오늘로 돌아가기
             </Link>
           )}
-          <Link prefetch={false}
-            href={toggleHref}
-            aria-label={monthOpen ? "달력 접기" : "달력 펼치기"}
-            className={`ml-auto flex h-8 items-center gap-1.5 rounded-full px-2.5 text-sm lg:hidden min-[360px]:px-3 ${
-              monthOpen ? "bg-brand-subtle text-brand" : "bg-surface text-muted"
-            }`}
-          >
-            <CalendarIcon active={monthOpen} />
-            달력
-          </Link>
         </nav>
 
         <EventSection
