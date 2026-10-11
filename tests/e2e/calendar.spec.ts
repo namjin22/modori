@@ -58,9 +58,6 @@ test("할 일을 끝낼 때마다 그날 표시가 카테고리 색으로 한 �
   await addTodo(page, "둘째 일");
 
   const monthCell = page.getByRole("link", { name: new RegExp(`^${today.getUTCDate()}일, 완료`) });
-  const weekCell = page.getByRole("link", {
-    name: `${today.getUTCMonth() + 1}월 ${today.getUTCDate()}일`,
-  });
   const filled = (cell: typeof monthCell) => cell.locator(`svg rect[fill="${category.color}"]`);
 
   // 할 일은 있지만 아직 아무것도 끝내지 않았다. 모양만 있고 비어 있다.
@@ -73,9 +70,9 @@ test("할 일을 끝낼 때마다 그날 표시가 카테고리 색으로 한 �
   await page.getByRole("button", { name: "완료", exact: true }).first().click();
   await expect(filled(monthCell)).toHaveCount(2);
 
-  // 폰에서는 달력 대신 주간 줄이 보인다. 거기서도 같이 찬다.
+  // 폰에서도 같은 한 달 달력이 보이고 같이 찬다(주간 줄은 2026-10-12 요청으로 없앴다).
   await page.setViewportSize({ width: 390, height: 844 });
-  await expect(filled(weekCell)).toHaveCount(2);
+  await expect(filled(monthCell)).toHaveCount(2);
 });
 
 test("이전 달과 다음 달로 넘어간다", async ({ page }) => {

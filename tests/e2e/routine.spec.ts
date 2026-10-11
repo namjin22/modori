@@ -144,3 +144,54 @@ test("루틴을 지워도 이미 만들어진 할 일은 남는다", async ({ pa
   await expect(page).toHaveURL("/");
   await expect(page.getByText("남을 할 일")).toBeVisible();
 });
+
+test("이미 만든 루틴의 내용과 카테고리를 고치면 오늘 할 일도 따라 바뀌고 지난 기록은 남는다", async ({ page, email }) => {
+  // 카테고리를 하나 더 만든다(옮길 곳).
+  await page.goto("/categories");
+  await page.getByLabel("새 카테고리 이름").fill("운동");
+  await page.getByRole("button", { name: "추가", exact: true }).click();
+  await expect(page.getByText("운동", { exact: true })).toBeVisible();
+
+  await createDailyRoutine(page, "물 마시기");
+  // 오늘 화면을 열어 오늘 할 일을 만든다. 어제 날짜의 끝낸 할 일은 지난 기록으로 둔다.
+  await page.goto("/");
+  await expect(page.getByText("물 마시기")).toBeVisible();
+  const user = await prisma.user.findUniqueOrThrow({ where: { email } });
+  const routine = await prisma.routine.findFirstOrThrow({ where: { userId: user.id } });
+  const yesterday = addDays(todayKST(), -1);
+  await prisma.todo.create({
+    data: { userId: user.id, date: yesterday, content: "물 마시기", done: true, doneAt: new Date(), routineId: routine.id, categoryId: routine.categoryId, order: 0 },
+  });
+
+  await page.goto("/routines");
+  await page.getByRole("listitem").filter({ hasText: "물 마시기" }).getByRole("button", { name: "고치기" }).click();
+  const dialog = page.getByRole("dialog", { name: "루틴 고치기" });
+  await dialog.getByLabel("루틴 내용 수정").fill("물 2리터 마시기");
+  await dialog.getByLabel("루틴 카테고리 수정").selectOption({ label: "운동" });
+  await dialog.getByRole("button", { name: "저장" }).click();
+  await expect(dialog).toBeHidden();
+  await expect(page.getByRole("listitem").filter({ hasText: "물 2리터 마시기" })).toBeVisible();
+
+  const exercise = await prisma.category.findFirstOrThrow({ where: { userId: user.id, name: "운동" } });
+  const updated = await prisma.routine.findUniqueOrThrow({ where: { id: routine.id } });
+  expect(updated).toMatchObject({ content: "물 2리터 마시기", categoryId: exercise.id });
+
+  // 오늘 할 일은 새 이름·카테고리로, 어제 끝낸 기록은 그대로.
+  const todayTodo = await prisma.todo.findFirstOrThrow({ where: { routineId: routine.id, date: todayKST() } });
+  expect(todayTodo).toMatchObject({ content: "물 2리터 마시기", categoryId: exercise.id });
+  const past = await prisma.todo.findFirstOrThrow({ where: { routineId: routine.id, date: yesterday } });
+  expect(past.content).toBe("물 마시기");
+
+  await page.goto("/");
+  await expect(page.getByRole("button", { name: "운동에 할 일 쓰기" })).toBeVisible();
+  await expect(page.getByText("물 2리터 마시기")).toBeVisible();
+});
+
+test("빈 내용으로는 루틴을 고치지 않는다", async ({ page }) => {
+  await createDailyRoutine(page, "책 읽기");
+  await page.getByRole("listitem").filter({ hasText: "책 읽기" }).getByRole("button", { name: "고치기" }).click();
+  const dialog = page.getByRole("dialog", { name: "루틴 고치기" });
+  await dialog.getByLabel("루틴 내용 수정").fill("   ");
+  await dialog.getByRole("button", { name: "저장" }).click();
+  await expect(dialog.getByRole("alert")).toContainText("루틴 내용을 적어주세요");
+});

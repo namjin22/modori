@@ -71,19 +71,16 @@ test("예전 주소로 들어와도 옮긴 화면으로 간다", async ({ page, 
 test.describe("좁은 화면", () => {
   test.use({ viewport: { width: 390, height: 844 } });
 
-  test("달력은 눌렀을 때만 펼친다", async ({ page, email }, testInfo) => {
+  // 예전에는 좁은 화면에서 주간 줄이 기본이고 달력은 눌러야 폈다. 폰 사용자 요청으로 한 달 달력을 늘 보이게 바꿨다(2026-10-12).
+  test("좁은 화면에서도 한 달 달력이 처음부터 보이고 주간 줄·펼치기 버튼은 없다", async ({ page, email }, testInfo) => {
     await signInAndOnboard(page, email, `좁${testInfo.testId.slice(-6)}${RUN_TAG}`);
 
-    const monthDay = page.getByRole("link", { name: /일, 완료 (있음|없음)$/ }).first();
-    await expect(monthDay).toBeHidden();
-    await expect(page.getByRole("navigation", { name: "주간 날짜" })).toBeVisible();
-
-    await page.getByRole("link", { name: "달력 펼치기" }).click();
-    await expect(monthDay).toBeVisible();
-    await expect(page.getByRole("navigation", { name: "주간 날짜" })).toBeHidden();
-
-    await page.getByRole("link", { name: "달력 접기" }).click();
-    await expect(monthDay).toBeHidden();
+    await expect(page.getByRole("link", { name: /일, 완료 (있음|없음)$/ }).first()).toBeVisible();
+    await expect(page.getByRole("navigation", { name: "주간 날짜" })).toHaveCount(0);
+    await expect(page.getByRole("link", { name: "달력 펼치기" })).toHaveCount(0);
+    // 달력에서 다른 날을 누르면 그 날로 간다.
+    await page.getByRole("link", { name: /^15일, 완료/ }).first().click();
+    await expect(page).toHaveURL(/date=\d{4}-\d{2}-15/);
   });
 });
 

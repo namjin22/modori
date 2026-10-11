@@ -1,9 +1,12 @@
 import Link from "next/link";
+
+import { IntentLink } from "@/components/intent-link";
 import type { ReactNode } from "react";
 
 
 import {
   addMonths,
+  daysBetween,
   daysInMonthKST,
   formatKST,
   formatMonthKST,
@@ -44,12 +47,15 @@ export function MonthCalendar({
   dayHref,
   monthHref,
   compact = false,
+  eagerDays,
   editableEvents = false,
 }: {
   // 내 달력에서만 일정 이름표를 끌어 기간을 바꾼다.
   editableEvents?: boolean;
   // 친구 화면처럼 일정 이름이 들어가지 않는 곳에서는 칸을 낮춰 한눈에 보이게 한다.
   compact?: boolean;
+  // 고른 날 앞뒤 며칠을 보이자마자 미리 받을지. 주간 줄을 없애고 달력만 두면서(폰) 가까운 날로 옮기는 것이 다시 느려지지 않게 한다.
+  eagerDays?: number;
   monthStart: Date;
   selected: Date;
   today: Date;
@@ -71,7 +77,8 @@ export function MonthCalendar({
   const isThisMonth = monthKey === formatMonthKST(today);
 
   return (
-    <section className="flex flex-col gap-4">
+    // 폰에서는 달력이 첫 화면을 다 차지해 할 일이 안 보였다. 간격·칸 높이를 줄여 할 일을 위로 올린다(넓은 화면은 그대로).
+    <section className="flex flex-col gap-2 sm:gap-4">
       <header className="flex items-center justify-between">
         <h2 className="text-lg font-bold">
           {Number(year)}년 {Number(month)}월
@@ -107,7 +114,7 @@ export function MonthCalendar({
           {WEEKDAY_NAMES.map((name, index) => (
             <div
               key={name}
-              className={`py-2 ${
+              className={`py-1 sm:py-2 ${
                 index === 0
                   ? "text-danger"
                   : index === 6
@@ -140,17 +147,18 @@ export function MonthCalendar({
               : "";
 
             return (
-              <Link
+              <IntentLink
                 key={key}
                 href={dayHref(key)}
-                // 한 달치 날짜 칸이 서른 개다. 미리 받으면 서버가 같은 화면을 서른 번 그린다.
-                prefetch={false}
+                // 고른 날 자신은 이미 보고 있는 화면이라 받지 않는다.
+                eager={eagerDays !== undefined && Math.abs(daysBetween(selected, day)) > 0 && Math.abs(daysBetween(selected, day)) <= eagerDays}
+                // 한 달치 날짜 칸이 서른 개라 보이는 대로 미리 받지 않고, 손가락·마우스가 닿는 순간 받는다(IntentLink).
                 aria-label={`${day.getUTCDate()}일, 완료 ${doneColors.length > 0 ? "있음" : "없음"}`}
                 aria-describedby={events.length ? `calendar-events-${key}` : undefined}
                 aria-current={isSelected ? "date" : undefined}
                 data-date={key}
                 // 일정 이름표를 끄는 동안 바뀔 기간의 칸(EventDragGrid가 붙인다).
-                className={`flex flex-col items-center gap-0.5 rounded-lg px-0.5 py-1 transition-colors hover:bg-surface-hover data-[drag-range]:bg-brand-subtle data-[drag-range]:ring-1 data-[drag-range]:ring-brand/50 ${compact ? "min-h-10" : "min-h-16"}`}
+                className={`relative flex flex-col items-center gap-0.5 rounded-lg px-0.5 py-1 transition-colors hover:bg-surface-hover data-[drag-range]:bg-brand-subtle data-[drag-range]:ring-1 data-[drag-range]:ring-brand/50 ${compact ? "min-h-10" : "min-h-11 sm:min-h-16"}`}
               >
                 <span
                   className={`flex size-6 items-center justify-center rounded-full text-xs ${
@@ -197,13 +205,13 @@ export function MonthCalendar({
                     {eventLabel.slice(2)}
                   </span>
                 )}
-              </Link>
+              </IntentLink>
             );
           })}
         </DayGrid>
       </div>
 
-      <p className="text-center text-sm text-muted">이번 달 완료 {doneCount}개</p>
+      <p className="text-center text-xs text-muted sm:text-sm">이번 달 완료 {doneCount}개</p>
     </section>
   );
 }

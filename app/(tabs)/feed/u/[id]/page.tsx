@@ -19,12 +19,10 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 
 import { Avatar } from "@/components/avatar";
-import { CalendarIcon } from "@/components/tab-icons";
 import { CategoryChip } from "@/components/category-chip";
 import { Dori } from "@/components/dori";
 import { FeedItem } from "@/components/feed-item";
 import { MonthCalendar, type DaySummary } from "@/components/month-calendar";
-import { WeekStrip } from "@/components/week-strip";
 import { BackLink } from "@/components/back-link";
 import { LockedProfile } from "@/components/locked-profile";
 import { SubmitButton } from "@/components/submit-button";
@@ -138,16 +136,14 @@ export default async function FriendDayPage({
   const date = readDate(params_.date, today);
   const monthStart = readMonth(params_.month, date);
   const monthEnd = endOfMonthKST(monthStart);
-  const weekStart = addDays(date, -weekdayKST(date));
-  const weekEnd = addDays(weekStart, 6);
 
-  const monthOpen = params_.view === "month";
+
   const basePath = `/feed/u/${friend.id}`;
-  const viewQuery = monthOpen ? "&view=month" : "";
+
 
   const visible = { category: { isPublic: true }, userId: friend.id };
 
-  const [todos, weekTodos, monthTodos] = await Promise.all([
+  const [todos, monthTodos] = await Promise.all([
     prisma.todo.findMany({
       where: { ...visible, date },
       orderBy: { order: "asc" },
@@ -161,11 +157,6 @@ export default async function FriendDayPage({
       },
     }),
     prisma.todo.findMany({
-      where: { ...visible, date: { gte: weekStart, lte: weekEnd } },
-      orderBy: [{ doneAt: { sort: "asc", nulls: "last" } }, { order: "asc" }],
-      select: { date: true, done: true, color: true, category: { select: { color: true } } },
-    }),
-    prisma.todo.findMany({
       where: { ...visible, date: { gte: monthStart, lte: monthEnd } },
       orderBy: [{ doneAt: { sort: "asc", nulls: "last" } }, { order: "asc" }],
       select: { date: true, done: true, color: true, category: { select: { color: true } } },
@@ -173,13 +164,6 @@ export default async function FriendDayPage({
   ]);
 
   const summaries = summarizeByDate(monthTodos);
-  const weekSummaries = summarizeByDate(weekTodos);
-  const weekDays = Array.from({ length: 7 }, (_, index) => {
-    const day = addDays(weekStart, index);
-    const summary = weekSummaries.get(formatKST(day)) ?? { total: 0, doneColors: [] };
-    return { date: day, done: summary.doneColors.length, ...summary };
-  });
-
   // 내 화면과 같이 끝낸 일은 묶음 아래로 내린다. sort는 안정 정렬이라 같은 쪽 안의 순서는 그대로다.
   const groups = groupByCategory(todos, []).map((group) => ({
     ...group,
@@ -187,16 +171,16 @@ export default async function FriendDayPage({
   }));
   const isToday = isSameKSTDate(date, today);
   const dayHref = (key: string) =>
-    `${basePath}?date=${key}&month=${formatMonthKST(monthStart)}${viewQuery}`;
+    `${basePath}?date=${key}&month=${formatMonthKST(monthStart)}`;
   const monthHref = (month: string) =>
-    `${basePath}?date=${formatKST(date)}&month=${month}${monthOpen ? "&view=month" : ""}`;
+    `${basePath}?date=${formatKST(date)}&month=${month}`;
 
   return (
     // 내 오늘 화면과 같이, 넓은 화면에서는 왼쪽에 프로필과 달력을 둔다.
-    <div className="flex flex-col gap-6 lg:grid lg:grid-cols-2 lg:items-start lg:gap-10">
+    <div className="flex flex-col gap-4 lg:grid lg:grid-cols-2 lg:items-start lg:gap-10">
       {/* 넓은 화면에서 달력 칸은 제자리에 둔다. 시작 위치(pt-8)와 같은 top-8이라 스크롤을 시작해도 움직이지 않고,
           창이 달력보다 낮으면(노트북) 칸 안에서만 스크롤해 페이지 끝에서 밀려 올라가지 않는다. */}
-      <div className="flex flex-col gap-6 lg:sticky lg:top-8 lg:max-h-[calc(100dvh-6rem)] lg:overflow-y-auto">
+      <div className="flex flex-col gap-4 lg:gap-6 lg:sticky lg:top-8 lg:max-h-[calc(100dvh-6rem)] lg:overflow-y-auto">
         <div className="flex items-center gap-3">
           <BackLink href="/feed" label="소셜로" />
           <Avatar src={avatarUrl(friend)} size={48} />
@@ -222,27 +206,13 @@ export default async function FriendDayPage({
               </form>
             </div>
           </div>
-          {/* 좁은 화면에서 달력 버튼 하나가 한 줄을 차지하지 않게 이름 옆에 둔다. */}
-          <Link prefetch={false}
-            href={
-              monthOpen
-                ? `${basePath}?date=${formatKST(date)}`
-                : `${basePath}?date=${formatKST(date)}&view=month`
-            }
-            aria-label={monthOpen ? "달력 접기" : "달력 펼치기"}
-            // 320px 폰에서는 글자까지 두면 이름이 몇 글자만 남는다. 좁으면 아이콘만(이름은 aria-label).
-            className={`ml-auto flex h-8 shrink-0 items-center gap-1.5 rounded-full px-2 text-sm min-[360px]:px-3 lg:hidden ${
-              monthOpen ? "bg-brand-subtle text-brand" : "bg-surface text-muted"
-            }`}
-          >
-            <CalendarIcon active={monthOpen} />
-            <span className="hidden min-[360px]:inline">달력</span>
-          </Link>
         </div>
 
-        <div className={monthOpen ? "" : "hidden lg:block"}>
+        {/* 홈과 같이 한 달 달력을 모든 화면 폭에서 늘 보인다(주간 줄은 없앴다). */}
+        <div>
           <MonthCalendar
             compact
+            eagerDays={3}
             monthStart={monthStart}
             selected={date}
             today={today}
@@ -256,8 +226,8 @@ export default async function FriendDayPage({
 
       <div className="flex flex-col gap-6 lg:pb-12">
         <header className="flex items-center justify-between">
-          <Link prefetch={false}
-            href={`${basePath}?date=${formatKST(addDays(date, -1))}${viewQuery}`}
+          <Link prefetch
+            href={`${basePath}?date=${formatKST(addDays(date, -1))}`}
             aria-label="이전 날"
             className="flex size-9 items-center justify-center rounded-full text-lg text-muted hover:bg-surface-hover"
           >
@@ -269,25 +239,14 @@ export default async function FriendDayPage({
             </p>
             <h2 className="text-lg font-bold">{formatHeading(date)}</h2>
           </div>
-          <Link prefetch={false}
-            href={`${basePath}?date=${formatKST(addDays(date, 1))}${viewQuery}`}
+          <Link prefetch
+            href={`${basePath}?date=${formatKST(addDays(date, 1))}`}
             aria-label="다음 날"
             className="flex size-9 items-center justify-center rounded-full text-lg text-muted hover:bg-surface-hover"
           >
             ›
           </Link>
         </header>
-
-        {!monthOpen && (
-          <div className="lg:hidden">
-            <WeekStrip
-              days={weekDays}
-              selected={date}
-              today={today}
-              basePath={basePath}
-            />
-          </div>
-        )}
 
         {!isToday && (
           <Link prefetch={false}
