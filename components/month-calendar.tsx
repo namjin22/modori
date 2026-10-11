@@ -77,7 +77,8 @@ export function MonthCalendar({
   const isThisMonth = monthKey === formatMonthKST(today);
 
   return (
-    <section className="flex flex-col gap-4">
+    // 폰에서는 달력이 첫 화면을 다 차지해 할 일이 안 보였다. 간격·칸 높이를 줄여 할 일을 위로 올린다(넓은 화면은 그대로).
+    <section className="flex flex-col gap-2 sm:gap-4">
       <header className="flex items-center justify-between">
         <h2 className="text-lg font-bold">
           {Number(year)}년 {Number(month)}월
@@ -113,7 +114,7 @@ export function MonthCalendar({
           {WEEKDAY_NAMES.map((name, index) => (
             <div
               key={name}
-              className={`py-2 ${
+              className={`py-1 sm:py-2 ${
                 index === 0
                   ? "text-danger"
                   : index === 6
@@ -157,7 +158,7 @@ export function MonthCalendar({
                 aria-current={isSelected ? "date" : undefined}
                 data-date={key}
                 // 일정 이름표를 끄는 동안 바뀔 기간의 칸(EventDragGrid가 붙인다).
-                className={`relative flex flex-col items-center gap-0.5 rounded-lg px-0.5 py-1 transition-colors hover:bg-surface-hover data-[drag-range]:bg-brand-subtle data-[drag-range]:ring-1 data-[drag-range]:ring-brand/50 ${compact ? "min-h-10" : "min-h-12 sm:min-h-16"}`}
+                className={`relative flex flex-col items-center gap-0.5 rounded-lg px-0.5 py-1 transition-colors hover:bg-surface-hover data-[drag-range]:bg-brand-subtle data-[drag-range]:ring-1 data-[drag-range]:ring-brand/50 ${compact ? "min-h-10" : "min-h-11 sm:min-h-16"}`}
               >
                 <span
                   className={`flex size-6 items-center justify-center rounded-full text-xs ${
@@ -210,7 +211,7 @@ export function MonthCalendar({
         </DayGrid>
       </div>
 
-      <p className="text-center text-sm text-muted">이번 달 완료 {doneCount}개</p>
+      <p className="text-center text-xs text-muted sm:text-sm">이번 달 완료 {doneCount}개</p>
     </section>
   );
 }
