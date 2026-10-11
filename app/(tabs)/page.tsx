@@ -323,7 +323,7 @@ export default async function FeedPage({
       {/* 아래 여백을 이 칸에 둔다(PageFrame은 두 칸 화면에서 빼 준다). 달력 칸이 머물 수 있는 줄 높이가 페이지 끝까지 닿게. */}
       <div id="day-list" tabIndex={-1} className="flex flex-col gap-6 outline-none lg:pb-12">
         <header className="flex items-center justify-between">
-          <Link prefetch={false}
+          <Link prefetch
             href={`/?date=${formatKST(addDays(date, -1))}${viewQuery}`}
             aria-label="이전 날"
             className="flex size-9 items-center justify-center rounded-full text-lg text-muted hover:bg-surface-hover"
@@ -338,7 +338,7 @@ export default async function FeedPage({
             <h1 className="text-lg font-bold">{formatHeading(date)}</h1>
           </div>
 
-          <Link prefetch={false}
+          <Link prefetch
             href={`/?date=${formatKST(addDays(date, 1))}${viewQuery}`}
             aria-label="다음 날"
             className="flex size-9 items-center justify-center rounded-full text-lg text-muted hover:bg-surface-hover"

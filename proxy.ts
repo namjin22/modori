@@ -18,6 +18,9 @@ const ERROR_REPORT_RULE: RateRule = { capacity: 10, refillPerSecond: 1 / 60 };
 // 화면 요청과 같은 버킷에 넣으면 사진이 많은 목록을 처음 열 때 일부가 429로 깨진다. 따로 넉넉히 센다.
 const AVATAR_RULE: RateRule = { capacity: 300, refillPerSecond: 30 };
 
+// 미리 받기 요청. 한 화면에 열 개 안팎이 오므로 넉넉히 두되, 헤더를 꾸며 한도를 피하려 해도 이 버킷도 한도가 있다.
+const PREFETCH_RULE: RateRule = { capacity: 200, refillPerSecond: 20 };
+
 const SESSION_COOKIES = ["__Secure-authjs.session-token", "authjs.session-token"];
 
 /** 쿠키의 서명은 발급 여부만 증명한다. 실제 로그인 권한은 뒤의 Auth.js DB 조회가 검증한다. */
@@ -51,6 +54,8 @@ async function bucketFor(request: NextRequest): Promise<{ bucket: string; rule: 
     return { bucket: `errors:${key}`, rule: ERROR_REPORT_RULE };
   }
   if (pathname.startsWith("/api/avatar/")) return { bucket: `avatar:${key}`, rule: AVATAR_RULE };
+  // 화면 미리 받기(주간 날짜 일곱 칸 등)는 한 화면에 여러 번 온다. 사람이 누른 요청과 같은 버킷에 넣으면 날짜를 몇 번 옮기는 사이 한도에 닿는다.
+  if (request.headers.get("next-router-prefetch") === "1") return { bucket: `prefetch:${key}`, rule: PREFETCH_RULE };
   return { bucket: key, rule };
 }
 

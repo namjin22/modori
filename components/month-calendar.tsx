@@ -1,4 +1,6 @@
 import Link from "next/link";
+
+import { IntentLink } from "@/components/intent-link";
 import type { ReactNode } from "react";
 
 
@@ -140,17 +142,16 @@ export function MonthCalendar({
               : "";
 
             return (
-              <Link
+              <IntentLink
                 key={key}
                 href={dayHref(key)}
-                // 한 달치 날짜 칸이 서른 개다. 미리 받으면 서버가 같은 화면을 서른 번 그린다.
-                prefetch={false}
+                // 한 달치 날짜 칸이 서른 개라 보이는 대로 미리 받지 않고, 손가락·마우스가 닿는 순간 받는다(IntentLink).
                 aria-label={`${day.getUTCDate()}일, 완료 ${doneColors.length > 0 ? "있음" : "없음"}`}
                 aria-describedby={events.length ? `calendar-events-${key}` : undefined}
                 aria-current={isSelected ? "date" : undefined}
                 data-date={key}
                 // 일정 이름표를 끄는 동안 바뀔 기간의 칸(EventDragGrid가 붙인다).
-                className={`flex flex-col items-center gap-0.5 rounded-lg px-0.5 py-1 transition-colors hover:bg-surface-hover data-[drag-range]:bg-brand-subtle data-[drag-range]:ring-1 data-[drag-range]:ring-brand/50 ${compact ? "min-h-10" : "min-h-16"}`}
+                className={`relative flex flex-col items-center gap-0.5 rounded-lg px-0.5 py-1 transition-colors hover:bg-surface-hover data-[drag-range]:bg-brand-subtle data-[drag-range]:ring-1 data-[drag-range]:ring-brand/50 ${compact ? "min-h-10" : "min-h-16"}`}
               >
                 <span
                   className={`flex size-6 items-center justify-center rounded-full text-xs ${
@@ -197,7 +198,7 @@ export function MonthCalendar({
                     {eventLabel.slice(2)}
                   </span>
                 )}
-              </Link>
+              </IntentLink>
             );
           })}
         </DayGrid>

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { formatKST, weekdayKST } from "@/lib/date";
 
 import { DayFill } from "@/components/day-fill";
+import { LinkPending } from "@/components/link-pending";
 
 const WEEKDAY_NAMES = ["일", "월", "화", "수", "목", "금", "토"];
 
@@ -45,12 +46,12 @@ export function WeekStrip({
           <Link
             key={key}
             href={`${basePath}?date=${key}`}
-            // 날짜 링크는 미리 받지 않는다. 한 줄에 일곱 개라, 켜두면 이 화면을
-            // 그릴 때마다 서버에서 같은 화면을 일곱 번 더 그린다.
-            prefetch={false}
+            // 이 주의 날짜는 미리 받는다. 누를 때마다 서버를 다녀오면 폰에서 0.5~1초씩 멈춘 듯 보였다(사용자 피드백).
+            // 한 화면에 일곱 번 더 그리지만, 같은 주 안에서 옮겨 다니면 30초 동안 다시 받지 않는다(next.config.ts staleTimes).
+            prefetch
             aria-label={`${Number(key.slice(5, 7))}월 ${Number(key.slice(8))}일`}
             aria-current={isSelected ? "date" : undefined}
-            className="flex flex-1 flex-col items-center gap-1 rounded-xl py-2 transition-colors hover:bg-surface-hover"
+            className="relative flex flex-1 flex-col items-center gap-1 rounded-xl py-2 transition-colors hover:bg-surface-hover"
           >
             <span
               className={`text-[11px] ${
@@ -77,6 +78,7 @@ export function WeekStrip({
             </span>
 
             <DayFill id={`week-fill-${key}`} total={day.total} doneColors={day.doneColors} size={18} />
+            <LinkPending />
           </Link>
         );
       })}
