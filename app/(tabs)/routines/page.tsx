@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { CategoryChip } from "@/components/category-chip";
+import { RoutineEditButton } from "@/components/routine-edit-button";
 import { RoutineForm } from "@/components/routine-form";
 import { UndoableDeleteButton } from "@/components/undoable-delete-button";
 import { formatKST, todayIn } from "@/lib/date";
@@ -145,7 +146,8 @@ export default async function RoutinesPage() {
                     {routine.endDate && ` · ${formatKST(routine.endDate)}까지`}
                   </p>
 
-                  <div className="-mx-2 mt-1 flex">
+                  <div className="-mx-2 mt-1 flex flex-wrap">
+                    {categories.length > 0 && <RoutineEditButton routine={routine} categories={categories} />}
                     {/* 카테고리가 지워진 루틴은 다시 시작할 수 없다. 지우거나 그대로 둔다. */}
                     {(routine.categoryId || !routine.pausedAt) && (
                       <form action={toggleRoutinePause}>

@@ -145,6 +145,43 @@ export async function toggleRoutinePause(formData: FormData) {
   revalidatePath("/");
 }
 
+export type RoutineEdit = { ok: true } | { ok: false; message: string };
+
+/**
+ * 이미 만든 루틴의 내용과 카테고리를 고친다. 반복 규칙(요일·날짜·기간)은 그대로 둔다.
+ * 오늘 이후의 아직 안 끝낸 할 일도 새 내용·카테고리로 바꾼다(오늘 화면에 옛 이름이 남지 않게). 지난 날과 끝낸 일은 기록이라 그대로 둔다.
+ * 카테고리를 지워 멈춘 루틴은 여기서 새 카테고리를 고르면 다시 시작할 수 있게 된다(멈춤은 사용자가 푼다).
+ */
+export async function updateRoutine(formData: FormData): Promise<RoutineEdit> {
+  const user = await requireUser();
+  const id = readText(formData, "id");
+  const content = readText(formData, "content");
+  const categoryId = readText(formData, "categoryId");
+  if (!content) return { ok: false, message: "루틴 내용을 적어주세요." };
+  if (content.length > MAX_CONTENT_LENGTH) return { ok: false, message: `${MAX_CONTENT_LENGTH}자 안으로 적어주세요.` };
+
+  const [routine, category] = await Promise.all([
+    prisma.routine.findFirst({ where: { id, userId: user.id }, select: { id: true } }),
+    prisma.category.findFirst({ where: { id: categoryId, userId: user.id, archivedAt: null }, select: { id: true } }),
+  ]);
+  if (!routine) return { ok: false, message: "루틴을 찾지 못했어요. 새로 고쳐 주세요." };
+  if (!category) return { ok: false, message: "카테고리를 골라주세요." };
+
+  const today = todayIn(user.timezone);
+  await prisma.$transaction([
+    prisma.routine.update({ where: { id: routine.id }, data: { content, categoryId: category.id } }),
+    prisma.todo.updateMany({
+      where: { routineId: routine.id, userId: user.id, done: false, date: { gte: today } },
+      // 따로 고른 색은 카테고리를 옮기면 버린다(할 일을 다른 카테고리로 끌어 옮길 때와 같다).
+      data: { content, categoryId: category.id, color: null },
+    }),
+  ]);
+
+  revalidatePath("/routines");
+  revalidatePath("/");
+  return { ok: true };
+}
+
 /**
  * 루틴을 지워도 이미 만들어진 할 일은 남는다.
  * 스키마의 onDelete: SetNull이 routineId만 비운다. 지나간 기록은 사실 그대로 둔다.
