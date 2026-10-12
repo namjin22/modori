@@ -1630,3 +1630,12 @@ VM에 시험 DB(사용자 1000, 할 일 108만, 반응 24만, 280MB)를 만들�
 - iOS: `mobile/ios`(Capacitor 8), `.github/workflows/ios.yml`(PR은 서명 없는 시뮬레이터 빌드, upload는 TestFlight). Apple 로그인은 서버 환경 변수 넷이 있어야 보인다.
 - **사람이 할 일**: `docs/mobile-release.md` "iOS" 절 — App ID·App Store Connect 앱·API 키(Admin) 만들고 GitHub 비밀 4개, Services ID·Sign In with Apple 키 만들고 VM `.env`에 4개. 그 뒤 Actions → ios → upload.
 - 안 한 것: iOS 푸시(Firebase를 iOS에 붙여야 함), 실제 iPhone 확인, Apple 토큰 철회(토큰을 저장하지 않음, decisions "iOS 앱" 대가).
+
+## 2026-10-12 (2) — 사이트 즉시 반응, 폰 끌기, 반응 창, Vercel 끄기 (PR #158~#160, 배포 fd33cd5)
+
+- 친구 화면 한 달치(`friend-view.tsx`), 홈 할 일 고치기를 서버 응답 전에 반영(`todo-store.tsx`), 탭 캐시 5분 + 앱 복귀 시 새로 받기(`resume-refresh.tsx`).
+- 폰 끌기: 자동 스크롤 약하게, 손잡이 넓게, 일정 이름표는 0.12초 누르고 끌기, 할 일 창 카테고리 고르기. 실제 폰 확인은 아직.
+- 반응 창: 종류 막대 + 고정 높이 칸 스크롤.
+- Vercel: `vercel.json`으로 자동 배포 끔. **운영자가 할 일**: Vercel 화면에서 옛 배포 지우기 또는 프로젝트 삭제.
+- iOS: 운영자가 Apple Developer 1~4를 마침. 다음은 GitHub 비밀 4개 → Actions ios upload, 그다음 Apple 로그인 키(docs/mobile-release.md).
+- 검증: `npm run verify` 단위 190×3, E2E 217 통과.
