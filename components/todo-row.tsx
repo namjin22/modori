@@ -162,6 +162,8 @@ export function TodoRow({
             aria-label="할 일 메모"
             className="w-full resize-none rounded-xl bg-surface-hover px-4 py-3 text-sm outline-none placeholder:text-muted focus:ring-2 focus:ring-brand"
           />
+          {/* 폰에는 손잡이가 없어 순서를 바꾸는 법이 안 보인다. 손가락 화면에서만 알려 준다. */}
+          <p className="hidden text-xs text-muted pointer-coarse:block">할 일을 길게 누르면 집혀서, 끌어 순서를 바꿀 수 있어요.</p>
           <div className="flex items-center justify-between gap-2">
             <UndoableDeleteButton
               id={todo.id}

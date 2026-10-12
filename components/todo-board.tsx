@@ -6,13 +6,9 @@ import { createPortal } from "react-dom";
 import {
   DndContext,
   DragOverlay,
-  KeyboardSensor,
-  PointerSensor,
   closestCenter,
   rectIntersection,
   useDroppable,
-  useSensor,
-  useSensors,
   type Active,
   type CollisionDetection,
   type DragEndEvent,
@@ -23,12 +19,11 @@ import {
 import {
   SortableContext,
   arrayMove,
-  sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 
 import { moveTodoToCategory, reorderTodos } from "@/app/(tabs)/actions";
-import { buzzOnTouchDrag, GENTLE_AUTO_SCROLL, SortableRow, type SortableItem } from "@/components/sortable-list";
+import { buzzOnTouchDrag, GENTLE_AUTO_SCROLL, SortableRow, useRowSensors, type SortableItem } from "@/components/sortable-list";
 import { useOptimisticDoneIds } from "@/components/todo-progress";
 import { useSaveFailure } from "@/components/use-save-failure";
 
@@ -94,11 +89,7 @@ export function TodoBoard({ date, groups }: { date: string; groups: BoardGroup[]
     });
   };
 
-  const sensors = useSensors(
-    // 살짝 눌렀다 떼는 것은 클릭으로 둔다. 8px 넘게 끌어야 드래그로 본다.
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
-  );
+  const sensors = useRowSensors();
 
   function containerOf(id: string | number, from: Record<string, string[]> = layout): string | undefined {
     const text = String(id);
@@ -244,7 +235,10 @@ export function TodoBoard({ date, groups }: { date: string; groups: BoardGroup[]
       {typeof document !== "undefined" &&
         createPortal(
           <DragOverlay>
-            {activeId ? <div className="rounded-xl bg-surface shadow-lg">{items.get(activeId)?.node}</div> : null}
+            {/* 집힌 것이 한눈에 보이게 살짝 키우고 테두리를 두른다(폰에서 길게 눌러 집었을 때 "선택됐다"는 표시). */}
+            {activeId ? (
+              <div className="scale-[1.03] rounded-xl bg-surface shadow-xl ring-2 ring-brand">{items.get(activeId)?.node}</div>
+            ) : null}
           </DragOverlay>,
           document.body,
         )}

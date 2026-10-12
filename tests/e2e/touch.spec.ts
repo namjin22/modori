@@ -34,7 +34,10 @@ async function signInAndOnboard(page: Page, email: string, nickname: string) {
   await expect(homeReady(page)).toBeVisible();
 }
 
-/** 손가락을 from에 대고 to까지 천천히 끈 뒤 뗀다. */
+// 폰에서는 손잡이가 없고 줄·일정 이름을 길게 눌러(0.4초) 집는다(사용자 요청, components/sortable-list.tsx LONG_PRESS_MS).
+const LONG_PRESS = 600;
+
+/** 손가락을 from에 대고 길게 누른 뒤 to까지 천천히 끌고 뗀다. */
 async function touchDrag(page: Page, from: Locator, to: Locator, dy = 0) {
   // 폰 화면에 한 달 달력이 늘 있어 목록이 화면 아래에 있을 수 있다. 사람처럼 먼저 그 줄까지 스크롤한다.
   await from.scrollIntoViewIfNeeded();
@@ -45,8 +48,8 @@ async function touchDrag(page: Page, from: Locator, to: Locator, dy = 0) {
   const end = { x: b.x + b.width / 2, y: b.y + b.height / 2 + dy };
   const client = await page.context().newCDPSession(page);
   await client.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [start] });
-  // 누르고 조금 기다렸다 움직인다. 사람 손가락처럼.
-  await page.waitForTimeout(150);
+  // 길게 눌러 집은 뒤 움직인다.
+  await page.waitForTimeout(LONG_PRESS);
   const steps = 12;
   for (let step = 1; step <= steps; step += 1) {
     const point = {
@@ -63,7 +66,7 @@ async function touchDrag(page: Page, from: Locator, to: Locator, dy = 0) {
 const categoryNames = async (userId: string) =>
   (await prisma.category.findMany({ where: { userId }, orderBy: { order: "asc" } })).map((c) => c.name);
 
-test("손가락으로 달력의 일정 이름을 끌어 기간을 늘린다", async ({ page, email }, testInfo) => {
+test("손가락으로 달력의 일정 이름을 길게 눌러 끌어 기간을 늘린다", async ({ page, email }, testInfo) => {
   await signInAndOnboard(page, email, `터치일정${testInfo.testId.slice(-6)}${RUN_TAG}`);
   const today = todayKST();
   const forward = today.getUTCDate() + 2 <= daysInMonthKST(today);
@@ -86,7 +89,7 @@ test("손가락으로 달력의 일정 이름을 끌어 기간을 늘린다", as
     .toEqual(forward ? [formatKST(today), formatKST(target)] : [formatKST(target), formatKST(today)]);
 });
 
-test("손가락으로 할 일 손잡이를 끌어 순서를 바꾼다", async ({ page, email }, testInfo) => {
+test("폰에서는 손잡이가 없고, 할 일을 길게 눌러 끌어 순서를 바꾼다", async ({ page, email }, testInfo) => {
   await signInAndOnboard(page, email, `터치할일${testInfo.testId.slice(-6)}${RUN_TAG}`);
   const user = await prisma.user.findUniqueOrThrow({ where: { email } });
   const category = await prisma.category.findFirstOrThrow({ where: { userId: user.id } });
@@ -103,10 +106,10 @@ test("손가락으로 할 일 손잡이를 끌어 순서를 바꾼다", async ({
 
   // 할 일 이름은 눌러 고치는 버튼이다. 화면 순서대로 나온다.
   const names = page.getByRole("button", { name: /^(하나|둘|셋)$/ });
-  const handle = (text: string) =>
-    page.getByRole("listitem").filter({ hasText: text }).getByRole("button", { name: "순서 바꾸기 손잡이" });
+  const row = (text: string) => page.getByRole("listitem").filter({ hasText: text });
   await expect(page.getByRole("button", { name: `${FIRST_CATEGORY}에 할 일 쓰기` })).toBeVisible();
-  await touchDrag(page, handle("셋"), handle("하나"), -8);
+  await expect(row("셋").getByRole("button", { name: "순서 바꾸기 손잡이" })).toBeHidden();
+  await touchDrag(page, row("셋"), row("하나"), -8);
 
   await expect
     .poll(async () =>
@@ -116,7 +119,7 @@ test("손가락으로 할 일 손잡이를 끌어 순서를 바꾼다", async ({
   await expect(names.first()).toHaveText("셋");
 });
 
-test("손가락으로 카테고리 손잡이를 끌어 순서를 바꾼다", async ({ page, email }, testInfo) => {
+test("폰에서는 카테고리도 길게 눌러 끌어 순서를 바꾼다", async ({ page, email }, testInfo) => {
   await signInAndOnboard(page, email, `터치분류${testInfo.testId.slice(-6)}${RUN_TAG}`);
   const user = await prisma.user.findUniqueOrThrow({ where: { email } });
   await prisma.category.createMany({
@@ -126,9 +129,8 @@ test("손가락으로 카테고리 손잡이를 끌어 순서를 바꾼다", asy
     ],
   });
   await page.goto("/categories");
-  const handle = (name: string) =>
-    page.getByRole("listitem").filter({ hasText: name }).getByRole("button", { name: "순서 바꾸기 손잡이" });
-  await touchDrag(page, handle("운동"), handle(FIRST_CATEGORY), -10);
+  const row = (name: string) => page.getByRole("listitem").filter({ hasText: name });
+  await touchDrag(page, row("운동"), row(FIRST_CATEGORY), -10);
 
   await expect.poll(() => categoryNames(user.id)).toEqual(["운동", FIRST_CATEGORY, "공부"]);
 });

@@ -184,8 +184,8 @@ export function MonthCalendar({
                       data-event-start={event.start}
                       data-event-end={event.end}
                       title={editableEvents ? "끌어서 기간 바꾸기" : undefined}
-                      // 마우스로 끌 때는 바로 잡는다. 손가락(pointer-coarse)은 쓸면 화면이 스크롤되고, 잠깐 누르고 있다 끌어야 잡힌다(EventDragGrid).
-                      className={`truncate rounded px-1 text-[10px] font-medium leading-[15px] ${editableEvents ? "cursor-grab select-none pointer-fine:touch-none data-[drag-armed]:ring-2 data-[drag-armed]:ring-foreground" : ""}`}
+                      // 마우스로 끌 때는 바로 잡는다. 손가락(pointer-coarse)은 쓸면 화면이 스크롤되고, 길게 눌러 집은 뒤 끈다(EventDragGrid).
+                      className={`truncate rounded px-1 text-[10px] font-medium leading-[15px] transition-transform ${editableEvents ? "cursor-grab select-none [-webkit-touch-callout:none] pointer-fine:touch-none data-[drag-armed]:relative data-[drag-armed]:z-10 data-[drag-armed]:scale-110 data-[drag-armed]:ring-2 data-[drag-armed]:ring-foreground" : ""}`}
                       style={{ backgroundColor: event.color, color: contrastTextColor(event.color) }}
                     >
                       {event.title}
