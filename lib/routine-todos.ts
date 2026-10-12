@@ -113,3 +113,54 @@ export async function listScheduledRoutines(userId: string, date: Date) {
       categoryId: routine.categoryId,
     }));
 }
+
+export type ScheduledRoutine = { id: string; content: string; categoryId: string | null };
+
+/**
+ * 기간(양 끝 포함)에 아직 할 일로 만들어지지 않은 루틴을 날짜별로 한 번에 구한다. 홈 화면이 한 달치를 한꺼번에 받아 두고
+ * 날짜를 브라우저에서 바꾸므로, 날마다 따로 묻던 listScheduledRoutines를 대신한다. 질의는 기간 길이와 상관없이 두 번이다.
+ * pending은 그중 지금 만들어도 되는 날(오늘·지난 30일)이다. 화면은 그 날을 열 때 서버에 한 번 다녀와 만든다.
+ * 열지 않은 날까지 미리 만들면 쓰지 않은 날의 미완료 루틴이 쌓여 기록의 완료율이 낮아지므로, "열 때 만든다"는 원칙은 그대로 둔다.
+ */
+export async function listRoutineRange(
+  owner: Owner,
+  from: Date,
+  to: Date,
+): Promise<{ scheduled: Record<string, ScheduledRoutine[]>; pending: string[] }> {
+  const scheduled: Record<string, ScheduledRoutine[]> = {};
+  const pending: string[] = [];
+  const routines = await prisma.routine.findMany({
+    where: {
+      userId: owner.id,
+      pausedAt: null,
+      startDate: { lte: to },
+      AND: [
+        { OR: [{ endDate: null }, { endDate: { gte: from } }] },
+        // 보관한 카테고리에는 새로 적을 수 없다. 루틴도 그동안 쉬고, 되살리면 다시 돈다.
+        { OR: [{ categoryId: null }, { category: { archivedAt: null } }] },
+      ],
+    },
+    orderBy: { order: "asc" },
+    include: { skips: { where: { date: { gte: from, lte: to } }, select: { date: true } } },
+  });
+  if (routines.length === 0) return { scheduled, pending };
+
+  const existing = await prisma.todo.findMany({
+    where: { userId: owner.id, date: { gte: from, lte: to }, routineId: { in: routines.map((routine) => routine.id) } },
+    select: { routineId: true, date: true },
+  });
+  const made = new Set(existing.map((todo) => `${todo.routineId}|${formatKST(todo.date)}`));
+  // 사용자가 그 날의 할 일을 지웠으면 다시 만들지 않는다.
+  const skipped = new Set(routines.flatMap((routine) => routine.skips.map((skip) => `${routine.id}|${formatKST(skip.date)}`)));
+
+  for (let day = from; daysBetween(day, to) >= 0; day = addDays(day, 1)) {
+    const key = formatKST(day);
+    const missing = routines.filter(
+      (routine) => matchesRule(routine, day) && !made.has(`${routine.id}|${key}`) && !skipped.has(`${routine.id}|${key}`),
+    );
+    if (missing.length === 0) continue;
+    scheduled[key] = missing.map((routine) => ({ id: routine.id, content: routine.content, categoryId: routine.categoryId }));
+    if (isMaterializable(owner, day)) pending.push(key);
+  }
+  return { scheduled, pending };
+}
