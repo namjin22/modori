@@ -37,6 +37,10 @@
 	<false/>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>프로필 사진을 직접 찍을 때만 카메라를 써요. 찍은 사진은 작게 줄여 프로필로만 저장해요.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>프로필 사진으로 쓸 사진을 고를 때만 사진 보관함을 써요.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
