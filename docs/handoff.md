@@ -1660,3 +1660,9 @@ VM에 시험 DB(사용자 1000, 할 일 108만, 반응 24만, 280MB)를 만들�
 - 서버가 `PushToken.platform`으로 iOS는 APNs, Android는 FCM으로 나눠 보낸다(`lib/apns.ts`). 키는 Apple 로그인 키에 APNs를 같이 켜서 재사용. **키가 서버 `.env`에 없으면 iOS 알림만 조용히 건너뛴다.**
 - 푸시 권한이 들어간 서명 빌드가 TestFlight에 올라갔다(Xcode 자동 서명이 App ID의 Push 기능을 켠 것으로 보인다). 실제 iPhone에서 알림이 오는지는 아직 확인 못 했다.
 - 간헐 실패 목록(재실행하면 통과): `timezone.spec` 목록에 없는 시간대, `first-run.spec` 추천 친구 팔로우.
+
+## 2026-10-13 (3) — Apple 로그인·푸시 키를 서버에 넣음
+
+- 운영 서버 `.env`에 `AUTH_APPLE_ID`(site.modori.web)·`APPLE_TEAM_ID`·`APPLE_KEY_ID`·`APPLE_PRIVATE_KEY`를 넣고 앱을 다시 띄웠다. 로그인 화면에 "Apple로 계속하기"가 보인다. Apple 토큰 엔드포인트에 가짜 코드로 물어 `invalid_grant`(키·ID 조합은 인정)를 확인했다.
+- 같은 키로 iOS 푸시(APNs)도 켜진다(키 만들 때 APNs 체크). 실제 Apple 로그인·알림은 TestFlight에서 처음 확인한다.
+- 다음: 운영자가 TestFlight 내부 테스트로 설치 → 로그인·알림·길게 눌러 옮기기 확인 → 친구 3명(외부 테스트) → App Store 제출(`docs/app-store-listing.md`).
