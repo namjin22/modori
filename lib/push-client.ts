@@ -8,11 +8,11 @@ export function safePushPath(value: unknown): string | null {
   return value;
 }
 
-export async function registerPushToken(token: string): Promise<void> {
+export async function registerPushToken(token: string, platform: "android" | "ios" = "android"): Promise<void> {
   const response = await fetch("/api/push/register", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ token, platform: "android" }),
+    body: JSON.stringify({ token, platform }),
   });
   if (!response.ok) throw new Error(`알림 번호 등록 실패 ${response.status}`);
   localStorage.setItem(PUSH_TOKEN_KEY, token);

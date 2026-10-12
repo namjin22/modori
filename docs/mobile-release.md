@@ -109,10 +109,14 @@ APPLE_PRIVATE_KEY=-----BEGIN PRIVATE KEY-----\nMIGT...\n-----END PRIVATE KEY----
 넷이 다 있어야 로그인 화면에 "Apple로 계속하기"가 보인다. 하나라도 빠지거나 키가 틀리면 버튼을 숨기고 서버 로그에
 `[auth] Apple` 오류를 남긴다(Google 로그인은 그대로 된다). client_secret(JWT)은 서버가 뜰 때마다 키로 새로 만든다(`lib/apple-secret.ts`).
 
+### iOS 푸시 알림 켜기
+
+Firebase 없이 서버가 Apple 푸시 서버(APNs)에 직접 보낸다(`lib/apns.ts`). 따로 만들 것은 없고, 위 4절의 **Sign in with Apple 키를 만들 때 "Apple Push Notifications service (APNs)"도 함께 체크**하면 같은 키·같은 `.env` 값(`APPLE_TEAM_ID`·`APPLE_KEY_ID`·`APPLE_PRIVATE_KEY`)으로 알림도 보낸다.
+이미 만든 키라면 Keys에서 그 키를 열어 APNs를 체크해 저장하면 된다(키 파일은 다시 받지 않아도 된다). 앱 ID(`site.modori.app`)의 Push Notifications 기능은 빌드할 때 Xcode가 자동으로 켠다.
+다른 키를 쓰고 싶으면 `.env`에 `APNS_KEY_ID`·`APNS_PRIVATE_KEY`를 따로 넣는다. 키가 없으면 iOS 알림만 조용히 건너뛴다.
+
 ### 아직 안 되는 것
 
-- **iOS 푸시 알림**: 서버는 FCM으로 보내는데 iOS 플러그인이 주는 번호는 Apple(APNs) 번호다. Firebase에 APNs 키를 올리고 앱에
-  Firebase를 붙여야 한다. 그 전까지 iOS 앱은 알림 허용을 묻지 않는다(`components/push-registrar.tsx`).
 - 실제 iPhone에서 로그인 넘겨받기·화면 여백(노치)을 아직 보지 못했다. 첫 TestFlight 빌드에서 확인한다.
 - 스토어 소개·스크린샷(6.7"/6.9" iPhone)·개인정보 라벨(App Privacy)은 App Store Connect에서 직접 적는다(`docs/store-listing.md` 참고).
 

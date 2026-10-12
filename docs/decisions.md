@@ -2025,3 +2025,14 @@ iPhone 전용·세로 화면으로 둔다(iPad 스크린샷·화면 배치 심�
 **선택** 2번. 다른 제공자와 다른 토큰은 그대로 저장하지 않는다. 철회가 실패해도 계정 지우기는 막지 않는다(로그만 남김). 개인정보 목록·방침에 예외를 적었다.
 **대가** DB가 새면 Apple 연결을 끊을 수 있는 토큰 하나가 노출된다(로그인 자체는 열 수 없고 연결을 끊는 데만 쓰인다). 실제 Apple 로그인이 켜지기 전에는 시험하지 못했다(요청 모양만 단위 시험).
 
+### iOS 푸시는 Firebase 없이 APNs에 직접 보낸다 (2026-10-13, App Store 출시 준비)
+
+**상황** iOS 앱이 알림을 묻지 않았다(서버는 FCM, iOS 플러그인은 APNs 번호). 웹만 감싼 앱은 심사 지침 4.2(최소 기능)에서 거절되는 일이 흔해 네이티브 기능(알림)이 있으면 낫다.
+**선택지** 1. 알림 없이 낸다  2. Firebase를 iOS 앱에 붙여 FCM으로 통일(GoogleService-Info.plist, SDK, 의존성 추가)  3. 서버가 APNs에 직접 보낸다(HTTP/2 + ES256 서명, 새 의존성 없음)
+**선택** 3번. `PushToken.platform`이 `ios`면 APNs, `android`면 FCM으로 나눠 보내고 한쪽이 실패해도 다른 쪽은 보낸다. 키는 Apple 로그인 키에 APNs를 같이 켜서 재사용한다(환경 변수 추가 없음, `.env.example`에 덮어쓰기용 `APNS_*`만 더했다). 앱은 `aps-environment` 권한과 AppDelegate 기기 번호 전달을 더했다.
+**이유** Firebase 없이도 되고, 서명 키도 이미 만드는 키를 재사용해 운영자가 할 일이 늘지 않는다. TestFlight·App Store 빌드는 운영 APNs(`api.push.apple.com`)를 쓴다.
+**대가**
+- 실제 iPhone에서 알림이 오는지는 TestFlight 빌드로만 확인할 수 있다(시험은 요청 모양까지만).
+- 개발용(Xcode로 직접 설치) 빌드는 샌드박스 APNs라 받지 못한다. TestFlight만 쓴다.
+- 앱 ID의 Push 기능을 Xcode 자동 서명이 켜 줄 것으로 가정했다. 안 되면 Apple Developer에서 App ID에 Push Notifications를 직접 켠다.
+

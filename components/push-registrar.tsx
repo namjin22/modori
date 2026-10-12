@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 
-import { capacitor } from "@/lib/native-login";
+import { appSource, capacitor } from "@/lib/native-login";
 import { registerPushToken, safePushPath } from "@/lib/push-client";
 
 /**
@@ -13,14 +13,14 @@ export function PushRegistrar() {
   useEffect(() => {
     const bridge = capacitor();
     const push = bridge?.Plugins?.PushNotifications;
-    // iOS 앱은 아직 알림을 묻지 않는다. 서버는 FCM으로 보내는데, iOS 플러그인이 주는 번호는 FCM이 아니라 Apple(APNs) 번호라
-    // 받아 두어도 보낼 수 없다(docs/decisions.md "iOS 앱"). Firebase를 iOS에 붙이면 연다.
-    if (!push || bridge?.getPlatform?.() === "ios") return;
+    if (!bridge || !push) return;
+    // iOS 플러그인은 FCM이 아니라 Apple(APNs) 기기 번호를 준다. 서버가 platform으로 갈라 APNs로 보낸다(lib/apns.ts).
+    const platform = appSource(bridge) === "app-ios" ? "ios" : "android";
     const handles: Promise<unknown>[] = [];
 
     handles.push(
       push.addListener("registration", ((data: { value: string }) => {
-        registerPushToken(data.value).catch((error: unknown) =>
+        registerPushToken(data.value, platform).catch((error: unknown) =>
           console.warn("[push] 알림 번호를 서버에 알리지 못했다.", error instanceof Error ? error.message : error),
         );
       }) as never),
