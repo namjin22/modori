@@ -84,7 +84,7 @@ Name에 아래 이름, Secret에 값을 붙여 넣고 **Add secret**.
 ### 3. 빌드해서 TestFlight에 올리기
 
 GitHub → Actions → ios → Run workflow → **upload 체크** → 실행(10분 안팎). `ios-v1.0.0` 같은 태그를 올려도 된다.
-빌드 번호는 실행 번호, 버전은 `1.0.<실행 번호>`. 올라간 뒤 App Store Connect의 TestFlight 탭에서 처리가 끝나면(10~30분)
+빌드 번호는 실행 번호, 버전은 `1.0.<실행 번호>`. App Store는 Xcode 26(iOS 26 SDK) 이상으로 만든 앱만 받아서 워크플로가 러너의 가장 새 Xcode 26을 고른다(처음 업로드가 Xcode 16이라 거절됐다). 올라간 뒤 App Store Connect의 TestFlight 탭에서 처리가 끝나면(10~30분)
 **내부 테스트**에 나를 넣어 iPhone의 TestFlight 앱으로 설치한다. 외부 테스터(친구)는 첫 빌드만 베타 심사(보통 하루)를 거친다.
 
 upload를 끄고 돌리면 서명 없이 시뮬레이터용으로 빌드만 한다(비밀 없이 도는 확인용). `mobile/`을 고친 PR에서도 이것이 돈다.

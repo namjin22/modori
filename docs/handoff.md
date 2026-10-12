@@ -1645,3 +1645,4 @@ VM에 시험 DB(사용자 1000, 할 일 108만, 반응 24만, 280MB)를 만들�
 - 폰(pointer-coarse): 손잡이 숨김, 할 일·카테고리·달력 일정 0.4초 길게 눌러 집기(`useRowSensors`, `LONG_PRESS_MS`). 실제 폰 확인 전.
 - 반응 창 고르는 칸 높이 고정(h-34). iOS 워크플로가 `ASC_KEY_P8`(.p8 원문) 비밀을 받음.
 - 검증: `npm run verify` 단위 190×3, E2E 218.
+- iOS 첫 TestFlight 업로드 성공(10/12, 빌드 6). 첫 시도는 Xcode 16(iOS 18.5 SDK)이라 거절 → 워크플로가 Xcode 26 고르게, `shell: bash`로 실패를 놓치지 않게 고침(PR #164). 다음: App Store Connect에서 처리 완료 뒤 내부 테스트로 설치, Apple 로그인 키(docs/mobile-release.md 4절).
