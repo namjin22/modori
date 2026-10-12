@@ -97,13 +97,24 @@ Google 로그인이 있는 iOS 앱은 Apple 로그인도 함께 있어야 심사
    Primary App ID `site.modori.app`, Domains `modori.site`, Return URLs `https://modori.site/api/auth/callback/apple`.
 2. Keys → + → 이름 `modori-signin`, **Sign In with Apple** 체크 → Configure에서 Primary App ID `site.modori.app` → 저장 후 `.p8` 받기(한 번만).
    API 키(위 1-4)와 다른 키다.
-3. 서버(VM `/opt/modori/.env`)에 넣고 앱을 다시 띄운다. 키 내용은 줄바꿈을 `\n`으로 바꿔 한 줄로 적는다.
+3. VM 터미널에서 아래 두 줄을 실행하면 묻는 대로 값을 넣고 앱을 다시 띄워 준다(`deploy/set-apple.sh`). `.env`를 직접 고치지 않아도 된다.
+
+```
+cd /opt/modori
+curl -fsSLO https://raw.githubusercontent.com/namjin22/modori/main/deploy/set-apple.sh && bash set-apple.sh
+```
+
+물어보는 것: Services ID(`site.modori.web`), 팀 ID, 키 ID, 그리고 `.p8` 파일 내용 전체(붙여 넣은 뒤 빈 줄에서 Enter).
+끝나면 "성공: 로그인 화면에 'Apple로 계속하기'가 보여요."가 나온다. 직접 `.env`를 고치고 싶다면 아래 네 값을 넣는다(키 내용은 줄바꿈을 `
+`으로 바꿔 한 줄로).
 
 ```
 AUTH_APPLE_ID=site.modori.web
 APPLE_TEAM_ID=팀 ID
 APPLE_KEY_ID=Sign In with Apple 키의 ID
-APPLE_PRIVATE_KEY=-----BEGIN PRIVATE KEY-----\nMIGT...\n-----END PRIVATE KEY-----
+APPLE_PRIVATE_KEY=-----BEGIN PRIVATE KEY-----
+MIGT...
+-----END PRIVATE KEY-----
 ```
 
 넷이 다 있어야 로그인 화면에 "Apple로 계속하기"가 보인다. 하나라도 빠지거나 키가 틀리면 버튼을 숨기고 서버 로그에
