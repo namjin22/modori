@@ -3,6 +3,7 @@ import { DoriMessage } from "@/components/dori-message";
 import { PersonRow } from "@/components/person-row";
 import { RecommendedFriends } from "@/components/recommended-friends";
 import { SubmitButton } from "@/components/submit-button";
+import { notBlockedWith } from "@/lib/blocks";
 import { MAX_NICKNAME_LENGTH, normalizeNickname } from "@/lib/nickname";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
@@ -25,6 +26,7 @@ export default async function SearchPage({
           where: {
             id: { not: user.id },
             nickname: { contains: query, mode: "insensitive" },
+            ...notBlockedWith(user.id),
           },
           orderBy: { nickname: "asc" },
           take: MAX_RESULTS,

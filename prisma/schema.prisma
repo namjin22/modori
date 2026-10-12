@@ -41,18 +41,22 @@ model User {
   timezone          String    @default("Asia/Seoul")
   createdAt         DateTime  @default(now())
 
-  accounts      Account[]
-  sessions      Session[]
-  desktopLogins DesktopLogin[]
-  categories    Category[]
-  todos         Todo[]
-  routines      Routine[]
-  events        Event[]
-  following     Follow[]       @relation("follower")
-  followers     Follow[]       @relation("following")
-  reactions     Reaction[]
-  activeDays    ActiveDay[]
-  pushTokens    PushToken[]
+  accounts       Account[]
+  sessions       Session[]
+  desktopLogins  DesktopLogin[]
+  categories     Category[]
+  todos          Todo[]
+  routines       Routine[]
+  events         Event[]
+  following      Follow[]       @relation("follower")
+  followers      Follow[]       @relation("following")
+  reactions      Reaction[]
+  activeDays     ActiveDay[]
+  pushTokens     PushToken[]
+  blocking       Block[]        @relation("blocker")
+  blockedBy      Block[]        @relation("blocked")
+  reportsMade    Report[]       @relation("reporter")
+  reportsAgainst Report[]       @relation("reported")
 }
 
 model Account {
@@ -321,4 +325,39 @@ model DailyStat {
   // 그날까지 가입을 마친 사람의 가입 경로별 누적({"discord": 12, "kakao": 3}). 경로를 모르는 사람은 "direct". 계정이 지워져도 남는 합계다.
   sources            Json?
   createdAt          DateTime @default(now())
+}
+
+/**
+ * 내가 차단한 사람. 차단하면 서로의 팔로우·반응이 지워지고, 서로 찾기·추천·팔로우에 나오지 않는다(lib/blocks.ts).
+ * App Store 심사 지침 1.2(사용자가 만든 내용이 있는 앱은 차단·신고 수단이 있어야 한다).
+ */
+model Block {
+  blockerId String
+  blockedId String
+  createdAt DateTime @default(now())
+
+  blocker User @relation("blocker", fields: [blockerId], references: [id], onDelete: Cascade)
+  blocked User @relation("blocked", fields: [blockedId], references: [id], onDelete: Cascade)
+
+  @@id([blockerId, blockedId])
+  @@index([blockedId])
+}
+
+/**
+ * 사용자 신고. 운영자가 /admin/reports에서 확인하고 처리한다. reason은 lib/report.ts의 정해진 값, detail은 짧은 설명(선택).
+ */
+model Report {
+  id         String    @id @default(cuid())
+  reporterId String
+  reportedId String
+  reason     String
+  detail     String?
+  createdAt  DateTime  @default(now())
+  handledAt  DateTime?
+
+  reporter User @relation("reporter", fields: [reporterId], references: [id], onDelete: Cascade)
+  reported User @relation("reported", fields: [reportedId], references: [id], onDelete: Cascade)
+
+  @@index([reportedId])
+  @@index([handledAt, createdAt])
 }
