@@ -6,6 +6,7 @@ import { BackLink } from "@/components/back-link";
 import { DoriMessage } from "@/components/dori-message";
 import { SubmitButton } from "@/components/submit-button";
 import { avatarUrl } from "@/lib/avatar";
+import { notBlockedWith } from "@/lib/blocks";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 
@@ -23,7 +24,7 @@ const TITLES: Record<FollowListKind, string> = { following: "팔로우", followe
 export async function FriendFollowList({ id, kind }: { id: string; kind: FollowListKind }) {
   const viewer = await requireUser();
   const friend = await prisma.user.findFirst({
-    where: { id, nickname: { not: null }, followers: { some: { followerId: viewer.id } } },
+    where: { id, nickname: { not: null }, followers: { some: { followerId: viewer.id } }, ...notBlockedWith(viewer.id) },
     select: { id: true, nickname: true },
   });
   if (!friend) notFound();
@@ -32,14 +33,14 @@ export async function FriendFollowList({ id, kind }: { id: string; kind: FollowL
     kind === "following"
       ? prisma.follow
           .findMany({
-            where: { followerId: friend.id, following: { nickname: { not: null } } },
+            where: { followerId: friend.id, following: { nickname: { not: null }, ...notBlockedWith(viewer.id) } },
             orderBy: { createdAt: "desc" },
             select: { following: { select: { id: true, nickname: true, profileImage: true, avatarCharacter: true } } },
           })
           .then((list) => list.map((row) => row.following))
       : prisma.follow
           .findMany({
-            where: { followingId: friend.id, follower: { nickname: { not: null } } },
+            where: { followingId: friend.id, follower: { nickname: { not: null }, ...notBlockedWith(viewer.id) } },
             orderBy: { createdAt: "desc" },
             select: { follower: { select: { id: true, nickname: true, profileImage: true, avatarCharacter: true } } },
           })

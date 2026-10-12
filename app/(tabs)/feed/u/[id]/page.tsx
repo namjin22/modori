@@ -15,7 +15,9 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 
 import { Avatar } from "@/components/avatar";
+import { BlockedProfile } from "@/components/blocked-profile";
 import { FriendView, type FriendData } from "@/components/friend-view";
+import { SafetyMenu } from "@/components/safety-menu";
 import { BackLink } from "@/components/back-link";
 import { LockedProfile } from "@/components/locked-profile";
 import { SubmitButton } from "@/components/submit-button";
@@ -61,6 +63,21 @@ export default async function FriendDayPage({
   const viewer = await requireUser();
   const { id } = await params;
   const params_ = await searchParams;
+
+  // 차단 관계. 나를 차단한 사람은 없는 주소처럼, 내가 차단한 사람은 "차단한 사람" 화면(풀기만 가능)을 보인다.
+  const [iBlocked, blockedMe] = await Promise.all([
+    prisma.block.findUnique({ where: { blockerId_blockedId: { blockerId: viewer.id, blockedId: id } }, select: { blockedId: true } }),
+    prisma.block.findUnique({ where: { blockerId_blockedId: { blockerId: id, blockedId: viewer.id } }, select: { blockerId: true } }),
+  ]);
+  if (blockedMe) notFound();
+  if (iBlocked) {
+    const blocked = await prisma.user.findFirst({
+      where: { id, nickname: { not: null } },
+      select: { id: true, nickname: true, profileImage: true, avatarCharacter: true },
+    });
+    if (!blocked?.nickname) notFound();
+    return <BlockedProfile nickname={blocked.nickname} avatar={avatarUrl(blocked)} targetId={blocked.id} />;
+  }
 
   const friend = await prisma.user.findFirst({
     where: {
@@ -149,7 +166,7 @@ export default async function FriendDayPage({
         <div className="flex items-center gap-3">
           <BackLink href="/feed" label="소셜로" />
           <Avatar src={avatarUrl(friend)} size={48} />
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <h1 className="truncate text-xl font-bold">{friend.nickname}</h1>
             {friend.bio && <p className="truncate text-sm text-muted">{friend.bio}</p>}
             {/* 좁은 화면에서는 줄이 바뀌어 버튼이 다음 줄로 내려간다. 글자가 한 글자씩 꺾이지 않게 각 조각은 한 덩어리로 둔다. */}
@@ -169,6 +186,7 @@ export default async function FriendDayPage({
               </form>
             </div>
           </div>
+          <SafetyMenu targetId={friend.id} nickname={friend.nickname ?? ""} />
         </div>
       }
     />

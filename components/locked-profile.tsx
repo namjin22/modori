@@ -1,5 +1,6 @@
 import { Avatar } from "@/components/avatar";
 import { BackLink } from "@/components/back-link";
+import { SafetyMenu } from "@/components/safety-menu";
 import { SubmitButton } from "@/components/submit-button";
 
 /**
@@ -21,6 +22,9 @@ export function LockedProfile({
     <div className="flex flex-col gap-6">
       <header className="flex items-center gap-1">
         <BackLink href="/feed" label="소셜로" />
+        <span className="ml-auto">
+          <SafetyMenu targetId={targetId} nickname={nickname} />
+        </span>
       </header>
       <div className="flex flex-col items-center gap-4 rounded-2xl bg-surface px-6 py-10 text-center">
         <Avatar src={avatar} size={72} />

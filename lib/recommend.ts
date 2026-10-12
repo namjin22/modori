@@ -6,7 +6,7 @@ import { prisma } from "@/lib/prisma";
 export const RECOMMEND_COUNT = 3;
 
 /**
- * 아직 팔로우하지 않은 사람 가운데 무작위 몇 명(기본 세 명). 나, 마이페이지에서 추천을 끈 사람, 운영자가 뺀 사람(recommendBlocked)은 뺀다.
+ * 아직 팔로우하지 않은 사람 가운데 무작위 몇 명(기본 세 명). 나, 마이페이지에서 추천을 끈 사람, 운영자가 뺀 사람(recommendBlocked), 나와 차단 관계인 사람은 뺀다.
  * 같은 seed면 같은 사람이 나와서(seed와 id로 섞는다), 팔로우한 직후 화면을 다시 그려도 나머지가 바뀌지 않는다.
  */
 export async function recommendPeople(userId: string, seed: string, limit = RECOMMEND_COUNT) {
@@ -14,6 +14,10 @@ export async function recommendPeople(userId: string, seed: string, limit = RECO
     SELECT u."id" FROM "User" u
     WHERE u."nickname" IS NOT NULL AND u."id" <> ${userId} AND u."hideFromRecommend" = false AND u."recommendBlocked" = false
       AND NOT EXISTS (SELECT 1 FROM "Follow" f WHERE f."followerId" = ${userId} AND f."followingId" = u."id")
+      AND NOT EXISTS (
+        SELECT 1 FROM "Block" b
+        WHERE (b."blockerId" = ${userId} AND b."blockedId" = u."id") OR (b."blockerId" = u."id" AND b."blockedId" = ${userId})
+      )
     ORDER BY md5(u."id" || ${seed})
     LIMIT ${limit}`);
   if (picked.length === 0) return [];

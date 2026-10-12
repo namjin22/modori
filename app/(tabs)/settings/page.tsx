@@ -25,11 +25,14 @@ export default async function SettingsPage() {
   const windows = await isWindowsBrowser();
   const timezone = timezoneOrDefault(user.timezone);
   const todayHere = dateIn(new Date(), timezone);
-  const [following, followers, admin] = await Promise.all([
+  const [following, followers, blockedCount, admin] = await Promise.all([
     prisma.follow.count({ where: { followerId: user.id } }),
     prisma.follow.count({ where: { followingId: user.id } }),
+    prisma.block.count({ where: { blockerId: user.id } }),
     isAdmin(user.id),
   ]);
+  // 운영자에게만: 아직 처리하지 않은 신고 수. 신고는 빨리 확인해야 한다.
+  const openReports = admin ? await prisma.report.count({ where: { handledAt: null } }) : 0;
 
   return (
     <div className="flex flex-col gap-6">
@@ -95,6 +98,10 @@ export default async function SettingsPage() {
       <section className="flex flex-col gap-4 rounded-2xl bg-surface p-5">
         <h2 className="text-sm font-semibold text-muted">친구 찾기</h2>
         <RecommendSwitch hidden={user.hideFromRecommend} />
+        <Link prefetch={false} href="/settings/blocked" className="flex items-center justify-between text-[15px]">
+          <span>차단한 사용자</span>
+          <span className="text-sm text-muted">{blockedCount}명</span>
+        </Link>
       </section>
 
       {/* 앱 안에서는 받을 필요가 없어 숨긴다. */}
@@ -119,6 +126,8 @@ export default async function SettingsPage() {
               <FooterLink href="/admin/metrics">지표</FooterLink>
               <Dot />
               <FooterLink href="/admin/users">사용자</FooterLink>
+              <Dot />
+              <FooterLink href="/admin/reports">{openReports > 0 ? `신고 ${openReports}` : "신고"}</FooterLink>
             </>
           )}
         </nav>

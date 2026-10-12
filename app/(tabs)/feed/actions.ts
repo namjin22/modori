@@ -5,6 +5,7 @@ import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 
+import { notBlockedWith } from "@/lib/blocks";
 import { prisma } from "@/lib/prisma";
 import { sendPushToUser, shouldNotify } from "@/lib/push";
 import { isReactionValue } from "@/lib/reactions";
@@ -22,8 +23,9 @@ export async function followUser(formData: FormData) {
   // 자기 자신은 팔로우하지 않는다.
   if (!targetId || targetId === user.id) return;
 
+  // 차단한 사람·나를 차단한 사람은 팔로우할 수 없다(notBlockedWith).
   const target = await prisma.user.findFirst({
-    where: { id: targetId, nickname: { not: null } },
+    where: { id: targetId, nickname: { not: null }, ...notBlockedWith(user.id) },
     select: { id: true },
   });
   if (!target) return;
