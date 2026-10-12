@@ -52,18 +52,27 @@ jobs:
       - name: App Store Connect API 키 준비
         if: ${{ startsWith(github.ref, 'refs/tags/ios-v') || inputs.upload }}
         env:
+          # .p8 내용을 GitHub 화면에 그대로 붙여 넣은 것(ASC_KEY_P8)이 쉽다. base64로 넣은 것(ASC_KEY_P8_BASE64)도 받는다.
+          KEY_P8: ${{ secrets.ASC_KEY_P8 }}
           KEY_BASE64: ${{ secrets.ASC_KEY_P8_BASE64 }}
           KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
           TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
-          for name in KEY_BASE64 KEY_ID ISSUER_ID TEAM_ID; do
+          for name in KEY_ID ISSUER_ID TEAM_ID; do
             if [ -z "${!name}" ]; then
               echo "::error::iOS 서명 비밀($name)이 없어요. docs/mobile-release.md를 따라 넣어 주세요."
               exit 1
             fi
           done
-          echo "$KEY_BASE64" | base64 -d > "$RUNNER_TEMP/asc_key.p8"
+          if [ -n "$KEY_P8" ]; then
+            printf '%s\n' "$KEY_P8" > "$RUNNER_TEMP/asc_key.p8"
+          elif [ -n "$KEY_BASE64" ]; then
+            echo "$KEY_BASE64" | base64 -d > "$RUNNER_TEMP/asc_key.p8"
+          else
+            echo "::error::iOS 서명 비밀(ASC_KEY_P8)이 없어요. docs/mobile-release.md를 따라 넣어 주세요."
+            exit 1
+          fi
           cat > "$RUNNER_TEMP/ExportOptions.plist" <<EOF
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
