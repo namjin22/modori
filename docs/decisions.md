@@ -1917,3 +1917,28 @@ Search Console은 재크롤 뒤(며칠~몇 주)에야 "중복" 경고가 줄어�
 - 홈 화면 전체가 브라우저 쪽 부품이 되어 첫 화면의 자바스크립트가 조금 늘었다.
 - 미리 받기 방식은 친구 화면에만 남는다(두 화면의 방식이 다르다).
 
+### iOS 앱: 맥 없이 GitHub macOS 러너로 빌드하고, Apple 로그인은 웹 서버가 맡는다 (2026-10-12, 사용자 결정: Apple Developer Program 가입)
+
+**상황**
+운영자가 Apple Developer Program에 가입했고 iOS 앱을 진행하자고 했다. 개발 PC는 Windows이고 맥이 없다. Google 로그인이 있는 iOS 앱은
+Apple 로그인도 있어야 심사를 통과한다(지침 4.8).
+
+**선택지**
+- 빌드: 1. 맥을 빌려 Xcode로 직접  2. GitHub Actions macOS 러너(저장소가 공개라 무료) + App Store Connect API 키로 자동 서명
+- 앱 껍데기: 1. Android처럼 Capacitor로 웹을 감싼다  2. 네이티브(Swift)로 새로
+- Apple 로그인: 1. 앱 안의 네이티브 Apple 로그인(플러그인 추가 + 서버에 identity token 검증 길 새로)  2. 웹(Auth.js Apple 제공자)으로 두고, 앱은 Google과 같은 "브라우저에서 로그인 → modori://로 넘겨받기"를 쓴다
+
+**선택**
+빌드 2, 껍데기 1, Apple 로그인 2. `mobile/ios`(Capacitor 8, Swift Package), `.github/workflows/ios.yml`(PR·손으로 돌리면 서명 없이 시뮬레이터 빌드, upload를 켜면 서명해 TestFlight로).
+Apple의 client_secret(JWT)은 6개월마다 손으로 바꾸지 않게 서버가 뜰 때 .p8 키로 만든다(`lib/apple-secret.ts`, 새 의존성 없이 node:crypto). 웹의 로그인 화면에도 Apple 버튼이 생긴다.
+iPhone 전용·세로 화면으로 둔다(iPad 스크린샷·화면 배치 심사를 피한다).
+
+**이유**
+맥 없이 계속 올릴 수 있고, 로그인·화면은 Android와 같은 코드라 고칠 곳이 하나다. 네이티브 Apple 로그인은 서버에 새 검증 길을 내야 해서 크다.
+
+**대가**
+- iOS 푸시 알림은 아직 없다. 서버는 FCM으로 보내는데 iOS 플러그인은 APNs 번호를 준다. Firebase를 iOS에 붙이기 전까지 iOS 앱은 알림을 묻지 않는다.
+- 로그인 창이 SFSafariViewController라 네이티브 Apple 로그인(Face ID 한 번)보다 한 단계 길다.
+- Apple 로그인으로 가입한 계정을 지울 때 Apple 토큰을 철회하지 않는다(토큰을 저장하지 않는 원칙, `lib/auth-minimal.ts`). 심사에서 지적받으면 Apple 계정만 refresh_token을 저장해 철회하는 쪽으로 바꾼다.
+- 맥이 없어 실제 iPhone 확인은 첫 TestFlight 빌드에서야 한다(노치 여백, 로그인 넘겨받기).
+

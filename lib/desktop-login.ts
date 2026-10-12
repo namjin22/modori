@@ -66,3 +66,11 @@ export async function redeemDesktopCode(code: string, verifier: string): Promise
   if (expected.length !== actual.length || !timingSafeEqual(expected, actual)) return null;
   return found.userId;
 }
+
+/** 앱(데스크톱·모바일)이 시스템 브라우저에서 이어 갈 수 있는 로그인. Apple은 iOS 앱 때문에 있다(App Store 심사 지침 4.8). */
+export const APP_LOGIN_PROVIDERS = { google: "Google", datagsm: "DataGSM", apple: "Apple" } as const;
+export type AppLoginProvider = keyof typeof APP_LOGIN_PROVIDERS;
+
+export function isAppLoginProvider(value: unknown): value is AppLoginProvider {
+  return typeof value === "string" && Object.hasOwn(APP_LOGIN_PROVIDERS, value);
+}

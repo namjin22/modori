@@ -8,6 +8,7 @@ import { prisma } from "@/lib/prisma";
 import { RUN_TAG } from "./run-tag";
 
 const MOBILE_UA = "Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36 Chrome/140 Mobile Safari/537.36 ModoriMobile/1.0.0";
+const IOS_UA = "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 ModoriMobile/1.0.0";
 
 const test = base.extend<{ email: string }>({
   email: async ({}, provide, testInfo) => {
@@ -27,15 +28,20 @@ test.afterAll(async () => {
  * 시스템 로그인 창을 열면 주소만 남기고, modori:// 링크는 시험이 handler로 직접 넘긴다.
  * 실제 기기에서 도는 것은 이 시험이 보지 못한다(docs/platforms.md "모바일 앱").
  */
-async function appPage(browser: Browser) {
-  const context = await browser.newContext({ userAgent: MOBILE_UA });
-  await context.addInitScript(() => {
+async function appPage(browser: Browser, platform: "android" | "ios" = "android") {
+  const context = await browser.newContext({ userAgent: platform === "ios" ? IOS_UA : MOBILE_UA });
+  await context.addInitScript((platform) => {
     const w = window as unknown as Record<string, unknown>;
     w.__opened = [];
     w.Capacitor = {
       isNativePlatform: () => true,
+      getPlatform: () => platform,
       Plugins: {
-        Browser: { open: async ({ url }: { url: string }) => (w.__opened as string[]).push(url) },
+        Browser: {
+          open: async ({ url }: { url: string }) => (w.__opened as string[]).push(url),
+          // 링크를 받으면 바로 다른 주소로 넘어가므로 화면이 바뀌어도 남는 곳에 센다.
+          close: async () => sessionStorage.setItem("closed", String(Number(sessionStorage.getItem("closed") ?? 0) + 1)),
+        },
         App: {
           addListener: async (_event: string, handler: (data: { url: string }) => void) => {
             w.__appUrlOpen = handler;
@@ -45,7 +51,7 @@ async function appPage(browser: Browser) {
         },
       },
     };
-  });
+  }, platform);
   return { context, page: await context.newPage() };
 }
 
@@ -105,5 +111,23 @@ test("모바일 앱에서는 Windows 앱 받기를 숨긴다", async ({ browser,
   await page.goto("/settings");
   await expect(page.getByRole("heading", { name: "마이페이지" })).toBeVisible();
   await expect(page.getByRole("link", { name: /Windows 앱 받기/ })).toHaveCount(0);
+  await context.close();
+});
+
+test("iOS 앱은 가입 경로를 app-ios로 보내고, 돌아오면 앱 위에 떠 있는 로그인 창을 닫는다", async ({ browser, email }, testInfo) => {
+  const { context, page } = await appPage(browser, "ios");
+  await page.goto("/login");
+  await page.getByRole("button", { name: "Google로 계속하기" }).click();
+  await expect.poll(() => page.evaluate(() => (window as unknown as { __opened: string[] }).__opened.length)).toBe(1);
+  const opened = new URL(await page.evaluate(() => (window as unknown as { __opened: string[] }).__opened[0]));
+  expect(opened.searchParams.get("from")).toBe("app-ios");
+
+  const user = await prisma.user.create({
+    data: { email, nickname: `아이폰${testInfo.testId.slice(-6)}${RUN_TAG}`, privacyAgreedAt: new Date() },
+  });
+  const code = await issueDesktopCode(user.id, opened.searchParams.get("challenge")!);
+  await page.evaluate((link) => (window as unknown as { __appUrlOpen: (d: { url: string }) => void }).__appUrlOpen({ url: link }), `modori://login?code=${encodeURIComponent(code)}`);
+  await expect(page).toHaveURL(/\/$/);
+  expect(await page.evaluate(() => sessionStorage.getItem("closed"))).toBe("1");
   await context.close();
 });

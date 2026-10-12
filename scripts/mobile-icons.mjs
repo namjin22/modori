@@ -1,6 +1,6 @@
-// Android 앱 아이콘과 시작 화면 그림을 앱 로고(app/icon.svg)로 다시 만든다. `node scripts/mobile-icons.mjs`
+// Android·iOS 앱 아이콘과 시작 화면 그림을 앱 로고(app/icon.svg)로 다시 만든다. `node scripts/mobile-icons.mjs`
 // sharp는 Next.js가 끌어오는 패키지라 package.json에 따로 적지 않았다. 로고를 바꿀 때만 다시 돌린다.
-import { readFileSync, readdirSync, existsSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, renameSync } from "node:fs";
 import path from "node:path";
 
 import sharp from "sharp";
@@ -39,5 +39,18 @@ for (const dir of readdirSync(RES).filter((name) => name.startsWith("drawable"))
   if (!existsSync(file)) continue;
   const { width, height } = await sharp(file).metadata();
   await onCanvas(width, height, Math.round(Math.min(width, height) * 0.26), SPLASH_BG, file);
+}
+// iOS: 1024 아이콘 한 장(투명이 있으면 App Store가 받지 않아 알파를 뺀다)과 시작 화면 그림.
+const IOS = path.join("mobile", "ios", "App", "App", "Assets.xcassets");
+if (existsSync(IOS)) {
+  const icon = path.join(IOS, "AppIcon.appiconset", "AppIcon-512@2x.png");
+  await onCanvas(1024, 1024, Math.round(1024 * 0.72), BG, icon);
+  await sharp(icon).flatten({ background: BG }).removeAlpha().toFile(icon + ".tmp");
+  renameSync(icon + ".tmp", icon);
+  for (const file of readdirSync(path.join(IOS, "Splash.imageset")).filter((name) => name.endsWith(".png"))) {
+    const target = path.join(IOS, "Splash.imageset", file);
+    const { width, height } = await sharp(target).metadata();
+    await onCanvas(width, height, Math.round(Math.min(width, height) * 0.26), SPLASH_BG, target);
+  }
 }
 console.log("아이콘과 시작 화면을 다시 만들었어요.");

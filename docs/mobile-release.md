@@ -1,4 +1,8 @@
-# 안드로이드 스토어용 앱 파일(AAB) 만들기
+# 모바일 앱 스토어에 올리기
+
+안드로이드는 아래 1~4, iOS는 "iOS (App Store·TestFlight)" 절.
+
+## 안드로이드 스토어용 앱 파일(AAB) 만들기
 
 Google Play에는 서명된 AAB를 올린다. 서명은 두 겹이다.
 - **업로드 키**: 내가 만들어 갖고 있는 키. 올리는 파일에 이 키로 서명한다.
@@ -7,7 +11,7 @@ Google Play에는 서명된 AAB를 올린다. 서명은 두 겹이다.
 
 키 파일과 비밀번호는 저장소·채팅에 올리지 않는다(`.gitignore`에 `*.jks`). GitHub 비밀(Secrets)에만 둔다.
 
-## 1. 업로드 키 만들기 (내 PC에서 한 번)
+### 1. 업로드 키 만들기 (내 PC에서 한 번)
 
 PowerShell에서. 비밀번호는 두 번 물어본다. 길고 기억하기 쉬운 것으로 정하고 비밀번호 관리자나 종이에 적어 둔다.
 `upload.jks`는 이 PC 밖(클라우드 개인 폴더, USB)에도 백업한다.
@@ -19,7 +23,7 @@ cd $HOME\Desktop
 
 이름·조직을 물으면 아무거나(닉네임 등)로 채워도 된다. 마지막에 `yes`.
 
-## 2. GitHub 비밀 4개 넣기
+### 2. GitHub 비밀 4개 넣기
 
 `gh` 명령은 값을 화면에 안 보이고 GitHub에 바로 올린다. 이름·비밀번호는 아래 자리에 직접 넣는다.
 
@@ -31,12 +35,12 @@ gh secret set ANDROID_KEY_ALIAS -R namjin22/modori           # modori-upload
 gh secret set ANDROID_KEY_PASSWORD -R namjin22/modori        # 키 비밀번호(keytool이 저장소와 같게 두라고 했다면 같은 값)
 ```
 
-## 3. AAB 만들기
+### 3. AAB 만들기
 
 GitHub → Actions → android → Run workflow → **release 체크** → 실행. 끝나면 실행 화면 아래 Artifacts의 `modori-android-release`(zip 안에 `app-release.aab`)를 받는다.
 `mobile-v1.0.0` 같은 태그를 올려도 만든다. 버전 코드는 실행 번호라 올릴 때마다 커진다(스토어 요구).
 
-## 4. Play Console에 올리기
+### 4. Play Console에 올리기
 
 1. 테스트 → **내부 테스트** 또는 **비공개 테스트** → 새 버전 만들기.
 2. Play 앱 서명을 물으면 **Google이 관리하는 키 사용**을 고른다. 처음 올리는 파일이 업로드 키로 서명된 것이라 Play가 자동으로 등록한다.
@@ -46,3 +50,66 @@ GitHub → Actions → android → Run workflow → **release 체크** → 실�
 ## 앱 아이콘·시작 화면
 
 앱 로고(`app/icon.svg`)로 `node scripts/mobile-icons.mjs`가 만든다. 로고를 바꾸면 다시 돌리고 커밋한다.
+
+## iOS (App Store·TestFlight)
+
+맥이 없어도 된다. GitHub의 macOS 러너(`.github/workflows/ios.yml`)가 빌드·서명·업로드를 한다. 서명은 App Store Connect API 키
+하나로 Xcode가 인증서와 프로비저닝 프로필을 알아서 만들고 관리한다(인증서 파일을 따로 만들어 넣지 않는다).
+
+### 1. Apple Developer에서 (한 번)
+
+1. **App ID**: Certificates, Identifiers & Profiles → Identifiers → + → App IDs → App. Bundle ID `site.modori.app`(Explicit).
+   Capabilities에서 **Sign In with Apple**을 켠다.
+2. **팀 ID**: Membership 화면의 Team ID(10자리). 아래 `APPLE_TEAM_ID`.
+3. **App Store Connect 앱**: App Store Connect → 앱 → + → 새로운 앱. 플랫폼 iOS, 이름 모도리, 기본 언어 한국어,
+   번들 ID `site.modori.app`, SKU 아무거나(예: modori).
+4. **API 키**: App Store Connect → 사용자 및 액세스 → 통합 → App Store Connect API → 팀 키 → +. 이름 `github-actions`,
+   액세스 **관리(Admin)**(배포 인증서를 만들려면 필요). `.p8` 파일은 **한 번만 받을 수 있다**. 키 ID와 위쪽의 발급자(Issuer) ID를 적어 둔다.
+
+### 2. GitHub 비밀 4개 넣기
+
+```powershell
+cd $HOME\Downloads
+[Convert]::ToBase64String([IO.File]::ReadAllBytes("AuthKey_키ID.p8")) | gh secret set ASC_KEY_P8_BASE64 -R namjin22/modori
+gh secret set ASC_KEY_ID -R namjin22/modori        # 키 ID
+gh secret set ASC_ISSUER_ID -R namjin22/modori     # 발급자 ID
+gh secret set APPLE_TEAM_ID -R namjin22/modori     # 팀 ID
+```
+
+`.p8`은 저장소·채팅에 올리지 않는다. 비밀을 넣은 뒤 PC에서는 안전한 곳(비밀번호 관리자 등)에만 둔다.
+
+### 3. 빌드해서 TestFlight에 올리기
+
+GitHub → Actions → ios → Run workflow → **upload 체크** → 실행(10분 안팎). `ios-v1.0.0` 같은 태그를 올려도 된다.
+빌드 번호는 실행 번호, 버전은 `1.0.<실행 번호>`. 올라간 뒤 App Store Connect의 TestFlight 탭에서 처리가 끝나면(10~30분)
+**내부 테스트**에 나를 넣어 iPhone의 TestFlight 앱으로 설치한다. 외부 테스터(친구)는 첫 빌드만 베타 심사(보통 하루)를 거친다.
+
+upload를 끄고 돌리면 서명 없이 시뮬레이터용으로 빌드만 한다(비밀 없이 도는 확인용). `mobile/`을 고친 PR에서도 이것이 돈다.
+
+### 4. Apple 로그인 켜기 (심사 전에 꼭)
+
+Google 로그인이 있는 iOS 앱은 Apple 로그인도 함께 있어야 심사를 통과한다(지침 4.8). 웹 서버가 Apple 로그인을 맡는다.
+
+1. Identifiers → + → **Services IDs**. 설명 `모도리 웹 로그인`, 식별자 `site.modori.web`. 만든 뒤 Sign In with Apple을 켜고 Configure:
+   Primary App ID `site.modori.app`, Domains `modori.site`, Return URLs `https://modori.site/api/auth/callback/apple`.
+2. Keys → + → 이름 `modori-signin`, **Sign In with Apple** 체크 → Configure에서 Primary App ID `site.modori.app` → 저장 후 `.p8` 받기(한 번만).
+   API 키(위 1-4)와 다른 키다.
+3. 서버(VM `/opt/modori/.env`)에 넣고 앱을 다시 띄운다. 키 내용은 줄바꿈을 `\n`으로 바꿔 한 줄로 적는다.
+
+```
+AUTH_APPLE_ID=site.modori.web
+APPLE_TEAM_ID=팀 ID
+APPLE_KEY_ID=Sign In with Apple 키의 ID
+APPLE_PRIVATE_KEY=-----BEGIN PRIVATE KEY-----\nMIGT...\n-----END PRIVATE KEY-----
+```
+
+넷이 다 있어야 로그인 화면에 "Apple로 계속하기"가 보인다. 하나라도 빠지거나 키가 틀리면 버튼을 숨기고 서버 로그에
+`[auth] Apple` 오류를 남긴다(Google 로그인은 그대로 된다). client_secret(JWT)은 서버가 뜰 때마다 키로 새로 만든다(`lib/apple-secret.ts`).
+
+### 아직 안 되는 것
+
+- **iOS 푸시 알림**: 서버는 FCM으로 보내는데 iOS 플러그인이 주는 번호는 Apple(APNs) 번호다. Firebase에 APNs 키를 올리고 앱에
+  Firebase를 붙여야 한다. 그 전까지 iOS 앱은 알림 허용을 묻지 않는다(`components/push-registrar.tsx`).
+- 실제 iPhone에서 로그인 넘겨받기·화면 여백(노치)을 아직 보지 못했다. 첫 TestFlight 빌드에서 확인한다.
+- 스토어 소개·스크린샷(6.7"/6.9" iPhone)·개인정보 라벨(App Privacy)은 App Store Connect에서 직접 적는다(`docs/store-listing.md` 참고).
+

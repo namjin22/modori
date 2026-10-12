@@ -33,6 +33,7 @@ export function codeFromLink(url: string): string | null {
 /** Capacitor가 웹 화면에 넣어 주는 다리. 앱 밖(일반 브라우저)에는 없다. */
 export type CapacitorBridge = {
   isNativePlatform?: () => boolean;
+  getPlatform?: () => string;
   Plugins?: {
     Browser?: { open: (options: { url: string }) => Promise<void>; close?: () => Promise<void> };
     App?: {
@@ -48,6 +49,11 @@ export type CapacitorBridge = {
     };
   };
 };
+
+/** 가입 경로 이름(lib/signup-source.ts). Android가 먼저 나와서 모르는 경우는 그쪽으로 센다. */
+export function appSource(bridge: CapacitorBridge): "app-ios" | "app-android" {
+  return bridge.getPlatform?.() === "ios" ? "app-ios" : "app-android";
+}
 
 export function capacitor(): CapacitorBridge | null {
   const bridge = (window as unknown as { Capacitor?: CapacitorBridge }).Capacitor;

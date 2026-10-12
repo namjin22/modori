@@ -1,13 +1,15 @@
 # 모도리 모바일 앱
 
 modori.site를 앱 창 하나로 띄우는 [Capacitor](https://capacitorjs.com) 앱입니다. 기능은 전부 웹에 있고, 앱은 창·로그인 넘겨받기·(예정) 푸시 알림만
-맡습니다(`docs/platforms.md`). 지금은 Android만 있고 iOS는 맥북을 빌린 뒤에 붙입니다.
+맡습니다(`docs/platforms.md`). Android와 iOS가 있습니다. iOS는 맥 없이 GitHub의 macOS 러너가 빌드합니다(`docs/mobile-release.md`).
 
 ## 구성
 
 - `capacitor.config.json`: `server.url`이 운영 주소라 웹을 고쳐 배포하면 앱 스토어 업데이트 없이 화면이 바뀝니다. 서버에 닿지 못하면
   `www/offline.html`이 뜹니다. 사용자 에이전트 끝에 `ModoriMobile/…`을 붙여 웹이 앱 안인 것을 압니다(`lib/desktop.ts`).
 - `android/`: Capacitor가 만든 Android 프로젝트. `modori://login` 링크를 받는 설정과 기기 백업 끄기(`allowBackup=false`)를 더했습니다.
+- `ios/`: Capacitor가 만든 iOS 프로젝트(플러그인은 Swift Package). `Info.plist`에 `modori://` 링크, 한국어, 세로 화면, iPhone 전용,
+  암호화 신고 면제(`ITSAppUsesNonExemptEncryption=false`, HTTPS만 씀)를 더했습니다. 로그인 창은 SFSafariViewController라 링크를 받으면 웹이 닫습니다.
 
 ## 로그인
 
@@ -35,5 +37,4 @@ cd android && ./gradlew assembleDebug     # app/build/outputs/apk/debug/app-debu
 ## 아직 없는 것
 
 - 푸시 알림(친구가 보낸 반응·새 팔로워): Firebase 프로젝트와 `google-services.json`이 필요하다.
-- 앱 아이콘·스플래시(지금은 Capacitor 기본 그림), 스토어용 서명 키와 AAB, 스토어 소개·스크린샷.
-- iOS: 맥북에서 `npx cap add ios`, Apple 로그인(가이드라인 4.8).
+- iOS 푸시 알림(Firebase를 iOS에 붙여야 한다), 실제 iPhone에서의 확인(첫 TestFlight 빌드에서).

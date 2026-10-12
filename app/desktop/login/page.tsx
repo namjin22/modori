@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { AutoSubmit } from "@/components/auto-submit";
 import { DesktopHandoff } from "@/components/desktop-handoff";
 import { Dori } from "@/components/dori";
-import { isChallenge, issueDesktopCode } from "@/lib/desktop-login";
+import { APP_LOGIN_PROVIDERS, isAppLoginProvider, isChallenge, issueDesktopCode } from "@/lib/desktop-login";
 import { getCurrentUser, requireUser } from "@/lib/session";
 
 import { continueDesktopLogin, switchDesktopAccount } from "./actions";
@@ -29,7 +29,7 @@ export default async function DesktopLoginPage({
   }
 
   // 앱에서 Google·DataGSM 버튼을 눌러 왔고 아직 로그인 전이면, 로그인 버튼을 한 번 더 누르지 않게 바로 이어 간다.
-  if ((provider === "google" || provider === "datagsm") && !(await getCurrentUser())) {
+  if (isAppLoginProvider(provider) && !(await getCurrentUser())) {
     return (
       <Frame mood="hello" title="로그인으로 넘어가는 중이에요">
         <AutoSubmit action={continueDesktopLogin}>
@@ -39,7 +39,7 @@ export default async function DesktopLoginPage({
             type="submit"
             className="flex h-14 w-full items-center justify-center rounded-2xl bg-brand text-base font-semibold text-brand-contrast"
           >
-            {provider === "google" ? "Google" : "DataGSM"}로 계속하기
+            {APP_LOGIN_PROVIDERS[provider]}로 계속하기
           </button>
         </AutoSubmit>
       </Frame>
@@ -50,7 +50,7 @@ export default async function DesktopLoginPage({
 
   // 앱에서 로그아웃해도 이 브라우저의 로그인은 남는다. 앱에서 로그인 버튼을 눌렀는데 이미 로그인돼 있으면
   // 그 계정으로 바로 넘기지 않고, 이 계정으로 갈지 다른 계정으로 갈지 묻는다.
-  if ((provider === "google" || provider === "datagsm") && confirmed !== "1") {
+  if (isAppLoginProvider(provider) && confirmed !== "1") {
     return (
       <Frame mood="hello" title={`${user.nickname}님으로 로그인할까요?`}>
         <p>이 브라우저에 이미 로그인된 계정이에요.</p>

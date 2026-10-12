@@ -1,0 +1,114 @@
+name: ios
+
+# 모바일 앱(mobile/, Capacitor)의 iOS 빌드. 맥이 없어 GitHub의 macOS 러너에서 만든다.
+# - 손으로 돌리면(upload 끔) 서명 없이 시뮬레이터용으로 빌드만 해 본다. 비밀이 없어도 돈다.
+# - upload를 켜고 돌리거나 ios-v* 태그를 올리면 서명해 App Store Connect(TestFlight)에 올린다.
+#   서명은 App Store Connect API 키 하나로 Xcode가 인증서·프로비저닝을 알아서 만든다(비밀 4개, docs/mobile-release.md).
+on:
+  push:
+    tags: ["ios-v*"]
+  # 앱 껍데기를 고친 PR은 서명 없이 빌드가 되는지만 본다(macOS 러너는 비싸서 mobile/을 건드렸을 때만).
+  pull_request:
+    paths: ["mobile/**", ".github/workflows/ios.yml"]
+  workflow_dispatch:
+    inputs:
+      upload:
+        description: "서명해서 TestFlight에 올린다"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: macos-15
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+
+      - run: npm ci
+
+      # 웹 화면은 서버(modori.site)에서 오므로 앱 껍데기와 플러그인(Swift Package)만 맞춘다.
+      - run: npx cap sync ios
+
+      - name: 시뮬레이터용 빌드(서명 없음)
+        if: ${{ !(startsWith(github.ref, 'refs/tags/ios-v') || inputs.upload) }}
+        working-directory: mobile/ios/App
+        run: |
+          xcodebuild -project App.xcodeproj -scheme App -configuration Debug \
+            -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO build | tail -n 40
+
+      # 비밀이 없으면 서명 없이 조용히 넘어가지 않고 여기서 멈춘다.
+      - name: App Store Connect API 키 준비
+        if: ${{ startsWith(github.ref, 'refs/tags/ios-v') || inputs.upload }}
+        env:
+          KEY_BASE64: ${{ secrets.ASC_KEY_P8_BASE64 }}
+          KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          for name in KEY_BASE64 KEY_ID ISSUER_ID TEAM_ID; do
+            if [ -z "${!name}" ]; then
+              echo "::error::iOS 서명 비밀($name)이 없어요. docs/mobile-release.md를 따라 넣어 주세요."
+              exit 1
+            fi
+          done
+          echo "$KEY_BASE64" | base64 -d > "$RUNNER_TEMP/asc_key.p8"
+          cat > "$RUNNER_TEMP/ExportOptions.plist" <<EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key><string>app-store-connect</string>
+            <key>destination</key><string>upload</string>
+            <key>teamID</key><string>$TEAM_ID</string>
+            <key>signingStyle</key><string>automatic</string>
+            <key>manageAppVersionAndBuildNumber</key><false/>
+          </dict>
+          </plist>
+          EOF
+
+      - name: 서명한 앱 만들기
+        if: ${{ startsWith(github.ref, 'refs/tags/ios-v') || inputs.upload }}
+        working-directory: mobile/ios/App
+        env:
+          KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        # 실행 번호는 계속 커지므로 App Store가 요구하는 "올릴 때마다 커지는 빌드 번호"를 만족한다.
+        run: |
+          xcodebuild -project App.xcodeproj -scheme App -configuration Release \
+            -destination 'generic/platform=iOS' -archivePath "$RUNNER_TEMP/App.xcarchive" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$RUNNER_TEMP/asc_key.p8" \
+            -authenticationKeyID "$KEY_ID" -authenticationKeyIssuerID "$ISSUER_ID" \
+            DEVELOPMENT_TEAM="$TEAM_ID" CODE_SIGN_STYLE=Automatic \
+            CURRENT_PROJECT_VERSION="${{ github.run_number }}" MARKETING_VERSION="1.0.${{ github.run_number }}" \
+            archive | tail -n 60
+
+      - name: TestFlight에 올리기
+        if: ${{ startsWith(github.ref, 'refs/tags/ios-v') || inputs.upload }}
+        working-directory: mobile/ios/App
+        env:
+          KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: |
+          xcodebuild -exportArchive -archivePath "$RUNNER_TEMP/App.xcarchive" \
+            -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" -exportPath "$RUNNER_TEMP/export" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$RUNNER_TEMP/asc_key.p8" \
+            -authenticationKeyID "$KEY_ID" -authenticationKeyIssuerID "$ISSUER_ID" | tail -n 40
+
+      - name: 키 지우기
+        if: always()
+        run: rm -f "$RUNNER_TEMP/asc_key.p8"

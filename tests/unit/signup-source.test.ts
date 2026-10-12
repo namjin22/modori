@@ -25,6 +25,7 @@ describe("가입 경로", () => {
     expect(sourceFromUserAgent("Mozilla/5.0 (Linux; Android 14) Chrome/130 ModoriMobile/1.0.0")).toBe("app-android");
     expect(sourceFromUserAgent("Mozilla/5.0 (Windows NT 10.0) Chrome/150 ModoriDesktop/1.0.0")).toBe("app-desktop");
     expect(sourceFromUserAgent("Mozilla/5.0 (iPhone) Safari/604")).toBeNull();
+    expect(sourceFromUserAgent("Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 ModoriMobile/1.0.0")).toBe("app-ios");
   });
 
   it("로그인으로 보내진 주소에서도 next 안의 from을 찾는다", () => {
@@ -64,6 +65,7 @@ describe("head 스크립트", () => {
     ["?next=%2Fdesktop%2Flogin%3Fchallenge%3Dabc", "Mozilla/5.0 Chrome"],
     ["?next=%2Fdesktop%2Flogin%3Fchallenge%3Dabc%26provider%3Dgoogle", "Mozilla/5.0 Chrome"],
     ["", "Mozilla/5.0 (Linux; Android 14) ModoriMobile/1.0.0"],
+    ["", "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) Mobile/15E148 ModoriMobile/1.0.0"],
     ["", "Mozilla/5.0 (Windows NT 10.0) ModoriDesktop/1.0.0"],
     ["?from=%3Cscript%3E", "Mozilla/5.0 Chrome"],
     ["?next=https%3A%2F%2Fevil.example%2F%3Ffrom%3Dx", "Mozilla/5.0 Chrome"],

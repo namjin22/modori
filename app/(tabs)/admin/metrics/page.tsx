@@ -142,7 +142,7 @@ export default async function MetricsPage() {
           </table>
         </div>
         <p className="text-xs text-muted">
-          초대 링크 끝에 ?from=discord처럼 붙인 표시예요. 표시가 없는 가입은 direct, 모바일 앱에서 시작한 가입은 app-android예요.
+          초대 링크 끝에 ?from=discord처럼 붙인 표시예요. 표시가 없는 가입은 direct, 모바일 앱에서 시작한 가입은 app-android·app-ios예요.
         </p>
       </section>
 

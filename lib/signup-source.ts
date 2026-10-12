@@ -45,7 +45,8 @@ export function sourceFromSearch(search: string): string | null {
 
 /** 모바일 앱·데스크톱 앱 안에서 연 화면인지(user agent 꼬리표, mobile/capacitor.config.json·desktop/main.js). */
 export function sourceFromUserAgent(userAgent: string): string | null {
-  if (userAgent.includes("ModoriMobile")) return "app-android";
+  // iOS 앱의 WebView도 같은 꼬리표를 단다. 기기 이름으로 가른다.
+  if (userAgent.includes("ModoriMobile")) return /iPhone|iPad|iPod/.test(userAgent) ? "app-ios" : "app-android";
   if (userAgent.includes("ModoriDesktop")) return "app-desktop";
   return null;
 }
@@ -77,7 +78,7 @@ export const SOURCE_SCRIPT = `
     }
     if (!found) {
       var ua = navigator.userAgent;
-      if (ua.indexOf("ModoriMobile") > -1) found = "app-android";
+      if (ua.indexOf("ModoriMobile") > -1) found = /iPhone|iPad|iPod/.test(ua) ? "app-ios" : "app-android";
       else if (ua.indexOf("ModoriDesktop") > -1) found = "app-desktop";
     }
     if (found) localStorage.setItem(KEY, found);
