@@ -1639,3 +1639,9 @@ VM에 시험 DB(사용자 1000, 할 일 108만, 반응 24만, 280MB)를 만들�
 - Vercel: `vercel.json`으로 자동 배포 끔. **운영자가 할 일**: Vercel 화면에서 옛 배포 지우기 또는 프로젝트 삭제.
 - iOS: 운영자가 Apple Developer 1~4를 마침. 다음은 GitHub 비밀 4개 → Actions ios upload, 그다음 Apple 로그인 키(docs/mobile-release.md).
 - 검증: `npm run verify` 단위 190×3, E2E 217 통과.
+
+## 2026-10-12 (3) — 폰 길게 눌러 옮기기, 반응 창 여백, iOS 비밀 붙여 넣기 (PR #162, 배포 554f829)
+
+- 폰(pointer-coarse): 손잡이 숨김, 할 일·카테고리·달력 일정 0.4초 길게 눌러 집기(`useRowSensors`, `LONG_PRESS_MS`). 실제 폰 확인 전.
+- 반응 창 고르는 칸 높이 고정(h-34). iOS 워크플로가 `ASC_KEY_P8`(.p8 원문) 비밀을 받음.
+- 검증: `npm run verify` 단위 190×3, E2E 218.
