@@ -7,6 +7,7 @@ import { useToast } from "@/components/toast";
 import { useSaveFailure } from "@/components/use-save-failure";
 import { dragRange } from "@/lib/event-drag";
 import { LONG_PRESS_MS } from "@/components/sortable-list";
+import { isTouchPrimary } from "@/components/touch-guard";
 
 type Drag = {
   id: string;
@@ -157,9 +158,10 @@ export function EventDragGrid({ children, className }: { children: ReactNode; cl
         });
       }}
       onPointerCancel={finish}
-      // 길게 누르면 폰이 링크 메뉴를 띄워 집기를 가로챈다. 일정 이름표 위에서만 막는다.
+      // 길게 누르면 폰이 링크 메뉴(새 탭에서 열기·링크 복사·공유)를 띄워 집기를 가로챈다. 날짜 칸 전체가 링크라서 이름표를 정확히
+      // 짚지 못해도 뜨므로, 손가락 화면에서는 이 달력 안 어디서든 막는다. 마우스는 이름표 위에서만(오른쪽 단추 메뉴는 남긴다).
       onContextMenu={(event) => {
-        if ((event.target as Element).closest("[data-event-id]")) event.preventDefault();
+        if (isTouchPrimary() || (event.target as Element).closest("[data-event-id]")) event.preventDefault();
       }}
       onClickCapture={(event) => {
         if (!suppressClick.current) return;

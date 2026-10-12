@@ -94,7 +94,10 @@ export function EventSection({
               <li
                 key={event.id}
                 className="overflow-hidden rounded-xl bg-surface"
-                style={{ boxShadow: `inset 4px 0 0 ${event.color}` }}
+                // 왼쪽 띠가 일정 색이다. 흰색이 배경에 묻히지 않게 띠 바로 옆에 옅은 선을 한 줄 더 둔다.
+                style={{
+                  boxShadow: `inset 4px 0 0 ${event.color}, inset 5px 0 0 color-mix(in srgb, var(--color-foreground) 18%, transparent)`,
+                }}
               >
                 <button
                   type="button"
@@ -184,6 +187,7 @@ export function EventSection({
                 endTime: editing.endTime === null ? "" : formatTime(editing.endTime),
                 memo: editing.memo ?? "",
                 dday: editing.dday,
+                color: editing.color,
               }}
               onSaved={() => setEditing(null)}
               onCancel={() => setEditing(null)}
