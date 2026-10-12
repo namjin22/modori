@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 import { IntentLink } from "@/components/intent-link";
-import type { ReactNode } from "react";
+import type { ComponentProps, ReactNode } from "react";
 
 
 import {
@@ -48,8 +48,11 @@ export function MonthCalendar({
   monthHref,
   compact = false,
   eagerDays,
+  onSelectDay,
   editableEvents = false,
 }: {
+  // 홈처럼 한 달치를 이미 받아 둔 화면은 칸을 눌러도 서버에 가지 않고 이 함수로 날짜만 바꾼다(components/home-view.tsx).
+  onSelectDay?: (dateKey: string) => void;
   // 내 달력에서만 일정 이름표를 끌어 기간을 바꾼다.
   editableEvents?: boolean;
   // 친구 화면처럼 일정 이름이 들어가지 않는 곳에서는 칸을 낮춰 한눈에 보이게 한다.
@@ -92,20 +95,20 @@ export function MonthCalendar({
               이번 달
             </Link>
           )}
-          <Link prefetch={false}
+          <IntentLink
             href={monthHref(formatMonthKST(addMonths(monthStart, -1)))}
             aria-label="이전 달"
             className="flex size-8 items-center justify-center rounded-full text-muted hover:bg-surface-hover"
           >
             ‹
-          </Link>
-          <Link prefetch={false}
+          </IntentLink>
+          <IntentLink
             href={monthHref(formatMonthKST(addMonths(monthStart, 1)))}
             aria-label="다음 달"
             className="flex size-8 items-center justify-center rounded-full text-muted hover:bg-surface-hover"
           >
             ›
-          </Link>
+          </IntentLink>
         </div>
       </header>
 
@@ -147,12 +150,12 @@ export function MonthCalendar({
               : "";
 
             return (
-              <IntentLink
+              <DayLink
                 key={key}
                 href={dayHref(key)}
+                onSelect={onSelectDay && (() => onSelectDay(key))}
                 // 고른 날 자신은 이미 보고 있는 화면이라 받지 않는다.
                 eager={eagerDays !== undefined && Math.abs(daysBetween(selected, day)) > 0 && Math.abs(daysBetween(selected, day)) <= eagerDays}
-                // 한 달치 날짜 칸이 서른 개라 보이는 대로 미리 받지 않고, 손가락·마우스가 닿는 순간 받는다(IntentLink).
                 aria-label={`${day.getUTCDate()}일, 완료 ${doneColors.length > 0 ? "있음" : "없음"}`}
                 aria-describedby={events.length ? `calendar-events-${key}` : undefined}
                 aria-current={isSelected ? "date" : undefined}
@@ -205,7 +208,7 @@ export function MonthCalendar({
                     {eventLabel.slice(2)}
                   </span>
                 )}
-              </IntentLink>
+              </DayLink>
             );
           })}
         </DayGrid>
@@ -213,6 +216,30 @@ export function MonthCalendar({
 
       <p className="text-center text-xs text-muted sm:text-sm">이번 달 완료 {doneCount}개</p>
     </section>
+  );
+}
+
+/**
+ * 날짜 칸 링크. onSelect가 있으면 누를 때 서버에 가지 않고 그 함수만 부른다(주소는 그쪽이 바꾼다).
+ * 없으면 한 달치 서른 칸을 보이는 대로 미리 받지 않고, 손가락·마우스가 닿는 순간 받는다(IntentLink).
+ * 새 탭으로 여는 클릭(Ctrl·가운데 버튼)은 원래 링크대로 둔다.
+ */
+function DayLink({
+  onSelect,
+  eager,
+  ...rest
+}: Omit<ComponentProps<typeof IntentLink>, "onSelect"> & { onSelect?: () => void }) {
+  if (!onSelect) return <IntentLink eager={eager} {...rest} />;
+  return (
+    <Link
+      prefetch={false}
+      onClick={(event) => {
+        if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
+        event.preventDefault();
+        onSelect();
+      }}
+      {...rest}
+    />
   );
 }
 

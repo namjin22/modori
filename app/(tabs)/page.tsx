@@ -1,49 +1,19 @@
-import Link from "next/link";
-
+import { HomeView, type HomeData } from "@/components/home-view";
+import { avatarUrl } from "@/lib/avatar";
 import {
-  addDays,
   daysBetween,
   endOfMonthKST,
   formatKST,
-  isSameKSTDate,
+  formatMonthKST,
   parseKSTDate,
   parseKSTMonth,
   startOfMonthKST,
   todayIn,
-  weekdayKST,
 } from "@/lib/date";
-import { groupByCategory } from "@/lib/group-by-category";
 import { prisma } from "@/lib/prisma";
-import {
-  ensureRoutineTodos,
-  listScheduledRoutines,
-} from "@/lib/routine-todos";
-import { requireUser } from "@/lib/session";
-
-import { CategoryAdder } from "@/components/category-adder";
-import { DayRollover } from "@/components/day-rollover";
-import { Dori } from "@/components/dori";
-import { type DayEvent, EventSection } from "@/components/event-section";
-import { FirstTodoButton } from "@/components/first-todo-button";
-import { MoveUndoneButton } from "@/components/move-undone-button";
-import {
-  type CalendarEvent,
-  type DaySummary,
-  MonthCalendar,
-} from "@/components/month-calendar";
-import { ScheduledRoutineRow } from "@/components/scheduled-routine-row";
-import { TodoBoard } from "@/components/todo-board";
-import { TodoRow } from "@/components/todo-row";
-import { TodoProgress } from "@/components/todo-progress";
-
-import { Avatar } from "@/components/avatar";
-import { avatarUrl } from "@/lib/avatar";
 import { groupReceivedReactions } from "@/lib/reactions";
-// 카테고리를 고르지 않은 할 일도 달력에 흔적은 남아야 한다.
-import { NO_CATEGORY_COLOR } from "@/lib/colors";
-
-
-const WEEKDAY_NAMES = ["일", "월", "화", "수", "목", "금", "토"];
+import { ensureRoutineTodos, listRoutineRange } from "@/lib/routine-todos";
+import { requireUser } from "@/lib/session";
 
 function readDate(raw: string | undefined, today: Date): Date {
   if (!raw) return today;
@@ -69,71 +39,6 @@ function readMonth(raw: string | undefined, fallback: Date): Date {
   }
 }
 
-function formatHeading(date: Date): string {
-  const [, month, day] = formatKST(date).split("-");
-  return `${Number(month)}월 ${Number(day)}일 ${WEEKDAY_NAMES[weekdayKST(date)]}요일`;
-}
-
-type RangeTodo = {
-  date: Date;
-  done: boolean;
-  color: string | null;
-  category: { color: string } | null;
-};
-
-/** 기간 안의 할 일을 날짜별 요약(전체 수, 완료한 일의 색)으로 접는다. */
-function summarizeByDate(todos: RangeTodo[]): Map<string, DaySummary> {
-  const summaries = new Map<string, DaySummary>();
-  for (const todo of todos) {
-    const key = formatKST(todo.date);
-    const summary = summaries.get(key) ?? { total: 0, doneColors: [] };
-    summary.total += 1;
-    if (todo.done) {
-      // 할 일에 따로 고른 색이 있으면 그것, 없으면 카테고리 색.
-      summary.doneColors.push(
-        todo.color ?? todo.category?.color ?? NO_CATEGORY_COLOR,
-      );
-    }
-    summaries.set(key, summary);
-  }
-  return summaries;
-}
-
-/** 여러 날에 걸친 일정을 달력의 각 날짜에 펼쳐 놓는다. 이번 달 밖은 버린다. */
-function spreadEvents(
-  events: DayEvent[],
-  monthStart: Date,
-  monthEnd: Date,
-): Map<string, CalendarEvent[]> {
-  const byDate = new Map<string, CalendarEvent[]>();
-  for (const event of events) {
-    let day = event.startDate < monthStart ? monthStart : event.startDate;
-    const last = event.endDate > monthEnd ? monthEnd : event.endDate;
-    while (day <= last) {
-      const key = formatKST(day);
-      byDate.set(key, [
-        ...(byDate.get(key) ?? []),
-        {
-          id: event.id,
-          title: event.title,
-          color: event.color,
-          start: formatKST(event.startDate),
-          end: formatKST(event.endDate),
-        },
-      ]);
-      day = addDays(day, 1);
-    }
-  }
-  return byDate;
-}
-
-const RANGE_SELECT = {
-  date: true,
-  done: true,
-  color: true,
-  category: { select: { color: true } },
-} as const;
-
 const EVENT_SELECT = {
   id: true,
   title: true,
@@ -146,322 +51,101 @@ const EVENT_SELECT = {
   dday: true,
 } as const;
 
+const EVENT_ORDER = [
+  { startDate: "asc" },
+  { startTime: { sort: "asc", nulls: "first" } },
+  { createdAt: "asc" },
+] as const;
+
+/**
+ * 홈. 보이는 달 한 달치(와 고른 날)를 한 번에 받아 HomeView에 넘긴다. 달 안에서 날짜를 바꾸는 것은 브라우저가 한다.
+ * 고른 날마다 서버를 다녀오던 때는 날짜를 누를 때마다 0.5~1초씩 기다렸다(docs/decisions.md "한 달치를 한 번에").
+ */
 export default async function FeedPage({
   searchParams,
 }: {
-  searchParams: Promise<{ date?: string; month?: string; view?: string }>;
+  searchParams: Promise<{ date?: string; month?: string }>;
 }) {
   const user = await requireUser();
   const params = await searchParams;
   const today = todayIn(user.timezone);
   const date = readDate(params.date, today);
-  const isToday = isSameKSTDate(date, today);
-  const isPast = daysBetween(today, date) < 0;
-  // 할 일 창의 한 번에 옮기기: 지난 날은 오늘로, 오늘·앞날은 다음 날로.
-  const quickMove = isPast
-    ? { label: "오늘 하기", target: formatKST(today) }
-    : { label: isToday ? "내일 하기" : "다음 날에 하기", target: formatKST(addDays(date, 1)) };
+  // 한 달 달력을 모든 화면 폭에서 늘 보인다. 예전 주소의 view=month는 무시한다.
   const monthStart = readMonth(params.month, date);
-
-  // 한 달 달력을 모든 화면 폭에서 늘 보인다. 예전에는 좁은 화면에서 주간 줄이 기본이고 달력은 눌러야 폈는데,
-  // 폰 사용자가 "주 단위 말고 달 단위로 넘기고 싶다"고 해서 바꿨다(docs/decisions.md). 예전 주소의 view=month는 무시한다.
-  const dayHref = (key: string) => `/?date=${key}`;
-  const monthHref = (month: string) => `/?date=${formatKST(date)}&month=${month}`;
+  const monthEnd = endOfMonthKST(monthStart);
+  // 받아 둘 기간: 보이는 달, 그리고 달 밖의 날을 골라 둔 경우 그 날까지.
+  const from = daysBetween(date, monthStart) > 0 ? date : monthStart;
+  const to = daysBetween(monthEnd, date) > 0 ? date : monthEnd;
 
   // 이 날짜를 여는 순간 루틴 할 일이 없으면 만든다. 미래 날짜에는 만들지 않는다.
   await ensureRoutineTodos(user, date);
 
-  const monthEnd = endOfMonthKST(monthStart);
+  const [todos, categories, routines, events, upcoming] = await Promise.all([
+    prisma.todo.findMany({
+      where: { userId: user.id, date: { gte: from, lte: to } },
+      orderBy: { order: "asc" },
+      select: {
+        id: true,
+        date: true,
+        content: true,
+        done: true,
+        doneAt: true,
+        color: true,
+        memo: true,
+        category: { select: { id: true, name: true, color: true } },
+        // 친구가 보낸 반응. 할 일 밑에 투두메이트처럼 보여준다(내가 내 일에 보낼 수는 없다).
+        reactions: {
+          where: { userId: { not: user.id } },
+          orderBy: { createdAt: "asc" },
+          select: { emoji: true, user: { select: { nickname: true } } },
+        },
+      },
+    }),
+    prisma.category.findMany({
+      where: { userId: user.id, archivedAt: null },
+      orderBy: { order: "asc" },
+      select: { id: true, name: true, color: true, isPublic: true },
+    }),
+    listRoutineRange(user, from, to),
+    // 기간에 조금이라도 걸쳐 있는 일정. 고른 날의 일정도 여기서 고른다.
+    prisma.event.findMany({
+      where: { userId: user.id, startDate: { lte: to }, endDate: { gte: from } },
+      orderBy: [...EVENT_ORDER],
+      select: EVENT_SELECT,
+    }),
+    // 아직 오지 않은 일정. 그 날짜를 열어보지 않아도 시험이 며칠 남았는지 보인다.
+    // 보고 있는 날이 아니라 오늘을 기준으로 센다. 고른 날과 겹치는 것을 빼고 셋을 보여주는데,
+    // 고른 날이 브라우저에서 바뀌므로 넉넉히 보내고 HomeView가 자른다.
+    prisma.event.findMany({
+      // D-day를 끈 일정은 "다가오는 일정"에 올리지 않는다(사용자가 고른 것만 남긴다).
+      where: { userId: user.id, startDate: { gt: today }, dday: true },
+      orderBy: [...EVENT_ORDER],
+      select: EVENT_SELECT,
+      take: 20,
+    }),
+  ]);
 
-  const [
-    todos,
+  const data: HomeData = {
+    profile: { nickname: user.nickname, bio: user.bio, avatar: avatarUrl(user) },
+    today: formatKST(today),
+    initialDate: formatKST(date),
+    month: formatMonthKST(monthStart),
+    from: formatKST(from),
+    to: formatKST(to),
+    todos: todos.map(({ reactions, date: day, doneAt, ...todo }) => ({
+      ...todo,
+      date: formatKST(day),
+      doneAt: doneAt?.getTime() ?? null,
+      received: groupReceivedReactions(
+        reactions.map((reaction) => ({ emoji: reaction.emoji, nickname: reaction.user.nickname })),
+      ),
+    })),
     categories,
-    scheduled,
-    monthTodos,
-    dayEvents,
-    monthEvents,
-    upcomingEvents,
-  ] = await Promise.all([
-      prisma.todo.findMany({
-        where: { userId: user.id, date },
-        orderBy: { order: "asc" },
-        include: {
-          category: { select: { id: true, name: true, color: true } },
-          // 친구가 보낸 반응. 할 일 밑에 투두메이트처럼 보여준다(내가 내 일에 보낼 수는 없다).
-          reactions: {
-            where: { userId: { not: user.id } },
-            orderBy: { createdAt: "asc" },
-            select: { emoji: true, user: { select: { nickname: true } } },
-          },
-        },
-      }),
-      prisma.category.findMany({
-        where: { userId: user.id, archivedAt: null },
-        orderBy: { order: "asc" },
-        select: { id: true, name: true, color: true, isPublic: true },
-      }),
-      listScheduledRoutines(user.id, date),
-      prisma.todo.findMany({
-        where: {
-          userId: user.id,
-          date: { gte: monthStart, lte: monthEnd },
-        },
-        orderBy: [{ doneAt: { sort: "asc", nulls: "last" } }, { order: "asc" }],
-        select: RANGE_SELECT,
-      }),
-      // 고른 날에 걸쳐 있는 일정
-      prisma.event.findMany({
-        where: { userId: user.id, startDate: { lte: date }, endDate: { gte: date } },
-        orderBy: [{ startDate: "asc" }, { startTime: { sort: "asc", nulls: "first" } }, { createdAt: "asc" }],
-        select: EVENT_SELECT,
-      }),
-      // 이번 달에 조금이라도 걸쳐 있는 일정
-      prisma.event.findMany({
-        where: {
-          userId: user.id,
-          startDate: { lte: monthEnd },
-          endDate: { gte: monthStart },
-        },
-        orderBy: [{ startDate: "asc" }, { startTime: { sort: "asc", nulls: "first" } }, { createdAt: "asc" }],
-        select: EVENT_SELECT,
-      }),
-      // 아직 오지 않은 일정. 그 날짜를 열어보지 않아도 시험이 며칠 남았는지 보인다.
-      // 보고 있는 날짜가 아니라 오늘을 기준으로 센다. 고른 날과 겹치는 일정은
-      // 상한을 적용하기 전에 빼야 다섯 개가 꽉 찬 날에도 다음 일정 셋이 보인다.
-      prisma.event.findMany({
-        where: {
-          userId: user.id,
-          startDate: { gt: today },
-          // D-day를 끈 일정은 "다가오는 일정"에 올리지 않는다(사용자가 고른 것만 남긴다).
-          dday: true,
-          NOT: { startDate: { lte: date }, endDate: { gte: date } },
-        },
-        orderBy: [{ startDate: "asc" }, { startTime: { sort: "asc", nulls: "first" } }, { createdAt: "asc" }],
-        select: EVENT_SELECT,
-        take: 3,
-      }),
-    ]);
+    scheduled: routines.scheduled,
+    pending: routines.pending,
+    events,
+    upcoming,
+  };
 
-  // 투두메이트처럼 카테고리마다 칩과 +를 두고, 할 일이 없는 카테고리도 보여준다.
-  // 끝낸 일은 묶음 아래로 내린다(남은 일이 위에 모인다). 같은 쪽 안에서는 원래 순서를 지킨다(sort는 안정 정렬).
-  const undoneCount = todos.filter((todo) => !todo.done).length;
-  const todoGroups = groupByCategory(todos, categories, { includeEmpty: true }).map((group) => ({
-    ...group,
-    items: [...group.items].sort((a, b) => Number(a.done) - Number(b.done)),
-  }));
-
-  return (
-    // 넓은 화면에서는 왼쪽에 프로필과 달력, 오른쪽에 고른 날의 목록을 둔다.
-    <div className="flex flex-col gap-4 lg:grid lg:grid-cols-2 lg:items-start lg:gap-10">
-      {!params.date && <DayRollover day={formatKST(today)} />}
-      {/* 넓은 화면에서는 달력이 먼저 와서 할 일까지 Tab을 서른 번 넘게 눌러야 한다.
-          첫 Tab에 나타나는 건너뛰기 링크를 둔다. */}
-      <a
-        href="#day-list"
-        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-xl focus:bg-brand focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-brand-contrast"
-      >
-        할 일로 건너뛰기
-      </a>
-      {/* 넓은 화면에서 달력 칸은 제자리에 둔다. 시작 위치(pt-8)와 같은 top-8이라 스크롤을 시작해도 움직이지 않고,
-          창이 달력보다 낮으면(노트북) 칸 안에서만 스크롤해 페이지 끝에서 밀려 올라가지 않는다. */}
-      <div className="flex flex-col gap-4 lg:gap-6 lg:sticky lg:top-8 lg:max-h-[calc(100dvh-6rem)] lg:overflow-y-auto">
-        <Link prefetch={false} href="/settings/profile" className="flex items-center gap-3">
-          <Avatar src={avatarUrl(user)} size={48} />
-          <span className="min-w-0">
-            <span className="block truncate font-bold">{user.nickname}</span>
-            <span className="block truncate text-sm text-muted">
-              {user.bio || "한 줄 소개를 적어보세요"}
-            </span>
-          </span>
-        </Link>
-
-        <div>
-          <MonthCalendar
-            eagerDays={3}
-            monthStart={monthStart}
-            selected={date}
-            today={today}
-            summaries={summarizeByDate(monthTodos)}
-            eventsByDate={spreadEvents(monthEvents, monthStart, monthEnd)}
-            dayHref={dayHref}
-            monthHref={monthHref}
-            editableEvents
-          />
-        </div>
-      </div>
-
-      {/* 아래 여백을 이 칸에 둔다(PageFrame은 두 칸 화면에서 빼 준다). 달력 칸이 머물 수 있는 줄 높이가 페이지 끝까지 닿게. */}
-      <div id="day-list" tabIndex={-1} className="flex flex-col gap-6 outline-none lg:pb-12">
-        <header className="flex items-center justify-between">
-          <Link prefetch
-            href={`/?date=${formatKST(addDays(date, -1))}`}
-            aria-label="이전 날"
-            className="flex size-9 items-center justify-center rounded-full text-lg text-muted hover:bg-surface-hover"
-          >
-            ‹
-          </Link>
-
-          <div className="text-center">
-            <p className="text-xs text-muted">
-              {isToday ? "오늘" : formatKST(date)}
-            </p>
-            <h1 className="text-lg font-bold">{formatHeading(date)}</h1>
-          </div>
-
-          <Link prefetch
-            href={`/?date=${formatKST(addDays(date, 1))}`}
-            aria-label="다음 날"
-            className="flex size-9 items-center justify-center rounded-full text-lg text-muted hover:bg-surface-hover"
-          >
-            ›
-          </Link>
-        </header>
-
-        {/* 카테고리와 루틴은 할 일을 적다가 바로 손보는 것이라 설정이 아니라 여기 둔다. */}
-        {/* 가장 좁은 폰(320px)에서 달력 버튼만 다음 줄로 떨어지지 않게 여백을 줄인다. */}
-        <nav aria-label="할 일 관리" className="flex flex-wrap items-center gap-1.5 min-[360px]:gap-2">
-          <Link prefetch={false}
-            href="/categories"
-            className="flex h-8 items-center rounded-full bg-surface px-3 text-sm text-muted hover:text-foreground min-[360px]:px-3.5"
-          >
-            카테고리
-          </Link>
-          <Link prefetch={false}
-            href="/routines"
-            className="flex h-8 items-center rounded-full bg-surface px-3 text-sm text-muted hover:text-foreground min-[360px]:px-3.5"
-          >
-            루틴
-          </Link>
-          <Link prefetch={false}
-            href="/stats"
-            className="flex h-8 items-center rounded-full bg-surface px-3 text-sm text-muted hover:text-foreground min-[360px]:px-3.5"
-          >
-            기록
-          </Link>
-          {!isToday && (
-            <Link prefetch={false}
-              href="/"
-              className="flex h-8 items-center rounded-full px-3 text-sm text-brand hover:bg-surface-hover"
-            >
-              오늘로 돌아가기
-            </Link>
-          )}
-        </nav>
-
-        <EventSection
-          events={dayEvents}
-          upcoming={upcomingEvents}
-          date={formatKST(date)}
-          today={formatKST(today)}
-        />
-
-        {categories.length === 0 && (
-          // 카테고리 칩이 곧 할 일을 적는 자리다. 하나도 없으면 적을 곳이 없어진다.
-          <div className="flex flex-col items-start gap-2 rounded-2xl bg-surface p-5">
-            <p className="text-sm font-medium">카테고리를 먼저 만들어주세요</p>
-            <p className="text-sm text-muted">
-              할 일은 카테고리 안에 적어요. 하나만 만들어도 바로 쓸 수 있어요.
-            </p>
-            <Link prefetch={false}
-              href="/categories"
-              className="mt-1 flex h-10 items-center rounded-xl bg-brand px-4 text-sm font-semibold text-brand-contrast"
-            >
-              카테고리 만들기
-            </Link>
-          </div>
-        )}
-
-        {isPast && undoneCount > 0 && <MoveUndoneButton date={formatKST(date)} count={undoneCount} />}
-
-        {/* 앞날짜에 아직 "예정"인 루틴이 남아 있으면 다 끝낸 게 아니다. 축하 배너는 TodoProgress가 띄운다. */}
-        <TodoProgress
-          key={formatKST(date)}
-          // 막대는 끝낸 일의 색으로 찬다. 화면에 보이는 묶음 순서대로 넘겨 같은 색이 붙어 서게 한다.
-          items={todoGroups.flatMap((group) =>
-            group.items.map((todo) => ({
-              id: todo.id,
-              done: todo.done,
-              color: todo.color ?? todo.category?.color ?? null,
-            })),
-          )}
-          canCelebrate={scheduled.length === 0}
-        >
-          <TodoBoard
-            date={formatKST(date)}
-            groups={todoGroups.map((group) => ({
-              key: group.key,
-              categoryId: group.categoryId,
-              label: group.name,
-              droppable: !group.archived,
-              header: (
-                <CategoryAdder
-                  categoryId={group.categoryId}
-                  name={group.name}
-                  color={group.color}
-                  isPublic={group.isPublic}
-                  archived={group.archived || group.categoryId === null}
-                  date={formatKST(date)}
-                  count={
-                    group.items.length > 0
-                      ? `${group.items.filter((todo) => todo.done).length}/${group.items.length}`
-                      : null
-                  }
-                />
-              ),
-              items: group.items.map((todo) => ({
-                id: todo.id,
-                label: todo.content,
-                done: todo.done,
-                node: (
-                  <TodoRow
-                    todo={todo}
-                    date={formatKST(date)}
-                    quickMove={quickMove}
-                    received={groupReceivedReactions(
-                      todo.reactions.map((reaction) => ({
-                        emoji: reaction.emoji,
-                        nickname: reaction.user.nickname,
-                      })),
-                    )}
-                  />
-                ),
-              })),
-            }))}
-          />
-        </TodoProgress>
-
-        {categories.length > 0 && todos.length === 0 && scheduled.length === 0 && (
-          <div className="flex flex-col items-center gap-1 py-2 text-center">
-            {/* 지난 날은 느긋하게, 오늘과 앞날은 반갑게. */}
-            <Dori mood={daysBetween(today, date) < 0 ? "calm" : "hello"} size={80} />
-            <p className="text-sm text-muted">아직 할 일이 없어요</p>
-            {/* 지난 날은 쓰는 날이 아니라 오늘·앞날에만 큰 버튼을 둔다. */}
-            {daysBetween(today, date) >= 0 && <FirstTodoButton />}
-            <p className="mt-3 text-xs text-muted">
-              카테고리 이름을 눌러 적어보세요.{" "}
-              <Link prefetch={false} href="/routines" className="text-brand">
-                반복되는 일이라면 루틴으로 →
-              </Link>
-            </p>
-          </div>
-        )}
-
-        {scheduled.length > 0 && (
-          <section className="flex flex-col gap-3">
-            <p className="text-sm text-muted">예정된 루틴</p>
-            <ul className="flex flex-col gap-1">
-              {scheduled.map((routine) => (
-                <ScheduledRoutineRow
-                  key={routine.id}
-                  routine={routine}
-                  categories={categories}
-                  date={formatKST(date)}
-                />
-              ))}
-            </ul>
-          </section>
-        )}
-      </div>
-    </div>
-  );
+  return <HomeView data={data} />;
 }
