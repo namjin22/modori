@@ -179,31 +179,39 @@ export function ReactionBar({
           </PickTab>
         </div>
 
-        {/* 고르는 칸은 높이를 정해 두고 안에서 스크롤한다. 이모지가 많아 창이 화면을 다 덮고, 종류를 바꿀 때마다 창 크기가 출렁였다. */}
-        <div className="-mx-1 mt-3 h-60 overflow-y-auto overscroll-contain border-t border-border px-1 pt-3 [mask-image:linear-gradient(to_bottom,black_88%,transparent)]">
-          {tab === EMOJI_TAB ? (
-            <ul role="tabpanel" aria-label="이모지" className="grid grid-cols-6 gap-1.5 pb-6">
-              {REACTIONS.map(({ emoji, label }) => (
-                <li key={emoji}>
-                  <PickButton label={label} mine={isMine(emoji)} onPick={() => pick(emoji)} small>
-                    <span aria-hidden className="text-2xl leading-none">
-                      {emoji}
-                    </span>
-                  </PickButton>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <ul role="tabpanel" aria-label={CHARACTERS.find((item) => item.id === tab)?.name} className="grid grid-cols-5 gap-2 pb-6">
-              {CHARACTER_REACTIONS.filter((reaction) => reaction.character === tab).map(({ value, mood, character, label }) => (
-                <li key={value}>
-                  <PickButton label={label} mine={isMine(value)} onPick={() => pick(value)}>
-                    <Dori mood={mood} character={character} size={46} />
-                  </PickButton>
-                </li>
-              ))}
-            </ul>
-          )}
+        {/* 고르는 칸은 캐릭터 표정 두 줄(64px 두 줄 + 간격 8px = 8.5rem)에 딱 맞춘 높이로 두고, 이모지는 그 안에서 스크롤한다.
+            이모지가 많아 창이 화면을 다 덮고, 종류를 바꿀 때마다 창 크기가 출렁였다. 높이를 넉넉히 잡았더니 캐릭터 탭 아래가 비어 보였다.
+            칸 높이는 폭과 상관없이 정해져 있어 어느 화면 폭에서도 같다. */}
+        <div className="border-t border-border pt-4">
+          <div
+            className={`-mx-1 h-34 overscroll-contain px-1 ${
+              tab === EMOJI_TAB ? "overflow-y-auto [mask-image:linear-gradient(to_bottom,black_80%,transparent)]" : ""
+            }`}
+          >
+            {tab === EMOJI_TAB ? (
+              <ul role="tabpanel" aria-label="이모지" className="grid grid-cols-6 gap-1.5 pb-4">
+                {REACTIONS.map(({ emoji, label }) => (
+                  <li key={emoji}>
+                    <PickButton label={label} mine={isMine(emoji)} onPick={() => pick(emoji)} small>
+                      <span aria-hidden className="text-2xl leading-none">
+                        {emoji}
+                      </span>
+                    </PickButton>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <ul role="tabpanel" aria-label={CHARACTERS.find((item) => item.id === tab)?.name} className="grid grid-cols-5 gap-2">
+                {CHARACTER_REACTIONS.filter((reaction) => reaction.character === tab).map(({ value, mood, character, label }) => (
+                  <li key={value}>
+                    <PickButton label={label} mine={isMine(value)} onPick={() => pick(value)}>
+                      <Dori mood={mood} character={character} size={46} />
+                    </PickButton>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </div>
       </Modal>
     </div>
