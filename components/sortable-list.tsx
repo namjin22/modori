@@ -1,11 +1,12 @@
 "use client";
 
-import { type ReactNode, useState, useTransition } from "react";
+import { type ReactNode, type TouchEventHandler, useState, useTransition } from "react";
 
 import {
   DndContext,
   KeyboardSensor,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
   closestCenter,
   useSensor,
   useSensors,
@@ -46,11 +47,24 @@ export type Variant = "todo" | "card";
  */
 export const GENTLE_AUTO_SCROLL = { threshold: { x: 0, y: 0.08 }, acceleration: 3 };
 
-/** 손가락으로 끌기 시작하면 짧게 떨어 잡혔다는 것을 알린다(지원하는 폰에서만). */
+/**
+ * 손가락으로 이만큼 누르고 있으면 그 줄이 집힌다. 그 전에 움직이면 화면 스크롤이다.
+ * 폰에서 작은 손잡이를 잡고 끌면 화면이 같이 스크롤돼 옮기기 어려웠다는 요청으로, 폰에서는 손잡이를 없애고 줄을 길게 눌러 집는다.
+ */
+export const LONG_PRESS_MS = 400;
+
+/** 손가락으로 집으면 짧게 떨어 잡혔다는 것을 알린다(지원하는 폰에서만). */
 export function buzzOnTouchDrag(activator: Event) {
-  if (typeof PointerEvent !== "undefined" && activator instanceof PointerEvent && activator.pointerType === "touch") {
-    navigator.vibrate?.(10);
-  }
+  if (activator.type.startsWith("touch")) navigator.vibrate?.(15);
+}
+
+/** 마우스는 손잡이를 8px 넘게 끌면, 손가락은 줄을 길게 누르면(LONG_PRESS_MS) 집는다. 키보드는 손잡이에서 스페이스. */
+export function useRowSensors() {
+  return useSensors(
+    useSensor(MouseSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: LONG_PRESS_MS, tolerance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
 }
 
 /**
@@ -67,16 +81,23 @@ export function SortableRow({
     useSortable({ id });
 
   const card = variant === "card";
+  // 손가락으로 길게 누르는 것은 줄 전체에서, 마우스·키보드는 손잡이에서 받는다.
+  const { onTouchStart, ...handleListeners } = listeners ?? {};
 
   return (
     // 할 일은 투두메이트처럼 줄마다 카드를 두지 않는다. 올리거나 펼쳤을 때만 바탕을 깐다.
     <li
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={`group/row transition-colors ${
+      onTouchStart={onTouchStart as TouchEventHandler<HTMLLIElement> | undefined}
+      // 길게 누르면 폰이 글자 선택·메뉴를 띄워 집기를 가로챈다. 손가락 화면에서만 막는다.
+      onContextMenu={(event) => {
+        if (window.matchMedia("(pointer: coarse)").matches) event.preventDefault();
+      }}
+      className={`group/row transition-colors pointer-coarse:select-none pointer-coarse:[-webkit-touch-callout:none] pointer-coarse:active:bg-surface ${
         card ? "rounded-2xl bg-surface" : "rounded-xl hover:bg-surface has-[details[open]]:bg-surface"
       } ${
-        isDragging ? (dragPlaceholder ? "opacity-30" : "relative z-10 bg-surface opacity-90 shadow-lg") : ""
+        isDragging ? (dragPlaceholder ? "opacity-30" : "relative z-10 scale-[1.02] bg-surface opacity-95 shadow-xl ring-2 ring-brand") : ""
       }`}
     >
       <div className={`flex ${card ? "items-center pl-2" : "items-stretch"}`}>
@@ -86,12 +107,12 @@ export function SortableRow({
           aria-label="순서 바꾸기 손잡이"
           // 마우스를 올려야만 보이면 PC 사용자는 끌 수 있다는 것을 모른다(커서만 바뀐다). 늘 보이되 흐리게 두고, 올리면 또렷해진다.
           title="끌어서 순서 바꾸기"
-          // 폰에서는 손가락이 손잡이를 비껴 줄을 누르면 끌기 대신 화면이 움직였다. 손가락용 화면(pointer-coarse)에서는 넓게 둔다.
-          className={`flex w-6 shrink-0 cursor-grab touch-none justify-center rounded-lg py-2.5 text-muted/60 pointer-coarse:w-9 pointer-coarse:text-base transition-colors hover:bg-surface-hover hover:text-foreground focus-visible:text-foreground active:cursor-grabbing ${
+          // 손가락 화면(pointer-coarse)에서는 손잡이를 없앤다. 줄을 길게 눌러 집는다.
+          className={`flex w-6 shrink-0 cursor-grab touch-none justify-center rounded-lg py-2.5 text-muted/60 pointer-coarse:hidden transition-colors hover:bg-surface-hover hover:text-foreground focus-visible:text-foreground active:cursor-grabbing ${
             card ? "" : "self-start"
           }`}
           {...attributes}
-          {...listeners}
+          {...handleListeners}
         >
           ⠿
         </button>
@@ -132,11 +153,7 @@ export function SortableList({
     setOrder(ids);
   }
 
-  const sensors = useSensors(
-    // 살짝 눌렀다 떼는 것은 클릭으로 둔다. 8px 넘게 끌어야 드래그로 본다.
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
-  );
+  const sensors = useRowSensors();
 
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;

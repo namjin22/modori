@@ -6,6 +6,7 @@ import { resizeEvent } from "@/app/(tabs)/events/actions";
 import { useToast } from "@/components/toast";
 import { useSaveFailure } from "@/components/use-save-failure";
 import { dragRange } from "@/lib/event-drag";
+import { LONG_PRESS_MS } from "@/components/sortable-list";
 
 type Drag = {
   id: string;
@@ -24,9 +25,9 @@ type Drag = {
   timer: ReturnType<typeof setTimeout> | null;
 };
 
-// 손가락은 이만큼 누르고 있어야 끌기로 본다. 그 전에 움직이면 화면 스크롤이다.
+// 손가락은 할 일과 같이 길게 눌러야(LONG_PRESS_MS) 집힌다. 그 전에 움직이면 화면 스크롤이다.
 // 폰에서 달력을 쓸어 내리려다 일정 이름에 닿으면 스크롤 대신 끌기가 잡혀 화면이 안 움직였다.
-const HOLD_MS = 120;
+const HOLD_MS = LONG_PRESS_MS;
 // 누르고 있는 동안 이만큼은 흔들려도 된다.
 const HOLD_SLOP = 8;
 
@@ -38,8 +39,8 @@ type Range = { id: string; start: string; end: string };
  *
  * 칸과 이름표는 서버가 그린다. 여기서는 data-date(칸)와 data-event-*(이름표)만 보고,
  * 끄는 동안 바뀔 기간의 칸에 data-drag-range를 붙여 칠한다.
- * 마우스와 손가락 둘 다 포인터 이벤트로 받는다. 손가락은 잠깐 누르고 있다 끌어야 하고(그 전에 움직이면 스크롤),
- * 잡히면 이름표에 테두리가 생기고 짧게 떤다. 키보드로는 일정 창에서 날짜를 고친다.
+ * 마우스와 손가락 둘 다 포인터 이벤트로 받는다. 손가락은 할 일처럼 길게 눌러 집은 뒤 끌어야 하고(그 전에 움직이면 스크롤),
+ * 집히면 이름표가 커지며 테두리가 생기고 짧게 떤다. 키보드로는 일정 창에서 날짜를 고친다.
  */
 export function EventDragGrid({ children, className }: { children: ReactNode; className?: string }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -113,7 +114,7 @@ export function EventDragGrid({ children, className }: { children: ReactNode; cl
           current.timer = setTimeout(() => {
             current.armed = true;
             chip.setAttribute("data-drag-armed", "");
-            navigator.vibrate?.(10);
+            navigator.vibrate?.(15);
           }, HOLD_MS);
         }
         drag.current = current;
@@ -156,6 +157,10 @@ export function EventDragGrid({ children, className }: { children: ReactNode; cl
         });
       }}
       onPointerCancel={finish}
+      // 길게 누르면 폰이 링크 메뉴를 띄워 집기를 가로챈다. 일정 이름표 위에서만 막는다.
+      onContextMenu={(event) => {
+        if ((event.target as Element).closest("[data-event-id]")) event.preventDefault();
+      }}
       onClickCapture={(event) => {
         if (!suppressClick.current) return;
         suppressClick.current = false;

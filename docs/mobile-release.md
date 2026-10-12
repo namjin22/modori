@@ -66,17 +66,20 @@ GitHub → Actions → android → Run workflow → **release 체크** → 실�
 4. **API 키**: App Store Connect → 사용자 및 액세스 → 통합 → App Store Connect API → 팀 키 → +. 이름 `github-actions`,
    액세스 **관리(Admin)**(배포 인증서를 만들려면 필요). `.p8` 파일은 **한 번만 받을 수 있다**. 키 ID와 위쪽의 발급자(Issuer) ID를 적어 둔다.
 
-### 2. GitHub 비밀 4개 넣기
+### 2. GitHub 비밀 4개 넣기 (웹 화면에서)
 
-```powershell
-cd $HOME\Downloads
-[Convert]::ToBase64String([IO.File]::ReadAllBytes("AuthKey_키ID.p8")) | gh secret set ASC_KEY_P8_BASE64 -R namjin22/modori
-gh secret set ASC_KEY_ID -R namjin22/modori        # 키 ID
-gh secret set ASC_ISSUER_ID -R namjin22/modori     # 발급자 ID
-gh secret set APPLE_TEAM_ID -R namjin22/modori     # 팀 ID
-```
+GitHub 저장소 → **Settings** → 왼쪽 **Secrets and variables** → **Actions** → **New repository secret**을 네 번 누른다.
+Name에 아래 이름, Secret에 값을 붙여 넣고 **Add secret**.
 
-`.p8`은 저장소·채팅에 올리지 않는다. 비밀을 넣은 뒤 PC에서는 안전한 곳(비밀번호 관리자 등)에만 둔다.
+| Name | Secret에 넣을 값 |
+|---|---|
+| `ASC_KEY_P8` | 받은 `AuthKey_키ID.p8` 파일을 메모장으로 열어 **전체**(`-----BEGIN PRIVATE KEY-----`부터 `-----END PRIVATE KEY-----`까지) 복사해 붙여 넣기 |
+| `ASC_KEY_ID` | API 키의 키 ID(10자리) |
+| `ASC_ISSUER_ID` | App Store Connect API 화면 위쪽의 발급자(Issuer) ID(긴 UUID) |
+| `APPLE_TEAM_ID` | 팀 ID(10자리) |
+
+`.p8`은 저장소·채팅에 올리지 않는다. 넣은 뒤 PC에서는 안전한 곳(비밀번호 관리자 등)에만 둔다.
+(명령으로 넣고 싶으면 `gh secret set ASC_KEY_P8 -R namjin22/modori < AuthKey_키ID.p8`. 예전 방식인 `ASC_KEY_P8_BASE64`도 받는다.)
 
 ### 3. 빌드해서 TestFlight에 올리기
 

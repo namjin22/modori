@@ -87,3 +87,40 @@ test("할 일 창에서 카테고리를 골라 끌지 않고 다른 카테고리
   await page.reload();
   await expect.poll(below).toBe(true);
 });
+
+test("폰에서 할 일 줄을 짧게 누르면 창이 열리고, 길게 누르지 않고 쓸면 순서가 바뀌지 않는다", async ({ page, email }, testInfo) => {
+  await signUp(page, email, `짧게${testInfo.testId.slice(-6)}${RUN_TAG}`);
+  const user = await prisma.user.findUniqueOrThrow({ where: { email } });
+  const category = await prisma.category.findFirstOrThrow({ where: { userId: user.id } });
+  await prisma.todo.createMany({
+    data: ["첫째", "둘째"].map((content, order) => ({ userId: user.id, categoryId: category.id, content, date: todayKST(), order })),
+  });
+  await page.reload();
+
+  // 짧게 누르면(탭) 할 일 창이 열린다. 창에는 길게 누르는 법이 적혀 있다.
+  await page.getByRole("button", { name: "둘째", exact: true }).tap();
+  await expect(page.getByLabel("할 일 내용 수정")).toBeVisible();
+  await expect(page.getByText("할 일을 길게 누르면 집혀서")).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(page.getByLabel("할 일 내용 수정")).toHaveCount(0);
+
+  // 바로 쓸어 올린다(누르고 기다리지 않음): 집히지 않는다.
+  // (시험 도구가 보내는 스와이프 뒤에는 탭이 먹지 않아 탭을 먼저 본다. 예전 코드에서도 같다.)
+  const row = page.getByRole("listitem").filter({ hasText: "둘째" });
+  await row.scrollIntoViewIfNeeded();
+  const box = await row.boundingBox();
+  if (!box) throw new Error("줄을 찾지 못했다");
+  const start = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+  const client = await page.context().newCDPSession(page);
+  await client.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [start] });
+  for (let step = 1; step <= 6; step += 1) {
+    await client.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: start.x, y: start.y - step * 15 }] });
+  }
+  await client.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+  await client.detach();
+  await page.waitForTimeout(800);
+  expect((await prisma.todo.findMany({ where: { userId: user.id }, orderBy: { order: "asc" } })).map((todo) => todo.content)).toEqual([
+    "첫째",
+    "둘째",
+  ]);
+});
