@@ -3,10 +3,11 @@
 import { useRef, useState, useTransition } from "react";
 
 import { addTodo } from "@/app/(tabs)/actions";
+import { PENDING_PREFIX, useTodoStore } from "@/components/todo-store";
 import { useToast } from "@/components/toast";
 import { useBlurOutside } from "@/components/use-blur-outside";
 import { useSaveFailure } from "@/components/use-save-failure";
-import { onColorText } from "@/lib/colors";
+import { NO_CATEGORY_COLOR, onColorText } from "@/lib/colors";
 
 /**
  * 카테고리 칩. 이름을 누르면 칩 바로 아래에 입력칸이 열린다.
@@ -39,6 +40,7 @@ export function CategoryAdder({
   const [, startTransition] = useTransition();
   const saveFailed = useSaveFailure();
   const toast = useToast();
+  const store = useTodoStore();
 
   const chip = (
     <>
@@ -106,6 +108,23 @@ export function CategoryAdder({
             };
 
             startTransition(async () => {
+              // 홈에서는 적는 즉시 목록에 보인다(저장이 끝날 때까지 흐리게). 거절되거나 실패하면 저절로 빠진다.
+              if (store && categoryId && text.trim()) {
+                store({
+                  type: "add",
+                  todo: {
+                    id: `${PENDING_PREFIX}${crypto.randomUUID()}`,
+                    date,
+                    content: text.trim(),
+                    done: false,
+                    color: null,
+                    memo: null,
+                    doneAt: null,
+                    category: { id: categoryId, name, color: color ?? NO_CATEGORY_COLOR },
+                    received: [],
+                  },
+                });
+              }
               try {
                 const result = await addTodo(formData);
                 // 거절되면(하루 상한 등) 이유만 알린다.

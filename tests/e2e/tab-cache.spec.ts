@@ -6,7 +6,7 @@ import { addTodo } from "./todo-helpers";
 
 import { RUN_TAG } from "./run-tag";
 
-// 탭을 다시 열 때 방금 본 화면을 30초 동안 쓴다(next.config.ts staleTimes). 그래도 내가 바꾼 것은
+// 탭을 다시 열 때 방금 본 화면을 5분 동안 쓴다(next.config.ts staleTimes). 그래도 내가 바꾼 것은
 // 탭을 오간 뒤에 낡아 보이면 안 된다.
 const TEST_EMAIL = `e2e-tabcache-${RUN_TAG}@modori.test`;
 

@@ -16,7 +16,19 @@ type Drag = {
   moved: boolean;
   // 손을 뗄 때 쓸 마지막 기간. 화면 상태(preview)는 다시 그려진 뒤에야 바뀌어서 따로 든다.
   range: { start: string; end: string } | null;
+  // 끌 준비가 됐는지. 마우스는 누르자마자, 손가락은 잠깐(HOLD_MS) 누르고 있어야 된다.
+  armed: boolean;
+  chip: HTMLElement;
+  x: number;
+  y: number;
+  timer: ReturnType<typeof setTimeout> | null;
 };
+
+// 손가락은 이만큼 누르고 있어야 끌기로 본다. 그 전에 움직이면 화면 스크롤이다.
+// 폰에서 달력을 쓸어 내리려다 일정 이름에 닿으면 스크롤 대신 끌기가 잡혀 화면이 안 움직였다.
+const HOLD_MS = 120;
+// 누르고 있는 동안 이만큼은 흔들려도 된다.
+const HOLD_SLOP = 8;
 
 type Range = { id: string; start: string; end: string };
 
@@ -26,7 +38,8 @@ type Range = { id: string; start: string; end: string };
  *
  * 칸과 이름표는 서버가 그린다. 여기서는 data-date(칸)와 data-event-*(이름표)만 보고,
  * 끄는 동안 바뀔 기간의 칸에 data-drag-range를 붙여 칠한다.
- * 마우스와 손가락 둘 다 포인터 이벤트로 받는다. 키보드로는 일정 창에서 날짜를 고친다.
+ * 마우스와 손가락 둘 다 포인터 이벤트로 받는다. 손가락은 잠깐 누르고 있다 끌어야 하고(그 전에 움직이면 스크롤),
+ * 잡히면 이름표에 테두리가 생기고 짧게 떤다. 키보드로는 일정 창에서 날짜를 고친다.
  */
 export function EventDragGrid({ children, className }: { children: ReactNode; className?: string }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -52,7 +65,21 @@ export function EventDragGrid({ children, className }: { children: ReactNode; cl
     return cell && ref.current?.contains(cell) ? (cell.dataset.date ?? null) : null;
   }
 
+  // 잡힌 뒤에는 손가락이 움직여도 화면이 스크롤되지 않게 막는다. React의 터치 이벤트는 passive라 막지 못해 직접 붙인다.
+  useEffect(() => {
+    const grid = ref.current;
+    if (!grid) return;
+    const block = (event: TouchEvent) => {
+      if (drag.current?.armed) event.preventDefault();
+    };
+    grid.addEventListener("touchmove", block, { passive: false });
+    return () => grid.removeEventListener("touchmove", block);
+  }, []);
+
   function finish() {
+    const current = drag.current;
+    if (current?.timer) clearTimeout(current.timer);
+    current?.chip.removeAttribute("data-drag-armed");
     drag.current = null;
     setPreview(null);
   }
@@ -68,18 +95,37 @@ export function EventDragGrid({ children, className }: { children: ReactNode; cl
         const chip = (event.target as Element).closest<HTMLElement>("[data-event-id]");
         const origin = chip?.closest<HTMLElement>("[data-date]")?.dataset.date;
         if (!chip || !origin) return;
-        drag.current = {
+        const touch = event.pointerType === "touch";
+        const current: Drag = {
           id: chip.dataset.eventId ?? "",
           start: chip.dataset.eventStart ?? origin,
           end: chip.dataset.eventEnd ?? origin,
           origin,
           moved: false,
           range: null,
+          armed: !touch,
+          chip,
+          x: event.clientX,
+          y: event.clientY,
+          timer: null,
         };
+        if (touch) {
+          current.timer = setTimeout(() => {
+            current.armed = true;
+            chip.setAttribute("data-drag-armed", "");
+            navigator.vibrate?.(10);
+          }, HOLD_MS);
+        }
+        drag.current = current;
       }}
       onPointerMove={(event) => {
         const current = drag.current;
         if (!current) return;
+        if (!current.armed) {
+          // 잡히기 전에 움직였다: 스크롤하려는 것이다. 놓아 준다.
+          if (Math.hypot(event.clientX - current.x, event.clientY - current.y) > HOLD_SLOP) finish();
+          return;
+        }
         const day = dayAt(event.clientX, event.clientY);
         if (!day) return;
         if (!current.moved && day !== current.origin) {

@@ -55,13 +55,17 @@ test("카테고리 옆 +로 그 카테고리에 연달아 적는다", async ({ p
   await input.press("Escape");
   await expect(input).toBeHidden();
 
+  // 화면에는 저장 전에 먼저 보이므로(흐린 줄) DB는 저장이 끝나기를 기다려 본다.
   const user = await prisma.user.findUniqueOrThrow({ where: { email } });
-  const todos = await prisma.todo.findMany({
-    where: { userId: user.id },
-    include: { category: true },
-    orderBy: { order: "asc" },
-  });
-  expect(todos.map((todo) => [todo.content, todo.category?.name])).toEqual([
+  const saved = async () =>
+    (
+      await prisma.todo.findMany({
+        where: { userId: user.id },
+        include: { category: true },
+        orderBy: { order: "asc" },
+      })
+    ).map((todo) => [todo.content, todo.category?.name]);
+  await expect.poll(saved).toEqual([
     ["스쿼트 30개", "운동"],
     ["플랭크 1분", "운동"],
   ]);

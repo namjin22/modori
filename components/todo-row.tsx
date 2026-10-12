@@ -8,6 +8,7 @@ import { Modal } from "@/components/modal";
 import { ReceivedReactions } from "@/components/received-reactions";
 import { SubmitButton } from "@/components/submit-button";
 import { TodoCheckbox } from "@/components/todo-checkbox";
+import { useTodoStore } from "@/components/todo-store";
 import { useToast } from "@/components/toast";
 import { UndoableDeleteButton } from "@/components/undoable-delete-button";
 import { useSaveFailure } from "@/components/use-save-failure";
@@ -21,8 +22,10 @@ type Todo = {
   done: boolean;
   color: string | null;
   memo: string | null;
-  category: { name: string; color: string } | null;
+  category: { id?: string; name: string; color: string } | null;
 };
+
+type CategoryOption = { id: string; name: string; color: string };
 
 /**
  * 할 일 한 줄. 글자를 누르면 창이 떠서 글자와 메모를 고치고, 다른 날로 옮기거나 지운다.
@@ -33,6 +36,8 @@ export function TodoRow({
   date,
   quickMove,
   received = [],
+  saving = false,
+  categories,
 }: {
   todo: Todo;
   // 이 할 일의 날짜("YYYY-MM-DD"). "다른 날에 하기"의 처음 값(다음 날)을 여기서 정한다.
@@ -41,13 +46,20 @@ export function TodoRow({
   quickMove: { label: string; target: string };
   // 친구들이 이 할 일에 보낸 반응. 종류별로 묶여 온다.
   received?: ReceivedReaction[];
+  // 방금 적어 서버가 아직 모르는 할 일. 저장이 끝날 때까지(잠깐) 누를 수 없다.
+  saving?: boolean;
+  // 옮길 수 있는 카테고리(보관하지 않은 것). 주면 창에서 카테고리를 고를 수 있다. 폰에서는 끌어 옮기기가 어려워 이 길을 둔다.
+  categories?: CategoryOption[];
 }) {
   const [open, setOpen] = useState(false);
+  // 저장에 실패한 고친 글자. 다시 연 창에 그대로 채운다.
+  const [draft, setDraft] = useState<{ content: string; memo: string } | null>(null);
   const [pending, startTransition] = useTransition();
   const saveFailed = useSaveFailure();
+  const store = useTodoStore();
 
   return (
-    <div className="py-2.5 pr-3">
+    <div className={`py-2.5 pr-3 ${saving ? "pointer-events-none opacity-60" : ""}`} aria-busy={saving || undefined}>
       {/* 메모가 있으면 줄이 길어진다. 체크는 가운데가 아니라 할 일 글자 줄에 맞춘다. */}
       <div className="flex items-start gap-3">
         <div className="mt-px">
@@ -77,11 +89,33 @@ export function TodoRow({
           onSubmit={(event) => {
             event.preventDefault();
             const formData = new FormData(event.currentTarget);
+            const edited = { content: String(formData.get("content") ?? ""), memo: String(formData.get("memo") ?? "") };
+            // 한 달치를 받아 둔 홈에서는 고친 글자를 먼저 보여 주고 창을 바로 닫는다(전환 밖에서 닫아야 응답을 기다리지 않는다).
+            // 실패하면 고친 글자를 담은 채 창을 다시 연다.
+            if (store) setOpen(false);
             startTransition(async () => {
+              if (store) {
+                const memo = edited.memo.trim();
+                const category = categories?.find((option) => option.id === formData.get("categoryId"));
+                const moved = category && category.id !== todo.category?.id;
+                store({
+                  type: "patch",
+                  id: todo.id,
+                  patch: {
+                    content: edited.content.trim(),
+                    memo: memo || null,
+                    ...(moved && { category, color: null }),
+                  },
+                });
+              }
               try {
                 await updateTodo(formData);
-                setOpen(false);
+                setDraft(null);
+                // 홈에서는 이미 닫았다. 그사이 다시 열어 고치는 중일 수 있어 또 닫지 않는다.
+                if (!store) setOpen(false);
               } catch (error) {
+                setDraft(edited);
+                setOpen(true);
                 saveFailed(error);
               }
             });
@@ -92,7 +126,7 @@ export function TodoRow({
           {/* 할 일 칸에서 Enter를 누르면 예전처럼 바로 저장된다. 메모 칸의 Enter는 줄바꿈이다. */}
           <input
             name="content"
-            defaultValue={todo.content}
+            defaultValue={draft?.content ?? todo.content}
             maxLength={200}
             required
             autoFocus
@@ -100,11 +134,28 @@ export function TodoRow({
             aria-label="할 일 내용 수정"
             className="h-12 w-full rounded-xl bg-surface-hover px-4 text-[15px] outline-none focus:ring-2 focus:ring-brand"
           />
+          {categories && todo.category?.id && categories.some((option) => option.id === todo.category?.id) && (
+            <label className="flex items-center gap-3 text-sm">
+              <span className="shrink-0 text-muted">카테고리</span>
+              <select
+                name="categoryId"
+                defaultValue={todo.category.id}
+                aria-label="할 일 카테고리"
+                className="h-10 min-w-0 flex-1 rounded-xl bg-surface-hover px-3 text-[15px] outline-none focus:ring-2 focus:ring-brand"
+              >
+                {categories.map((option) => (
+                  <option key={option.id} value={option.id}>
+                    {option.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
           {/* 날짜 옮기기는 자주 누르므로 메모·삭제·저장보다 위에 둔다(사용자 요청). */}
           <MoveToDay id={todo.id} date={date} quickMove={quickMove} onMoved={() => setOpen(false)} />
           <textarea
             name="memo"
-            defaultValue={todo.memo ?? ""}
+            defaultValue={draft?.memo ?? todo.memo ?? ""}
             maxLength={MAX_MEMO_LENGTH}
             rows={3}
             placeholder="메모 (나만 봐요)"
@@ -114,14 +165,19 @@ export function TodoRow({
           <div className="flex items-center justify-between gap-2">
             <UndoableDeleteButton
               id={todo.id}
-              remove={deleteTodo}
+              remove={(id) => {
+                // 홈에서는 누르는 즉시 목록에서 뺀다(서버 응답 전).
+                store?.({ type: "remove", id });
+                return deleteTodo(id);
+              }}
               restore={restoreTodo}
               message="할 일을 지웠어요"
               onDone={() => setOpen(false)}
               className="h-10 rounded-xl px-3 text-sm font-medium text-danger"
             />
             <SubmitButton
-              pending={pending}
+              // 홈에서는 저장이 뒤에서 돌아 창이 이미 닫혀 있다. 이어서 다시 열어 고칠 때 버튼을 막지 않는다.
+              pending={!store && pending}
               pendingLabel="저장 중"
               className="h-10 rounded-xl bg-brand px-5 text-sm font-semibold text-brand-contrast"
             >
@@ -160,14 +216,23 @@ function MoveToDay({
   const [pending, startTransition] = useTransition();
   const toast = useToast();
   const saveFailed = useSaveFailure();
+  const store = useTodoStore();
 
   function move(target: string) {
     setMessage(null);
+    // 같은 날은 서버에 묻지 않아도 안다(먼저 옮겨 보이면 줄이 사라졌다 돌아온다). 서버도 같은 이유로 거절한다.
+    if (target === date) {
+      setMessage("이미 그날의 할 일이에요.");
+      return;
+    }
     startTransition(async () => {
+      // 홈에서는 누르는 즉시 그 날로 옮겨 보여 준다. 이 줄은 목록에서 사라지므로 거절 이유는 알림으로 띄운다.
+      store?.({ type: "patch", id, patch: { date: target } });
       try {
         const result = await moveTodo(id, target);
         if (!result.ok) {
-          setMessage(result.message);
+          if (store) toast({ message: result.message });
+          else setMessage(result.message);
           return;
         }
         onMoved();
