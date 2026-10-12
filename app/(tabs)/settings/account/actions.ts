@@ -1,5 +1,6 @@
 "use server";
 
+import { revokeAppleAccounts } from "@/lib/apple-revoke";
 import { signOut } from "@/lib/auth";
 import { normalizeNickname } from "@/lib/nickname";
 import { prisma } from "@/lib/prisma";
@@ -27,6 +28,8 @@ export async function deleteAccount(
   // 지우려다 실패한다. 여기서 실패하면 계정은 그대로 남으므로 다시 시도하면 된다.
   await signOut({ redirect: false });
 
+  // Apple로 로그인한 계정이면 Apple에도 연결을 끊어 달라고 알린다(실패해도 지우기는 계속한다).
+  await revokeAppleAccounts(user.id);
   await prisma.user.delete({ where: { id: user.id } });
 
   // redirect는 예외를 던져서 동작하므로 try 안에 두지 않는다.

@@ -54,7 +54,9 @@ test.afterAll(async () => {
   await prisma.$disconnect();
 });
 
+// STORE_ASSETS=1은 Google Play용, STORE_ASSETS=ios는 App Store용(iPhone 6.9인치 1320×2868). 둘 다 아니면 릴리스 스크린샷을 찍는다.
 const STORE = process.env.STORE_ASSETS === "1";
+const IOS = process.env.STORE_ASSETS === "ios";
 
 test.describe("스토어 스크린샷", () => {
   test.skip(!STORE, "STORE_ASSETS=1일 때만 찍는다");
@@ -82,7 +84,40 @@ test.describe("스토어 스크린샷", () => {
   });
 });
 
-for (const viewport of STORE ? [] : VIEWPORTS) {
+test.describe("App Store 스크린샷", () => {
+  test.skip(!IOS, "STORE_ASSETS=ios일 때만 찍는다");
+  // iPhone 16/17 Pro Max(6.9인치)의 1320×2868. 440×956에 배율 3.
+  test.use({ viewport: { width: 440, height: 956 }, deviceScaleFactor: 3 });
+
+  test("iPhone", async ({ page }) => {
+    await page.emulateMedia({ colorScheme: "light" });
+    await page.goto("/login");
+    await page.getByLabel("테스트 이메일").fill(ME);
+    await page.getByRole("button", { name: "테스트 로그인" }).click();
+    await expect(page.getByRole("button", { name: "공부에 할 일 쓰기" })).toBeVisible();
+
+    const screens: [string, string][] = [
+      ["1-home", "/"],
+      ["2-social", "/feed"],
+      ["3-friend", `/feed/u/${seeded.friendId}`],
+      ["5-notifications", "/feed/reactions"],
+      ["6-stats", "/stats"],
+    ];
+    for (const [name, url] of screens) {
+      await page.goto(url);
+      await shootStore(page, `store-ios-${name}`);
+    }
+
+    // 반응 보내기 창(떠 있는 창이라 창 크기 그대로, 열리는 움직임이 끝난 뒤).
+    await page.goto("/feed");
+    await page.getByRole("button", { name: "반응 보내기" }).first().click();
+    await expect(page.getByRole("dialog", { name: "반응 보내기" })).toBeVisible();
+    await page.waitForTimeout(500);
+    await shootStore(page, "store-ios-4-reaction");
+  });
+});
+
+for (const viewport of STORE || IOS ? [] : VIEWPORTS) {
   test(`${viewport.name} 화면`, async ({ page }) => {
     await page.setViewportSize({ width: viewport.width, height: viewport.height });
     await page.emulateMedia({ colorScheme: "light" });
