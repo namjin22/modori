@@ -2,10 +2,12 @@ import { PrismaAdapter } from "@auth/prisma-adapter";
 
 import { withMinimalStorage } from "@/lib/auth-minimal";
 import NextAuth, { customFetch, type NextAuthConfig } from "next-auth";
+import Apple from "next-auth/providers/apple";
 import Credentials from "next-auth/providers/credentials";
 import Google from "next-auth/providers/google";
 import type { OAuthConfig } from "next-auth/providers";
 
+import { appleClientSecret } from "@/lib/apple-secret";
 import { prisma } from "@/lib/prisma";
 import { generateSignedSessionToken } from "@/lib/signed-session-token";
 
@@ -23,6 +25,27 @@ if (process.env.DATAGSM_CLIENT_ID && !process.env.DATAGSM_CLIENT_SECRET) {
     "[auth] DATAGSM_CLIENT_SECRET이 없어서 DataGSM 로그인을 끈다. 환경변수를 확인해라.",
   );
 }
+
+// iOS 앱은 다른 회사 로그인(Google)을 넣으면 Apple 로그인도 함께 둬야 한다(App Store 심사 지침 4.8).
+// 넷 중 하나라도 없거나 키가 잘못됐으면 버튼을 숨기고 로그에 남긴다. 여기서 throw하면 구글 로그인까지 같이 죽는다.
+// 키는 서명에만 쓰고 저장하지 않는다(lib/apple-secret.ts).
+function readAppleSecret(): string | null {
+  const { AUTH_APPLE_ID, APPLE_TEAM_ID, APPLE_KEY_ID, APPLE_PRIVATE_KEY } = process.env;
+  if (!AUTH_APPLE_ID && !APPLE_TEAM_ID && !APPLE_KEY_ID && !APPLE_PRIVATE_KEY) return null;
+  if (!AUTH_APPLE_ID || !APPLE_TEAM_ID || !APPLE_KEY_ID || !APPLE_PRIVATE_KEY) {
+    console.error("[auth] Apple 로그인 환경변수 넷(AUTH_APPLE_ID·APPLE_TEAM_ID·APPLE_KEY_ID·APPLE_PRIVATE_KEY) 중 빠진 것이 있어 끈다.");
+    return null;
+  }
+  try {
+    return appleClientSecret({ teamId: APPLE_TEAM_ID, keyId: APPLE_KEY_ID, clientId: AUTH_APPLE_ID, privateKey: APPLE_PRIVATE_KEY });
+  } catch (error) {
+    console.error("[auth] APPLE_PRIVATE_KEY로 서명하지 못해 Apple 로그인을 끈다.", error instanceof Error ? error.message : error);
+    return null;
+  }
+}
+
+const appleSecret = readAppleSecret();
+export const isAppleConfigured = appleSecret !== null;
 
 type DataGSMProfile = {
   id: number;
@@ -123,6 +146,17 @@ const providers: NextAuthConfig["providers"] = [
 ];
 
 if (isDataGSMConfigured) providers.push(DataGSM());
+
+if (appleSecret) {
+  providers.push(
+    Apple({
+      clientId: process.env.AUTH_APPLE_ID,
+      clientSecret: appleSecret,
+      // Apple도 확인된 이메일을 준다. "이메일 가리기"를 고르면 Apple의 중계 주소라 다른 로그인과 이어지지 않는다.
+      allowDangerousEmailAccountLinking: true,
+    }),
+  );
+}
 
 if (isMockAuth) {
   providers.push(

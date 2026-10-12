@@ -5,7 +5,7 @@
  * 수집 항목·보관 위치는 실제 코드와 맞아야 한다. 무엇을 저장하는지(prisma/schema.prisma, lib/auth.ts),
  * 어디에 두는지(docs/gsmsv-migration.md)를 바꾸면 여기도 고친다.
  */
-export const PRIVACY_EFFECTIVE = "2026년 10월 8일";
+export const PRIVACY_EFFECTIVE = "2026년 10월 12일";
 export const PRIVACY_MANAGER = { name: "이남진", email: "penamjin@gmail.com" };
 
 export type PrivacySection = { title: string; items: string[] };
@@ -14,7 +14,7 @@ export const PRIVACY_SECTIONS: PrivacySection[] = [
   {
     title: "1. 모으는 정보",
     items: [
-      "로그인할 때: 이메일, 로그인한 계정(Google·DataGSM)의 고유 번호, 로그인을 유지하기 위한 인증 정보. Google·DataGSM이 함께 보내는 이름·사진 주소·로그인 토큰은 저장하지 않아요.",
+      "로그인할 때: 이메일, 로그인한 계정(Google·Apple·DataGSM)의 고유 번호, 로그인을 유지하기 위한 인증 정보. 함께 보내오는 이름·사진 주소·로그인 토큰은 저장하지 않아요. Apple 로그인에서 \"이메일 가리기\"를 고르면 Apple이 만든 전달용 주소를 이메일로 받아요.",
       "모바일 앱에서 알림을 허용하면: 기기 알림 번호(받은 반응과 새 팔로워를 알리는 데만 써요)",
       "직접 적는 것: 닉네임, 소개, 프로필 사진(내 사진 또는 고른 캐릭터), 시간대(\"오늘\"을 정하려고 고른 나라·도시), 할 일·카테고리·루틴·일정(할 일·일정의 메모 포함), 보낸 반응, 팔로우",
       "가입할 때: 어느 링크로 왔는지 보여 주는 경로 이름(초대 링크에 붙은 표시, 예: discord. 없으면 비워 둬요)",
@@ -62,7 +62,7 @@ export const PRIVACY_SECTIONS: PrivacySection[] = [
       "모든 정보는 대한민국에 있는 서버(GSMSV 클라우드)에 저장해요.",
       "Cloudflare(미국): 접속을 안전하게 연결하고 보호해요. 오가는 데이터가 이 회사의 네트워크를 거쳐요.",
       "Neon(미국 오하이오): 서버 사고에 대비해 모든 정보의 백업을 매일 새벽 4시에 암호화된 연결로 옮겨 보관해요. 최신 백업 한 벌만 남아요.",
-      "Google, DataGSM: 로그인할 때 본인 확인을 맡겨요.",
+      "Google, Apple, DataGSM: 로그인할 때 본인 확인을 맡겨요.",
       "jsDelivr(Cloudflare·Fastly 등 CDN): 화면 글꼴(Pretendard)을 내려받을 때 접속 주소(IP)와 브라우저 정보가 이 서비스에 전달돼요. 모도리는 그 정보를 저장하지 않아요.",
       "Google(Firebase Cloud Messaging, 미국): 모바일 앱 알림을 기기에 전달해요. 알림에는 상대 닉네임과 \"반응이 왔어요\" 같은 안내 문구만 들어가요.",
     ],
@@ -86,7 +86,7 @@ export const PRIVACY_SECTIONS: PrivacySection[] = [
     title: "8. 안전하게 지키는 방법",
     items: [
       "모든 접속은 암호화(HTTPS)해요.",
-      "비밀번호를 받지 않아요. 로그인은 Google과 DataGSM으로만 해요.",
+      "비밀번호를 받지 않아요. 로그인은 Google·Apple·DataGSM으로만 해요.",
       "서버와 데이터베이스는 관리자만 들어갈 수 있어요.",
     ],
   },

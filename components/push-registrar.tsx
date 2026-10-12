@@ -11,8 +11,11 @@ import { registerPushToken, safePushPath } from "@/lib/push-client";
  */
 export function PushRegistrar() {
   useEffect(() => {
-    const push = capacitor()?.Plugins?.PushNotifications;
-    if (!push) return;
+    const bridge = capacitor();
+    const push = bridge?.Plugins?.PushNotifications;
+    // iOS 앱은 아직 알림을 묻지 않는다. 서버는 FCM으로 보내는데, iOS 플러그인이 주는 번호는 FCM이 아니라 Apple(APNs) 번호라
+    // 받아 두어도 보낼 수 없다(docs/decisions.md "iOS 앱"). Firebase를 iOS에 붙이면 연다.
+    if (!push || bridge?.getPlatform?.() === "ios") return;
     const handles: Promise<unknown>[] = [];
 
     handles.push(

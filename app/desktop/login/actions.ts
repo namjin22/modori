@@ -1,17 +1,17 @@
 "use server";
 
 import { signIn, signOut } from "@/lib/auth";
-import { isChallenge } from "@/lib/desktop-login";
+import { isAppLoginProvider, isChallenge } from "@/lib/desktop-login";
 
 function readRequest(formData: FormData) {
   const provider = formData.get("provider");
   const challenge = formData.get("challenge");
-  if ((provider !== "google" && provider !== "datagsm") || !isChallenge(challenge)) return null;
+  if (!isAppLoginProvider(provider) || !isChallenge(challenge)) return null;
   return { provider, challenge };
 }
 
 // 앱에서 로그아웃해도 시스템 브라우저에는 이전 로그인이 남는다. 계정을 고를 수 있게 Google은 항상 계정 선택 창을 띄운다.
-// DataGSM은 이 값을 모르면 무시한다.
+// DataGSM·Apple은 이 값을 모르면 무시한다.
 const CHOOSE_ACCOUNT = { prompt: "select_account" };
 
 /**

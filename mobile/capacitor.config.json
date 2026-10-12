@@ -6,10 +6,16 @@
     "url": "https://modori.site",
     "androidScheme": "https",
     "errorPath": "offline.html",
-    "allowNavigation": ["modori.site"]
+    "allowNavigation": [
+      "modori.site"
+    ]
   },
   "android": {
     "appendUserAgent": "ModoriMobile/1.0.0",
     "allowMixedContent": false
+  },
+  "ios": {
+    "appendUserAgent": "ModoriMobile/1.0.0",
+    "contentInset": "automatic"
   }
 }

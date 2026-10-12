@@ -2,8 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import { AppleLogo } from "@/components/apple-logo";
 import { Logo } from "@/components/logo";
-import { isDataGSMConfigured, isMockAuth, signIn } from "@/lib/auth";
+import { isAppleConfigured, isDataGSMConfigured, isMockAuth, signIn } from "@/lib/auth";
 import { isDesktopApp, isInAppBrowser, isMobileApp } from "@/lib/desktop";
 import { safeNext } from "@/lib/next-path";
 import { getCurrentUser } from "@/lib/session";
@@ -80,6 +81,7 @@ export default async function LoginPage({
           <NativeLoginButtons
             providers={[
               { id: "google", label: "Google로 계속하기", primary: true },
+              ...(isAppleConfigured ? [{ id: "apple" as const, label: "Apple로 계속하기", primary: false }] : []),
               ...(isDataGSMConfigured ? [{ id: "datagsm" as const, label: "DataGSM으로 계속하기", primary: false }] : []),
             ]}
           />
@@ -121,6 +123,17 @@ export default async function LoginPage({
                 Google로 계속하기
               </button>
             </form>
+
+            {isAppleConfigured && (
+              <form
+                action={async () => {
+                  "use server";
+                  await signIn("apple", { redirectTo: next });
+                }}
+              >
+                <AppleButton />
+              </form>
+            )}
 
             {isDataGSMConfigured && (
               <form
@@ -179,5 +192,18 @@ export default async function LoginPage({
         </Link>
       </div>
     </main>
+  );
+}
+
+/** Apple 버튼은 Apple의 지침대로 검정 바탕(어두운 화면에서는 흰 바탕)에 사과 표시를 단다. */
+function AppleButton() {
+  return (
+    <button
+      type="submit"
+      className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-foreground text-base font-semibold text-background transition-opacity hover:opacity-90 active:scale-[0.98]"
+    >
+      <AppleLogo />
+      Apple로 계속하기
+    </button>
   );
 }
