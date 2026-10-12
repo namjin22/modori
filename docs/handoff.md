@@ -1623,3 +1623,10 @@ VM에 시험 DB(사용자 1000, 할 일 108만, 반응 24만, 280MB)를 만들�
 - 안 한 것: 마이그레이션을 로컬·테스트 DB에 적용하지 않았다(자동 모드가 막음, 배포가 처음 적용). 앱 로그아웃 때 브라우저 세션을 지우는 것은 앱이 못 해서 계정 묻기로 대체.
 
 검증: `npm run verify` 단위 168×3, E2E 175개(실패 1개는 day-rollover 테스트를 고쳐 재실행 통과). GitHub verify는 #131(37분)·#132(36분) 통과, main verify·deploy-gsmsv 성공.
+
+## 2026-10-12 — 홈 한 달치 한 번에 받기(PR #156 배포), iOS 앱·Apple 로그인 준비(PR #157)
+
+- 홈: 보이는 달 한 달치를 한 번에 받고 달 안의 날짜 이동은 서버 요청 없이(`components/home-view.tsx`, `listRoutineRange`). 지난 날 루틴은 그 날을 열 때만 만든다. 배포 완료(0c48e8b). 친구 화면은 여전히 미리 받기 방식.
+- iOS: `mobile/ios`(Capacitor 8), `.github/workflows/ios.yml`(PR은 서명 없는 시뮬레이터 빌드, upload는 TestFlight). Apple 로그인은 서버 환경 변수 넷이 있어야 보인다.
+- **사람이 할 일**: `docs/mobile-release.md` "iOS" 절 — App ID·App Store Connect 앱·API 키(Admin) 만들고 GitHub 비밀 4개, Services ID·Sign In with Apple 키 만들고 VM `.env`에 4개. 그 뒤 Actions → ios → upload.
+- 안 한 것: iOS 푸시(Firebase를 iOS에 붙여야 함), 실제 iPhone 확인, Apple 토큰 철회(토큰을 저장하지 않음, decisions "iOS 앱" 대가).
