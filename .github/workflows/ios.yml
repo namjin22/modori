@@ -25,6 +25,8 @@ jobs:
     runs-on: macos-15
     defaults:
       run:
+        # shell을 적어야 pipefail이 켜진다. 없으면 `xcodebuild | tail`에서 xcodebuild가 실패해도 단계가 성공으로 끝났다(업로드 실패를 놓쳤다).
+        shell: bash
         working-directory: mobile
     steps:
       - uses: actions/checkout@v4
@@ -34,6 +36,18 @@ jobs:
           node-version: 24
           cache: npm
           cache-dependency-path: mobile/package-lock.json
+
+      # App Store는 Xcode 26(iOS 26 SDK) 이상으로 만든 앱만 받는다. 러너의 기본 Xcode는 16이라 가장 새 26을 고른다.
+      - name: Xcode 26 고르기
+        run: |
+          ls -d /Applications/Xcode*.app
+          latest=$(ls -d /Applications/Xcode_26*.app 2>/dev/null | grep -v -i beta | sort -V | tail -n 1)
+          if [ -z "$latest" ]; then
+            echo "::error::러너에 Xcode 26이 없어요. runs-on을 바꿔야 해요."
+            exit 1
+          fi
+          sudo xcode-select -s "$latest/Contents/Developer"
+          xcodebuild -version
 
       - run: npm ci
 
