@@ -140,3 +140,10 @@ Host gsmsv-modori
 - ~~예전 Neon에 실제 사용자 3명의 데이터 사본이 남아 있다.~~ 사용자 요청으로 지웠다.
 - `modori-backup` 비밀번호가 채팅에 노출됐다. Neon에서 비밀번호를 바꾸고 `set-secrets.sh`로 다시 넣는다.
 - VM 연장(15일마다), 도메인 만료일(1년, 자동 갱신 없음) 챙기기.
+
+## Vercel 자동 배포 끄기 (2026-10-12)
+
+이관 뒤에도 Vercel의 GitHub 연동이 남아 푸시·PR마다 Vercel이 빌드했다. 사용자는 Vercel을 거치지 않는데 배포물이 쌓여
+무료 한도(Function Storage 10GB)의 75%가 찼다는 메일이 왔다. `vercel.json`에 `git.deploymentEnabled: false`를 넣어 새 배포를 끈다.
+남은 일(운영자, Vercel 화면): 옛 배포 지우기 또는 프로젝트 삭제. 프로젝트를 지우면 `modori.vercel.app` → `modori.site` 넘김도 사라진다.
+
