@@ -280,7 +280,7 @@ model PushToken {
   id        String   @id @default(cuid())
   userId    String
   token     String   @unique
-  platform  String // "android"
+  platform  String // "android"(FCM) | "ios"(APNs)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

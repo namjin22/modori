@@ -45,6 +45,14 @@ test("앱이 알린 알림 번호를 내 계정에 묶고, 로그아웃 때 지�
   expect(rows).toHaveLength(1);
   expect(rows[0].userId).toBe(me.id);
 
+  // iPhone 앱은 platform을 ios로 알린다(APNs로 보낸다). 모르는 platform은 android로 본다.
+  const IOS_TOKEN = `${"ab12".repeat(16)}`;
+  expect((await page.request.post("/api/push/register", { data: { token: IOS_TOKEN, platform: "ios" } })).status()).toBe(204);
+  expect((await prisma.pushToken.findUniqueOrThrow({ where: { token: IOS_TOKEN } })).platform).toBe("ios");
+  expect((await page.request.post("/api/push/register", { data: { token: IOS_TOKEN + "x", platform: "windows" } })).status()).toBe(204);
+  expect((await prisma.pushToken.findUniqueOrThrow({ where: { token: IOS_TOKEN + "x" } })).platform).toBe("android");
+  await prisma.pushToken.deleteMany({ where: { token: { in: [IOS_TOKEN, IOS_TOKEN + "x"] } } });
+
   // 남의 번호는 지울 수 없다.
   await prisma.pushToken.update({ where: { token: TOKEN }, data: { userId: other.id } });
   expect((await page.request.delete("/api/push/register", { data: { token: TOKEN } })).status()).toBe(204);

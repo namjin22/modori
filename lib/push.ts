@@ -1,9 +1,10 @@
 import { createSign } from "node:crypto";
 
+import { apnsConfigFromEnv, sendToApns } from "@/lib/apns";
 import { prisma } from "@/lib/prisma";
 
 /**
- * 모바일 앱 푸시 알림(받은 반응, 새 팔로워). Google FCM(HTTP v1)으로 보낸다.
+ * 모바일 앱 푸시 알림(받은 반응, 새 팔로워). Android는 Google FCM(HTTP v1)으로 보낸다. iOS는 lib/apns.ts가 APNs로 보낸다.
  *
  * 새 의존성 없이 Node의 crypto로 서비스 계정 서명(JWT)을 만들어 액세스 토큰을 받는다. 서비스 계정 키는 서버 환경 변수
  * FIREBASE_SERVICE_ACCOUNT(JSON 통째로 또는 base64)에만 두고, 없으면 아무것도 보내지 않는다(개발·테스트).
@@ -142,17 +143,27 @@ export async function sendToTokens(
   return gone;
 }
 
-/** 사람 한 명의 모든 기기에 알림을 보낸다. 서비스 계정 키가 없으면 조용히 넘어간다. */
+/**
+ * 사람 한 명의 모든 기기에 알림을 보낸다. Android는 FCM(서비스 계정 키), iOS는 APNs(Apple 키)로 나눠 보내고,
+ * 해당 키가 서버에 없으면 그쪽은 조용히 넘어간다. 한쪽이 실패해도 다른 쪽은 보낸다.
+ */
 export async function sendPushToUser(userId: string, message: PushMessage): Promise<void> {
   const account = parseServiceAccount(process.env.FIREBASE_SERVICE_ACCOUNT);
-  if (!account) return;
+  const apns = apnsConfigFromEnv();
+  if (!account && !apns) return;
   try {
-    const rows = await prisma.pushToken.findMany({ where: { userId }, select: { token: true } });
-    const gone = await sendToTokens(
-      rows.map((row) => row.token),
-      message,
-      account,
-    );
+    const rows = await prisma.pushToken.findMany({ where: { userId }, select: { token: true, platform: true } });
+    const tokensOf = (platform: string) => rows.filter((row) => row.platform === platform).map((row) => row.token);
+
+    const results = await Promise.allSettled([
+      account ? sendToTokens(tokensOf("android"), message, account) : Promise.resolve([] as string[]),
+      apns ? sendToApns(tokensOf("ios"), message, apns) : Promise.resolve([] as string[]),
+    ]);
+    const gone: string[] = [];
+    for (const result of results) {
+      if (result.status === "fulfilled") gone.push(...result.value);
+      else console.error("[push] 알림을 보내는 중 오류가 났다.", result.reason);
+    }
     if (gone.length > 0) await prisma.pushToken.deleteMany({ where: { token: { in: gone } } });
   } catch (error) {
     console.error("[push] 알림을 보내는 중 오류가 났다.", error);

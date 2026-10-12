@@ -3,7 +3,7 @@ import { getCurrentUser } from "@/lib/session";
 
 // 모바일 앱이 받은 기기 알림 번호(FCM 토큰)를 로그인한 계정에 묶는다(components/push-registrar.tsx).
 // 쿠키 세션은 SameSite=Lax라 다른 사이트에서 이 POST를 대신 보낼 수 없다.
-const PLATFORMS = ["android"];
+const PLATFORMS = ["android", "ios"];
 
 async function readToken(request: Request): Promise<{ token: string; platform: string } | null> {
   let body: unknown;
