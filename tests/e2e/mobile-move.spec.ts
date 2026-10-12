@@ -124,3 +124,33 @@ test("폰에서 할 일 줄을 짧게 누르면 창이 열리고, 길게 누르�
     "둘째",
   ]);
 });
+
+test("폰에서 달력의 일정 칸을 길게 눌러도 링크 메뉴(새 탭에서 열기·링크 공유)가 뜨지 않는다", async ({ page, email }, testInfo) => {
+  await signUp(page, email, `링크${testInfo.testId.slice(-6)}${RUN_TAG}`);
+  const user = await prisma.user.findUniqueOrThrow({ where: { email } });
+  const today = todayKST();
+  await prisma.event.create({ data: { userId: user.id, title: "메뉴 없는 일정", startDate: today, endDate: today, color: "#2563eb" } });
+  await page.reload();
+
+  // 브라우저가 길게 누르면 보내는 contextmenu를 직접 보내, 기본 동작(링크 메뉴)이 막히는지 본다.
+  // 화면이 완전히 붙은(hydration) 뒤에만 React 이벤트가 받아진다. 붙을 때까지 기다린다.
+  await expect(page.locator("[data-event-id]").first()).toBeVisible();
+  await page.waitForFunction(() => {
+    const cell = document.querySelector("a[data-date]");
+    return !!cell && Object.keys(cell).some((key) => key.startsWith("__reactProps"));
+  });
+  const prevented = await page.evaluate((key) => {
+    const fire = (el: Element) => {
+      const event = new MouseEvent("contextmenu", { bubbles: true, cancelable: true });
+      el.dispatchEvent(event);
+      return event.defaultPrevented;
+    };
+    const cell = document.querySelector(`a[data-date="${key}"]`)!;
+    const chip = cell.querySelector("[data-event-id]")!;
+    // 다른 날짜 칸(이름표 없음)도 링크라서 같이 막혀야 한다.
+    const other = document.querySelector(`a[data-date]:not([data-date="${key}"])`)!;
+    return { chip: fire(chip), cell: fire(cell), other: fire(other), draggable: (cell as HTMLElement).draggable };
+  }, formatKST(today));
+  expect(prevented).toEqual({ chip: true, cell: true, other: true, draggable: false });
+});
+

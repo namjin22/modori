@@ -7,11 +7,13 @@ import {
   type EventFormState,
   updateEvent,
 } from "@/app/(tabs)/events/actions";
+import { ColorSwatches } from "@/components/color-swatches";
 import { DatePicker } from "@/components/date-picker";
 import { LabeledSwitch } from "@/components/labeled-switch";
 import { SubmitButton } from "@/components/submit-button";
 import { TimePicker } from "@/components/time-picker";
 import { useFormAction } from "@/components/use-form-action";
+import { DEFAULT_EVENT_COLOR } from "@/lib/colors";
 import { MAX_MEMO_LENGTH } from "@/lib/memo";
 
 type EditingEvent = {
@@ -24,6 +26,7 @@ type EditingEvent = {
   endTime: string;
   memo: string;
   dday: boolean;
+  color: string;
 };
 
 /**
@@ -137,6 +140,9 @@ export function EventForm({
         <input type="hidden" name="startTime" value={allDay ? "" : startTime} />
         <input type="hidden" name="endTime" value={allDay ? "" : endTime} />
       </div>
+
+      {/* 할 일 카테고리와 같은 색 팔레트. 달력 칸의 일정 이름표와 일정 카드의 띠가 이 색이 된다. */}
+      <ColorSwatches name="color" legend="색" defaultValue={event?.color ?? DEFAULT_EVENT_COLOR} />
 
       <LabeledSwitch
         name="dday"

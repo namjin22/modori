@@ -217,6 +217,13 @@ dialog::backdrop {
 
    box-shadow가 아니라 border로 그린다. Tailwind의 ring도 box-shadow라서, 같은
    속성을 쓰면 고른 색에 두르는 선택 링을 덮어써 무엇을 골랐는지 안 보인다. */
+/* 폰에서 링크를 길게 누르면 iOS가 링크 미리보기·메뉴를 띄운다. 모도리는 길게 누르기로 할 일·일정을 집어 옮기므로 끈다. */
+@media (pointer: coarse) {
+  a {
+    -webkit-touch-callout: none;
+  }
+}
+
 @layer components {
   .color-edge {
     border: 1.5px solid color-mix(in srgb, var(--color-foreground) 22%, transparent);

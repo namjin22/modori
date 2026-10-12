@@ -3,7 +3,7 @@
 import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
-import { DEFAULT_EVENT_COLOR } from "@/lib/colors";
+import { DEFAULT_EVENT_COLOR, isPaletteColor } from "@/lib/colors";
 import { daysBetween, formatKST, formatMonthDayKST, parseKSTDate } from "@/lib/date";
 import { firstOverfullDay } from "@/lib/event-limit";
 import { formatTime, parseTime } from "@/lib/event-time";
@@ -26,7 +26,8 @@ type EventInput = {
   // 자정부터 몇 분. 비어 있으면 하루 종일(lib/event-time.ts).
   startTime: number | null;
   endTime: number | null;
-  color: string;
+  // 없으면(색 칸이 없던 예전 화면의 요청) 만들 때는 기본색, 고칠 때는 지금 색을 그대로 둔다.
+  color: string | undefined;
   memo: string | null;
   dday: boolean;
 };
@@ -76,8 +77,9 @@ function readEventInput(formData: FormData): EventInput | string {
     return "끝나는 시간이 시작 시간보다 앞설 수 없어요.";
   }
 
-  // 색은 고르지 않는다. 달력에서는 일정 이름으로 알아본다.
-  const color = DEFAULT_EVENT_COLOR;
+  // 할 일·카테고리와 같은 팔레트에서 고른다. 팔레트 밖의 값은 받지 않는다(색이 아닌 글이 style로 들어가지 않게).
+  const rawColor = readText(formData, "color");
+  const color = rawColor && isPaletteColor(rawColor) ? rawColor : undefined;
 
   // 비우면 메모 없음. 칸이 없던 요청(예전 화면)도 메모 없음으로 둔다.
   const memo = readMemo(formData.get("memo")) ?? null;
@@ -126,7 +128,7 @@ export async function createEvent(
   const full = await dailyLimitMessage(user.id, input);
   if (full) return { message: full };
 
-  await prisma.event.create({ data: { ...input, userId: user.id } });
+  await prisma.event.create({ data: { ...input, color: input.color ?? DEFAULT_EVENT_COLOR, userId: user.id } });
 
   revalidatePath("/");
   return { message: "일정을 만들었어요.", ok: true };
@@ -220,7 +222,7 @@ export async function restoreEvent(snapshot: DeletedEvent): Promise<string | voi
 
   try {
     await prisma.event.create({
-      data: { ...input, id: snapshot.id, userId: user.id },
+      data: { ...input, color: input.color ?? DEFAULT_EVENT_COLOR, id: snapshot.id, userId: user.id },
     });
   } catch (error) {
     // 두 번 눌렀거나 이미 되살아난 경우.

@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { IntentLink } from "@/components/intent-link";
+import { TouchGuard } from "@/components/touch-guard";
 import type { ComponentProps, ReactNode } from "react";
 
 
@@ -185,7 +186,7 @@ export function MonthCalendar({
                       data-event-end={event.end}
                       title={editableEvents ? "끌어서 기간 바꾸기" : undefined}
                       // 마우스로 끌 때는 바로 잡는다. 손가락(pointer-coarse)은 쓸면 화면이 스크롤되고, 길게 눌러 집은 뒤 끈다(EventDragGrid).
-                      className={`truncate rounded px-1 text-[10px] font-medium leading-[15px] transition-transform ${editableEvents ? "cursor-grab select-none [-webkit-touch-callout:none] pointer-fine:touch-none data-[drag-armed]:relative data-[drag-armed]:z-10 data-[drag-armed]:scale-110 data-[drag-armed]:ring-2 data-[drag-armed]:ring-foreground" : ""}`}
+                      className={`truncate rounded px-1 text-[10px] font-medium leading-[15px] ring-1 ring-inset ring-foreground/15 transition-transform ${editableEvents ? "cursor-grab select-none [-webkit-touch-callout:none] pointer-fine:touch-none data-[drag-armed]:relative data-[drag-armed]:z-10 data-[drag-armed]:scale-110 data-[drag-armed]:ring-2 data-[drag-armed]:ring-foreground" : ""}`}
                       style={{ backgroundColor: event.color, color: contrastTextColor(event.color) }}
                     >
                       {event.title}
@@ -219,10 +220,11 @@ export function MonthCalendar({
  * 새 탭으로 여는 클릭(Ctrl·가운데 버튼)은 원래 링크대로 둔다.
  */
 function DayLink({ onSelect, ...rest }: Omit<ComponentProps<typeof IntentLink>, "onSelect"> & { onSelect?: () => void }) {
-  if (!onSelect) return <IntentLink {...rest} />;
+  if (!onSelect) return <IntentLink draggable={false} {...rest} />;
   return (
     <Link
       prefetch={false}
+      draggable={false}
       onClick={(event) => {
         if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
         event.preventDefault();
@@ -236,6 +238,6 @@ function DayLink({ onSelect, ...rest }: Omit<ComponentProps<typeof IntentLink>, 
 /** 날짜 칸 격자. 내 달력이면 일정 이름표를 끌 수 있게 감싼다. */
 function DayGrid({ editable, children }: { editable: boolean; children: ReactNode }) {
   const className = "grid grid-cols-7 gap-0.5";
-  if (!editable) return <div className={className}>{children}</div>;
+  if (!editable) return <TouchGuard className={className}>{children}</TouchGuard>;
   return <EventDragGrid className={className}>{children}</EventDragGrid>;
 }
