@@ -88,6 +88,8 @@ test("루틴이 만든 오늘 할 일은 지우면 다시 생기지 않는다", 
   await openTodo(page, "물 두 잔");
   await page.getByRole("button", { name: "삭제" }).click();
   await expect(page.getByText("아직 할 일이 없어요")).toBeVisible();
+  // 목록에서는 누르는 즉시 빠진다. 서버가 지운 뒤에 뜨는 알림을 보고 새로 고친다.
+  await expect(page.getByText("할 일을 지웠어요")).toBeVisible();
 
   // 화면을 다시 그려도 "없으니 만든다"가 돌지 않아야 한다.
   await page.reload();

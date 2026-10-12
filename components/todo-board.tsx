@@ -28,7 +28,7 @@ import {
 } from "@dnd-kit/sortable";
 
 import { moveTodoToCategory, reorderTodos } from "@/app/(tabs)/actions";
-import { SortableRow, type SortableItem } from "@/components/sortable-list";
+import { buzzOnTouchDrag, GENTLE_AUTO_SCROLL, SortableRow, type SortableItem } from "@/components/sortable-list";
 import { useOptimisticDoneIds } from "@/components/todo-progress";
 import { useSaveFailure } from "@/components/use-save-failure";
 
@@ -110,6 +110,7 @@ export function TodoBoard({ date, groups }: { date: string; groups: BoardGroup[]
     startLayout.current = layout;
     startContainer.current = containerOf(event.active.id) ?? null;
     setActiveId(String(event.active.id));
+    buzzOnTouchDrag(event.activatorEvent);
   }
 
   function handleDragOver({ active, over }: DragOverEvent) {
@@ -222,6 +223,7 @@ export function TodoBoard({ date, groups }: { date: string; groups: BoardGroup[]
     <DndContext
       sensors={sensors}
       collisionDetection={collisionDetection}
+      autoScroll={GENTLE_AUTO_SCROLL}
       onDragStart={handleDragStart}
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}

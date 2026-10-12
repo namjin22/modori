@@ -164,48 +164,53 @@ export function ReactionBar({
         onClose={() => setPicking(false)}
         title="반응 보내기"
       >
-        <div role="tablist" aria-label="반응 종류" className="grid grid-cols-5 gap-2">
+        {/* 위는 "종류"를 고르는 막대, 아래 칸에서만 반응을 고른다. 두 줄이 같은 모양이라 위 칸도 보내는 반응인 줄 알았다는
+            요청이 있어, 위는 작은 알약 모양 막대(고른 것만 떠 보이고 나머지는 흐리게)로, 아래는 큰 칸으로 나눴다. */}
+        <div role="tablist" aria-label="반응 종류" className="flex gap-1 rounded-full bg-surface-hover p-1">
           {CHARACTERS.map((item) => (
             <PickTab key={item.id} label={item.name} selected={tab === item.id} onSelect={() => setTab(item.id)}>
-              <Dori mood={item.id === DEFAULT_CHARACTER ? "like" : "happy"} character={item.id} size={40} />
+              <Dori mood={item.id === DEFAULT_CHARACTER ? "like" : "happy"} character={item.id} size={28} />
             </PickTab>
           ))}
           <PickTab label="이모지" selected={tab === EMOJI_TAB} onSelect={() => setTab(EMOJI_TAB)}>
-            <span aria-hidden className="text-2xl leading-none">
+            <span aria-hidden className="text-xl leading-none">
               😊
             </span>
           </PickTab>
         </div>
 
-        {tab === EMOJI_TAB ? (
-          <ul role="tabpanel" aria-label="이모지" className="grid grid-cols-4 gap-2">
-            {REACTIONS.map(({ emoji, label }) => (
-              <li key={emoji}>
-                <PickButton label={label} mine={isMine(emoji)} onPick={() => pick(emoji)}>
-                  <span aria-hidden className="text-2xl leading-none">
-                    {emoji}
-                  </span>
-                </PickButton>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <ul role="tabpanel" aria-label={CHARACTERS.find((item) => item.id === tab)?.name} className="grid grid-cols-5 gap-2">
-            {CHARACTER_REACTIONS.filter((reaction) => reaction.character === tab).map(({ value, mood, character, label }) => (
-              <li key={value}>
-                <PickButton label={label} mine={isMine(value)} onPick={() => pick(value)}>
-                  <Dori mood={mood} character={character} size={46} />
-                </PickButton>
-              </li>
-            ))}
-          </ul>
-        )}
+        {/* 고르는 칸은 높이를 정해 두고 안에서 스크롤한다. 이모지가 많아 창이 화면을 다 덮고, 종류를 바꿀 때마다 창 크기가 출렁였다. */}
+        <div className="-mx-1 mt-3 h-60 overflow-y-auto overscroll-contain border-t border-border px-1 pt-3 [mask-image:linear-gradient(to_bottom,black_88%,transparent)]">
+          {tab === EMOJI_TAB ? (
+            <ul role="tabpanel" aria-label="이모지" className="grid grid-cols-6 gap-1.5 pb-6">
+              {REACTIONS.map(({ emoji, label }) => (
+                <li key={emoji}>
+                  <PickButton label={label} mine={isMine(emoji)} onPick={() => pick(emoji)} small>
+                    <span aria-hidden className="text-2xl leading-none">
+                      {emoji}
+                    </span>
+                  </PickButton>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <ul role="tabpanel" aria-label={CHARACTERS.find((item) => item.id === tab)?.name} className="grid grid-cols-5 gap-2 pb-6">
+              {CHARACTER_REACTIONS.filter((reaction) => reaction.character === tab).map(({ value, mood, character, label }) => (
+                <li key={value}>
+                  <PickButton label={label} mine={isMine(value)} onPick={() => pick(value)}>
+                    <Dori mood={mood} character={character} size={46} />
+                  </PickButton>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       </Modal>
     </div>
   );
 }
 
-/** 탭 하나. 다섯 개가 같은 칸 크기로 늘어서고, 고른 것만 색과 테두리가 바뀐다(크기는 그대로). */
+/** 종류 막대의 탭 하나. 고르는 칸과 헷갈리지 않게 작고 둥글며, 고른 것만 떠 보이고 나머지는 흐리다. */
 function PickTab({
   label,
   selected,
@@ -224,8 +229,8 @@ function PickTab({
       aria-selected={selected}
       aria-label={label}
       onClick={onSelect}
-      className={`flex h-14 items-center justify-center rounded-2xl transition-colors ${
-        selected ? "bg-brand-subtle ring-2 ring-inset ring-brand" : "bg-surface-hover"
+      className={`flex h-10 flex-1 items-center justify-center rounded-full transition-all ${
+        selected ? "bg-surface shadow-sm ring-1 ring-border" : "opacity-50 grayscale-[40%] hover:opacity-80"
       }`}
     >
       {children}
@@ -239,12 +244,15 @@ function PickButton({
   name,
   mine,
   onPick,
+  small = false,
   children,
 }: {
   label: string;
   name?: string;
   mine: boolean;
   onPick: () => void;
+  // 이모지처럼 개수가 많은 칸은 한 줄에 더 넣는다.
+  small?: boolean;
   children: ReactNode;
 }) {
   return (
@@ -253,11 +261,11 @@ function PickButton({
       aria-label={label}
       aria-pressed={mine}
       onClick={onPick}
-      className={`flex w-full flex-col items-center gap-1 rounded-2xl py-2.5 transition-colors ${
+      className={`flex w-full flex-col items-center gap-1 rounded-2xl transition-colors active:scale-95 ${small ? "py-1.5" : "py-2.5"} ${
         mine ? "bg-brand-subtle ring-1 ring-brand/40" : "bg-surface-hover"
       }`}
     >
-      <span className="flex h-11 items-center justify-center">{children}</span>
+      <span className={`flex items-center justify-center ${small ? "h-9" : "h-11"}`}>{children}</span>
       {name && <span className={`text-[11px] ${mine ? "text-brand" : "text-muted"}`}>{name}</span>}
     </button>
   );

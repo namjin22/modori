@@ -139,11 +139,25 @@ export async function updateTodo(formData: FormData) {
   const content = readContent(formData);
   if (!content) return;
 
-  // 폼은 글자와 메모만 보낸다. 카테고리와 색은 건드리지 않는다.
   const memo = readMemo(formData.get("memo"));
+  // 카테고리는 폼에 있을 때만 바꾼다(폰에서 끌지 않고 옮기는 길). 끌어서 옮길 때(moveTodoToCategory)처럼 따로 고른 색은 버린다.
+  // 보관했거나 남의 카테고리면 카테고리는 그대로 두고 글자·메모만 저장한다.
+  const rawCategory = formData.get("categoryId");
+  const [todo, category] = await Promise.all([
+    prisma.todo.findFirst({ where: { id, userId: user.id }, select: { categoryId: true } }),
+    typeof rawCategory === "string" && rawCategory
+      ? prisma.category.findFirst({ where: { id: rawCategory, userId: user.id, archivedAt: null }, select: { id: true } })
+      : null,
+  ]);
+  if (!todo) return;
+  const moved = category !== null && category.id !== todo.categoryId;
   await prisma.todo.updateMany({
     where: { id, userId: user.id },
-    data: { content, ...(memo !== undefined && { memo }) },
+    data: {
+      content,
+      ...(memo !== undefined && { memo }),
+      ...(moved && { categoryId: category.id, color: null }),
+    },
   });
 
   revalidatePath("/");

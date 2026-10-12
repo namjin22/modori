@@ -2,34 +2,25 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import {
-  addDays,
+  daysBetween,
   endOfMonthKST,
   formatKST,
   formatMonthKST,
-  isSameKSTDate,
   parseKSTDate,
   parseKSTMonth,
   startOfMonthKST,
   todayIn,
-  weekdayKST,
 } from "@/lib/date";
-import { NO_CATEGORY_COLOR } from "@/lib/colors";
-import { groupByCategory } from "@/lib/group-by-category";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 
 import { Avatar } from "@/components/avatar";
-import { CategoryChip } from "@/components/category-chip";
-import { Dori } from "@/components/dori";
-import { FeedItem } from "@/components/feed-item";
-import { MonthCalendar, type DaySummary } from "@/components/month-calendar";
+import { FriendView, type FriendData } from "@/components/friend-view";
 import { BackLink } from "@/components/back-link";
 import { LockedProfile } from "@/components/locked-profile";
 import { SubmitButton } from "@/components/submit-button";
 import { followUser, unfollowUser } from "../../actions";
 import { avatarUrl } from "@/lib/avatar";
-
-const WEEKDAY_NAMES = ["일", "월", "화", "수", "목", "금", "토"];
 
 function readDate(raw: string | undefined, today: Date): Date {
   if (!raw) return today;
@@ -53,29 +44,9 @@ function readMonth(raw: string | undefined, fallback: Date): Date {
   }
 }
 
-/** 날짜별 요약(전체 수, 끝낸 일의 색). 내 피드 화면과 같은 방식이라 달력이 끝낸 만큼만 찬다. */
-function summarizeByDate(
-  todos: { date: Date; done: boolean; color: string | null; category: { color: string } | null }[],
-): Map<string, DaySummary> {
-  const summaries = new Map<string, DaySummary>();
-  for (const todo of todos) {
-    const key = formatKST(todo.date);
-    const summary = summaries.get(key) ?? { total: 0, doneColors: [] };
-    summary.total += 1;
-    if (todo.done) summary.doneColors.push(todo.color ?? todo.category?.color ?? NO_CATEGORY_COLOR);
-    summaries.set(key, summary);
-  }
-  return summaries;
-}
-
-function formatHeading(date: Date): string {
-  const [, month, day] = formatKST(date).split("-");
-  return `${Number(month)}월 ${Number(day)}일 ${WEEKDAY_NAMES[weekdayKST(date)]}요일`;
-}
-
 /**
- * 친구 한 명의 하루. 내 오늘 화면과 같은 구성으로 본다.
- * 프로필, 주간 줄과 달력, 카테고리별로 묶인 할 일.
+ * 친구 한 명의 하루. 내 오늘 화면과 같은 구성으로 본다. 프로필, 한 달 달력, 카테고리별로 묶인 할 일.
+ * 보이는 달 한 달치를 한 번에 넘겨 달 안의 날짜 이동은 브라우저가 그린다(components/friend-view.tsx).
  *
  * 팔로우한 사람의 공개 카테고리 할 일은 끝냈든 아니든 다 보인다(투두메이트처럼 무엇을 하려는지까지 본다).
  * 반응은 끝낸 일에만 보낸다. 소셜 피드는 끝낸 일만 흐르고, 일정은 보여주지 않는다.
@@ -85,7 +56,7 @@ export default async function FriendDayPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ date?: string; month?: string; view?: string }>;
+  searchParams: Promise<{ date?: string; month?: string }>;
 }) {
   const viewer = await requireUser();
   const { id } = await params;
@@ -136,59 +107,51 @@ export default async function FriendDayPage({
   const date = readDate(params_.date, today);
   const monthStart = readMonth(params_.month, date);
   const monthEnd = endOfMonthKST(monthStart);
-
-
+  // 받아 둘 기간: 보이는 달, 그리고 달 밖의 날을 골라 둔 경우 그 날까지(홈과 같다).
+  const from = daysBetween(date, monthStart) > 0 ? date : monthStart;
+  const to = daysBetween(monthEnd, date) > 0 ? date : monthEnd;
   const basePath = `/feed/u/${friend.id}`;
 
-
-  const visible = { category: { isPublic: true }, userId: friend.id };
-
-  const [todos, monthTodos] = await Promise.all([
-    prisma.todo.findMany({
-      where: { ...visible, date },
-      orderBy: { order: "asc" },
-      include: {
-        user: { select: { id: true, nickname: true } },
-        category: { select: { id: true, name: true, color: true } },
-        reactions: {
-          select: { emoji: true, userId: true, user: { select: { nickname: true } } },
-          orderBy: { createdAt: "asc" },
-        },
+  const todos = await prisma.todo.findMany({
+    where: { category: { isPublic: true }, userId: friend.id, date: { gte: from, lte: to } },
+    orderBy: { order: "asc" },
+    select: {
+      id: true,
+      date: true,
+      content: true,
+      done: true,
+      doneAt: true,
+      color: true,
+      user: { select: { id: true, nickname: true } },
+      category: { select: { id: true, name: true, color: true } },
+      reactions: {
+        select: { emoji: true, userId: true, user: { select: { nickname: true } } },
+        orderBy: { createdAt: "asc" },
       },
-    }),
-    prisma.todo.findMany({
-      where: { ...visible, date: { gte: monthStart, lte: monthEnd } },
-      orderBy: [{ doneAt: { sort: "asc", nulls: "last" } }, { order: "asc" }],
-      select: { date: true, done: true, color: true, category: { select: { color: true } } },
-    }),
-  ]);
+    },
+  });
 
-  const summaries = summarizeByDate(monthTodos);
-  // 내 화면과 같이 끝낸 일은 묶음 아래로 내린다. sort는 안정 정렬이라 같은 쪽 안의 순서는 그대로다.
-  const groups = groupByCategory(todos, []).map((group) => ({
-    ...group,
-    items: [...group.items].sort((a, b) => Number(a.done) - Number(b.done)),
-  }));
-  const isToday = isSameKSTDate(date, today);
-  const dayHref = (key: string) =>
-    `${basePath}?date=${key}&month=${formatMonthKST(monthStart)}`;
-  const monthHref = (month: string) =>
-    `${basePath}?date=${formatKST(date)}&month=${month}`;
+  const data: FriendData = {
+    friendId: friend.id,
+    viewerId: viewer.id,
+    today: formatKST(today),
+    initialDate: formatKST(date),
+    month: formatMonthKST(monthStart),
+    from: formatKST(from),
+    to: formatKST(to),
+    todos: todos.map(({ date: day, doneAt, ...todo }) => ({ ...todo, date: formatKST(day), doneAt: doneAt?.getTime() ?? null })),
+  };
 
   return (
-    // 내 오늘 화면과 같이, 넓은 화면에서는 왼쪽에 프로필과 달력을 둔다.
-    <div className="flex flex-col gap-4 lg:grid lg:grid-cols-2 lg:items-start lg:gap-10">
-      {/* 넓은 화면에서 달력 칸은 제자리에 둔다. 시작 위치(pt-8)와 같은 top-8이라 스크롤을 시작해도 움직이지 않고,
-          창이 달력보다 낮으면(노트북) 칸 안에서만 스크롤해 페이지 끝에서 밀려 올라가지 않는다. */}
-      <div className="flex flex-col gap-4 lg:gap-6 lg:sticky lg:top-8 lg:max-h-[calc(100dvh-6rem)] lg:overflow-y-auto">
+    <FriendView
+      data={data}
+      profile={
         <div className="flex items-center gap-3">
           <BackLink href="/feed" label="소셜로" />
           <Avatar src={avatarUrl(friend)} size={48} />
           <div className="min-w-0">
             <h1 className="truncate text-xl font-bold">{friend.nickname}</h1>
-            {friend.bio && (
-              <p className="truncate text-sm text-muted">{friend.bio}</p>
-            )}
+            {friend.bio && <p className="truncate text-sm text-muted">{friend.bio}</p>}
             {/* 좁은 화면에서는 줄이 바뀌어 버튼이 다음 줄로 내려간다. 글자가 한 글자씩 꺾이지 않게 각 조각은 한 덩어리로 둔다. */}
             <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-muted">
               <Link prefetch={false} href={`${basePath}/following`} className="whitespace-nowrap hover:text-foreground">
@@ -207,96 +170,7 @@ export default async function FriendDayPage({
             </div>
           </div>
         </div>
-
-        {/* 홈과 같이 한 달 달력을 모든 화면 폭에서 늘 보인다(주간 줄은 없앴다). */}
-        <div>
-          <MonthCalendar
-            compact
-            eagerDays={3}
-            monthStart={monthStart}
-            selected={date}
-            today={today}
-            summaries={summaries}
-            eventsByDate={new Map()}
-            dayHref={dayHref}
-            monthHref={monthHref}
-          />
-        </div>
-      </div>
-
-      <div className="flex flex-col gap-6 lg:pb-12">
-        <header className="flex items-center justify-between">
-          <Link prefetch
-            href={`${basePath}?date=${formatKST(addDays(date, -1))}`}
-            aria-label="이전 날"
-            className="flex size-9 items-center justify-center rounded-full text-lg text-muted hover:bg-surface-hover"
-          >
-            ‹
-          </Link>
-          <div className="text-center">
-            <p className="text-xs text-muted">
-              {isToday ? "오늘" : formatKST(date)}
-            </p>
-            <h2 className="text-lg font-bold">{formatHeading(date)}</h2>
-          </div>
-          <Link prefetch
-            href={`${basePath}?date=${formatKST(addDays(date, 1))}`}
-            aria-label="다음 날"
-            className="flex size-9 items-center justify-center rounded-full text-lg text-muted hover:bg-surface-hover"
-          >
-            ›
-          </Link>
-        </header>
-
-        {!isToday && (
-          <Link prefetch={false}
-            href={basePath}
-            className="-mt-3 flex h-8 w-fit items-center rounded-full px-3 text-sm text-brand hover:bg-surface-hover"
-          >
-            오늘로 돌아가기
-          </Link>
-        )}
-
-        {todos.length === 0 ? (
-          <div className="flex flex-col items-center gap-2 py-8 text-center">
-            <Dori mood="calm" size={80} />
-            <p className="text-sm text-muted">할 일이 없어요</p>
-          </div>
-        ) : (
-          // 내 화면과 같이 카테고리로 묶는다. 쭉 나열하면 무엇을 하는 사람인지 안 보인다.
-          groups.map((group) => (
-            <section key={group.key} className="flex flex-col gap-2">
-              <div className="flex items-center gap-2">
-                <CategoryChip name={group.name} color={group.color} />
-                <span className="text-xs text-muted">
-                  {group.items.filter((todo) => todo.done).length}/{group.items.length}
-                </span>
-              </div>
-
-              <ul className="flex flex-col divide-y divide-border rounded-2xl bg-surface px-4">
-                {group.items.map((todo) => (
-                  <FeedItem
-                    compact
-                    key={todo.id}
-                    todo={{
-                      id: todo.id,
-                      content: todo.content,
-                      date: formatKST(todo.date),
-                      user: todo.user,
-                      color: todo.color,
-                      category: todo.category,
-                      reactions: todo.reactions,
-                      done: todo.done,
-                    }}
-                    viewerId={viewer.id}
-                    showAuthor={false}
-                  />
-                ))}
-              </ul>
-            </section>
-          ))
-        )}
-      </div>
-    </div>
+      }
+    />
   );
 }

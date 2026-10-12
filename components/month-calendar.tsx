@@ -6,7 +6,6 @@ import type { ComponentProps, ReactNode } from "react";
 
 import {
   addMonths,
-  daysBetween,
   daysInMonthKST,
   formatKST,
   formatMonthKST,
@@ -47,7 +46,6 @@ export function MonthCalendar({
   dayHref,
   monthHref,
   compact = false,
-  eagerDays,
   onSelectDay,
   editableEvents = false,
 }: {
@@ -57,8 +55,6 @@ export function MonthCalendar({
   editableEvents?: boolean;
   // 친구 화면처럼 일정 이름이 들어가지 않는 곳에서는 칸을 낮춰 한눈에 보이게 한다.
   compact?: boolean;
-  // 고른 날 앞뒤 며칠을 보이자마자 미리 받을지. 주간 줄을 없애고 달력만 두면서(폰) 가까운 날로 옮기는 것이 다시 느려지지 않게 한다.
-  eagerDays?: number;
   monthStart: Date;
   selected: Date;
   today: Date;
@@ -154,8 +150,6 @@ export function MonthCalendar({
                 key={key}
                 href={dayHref(key)}
                 onSelect={onSelectDay && (() => onSelectDay(key))}
-                // 고른 날 자신은 이미 보고 있는 화면이라 받지 않는다.
-                eager={eagerDays !== undefined && Math.abs(daysBetween(selected, day)) > 0 && Math.abs(daysBetween(selected, day)) <= eagerDays}
                 aria-label={`${day.getUTCDate()}일, 완료 ${doneColors.length > 0 ? "있음" : "없음"}`}
                 aria-describedby={events.length ? `calendar-events-${key}` : undefined}
                 aria-current={isSelected ? "date" : undefined}
@@ -190,8 +184,8 @@ export function MonthCalendar({
                       data-event-start={event.start}
                       data-event-end={event.end}
                       title={editableEvents ? "끌어서 기간 바꾸기" : undefined}
-                      // 손가락으로 끌 때 화면이 대신 움직이지 않게 한다.
-                      className={`truncate rounded px-1 text-[10px] font-medium leading-[15px] ${editableEvents ? "cursor-grab touch-none select-none" : ""}`}
+                      // 마우스로 끌 때는 바로 잡는다. 손가락(pointer-coarse)은 쓸면 화면이 스크롤되고, 잠깐 누르고 있다 끌어야 잡힌다(EventDragGrid).
+                      className={`truncate rounded px-1 text-[10px] font-medium leading-[15px] ${editableEvents ? "cursor-grab select-none pointer-fine:touch-none data-[drag-armed]:ring-2 data-[drag-armed]:ring-foreground" : ""}`}
                       style={{ backgroundColor: event.color, color: contrastTextColor(event.color) }}
                     >
                       {event.title}
@@ -224,12 +218,8 @@ export function MonthCalendar({
  * 없으면 한 달치 서른 칸을 보이는 대로 미리 받지 않고, 손가락·마우스가 닿는 순간 받는다(IntentLink).
  * 새 탭으로 여는 클릭(Ctrl·가운데 버튼)은 원래 링크대로 둔다.
  */
-function DayLink({
-  onSelect,
-  eager,
-  ...rest
-}: Omit<ComponentProps<typeof IntentLink>, "onSelect"> & { onSelect?: () => void }) {
-  if (!onSelect) return <IntentLink eager={eager} {...rest} />;
+function DayLink({ onSelect, ...rest }: Omit<ComponentProps<typeof IntentLink>, "onSelect"> & { onSelect?: () => void }) {
+  if (!onSelect) return <IntentLink {...rest} />;
   return (
     <Link
       prefetch={false}

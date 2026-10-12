@@ -41,6 +41,19 @@ export type SortableItem = {
 export type Variant = "todo" | "card";
 
 /**
+ * 끄는 동안 화면 가장자리에 닿으면 저절로 스크롤하는 정도. 기본값(위아래 20%, 빠르게)은 폰에서 할 일 목록이 화면 아래쪽에 있어
+ * 끌기 시작하자마자 화면이 내려가 버렸다. 가장자리 8%에서만, 천천히 움직인다.
+ */
+export const GENTLE_AUTO_SCROLL = { threshold: { x: 0, y: 0.08 }, acceleration: 3 };
+
+/** 손가락으로 끌기 시작하면 짧게 떨어 잡혔다는 것을 알린다(지원하는 폰에서만). */
+export function buzzOnTouchDrag(activator: Event) {
+  if (typeof PointerEvent !== "undefined" && activator instanceof PointerEvent && activator.pointerType === "touch") {
+    navigator.vibrate?.(10);
+  }
+}
+
+/**
  * 목록 한 줄. 할 일 판(components/todo-board.tsx)도 같이 쓴다.
  * dragPlaceholder를 켜면 끌고 있는 동안 제자리에는 흐린 자리표시만 남긴다(끌고 다니는 모습은 DragOverlay가 그린다).
  */
@@ -73,7 +86,8 @@ export function SortableRow({
           aria-label="순서 바꾸기 손잡이"
           // 마우스를 올려야만 보이면 PC 사용자는 끌 수 있다는 것을 모른다(커서만 바뀐다). 늘 보이되 흐리게 두고, 올리면 또렷해진다.
           title="끌어서 순서 바꾸기"
-          className={`flex w-6 shrink-0 cursor-grab touch-none justify-center rounded-lg py-2.5 text-muted/60 transition-colors hover:bg-surface-hover hover:text-foreground focus-visible:text-foreground active:cursor-grabbing ${
+          // 폰에서는 손가락이 손잡이를 비껴 줄을 누르면 끌기 대신 화면이 움직였다. 손가락용 화면(pointer-coarse)에서는 넓게 둔다.
+          className={`flex w-6 shrink-0 cursor-grab touch-none justify-center rounded-lg py-2.5 text-muted/60 pointer-coarse:w-9 pointer-coarse:text-base transition-colors hover:bg-surface-hover hover:text-foreground focus-visible:text-foreground active:cursor-grabbing ${
             card ? "" : "self-start"
           }`}
           {...attributes}
@@ -177,6 +191,8 @@ export function SortableList({
     <DndContext
       sensors={sensors}
       collisionDetection={closestCenter}
+      autoScroll={GENTLE_AUTO_SCROLL}
+      onDragStart={(event) => buzzOnTouchDrag(event.activatorEvent)}
       onDragEnd={handleDragEnd}
       accessibility={accessibility}
     >

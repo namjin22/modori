@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { BottomNav } from "@/components/bottom-nav";
 import { PageFrame } from "@/components/page-frame";
 import { PushRegistrar } from "@/components/push-registrar";
+import { ResumeRefresh } from "@/components/resume-refresh";
 import { TimezoneNudge } from "@/components/timezone-nudge";
 import { TimezoneProvider } from "@/components/timezone-context";
 import { ToastProvider } from "@/components/toast";
@@ -19,6 +20,7 @@ export default async function TabsLayout({ children }: { children: ReactNode }) 
     <ToastProvider>
       <TimezoneProvider timezone={user.timezone}>
       <PushRegistrar />
+      <ResumeRefresh />
       <div className="flex min-h-screen flex-col">
         <PageFrame>
           <TimezoneNudge />

@@ -3,6 +3,7 @@
 import { useOptimistic } from "react";
 
 import { useCompletionCount } from "@/components/todo-progress";
+import { useTodoStore } from "@/components/todo-store";
 import { useSaveFailure } from "@/components/use-save-failure";
 
 import { toggleTodo } from "@/app/(tabs)/actions";
@@ -22,6 +23,8 @@ export function TodoCheckbox({
 }) {
   const [optimisticDone, setOptimisticDone] = useOptimistic(done);
   const changeDone = useCompletionCount();
+  // 홈에서는 달력 칸의 채움까지 같이 바뀐다.
+  const store = useTodoStore();
   const saveFailed = useSaveFailure();
 
   return (
@@ -32,6 +35,7 @@ export function TodoCheckbox({
         setOptimisticDone(next);
         // 완료 개수도 같은 액션 안에서 움직여야 둘이 따로 놀지 않는다.
         changeDone?.(id, next);
+        store?.({ type: "patch", id, patch: { done: next, doneAt: next ? Date.now() : null } });
         // 실패하면 액션이 끝나면서 체크와 개수가 원래대로 돌아간다. 알림만 띄운다.
         try {
           await toggleTodo(formData);

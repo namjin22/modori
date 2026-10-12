@@ -19,6 +19,8 @@ export async function addTodo(
   await expect(
     page.getByRole("listitem").filter({ hasText: content }),
   ).toBeVisible();
+  // 홈은 저장 전에 먼저 보여 준다(흐린 줄, aria-busy). 이어서 DB를 보거나 새로 고치는 시험이 많아 저장이 끝날 때까지 기다린다.
+  await expect(page.locator("[aria-busy=true]")).toHaveCount(0);
   // 열린 입력칸은 다음 조작을 가리므로 닫는다.
   await page.keyboard.press("Escape");
 }
