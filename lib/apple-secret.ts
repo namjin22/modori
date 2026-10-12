@@ -41,3 +41,27 @@ export function appleClientSecret({
   const signature = sign("sha256", Buffer.from(`${header}.${payload}`), { key, dsaEncoding: "ieee-p1363" });
   return `${header}.${payload}.${base64url(signature)}`;
 }
+
+const REVOKE_URL = "https://appleid.apple.com/auth/revoke";
+
+/**
+ * Apple에 이 refresh_token(곧 이 앱과 사용자의 연결)을 끊어 달라고 알린다. 성공하면 true.
+ * https://developer.apple.com/documentation/sign_in_with_apple/revoke_tokens
+ */
+export async function revokeAppleToken(
+  refreshToken: string,
+  credentials: { clientId: string; clientSecret: string },
+  send: typeof fetch = fetch,
+): Promise<boolean> {
+  const response = await send(REVOKE_URL, {
+    method: "POST",
+    headers: { "content-type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      client_id: credentials.clientId,
+      client_secret: credentials.clientSecret,
+      token: refreshToken,
+      token_type_hint: "refresh_token",
+    }),
+  });
+  return response.ok;
+}

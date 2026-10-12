@@ -1646,3 +1646,11 @@ VM에 시험 DB(사용자 1000, 할 일 108만, 반응 24만, 280MB)를 만들�
 - 반응 창 고르는 칸 높이 고정(h-34). iOS 워크플로가 `ASC_KEY_P8`(.p8 원문) 비밀을 받음.
 - 검증: `npm run verify` 단위 190×3, E2E 218.
 - iOS 첫 TestFlight 업로드 성공(10/12, 빌드 6). 첫 시도는 Xcode 16(iOS 18.5 SDK)이라 거절 → 워크플로가 Xcode 26 고르게, `shell: bash`로 실패를 놓치지 않게 고침(PR #164). 다음: App Store Connect에서 처리 완료 뒤 내부 테스트로 설치, Apple 로그인 키(docs/mobile-release.md 4절).
+
+## 2026-10-13 — App Store 정식 출시 준비(신고·차단, Apple 토큰 철회, 지원 페이지, 등록정보)
+
+- 신고·차단(PR #166, 배포됨): `Block`·`Report` 표, 상대 화면 ⋯ 메뉴, `/admin/reports`, `/settings/blocked`. 운영자는 마이페이지 아래 "신고 N"을 하루 한 번은 확인해야 한다(알림 없음, 약관에 "보통 하루 안에" 약속).
+- Apple 로그인 계정만 refresh_token 저장 → 계정을 지울 때(본인·운영자) Apple 철회 API 호출(`lib/apple-revoke.ts`). 실제 Apple 로그인이 켜지기 전에는 시험 못 했다.
+- `/support`(App Store 지원 URL), iOS `PrivacyInfo.xcprivacy`, App Store 스크린샷 6장(`docs/screenshots/store-listing/store-ios-*.png`), 등록정보·연령·개인정보 답·심사 메모는 `docs/app-store-listing.md`.
+- **사람이 할 일**: Apple 로그인 키 4개를 VM `.env`에(`docs/mobile-release.md` 4절), TestFlight로 실제 iPhone 확인, 심사용 Google 계정·시연용 친구 계정 만들기, App Store Connect에 등록정보 입력, (선택) iOS 푸시용 APNs 키.
+- 안 한 것: iOS 푸시(APNs 직접 전송, 아직), 신고 알림.

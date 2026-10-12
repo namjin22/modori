@@ -46,6 +46,8 @@ function readAppleSecret(): string | null {
 
 const appleSecret = readAppleSecret();
 export const isAppleConfigured = appleSecret !== null;
+/** Apple에 "이 사람의 연결을 끊어 달라"고 알릴 때(lib/apple-revoke.ts) 내미는 client_secret. 설정이 없으면 null. */
+export const appleRevokeSecret = appleSecret;
 
 type DataGSMProfile = {
   id: number;

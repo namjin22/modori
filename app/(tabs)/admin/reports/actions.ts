@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { notFound } from "next/navigation";
 
+import { revokeAppleAccounts } from "@/lib/apple-revoke";
 import { isAdmin } from "@/lib/admin";
 import { normalizeNickname } from "@/lib/nickname";
 import { prisma } from "@/lib/prisma";
@@ -37,6 +38,7 @@ export async function deleteReportedAccount(formData: FormData) {
   if (!target) return;
   if (normalizeNickname(formData.get("confirm")) !== target.nickname) return;
 
+  await revokeAppleAccounts(target.id);
   await prisma.user.delete({ where: { id: target.id } });
   console.warn("[admin] 신고된 계정을 지웠다.", { id: target.id });
   revalidatePath("/admin/reports");

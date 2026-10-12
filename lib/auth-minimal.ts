@@ -16,8 +16,10 @@ export function minimalUser<T extends Omit<AdapterUser, "id">>(user: T): T {
 export function minimalAccount(account: AdapterAccount): AdapterAccount {
   return {
     ...account,
+    // Apple만 refresh_token을 남긴다. 계정을 지울 때 Apple에 이 사람의 연결을 끊어 달라고 알려야 하기 때문이다
+    // (App Store 심사 지침 5.1.1(v), lib/apple-revoke.ts). 다른 곳에 쓰지 않고, 계정을 지울 때 함께 지운다.
+    refresh_token: account.provider === "apple" ? account.refresh_token : undefined,
     access_token: undefined,
-    refresh_token: undefined,
     id_token: undefined,
     expires_at: undefined,
     token_type: undefined,

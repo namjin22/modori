@@ -10,7 +10,7 @@
 | 항목 | 표 · 열 | 수집 경로 | 보관 기간 | 삭제 시점 |
 |---|---|---|---|---|
 | 이메일 | `User.email` (Apple에서 "이메일 가리기"를 고르면 Apple의 전달용 주소) | Google·Apple·DataGSM 로그인 | 계정이 있는 동안 | 계정 지우기 |
-| 로그인 계정 번호 | `Account.provider`, `providerAccountId` | 로그인 | 계정이 있는 동안 | 계정 지우기 |
+| 로그인 계정 번호 | `Account.provider`, `providerAccountId`. **Apple 계정만 `refresh_token`도 저장한다**(계정을 지울 때 Apple에 연결을 끊어 달라고 알리는 데만 쓴다. App Store 지침 5.1.1(v)). 다른 토큰과 다른 제공자의 토큰은 저장하지 않는다 | 로그인 | 계정이 있는 동안 | 계정 지우기 |
 | 닉네임·소개 | `User.nickname`, `bio` | 가입·프로필 화면 | 계정이 있는 동안 | 고치면 덮어씀, 계정 지우기 |
 | 프로필 캐릭터 | `User.avatarCharacter` (도리·몽이·하루·펭이 중 고른 id, 개인정보 아님: 고정된 목록 값) — 내 사진이 없을 때 프로필 사진 대신 쓴다 | 가입·마이페이지 | 계정이 있는 동안 | 바꾸면 덮어씀, 계정 지우기 |
 | 가입 경로 | `User.signupSource` (초대 링크의 `?from=` 값. 소문자·숫자·하이픈 20자 형식만 저장하고 없으면 비움. 앱에서 시작한 가입은 `app-android`·`app-ios`. 사람을 알아볼 수 없는 경로 이름) — 어느 링크로 온 사람이 남는지 합계로 보려고 | 가입(온보딩) 때 한 번 | 계정이 있는 동안. 하루 합계(`DailyStat.sources`)에는 경로별 누적 숫자만 남는다 | 계정 지우기(합계는 남는다) |
@@ -53,7 +53,7 @@ Cloudflare(접속을 잇는 곳)와 Google·Apple·DataGSM(로그인), 글꼴을
 |---|---|---|
 | `User.name` (실명) | 어디서도 쓰지 않는다. 운영 10명 모두 저장돼 있었다 | 2026-09-28부터 새로 저장하지 않는다(`lib/auth-minimal.ts`). **이미 저장된 값을 비울지는 사용자 결정** |
 | `User.image` (Google 사진 주소) | 쓰지 않는다. 운영 4명 | 위와 같음 |
-| `Account` 토큰(access·refresh·id_token 등) | 로그인 뒤 Google·DataGSM API를 부르지 않아 쓰지 않는다. DataGSM refresh_token은 오래 산다 | 새로 저장하지 않는다. **이미 저장된 토큰(운영 10개 계정)을 비울지는 사용자 결정** — 비우는 것을 권한다 |
+| `Account` 토큰(access·refresh·id_token 등) | 로그인 뒤 Google·DataGSM API를 부르지 않아 쓰지 않는다. DataGSM refresh_token은 오래 산다 | 새로 저장하지 않는다(예외: Apple의 refresh_token, 계정 지울 때 연결을 끊는 데만 쓴다). **이미 저장된 토큰(운영 10개 계정)을 비울지는 사용자 결정** — 비우는 것을 권한다 |
 | `User.grade`, `classNum` | 쓰지 않았고 운영에 값도 없었다 | 2026-09-29 사용자 승인으로 열을 지웠다(마이그레이션 `20260929120000_drop_grade_class`) |
 | `User.emailVerified`, `VerificationToken` 표 | 이메일 로그인용. 쓰지 않고 비어 있다 | Prisma 어댑터가 기대하는 모양이라 둔다 |
 | 만료된 `Session` 행 | 다시 오지 않는 사람의 행이 남았다 | 2026-09-28부터 하루 한 번 지운다(사용자 결정, `lib/daily.ts`) |
