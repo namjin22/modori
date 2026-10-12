@@ -1654,3 +1654,9 @@ VM에 시험 DB(사용자 1000, 할 일 108만, 반응 24만, 280MB)를 만들�
 - `/support`(App Store 지원 URL), iOS `PrivacyInfo.xcprivacy`, App Store 스크린샷 6장(`docs/screenshots/store-listing/store-ios-*.png`), 등록정보·연령·개인정보 답·심사 메모는 `docs/app-store-listing.md`.
 - **사람이 할 일**: Apple 로그인 키 4개를 VM `.env`에(`docs/mobile-release.md` 4절), TestFlight로 실제 iPhone 확인, 심사용 Google 계정·시연용 친구 계정 만들기, App Store Connect에 등록정보 입력, (선택) iOS 푸시용 APNs 키.
 - 안 한 것: iOS 푸시(APNs 직접 전송, 아직), 신고 알림.
+
+## 2026-10-13 (2) — iOS 푸시(APNs 직접) 배포, 서명 빌드 업로드 성공
+
+- 서버가 `PushToken.platform`으로 iOS는 APNs, Android는 FCM으로 나눠 보낸다(`lib/apns.ts`). 키는 Apple 로그인 키에 APNs를 같이 켜서 재사용. **키가 서버 `.env`에 없으면 iOS 알림만 조용히 건너뛴다.**
+- 푸시 권한이 들어간 서명 빌드가 TestFlight에 올라갔다(Xcode 자동 서명이 App ID의 Push 기능을 켠 것으로 보인다). 실제 iPhone에서 알림이 오는지는 아직 확인 못 했다.
+- 간헐 실패 목록(재실행하면 통과): `timezone.spec` 목록에 없는 시간대, `first-run.spec` 추천 친구 팔로우.
