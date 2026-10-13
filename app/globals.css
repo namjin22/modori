@@ -107,6 +107,14 @@
    두께만큼 달라져서 가운데 정렬된 하단 탭과 내용이 좌우로 흔들린다. */
 html {
   scrollbar-gutter: stable;
+  /* 앱(iOS)에서 화면 맨 위(상태 막대 뒤)와 맨 아래까지 같은 색이 칠해지게 한다. 빠지면 그 자리에 앱의 기본 배경이 보였다. */
+  background: var(--background);
+}
+
+/* iOS 앱은 화면이 상태 막대(시계·노치) 뒤까지 그려진다(capacitor.config.json contentInset: never). 내용이 가려지지 않게
+   그만큼 위를 띄운다. 아래는 하단 탭이 env(safe-area-inset-bottom)만큼 띄운다. data-app은 app/layout.tsx의 머리 스크립트가 붙인다. */
+html[data-app="ios"] body {
+  padding-top: env(safe-area-inset-top, 0px);
 }
 
 body {
@@ -237,6 +245,20 @@ dialog::backdrop {
   a,
   img {
     -webkit-user-drag: none;
+  }
+
+  /* iOS는 글자가 16px보다 작은 입력칸을 누르면 화면을 저절로 확대한다. 앱은 손가락으로 줄이는 것이 막혀 있어 확대된 채
+     돌아오지 못했다(아이폰 사용자 피드백). 입력칸 글자를 16px로 맞춰 확대가 일어나지 않게 한다. */
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  textarea,
+  select {
+    font-size: 16px;
+  }
+
+  /* 글을 적는 동안에는 하단 탭을 숨긴다. 폰은 자판이 올라오면 화면이 그만큼 줄어 하단 탭이 자판 바로 위로 따라 올라와
+     입력칸을 가렸다(아이폰 사용자 피드백). */
+  body:has(:is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), textarea):focus) [data-bottom-nav] {
+    display: none;
   }
 }
 

@@ -40,6 +40,11 @@ export type CapacitorBridge = {
       addListener: (event: "appUrlOpen", handler: (data: { url: string }) => void) => Promise<unknown>;
       getLaunchUrl: () => Promise<{ url: string } | undefined>;
     };
+    // iOS 앱에만 있는 모도리 전용 기능(mobile/ios/App/App/MainViewController.swift). 예전 빌드에는 없다.
+    Modori?: {
+      pageReady?: () => Promise<void>;
+      signIn?: (options: { url: string; callbackScheme: string }) => Promise<{ url: string }>;
+    };
     // @capacitor/push-notifications. 푸시 알림(받은 반응, 새 팔로워)을 받는 앱 기능.
     PushNotifications?: {
       checkPermissions: () => Promise<{ receive: string }>;
@@ -53,6 +58,23 @@ export type CapacitorBridge = {
 /** 가입 경로 이름(lib/signup-source.ts). Android가 먼저 나와서 모르는 경우는 그쪽으로 센다. */
 export function appSource(bridge: CapacitorBridge): "app-ios" | "app-android" {
   return bridge.getPlatform?.() === "ios" ? "app-ios" : "app-android";
+}
+
+/**
+ * modori://login?code=… 를 받아 처음 만든 verifier와 함께 서버에 보내 로그인 세션을 받는다(/api/desktop/exchange).
+ * 코드는 한 번만 쓰고, verifier가 없으면(다른 기기에서 온 링크) 쓰지 않는다. 받았으면 true.
+ */
+export function finishNativeLogin(link: string): boolean {
+  const code = codeFromLink(link);
+  if (!code) return false;
+  const verifier = localStorage.getItem(VERIFIER_KEY);
+  localStorage.removeItem(VERIFIER_KEY);
+  if (!verifier) return false;
+  const exchange = new URL("/api/desktop/exchange", window.location.origin);
+  exchange.searchParams.set("code", code);
+  exchange.searchParams.set("verifier", verifier);
+  window.location.href = exchange.toString();
+  return true;
 }
 
 export function capacitor(): CapacitorBridge | null {

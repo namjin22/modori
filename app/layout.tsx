@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import type { Metadata, Viewport } from "next";
 
 import { NativeBridge } from "@/components/native-bridge";
+import { PullToRefresh } from "@/components/pull-to-refresh";
 import { TouchMenuGuard } from "@/components/touch-menu-guard";
 import { StaleBanner } from "@/components/stale-banner";
 import { ValidationBubble } from "@/components/validation-bubble";
@@ -68,6 +69,33 @@ try {
 }
 `;
 
+// 모바일 앱 안이면 <html data-app="ios|android">를 붙이고(app/globals.css가 iOS의 상태 막대 자리를 띄운다),
+// iOS 앱에는 화면이 그려졌다고 알려 시작 그림을 걷게 한다(mobile/ios/App/App/MainViewController.swift).
+// 화면이 준비(hydration)되기를 기다리면 그동안 시작 그림이 남아 느려 보여서 head에서 바로 돈다.
+const APP_SCRIPT = `
+(function () {
+  try {
+    var ua = navigator.userAgent;
+    if (ua.indexOf("ModoriMobile") > -1) {
+      document.documentElement.dataset.app = /iPhone|iPad|iPod/.test(ua) ? "ios" : "android";
+    }
+    var ready = function () {
+      var plugins = window.Capacitor && window.Capacitor.Plugins;
+      var modori = plugins && plugins.Modori;
+      if (modori && modori.pageReady) {
+        modori.pageReady().catch(function (e) {
+          console.warn("[app] 시작 그림을 걷지 못했다", e);
+        });
+      }
+    };
+    if (document.readyState !== "loading") ready();
+    else document.addEventListener("DOMContentLoaded", ready);
+  } catch (e) {
+    // 앱 밖(일반 브라우저)이거나 다리가 없으면 할 일이 없다. 화면에는 영향이 없다.
+  }
+})();
+`;
+
 // LayoutProps는 next build가 만들어주는 전역 타입이라 빌드 전에는 없다.
 // CI는 빌드 없이 tsc부터 돌리므로 직접 적는다.
 export default function RootLayout({ children }: { children: ReactNode }) {
@@ -83,12 +111,14 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <link rel="preload" as="style" href={FONT_CSS} />
         <script dangerouslySetInnerHTML={{ __html: FONT_SCRIPT }} />
         <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+        <script dangerouslySetInnerHTML={{ __html: APP_SCRIPT }} />
         {/* 초대 링크의 ?from= 값을 가입할 때 쓰려고 적어 둔다. 화면이 준비되기 전에 로그인 버튼을 눌러도 놓치지 않게 head에서 바로 돈다(lib/signup-source.ts). */}
         <script dangerouslySetInnerHTML={{ __html: SOURCE_SCRIPT }} />
       </head>
       <body className="flex min-h-full flex-col bg-background text-foreground">
         <NativeBridge />
         <TouchMenuGuard />
+        <PullToRefresh />
         {children}
         {/* 브라우저 기본 입력 말풍선 대신 앱 모양의 말풍선을 띄운다. */}
         <ValidationBubble />

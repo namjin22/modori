@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 
-import { capacitor, codeFromLink, VERIFIER_KEY } from "@/lib/native-login";
+import { capacitor, codeFromLink, finishNativeLogin } from "@/lib/native-login";
 
 /**
  * 모바일 앱 안에서만 하는 일: 브라우저에서 로그인을 마치고 앱이 modori://login?code=… 로 열리면, 코드와 앞서 만든
@@ -16,20 +16,13 @@ export function NativeBridge() {
     if (!bridge || !app) return;
 
     function handle(url: string) {
-      const code = codeFromLink(url);
-      if (!code) return;
-      // iOS는 로그인 창(SFSafariViewController)이 앱 위에 떠 있는 채로 링크가 온다. Android의 Custom Tabs는 앱으로 돌아오며 저절로 닫힌다.
+      if (!codeFromLink(url)) return;
+      // 예전 iOS 빌드는 로그인 창(SFSafariViewController)이 앱 위에 떠 있는 채로 링크가 온다. Android의 Custom Tabs는 앱으로 돌아오며 저절로 닫힌다.
+      // 새 iOS 빌드는 앱 안 로그인 창(Modori.signIn)이 링크를 직접 돌려줘서 여기로 오지 않는다.
       if (bridge?.getPlatform?.() === "ios") {
         bridge.Plugins?.Browser?.close?.().catch((error: unknown) => console.warn("[native-login] 로그인 창을 닫지 못했다.", error));
       }
-      const verifier = localStorage.getItem(VERIFIER_KEY);
-      // 코드는 한 번만 쓰고, 처음 만든 verifier가 없으면(다른 기기에서 온 링크) 쓰지 않는다.
-      localStorage.removeItem(VERIFIER_KEY);
-      if (!verifier) return;
-      const exchange = new URL("/api/desktop/exchange", window.location.origin);
-      exchange.searchParams.set("code", code);
-      exchange.searchParams.set("verifier", verifier);
-      window.location.href = exchange.toString();
+      finishNativeLogin(url);
     }
 
     const listening = app.addListener("appUrlOpen", (data) => handle(data.url));
