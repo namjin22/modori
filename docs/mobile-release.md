@@ -119,6 +119,8 @@ APPLE_PRIVATE_KEY=-----BEGIN PRIVATE KEY-----\nMIGT...\n-----END PRIVATE KEY----
 
 ### iOS 푸시 알림 켜기
 
+> ⚠️ APNs 키의 환경(Environment)은 **Production**(또는 Sandbox & Production)이어야 한다. TestFlight·App Store 앱은 운영 알림 서버를 쓴다. 처음 Sign in with Apple 키에 APNs를 Sandbox로 켜 두었다가 `403 BadEnvironmentKeyInToken`으로 알림이 하나도 가지 않았다(2026-10-14). 지금은 알림 전용 키(`APNS_KEY_ID`·`APNS_PRIVATE_KEY`)를 따로 쓴다.
+
 Firebase 없이 서버가 Apple 푸시 서버(APNs)에 직접 보낸다(`lib/apns.ts`). 따로 만들 것은 없고, 위 4절의 **Sign in with Apple 키를 만들 때 "Apple Push Notifications service (APNs)"도 함께 체크**하면 같은 키·같은 `.env` 값(`APPLE_TEAM_ID`·`APPLE_KEY_ID`·`APPLE_PRIVATE_KEY`)으로 알림도 보낸다.
 이미 만든 키라면 Keys에서 그 키를 열어 APNs를 체크해 저장하면 된다(키 파일은 다시 받지 않아도 된다). 앱 ID(`site.modori.app`)의 Push Notifications 기능은 빌드할 때 Xcode가 자동으로 켠다.
 다른 키를 쓰고 싶으면 `.env`에 `APNS_KEY_ID`·`APNS_PRIVATE_KEY`를 따로 넣는다. 키가 없으면 iOS 알림만 조용히 건너뛴다.

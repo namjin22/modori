@@ -1674,3 +1674,4 @@ VM에 시험 DB(사용자 1000, 할 일 108만, 반응 24만, 280MB)를 만들�
 - 모르는 것: 아이폰 앱의 "This page couldn't load"(Safari `Load failed`)의 실제 원인. 로컬 WebKit에서는 재현 못 함. 자동 다시 불러오기로 덮었다.
 - 개발/운영 서버 분리: 같은 VM에 dev 앱·DB를 따로 띄우고 `dev.modori.site`로 잇는 방안 — 운영자 결정 대기(진행하지 않음).
 - 시험 DB(Neon) 순간 끊김으로 E2E가 무더기 실패하는 일이 또 있었다(재실행 통과).
+- 2026-10-14: iOS 알림이 안 오던 원인은 APNs 키 환경(Sandbox 전용). 알림 전용 Production 키 `APNS_KEY_ID`·`APNS_PRIVATE_KEY`를 서버 `.env`에 넣었고, 아이폰 두 대에 시험 알림이 200으로 접수됐다. 개발/운영 서버 분리는 하지 않기로 했다(운영자 결정).
