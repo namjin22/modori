@@ -1666,3 +1666,11 @@ VM에 시험 DB(사용자 1000, 할 일 108만, 반응 24만, 280MB)를 만들�
 - 운영 서버 `.env`에 `AUTH_APPLE_ID`(site.modori.web)·`APPLE_TEAM_ID`·`APPLE_KEY_ID`·`APPLE_PRIVATE_KEY`를 넣고 앱을 다시 띄웠다. 로그인 화면에 "Apple로 계속하기"가 보인다. Apple 토큰 엔드포인트에 가짜 코드로 물어 `invalid_grant`(키·ID 조합은 인정)를 확인했다.
 - 같은 키로 iOS 푸시(APNs)도 켜진다(키 만들 때 APNs 체크). 실제 Apple 로그인·알림은 TestFlight에서 처음 확인한다.
 - 다음: 운영자가 TestFlight 내부 테스트로 설치 → 로그인·알림·길게 눌러 옮기기 확인 → 친구 3명(외부 테스트) → App Store 제출(`docs/app-store-listing.md`).
+
+## 2026-10-13 (4) — 아이폰 첫 피드백 반영 (PR #175~#177, 웹 배포, iOS 빌드 15)
+
+- 웹(배포됨): 일정 색 고르기, 폰 길게 누르기 메뉴 전체 차단, 입력칸 16px, 당겨서 새로고침(앱만), 글 적는 동안 하단 탭 숨김, 캐릭터 한 줄 넘기기, 로그아웃 `/api/logout`(폼 POST), 방침·약관 링크 통째로 열기, `global-error`·`error.tsx`의 "끊긴 요청" 자동 다시 불러오기, 앱은 휴대폰 시간대 자동.
+- iOS(빌드 15, 버전 1.0.0): `MainViewController.swift` — 배경색, 시작 그림, 앱 안 로그인 창(ASWebAuthenticationSession), `contentInset: never`. **운영자가 TestFlight 외부 그룹(tester)에 빌드 15를 넣어야 친구들이 받는다.**
+- 모르는 것: 아이폰 앱의 "This page couldn't load"(Safari `Load failed`)의 실제 원인. 로컬 WebKit에서는 재현 못 함. 자동 다시 불러오기로 덮었다.
+- 개발/운영 서버 분리: 같은 VM에 dev 앱·DB를 따로 띄우고 `dev.modori.site`로 잇는 방안 — 운영자 결정 대기(진행하지 않음).
+- 시험 DB(Neon) 순간 끊김으로 E2E가 무더기 실패하는 일이 또 있었다(재실행 통과).
