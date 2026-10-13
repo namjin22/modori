@@ -16,7 +16,11 @@
     </style>
 
 
+    <!-- 시작 화면. MainActivity가 웹 화면이 그려질 때까지 붙잡아 둔다(installSplashScreen). 끝나면 AppTheme.NoActionBar로 바뀐다. -->
     <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
         <item name="android:background">@drawable/splash</item>
+        <item name="windowSplashScreenBackground">@color/splash_background</item>
+        <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher_foreground</item>
+        <item name="postSplashScreenTheme">@style/AppTheme.NoActionBar</item>
     </style>
 </resources>

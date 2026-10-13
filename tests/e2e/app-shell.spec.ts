@@ -94,3 +94,54 @@ test("로그아웃은 다른 사이트에서 보낸 요청을 받지 않는다",
   const response = await request.post("/api/logout", { headers: { "sec-fetch-site": "cross-site" }, maxRedirects: 0 });
   expect(response.status()).toBe(403);
 });
+
+test.describe("안드로이드 앱", () => {
+  test.use({
+    viewport: { width: 390, height: 844 },
+    hasTouch: true,
+    isMobile: true,
+    userAgent: "Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36 Chrome/140 Mobile Safari/537.36 ModoriMobile/1.0.0",
+  });
+
+  test("뒤로 가기는 떠 있는 창부터 닫고, 창이 없으면 뒤 화면으로 간다. 상태 막대 여백 표시가 붙는다", async ({ page, context }) => {
+    // 앱 밖에는 없는 Capacitor 다리를 흉내 낸다. 뒤로 가기 리스너만 받아 둔다.
+    await context.addInitScript(() => {
+      const w = window as unknown as Record<string, unknown>;
+      const handlers: Record<string, (data: unknown) => void> = {};
+      w.__handlers = handlers;
+      w.Capacitor = {
+        isNativePlatform: () => true,
+        getPlatform: () => "android",
+        Plugins: {
+          App: {
+            addListener: async (event: string, handler: (data: unknown) => void) => {
+              handlers[event] = handler;
+              return { remove: () => undefined };
+            },
+            getLaunchUrl: async () => undefined,
+            exitApp: async () => undefined,
+          },
+        },
+      };
+    });
+    await signUp(page);
+    expect(await page.evaluate(() => document.documentElement.dataset.app)).toBe("android");
+
+    const back = (canGoBack: boolean) =>
+      page.evaluate((value) => (window as unknown as { __handlers: Record<string, (d: unknown) => void> }).__handlers.backButton({ canGoBack: value }), canGoBack);
+
+    await page.goto("/settings");
+    await expect(page.getByRole("heading", { name: "마이페이지" })).toBeVisible();
+    await page.getByRole("button", { name: "로그아웃" }).click();
+    await expect(page.getByRole("dialog", { name: "로그아웃할까요?" })).toBeVisible();
+
+    // 창이 떠 있으면 창만 닫고 화면은 그대로다.
+    await back(true);
+    await expect(page.getByRole("dialog", { name: "로그아웃할까요?" })).toBeHidden();
+    await expect(page).toHaveURL(/\/settings$/);
+
+    // 창이 없으면 뒤 화면(홈)으로 간다.
+    await back(true);
+    await expect(page).toHaveURL(/\/$/);
+  });
+});
