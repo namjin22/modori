@@ -37,8 +37,10 @@ export type CapacitorBridge = {
   Plugins?: {
     Browser?: { open: (options: { url: string }) => Promise<void>; close?: () => Promise<void> };
     App?: {
-      addListener: (event: "appUrlOpen", handler: (data: { url: string }) => void) => Promise<unknown>;
+      addListener: ((event: "appUrlOpen", handler: (data: { url: string }) => void) => Promise<unknown>) &
+        ((event: "backButton", handler: (data: { canGoBack: boolean }) => void) => Promise<unknown>);
       getLaunchUrl: () => Promise<{ url: string } | undefined>;
+      exitApp?: () => Promise<void>;
     };
     // iOS 앱에만 있는 모도리 전용 기능(mobile/ios/App/App/MainViewController.swift). 예전 빌드에는 없다.
     Modori?: {

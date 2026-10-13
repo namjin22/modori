@@ -25,6 +25,19 @@ export function NativeBridge() {
       finishNativeLogin(url);
     }
 
+    // 안드로이드 뒤로 가기: 떠 있는 창(할 일·반응·일정 창)이 있으면 그 창부터 닫는다. 기본 동작은 창을 둔 채 화면을 뒤로 넘겼다.
+    // 창이 없으면 뒤 화면으로, 더 갈 곳이 없으면 앱을 닫는다(기본 동작과 같다). 이 리스너를 붙이면 기본 동작은 꺼진다.
+    const back =
+      bridge.getPlatform?.() === "android"
+        ? app.addListener("backButton", ({ canGoBack }) => {
+            const dialogs = document.querySelectorAll<HTMLDialogElement>("dialog[open]");
+            const top = dialogs[dialogs.length - 1];
+            if (top) top.close();
+            else if (canGoBack) window.history.back();
+            else void app.exitApp?.();
+          })
+        : null;
+
     const listening = app.addListener("appUrlOpen", (data) => handle(data.url));
     // 앱이 링크 때문에 처음 켜졌다면 리스너보다 링크가 먼저 도착한다.
     app.getLaunchUrl().then(
@@ -35,6 +48,7 @@ export function NativeBridge() {
     );
     return () => {
       void listening.then((handle) => (handle as { remove?: () => void } | undefined)?.remove?.());
+      void back?.then((handle) => (handle as { remove?: () => void } | undefined)?.remove?.());
     };
   }, []);
 

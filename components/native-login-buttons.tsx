@@ -17,7 +17,8 @@ export function NativeLoginButtons({ providers }: { providers: { id: "google" | 
     setProblem(null);
     const bridge = capacitor();
     const browser = bridge?.Plugins?.Browser;
-    const inApp = bridge?.Plugins?.Modori?.signIn;
+    // 앱 안 로그인 창은 iOS에만 있다. 안드로이드는 Custom Tabs(앱 위에 뜨는 크롬 창)라 그대로 쓴다.
+    const inApp = bridge?.getPlatform?.() === "ios" ? bridge.Plugins?.Modori?.signIn : undefined;
     if (!bridge || (!browser && !inApp)) {
       setProblem("앱에서 로그인 창을 열지 못했어요. 앱을 다시 켜 주세요.");
       return;
