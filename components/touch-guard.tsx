@@ -2,9 +2,9 @@
 
 import type { ReactNode } from "react";
 
-/** 손가락이 주 입력인 화면(폰·태블릿). 마우스는 해당하지 않는다. */
+/** 손가락이 주 입력인 화면(폰·태블릿). 마우스는 해당하지 않는다. components/touch-menu-guard.tsx와 같은 기준이다. */
 export function isTouchPrimary(): boolean {
-  return typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches;
+  return typeof window !== "undefined" && window.matchMedia("(pointer: coarse), (hover: none)").matches;
 }
 
 /**
