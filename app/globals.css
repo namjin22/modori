@@ -217,10 +217,26 @@ dialog::backdrop {
 
    box-shadow가 아니라 border로 그린다. Tailwind의 ring도 box-shadow라서, 같은
    속성을 쓰면 고른 색에 두르는 선택 링을 덮어써 무엇을 골랐는지 안 보인다. */
-/* 폰에서 링크를 길게 누르면 iOS가 링크 미리보기·메뉴를 띄운다. 모도리는 길게 누르기로 할 일·일정을 집어 옮기므로 끈다. */
-@media (pointer: coarse) {
-  a {
+/* 폰에서 길게 누르면 브라우저가 링크 메뉴·글자 선택 메뉴·사진 저장 메뉴를 띄운다. 모도리는 길게 누르기로 할 일·일정을
+   집어 옮기므로 끈다(components/touch-menu-guard.tsx가 contextmenu를 막는다. 아래는 iOS와 글자 선택 막대를 위한 CSS).
+   글 적는 칸은 붙여넣기·선택이 필요해서 남긴다. 마우스 화면에는 걸리지 않는다. */
+@media (pointer: coarse), (hover: none) {
+  body {
     -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  input,
+  textarea,
+  [contenteditable="true"] {
+    -webkit-user-select: text;
+    user-select: text;
+  }
+
+  a,
+  img {
+    -webkit-user-drag: none;
   }
 }
 
