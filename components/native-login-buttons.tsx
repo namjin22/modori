@@ -3,11 +3,12 @@
 import { useState } from "react";
 
 import { AppleLogo } from "@/components/apple-logo";
-import { appSource, capacitor, createVerifier, VERIFIER_KEY } from "@/lib/native-login";
+import { appSource, capacitor, createVerifier, finishNativeLogin, VERIFIER_KEY } from "@/lib/native-login";
 
 /**
- * 모바일 앱의 로그인 버튼. Google은 앱 안에 끼운 화면에서의 로그인을 막아, 평소 쓰는 브라우저 창(시스템 로그인 창)을
- * 열어 거기서 로그인하고 modori://로 돌아온다(components/native-bridge.tsx가 받는다).
+ * 모바일 앱의 로그인 버튼. Google은 앱 안에 끼운 화면에서의 로그인을 막아, 시스템 로그인 창을 열어 거기서 로그인하고 modori://로 돌아온다.
+ * iOS 새 빌드는 앱 위에 뜨는 로그인 창(ASWebAuthenticationSession, Modori.signIn)이 돌아온 주소를 바로 돌려준다(사파리로 넘어가지 않는다).
+ * 그 밖(Android, 예전 iOS 빌드)은 시스템 브라우저 창을 열고, 돌아오는 링크는 components/native-bridge.tsx가 받는다.
  */
 export function NativeLoginButtons({ providers }: { providers: { id: "google" | "datagsm" | "apple"; label: string; primary: boolean }[] }) {
   const [problem, setProblem] = useState<string | null>(null);
@@ -16,7 +17,8 @@ export function NativeLoginButtons({ providers }: { providers: { id: "google" | 
     setProblem(null);
     const bridge = capacitor();
     const browser = bridge?.Plugins?.Browser;
-    if (!bridge || !browser) {
+    const inApp = bridge?.Plugins?.Modori?.signIn;
+    if (!bridge || (!browser && !inApp)) {
       setProblem("앱에서 로그인 창을 열지 못했어요. 앱을 다시 켜 주세요.");
       return;
     }
@@ -28,8 +30,15 @@ export function NativeLoginButtons({ providers }: { providers: { id: "google" | 
       login.searchParams.set("provider", provider);
       // 가입은 시스템 브라우저에서 이뤄지니, 앱에서 왔다는 표시를 링크에 실어 보낸다(lib/signup-source.ts).
       login.searchParams.set("from", appSource(bridge));
-      await browser.open({ url: login.toString() });
+      if (inApp) {
+        const result = await inApp({ url: login.toString(), callbackScheme: "modori" });
+        if (!finishNativeLogin(result.url)) setProblem("로그인을 마치지 못했어요. 다시 눌러 주세요.");
+        return;
+      }
+      await browser?.open({ url: login.toString() });
     } catch (error) {
+      // 로그인 창을 닫아 취소한 것은 오류가 아니다.
+      if ((error as { code?: string } | null)?.code === "CANCELED") return;
       console.error("[native-login] 로그인 창을 열지 못했다.", error);
       setProblem("로그인 창을 열지 못했어요. 다시 눌러 주세요.");
     }

@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { startTransition, useEffect } from "react";
 
 import { Dori } from "@/components/dori";
+import { isLoadFailure, reloadOnce } from "@/lib/reload-guard";
 
 export default function Error({
   error,
@@ -19,6 +20,8 @@ export default function Error({
     console.error("[error]", error);
     // 서버에서 난 오류는 digest가 붙어 오고 서버가 이미 기록했다(instrumentation.ts).
     // 브라우저에서만 난 오류만 보낸다. 페이지를 떠나도 전송되게 sendBeacon을 쓴다.
+    // 화면을 옮기는 요청이 끊겨 난 오류(아이폰 앱의 "Load failed" 등)는 다시 불러오면 낫는다. 버튼을 누르게 하지 않고 한 번은 저절로 한다.
+    if (isLoadFailure(error) && reloadOnce()) return;
     if (!error.digest) {
       navigator.sendBeacon(
         "/api/errors",

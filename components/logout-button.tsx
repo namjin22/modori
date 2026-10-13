@@ -1,8 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 
-import { logout } from "@/app/(tabs)/settings/actions";
 import { Dori } from "@/components/dori";
 import { Modal } from "@/components/modal";
 import { SubmitButton } from "@/components/submit-button";
@@ -14,6 +13,8 @@ import { unregisterPushToken } from "@/lib/push-client";
  */
 export function LogoutButton() {
   const [open, setOpen] = useState(false);
+  const [leaving, setLeaving] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
 
   return (
     <>
@@ -30,11 +31,17 @@ export function LogoutButton() {
           <Dori mood="hello" size={88} />
           <p className="text-balance text-sm text-muted">다음에 또 만나요. 기록은 그대로 남아 있어요.</p>
         </div>
+        {/* 일반 폼 POST로 로그아웃하고 로그인 화면을 통째로 새로 연다(app/api/logout/route.ts). */}
         <form
-          action={async () => {
+          ref={formRef}
+          method="post"
+          action="/api/logout"
+          onSubmit={(event) => {
+            if (leaving) return;
+            event.preventDefault();
+            setLeaving(true);
             // 이 기기가 로그아웃한 계정의 알림을 계속 받지 않게 번호를 먼저 지운다. 세션이 살아 있을 때 해야 한다.
-            await unregisterPushToken();
-            await logout();
+            void unregisterPushToken().finally(() => formRef.current?.submit());
           }}
           className="grid grid-cols-2 gap-2"
         >
@@ -46,6 +53,7 @@ export function LogoutButton() {
             취소
           </button>
           <SubmitButton
+            pending={leaving}
             pendingLabel="나가는 중"
             className="h-12 rounded-2xl bg-brand text-sm font-semibold text-brand-contrast"
           >

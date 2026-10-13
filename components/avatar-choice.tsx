@@ -41,16 +41,21 @@ export function AvatarChoice({
     }
   }
 
+  // 칸은 같은 폭(5rem)으로 옆으로 늘어서고 손가락으로 넘겨 본다. 세로로 쌓으면 가입 화면의 절반을 차지했다(아이폰 사용자 피드백).
   const tile = (selected: boolean) =>
-    `flex min-w-0 flex-col items-center gap-1.5 rounded-2xl p-3 text-sm transition-colors ${
+    `flex w-20 shrink-0 snap-start flex-col items-center gap-1.5 rounded-2xl p-3 text-sm transition-colors ${
       selected ? "bg-brand-subtle font-semibold text-brand ring-2 ring-brand" : "bg-surface text-muted hover:bg-surface-hover"
     }`;
 
   return (
     <fieldset className="flex flex-col gap-4">
       <legend className="mb-4 px-1 text-sm font-medium">프로필 사진</legend>
-      <div role="radiogroup" aria-label="프로필 사진" // 칸 폭이 5rem(원 56px + 좌우 여백) 아래로 줄지 않게 열 수를 정한다. 가입 화면은 폭이 좁아(최대 336px) 5열로 고정하면 칸보다 원이 커져 삐져나왔다.
-        className="grid grid-cols-[repeat(auto-fit,minmax(5rem,1fr))] gap-4">
+      {/* 한 줄로 늘어놓고 옆으로 넘긴다. 고른 칸의 테두리가 잘리지 않게 안쪽 여백을 두고, 화면 끝까지 넘어가 보이게 좌우로 조금 넓힌다. */}
+      <div
+        role="radiogroup"
+        aria-label="프로필 사진"
+        className="-mx-2 flex snap-x snap-mandatory gap-3 overflow-x-auto overscroll-x-contain px-2 py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      >
         {CHARACTERS.map((item) => {
           const selected = choice === "character" && character === item.id;
           return (

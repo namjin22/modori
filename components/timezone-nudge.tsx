@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useSyncExternalStore, useTransition } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore, useTransition } from "react";
 
 import { setTimezone } from "@/app/(tabs)/settings/actions";
 import { useTimezone } from "@/components/timezone-context";
@@ -29,13 +29,32 @@ function dismissed(zone: string): boolean {
 export function TimezoneNudge() {
   const saved = useTimezone();
   const device = useSyncExternalStore(subscribeNothing, deviceTimezone, () => "");
+  // 모바일 앱은 묻지 않고 휴대폰의 시간대를 그대로 따른다(사용자 결정). 앱은 휴대폰을 들고 다니며 쓰는 것이라
+  // 여행지에서도 그곳의 "오늘"이 맞고, 마이페이지에서는 시간대 고르기를 없앴다.
+  const inApp = useSyncExternalStore(subscribeNothing, () => navigator.userAgent.includes("ModoriMobile"), () => false);
+  const synced = useRef("");
   const [hidden, setHidden] = useState(false);
   const [pending, startTransition] = useTransition();
   const router = useRouter();
   const saveFailed = useSaveFailure();
   const wasDismissed = useSyncExternalStore(subscribeNothing, () => (device ? dismissed(device) : true), () => true);
 
-  if (hidden || wasDismissed || device === "" || device === saved || !isAllowedTimezone(device)) return null;
+  useEffect(() => {
+    if (!inApp || device === "" || device === saved || !isAllowedTimezone(device) || synced.current === device) return;
+    synced.current = device;
+    startTransition(async () => {
+      try {
+        await setTimezone(device);
+        router.refresh();
+      } catch (error) {
+        // 맞추지 못해도 앱은 저장된 시간대로 그대로 쓸 수 있다. 다음에 화면을 열 때 다시 맞춘다.
+        synced.current = "";
+        console.warn("[timezone] 휴대폰 시간대로 맞추지 못했다.", error instanceof Error ? error.name : error);
+      }
+    });
+  }, [inApp, device, saved, router]);
+
+  if (inApp || hidden || wasDismissed || device === "" || device === saved || !isAllowedTimezone(device)) return null;
   const label = TIMEZONES.find((zone) => zone.value === device)?.label ?? device;
 
   function apply() {

@@ -20,5 +20,14 @@
     <p>인터넷 연결을 확인하고 다시 시도해 주세요.</p>
     <button type="button" onclick="location.href = 'https://modori.site/'">다시 시도</button>
   </main>
+  <script>
+    // 시작 그림(iOS)을 걷는다. 앱이 서버에 닿지 못해 이 화면이 떴다(mobile/ios/App/App/MainViewController.swift).
+    try {
+      var modori = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Modori;
+      if (modori && modori.pageReady) modori.pageReady();
+    } catch (e) {
+      console.warn("시작 그림을 걷지 못했다", e);
+    }
+  </script>
 </body>
 </html>

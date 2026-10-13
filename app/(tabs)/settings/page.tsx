@@ -4,6 +4,7 @@ import { LogoutButton } from "@/components/logout-button";
 import { RecommendSwitch } from "@/components/recommend-switch";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { TimezoneSelect } from "@/components/timezone-select";
+import { TIMEZONES } from "@/lib/timezones";
 import { dateIn, formatMonthDayKST, weekdayKST } from "@/lib/date";
 import { timezoneOrDefault } from "@/lib/timezones";
 import { isAdmin } from "@/lib/admin";
@@ -20,7 +21,8 @@ const WEEKDAY_NAMES = ["일", "월", "화", "수", "목", "금", "토"];
 
 export default async function SettingsPage() {
   const user = await requireUser();
-  const desktop = (await isDesktopApp()) || (await isMobileApp());
+  const mobileApp = await isMobileApp();
+  const desktop = (await isDesktopApp()) || mobileApp;
   // 설치 파일은 Windows용이라 폰·Mac 접속자에게는 보이지 않는다.
   const windows = await isWindowsBrowser();
   const timezone = timezoneOrDefault(user.timezone);
@@ -92,7 +94,16 @@ export default async function SettingsPage() {
 
       <section className="flex flex-col gap-4 rounded-2xl bg-surface p-5">
         <h2 className="text-sm font-semibold text-muted">시간대</h2>
-        <TimezoneSelect current={timezone} todayLabel={`${formatMonthDayKST(todayHere)} (${WEEKDAY_NAMES[weekdayKST(todayHere)]})`} />
+        {/* 모바일 앱은 휴대폰의 시간대를 저절로 따른다(components/timezone-nudge.tsx). 고르는 칸 대신 지금 값만 보인다. */}
+        {mobileApp ? (
+          <p className="text-[15px]">
+            {TIMEZONES.find((zone) => zone.value === timezone)?.label ?? timezone} · 오늘 {formatMonthDayKST(todayHere)} (
+            {WEEKDAY_NAMES[weekdayKST(todayHere)]})
+            <span className="mt-1 block text-xs text-muted">앱에서는 휴대폰의 시간대를 자동으로 따라요.</span>
+          </p>
+        ) : (
+          <TimezoneSelect current={timezone} todayLabel={`${formatMonthDayKST(todayHere)} (${WEEKDAY_NAMES[weekdayKST(todayHere)]})`} />
+        )}
       </section>
 
       <section className="flex flex-col gap-4 rounded-2xl bg-surface p-5">
@@ -148,6 +159,15 @@ export default async function SettingsPage() {
 }
 
 function FooterLink({ href, children }: { href: string; children: React.ReactNode }) {
+  // 탭 밖의 화면(방침·약관)은 화면을 통째로 새로 연다. 탭 화면 안에서 옮기는 요청이 아이폰 앱에서 끊겨
+  // "This page couldn't load"가 떴다(아이폰 사용자 피드백).
+  if (href === "/privacy" || href === "/terms") {
+    return (
+      <a href={href} className="py-1.5 hover:text-foreground hover:underline hover:underline-offset-4">
+        {children}
+      </a>
+    );
+  }
   return (
     <Link
       prefetch={false}

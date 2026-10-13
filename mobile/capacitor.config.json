@@ -16,6 +16,6 @@
   },
   "ios": {
     "appendUserAgent": "ModoriMobile/1.0.0",
-    "contentInset": "automatic"
+    "contentInset": "never"
   }
 }
