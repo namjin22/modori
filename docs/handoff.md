@@ -1681,7 +1681,7 @@ VM에 시험 DB(사용자 1000, 할 일 108만, 반응 24만, 280MB)를 만들�
 - `components/avatar-choice.tsx`: fieldset `min-w-0`(캐릭터 칸을 넘기면 화면 전체가 넓어지던 문제). E2E `onboarding-avatar.spec`에 360px 폭 시험 추가.
 - `app/desktop/login/{page,actions}.tsx` + `lib/desktop-login.ts`: 모바일(`from=app-ios|app-android`)은 브라우저 창에서 온보딩을 건너뛰고 앱 창에서 닉네임을 정한다. E2E `mobile-login.spec`에 시험 추가. 기존 시험은 고치지 않았고 모두 통과.
 - 안드로이드 막대 색: `styles.xml`·`bools.xml`(네이티브) + 로그인 창 `toolbarColor`. **새 AAB가 있어야 보인다**(GitHub Actions android → AAB 받아 비공개 테스트 새 출시로 올리기). 실제 기기 확인 전.
-- 안드로이드 AAB 1차 빌드가 XML 주석의 `--`로 깨져 `fix/android-xml-comment`(PR #189, 자동 병합 예약)로 고쳐 다시 빌드했다. 비공개 테스트에 버전 코드 11로 올림.
+- 안드로이드 AAB 1차 빌드가 XML 주석의 `--`로 깨져 `fix/android-xml-comment`(PR #189. "자동 병합"으로 걸었다고 적었으나 이 저장소는 자동 병합이 꺼져 있어 바로 합쳐졌다)로 고쳐 다시 빌드했다. 비공개 테스트에 버전 코드 11로 올림.
 
 ## 2026-10-14 (iOS 심사 준비)
 
@@ -1705,3 +1705,10 @@ VM에 시험 DB(사용자 1000, 할 일 108만, 반응 24만, 280MB)를 만들�
 ## 2026-10-14 (반복 일정)
 
 - 새 표 `EventRoutine`·`EventRoutineSkip`(마이그레이션 `event_routine`, 표 추가만, 시험 DB에 적용). `lib/event-routine.ts`(펼치기), `app/(tabs)/routines/event-routine-actions.ts`, 루틴 화면·홈 일정 목록·달력. 시험 `tests/unit/event-routine.test.ts`, `tests/e2e/event-routine.spec.ts`.
+
+## 2026-10-15 — 배포 뒤 확인
+
+- 운영 DB: 마이그레이션 `daily_reminder`·`event_routine` 적용 확인. 리마인드를 켠 사람 0, 반복 일정 0(아직 아무도 안 씀).
+- 알림 기기: iOS 3, Android 7. **안드로이드 푸시는 FCM `validate_only`로 서버 키·기기 번호가 유효함을 확인**(기기에는 울리지 않음). 실제 도착은 아직 못 봤다(운영자 계정에는 등록된 기기가 없다).
+- 최근 6시간 서버 오류 기록 0. 로그의 "Failed to find Server Action"은 배포 전에 열어 둔 화면이 옛 서버 액션을 부른 것(새로 열면 사라짐).
+- 릴리스 스크린샷 `docs/screenshots/2026-10-15/`(31장).
