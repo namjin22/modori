@@ -40,8 +40,8 @@ test("드래그로 할 일 순서를 바꾼다", async ({ page, email }, testInf
   await expect(items.nth(0)).toContainText("첫째");
   await expect(items.nth(2)).toContainText("셋째");
 
-  // 첫 항목의 손잡이를 잡아 마지막 항목 아래로 옮긴다.
-  const handle = items.nth(0).getByRole("button", { name: "순서 바꾸기 손잡이" });
+  // 첫 항목의 줄(글자)을 잡아 마지막 항목 아래로 옮긴다. 손잡이는 없앴다(2026-10-14 요청).
+  const handle = items.nth(0).getByText("첫째", { exact: true });
   const target = items.nth(2);
 
   const from = await handle.boundingBox();

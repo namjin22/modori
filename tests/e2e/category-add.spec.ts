@@ -91,7 +91,7 @@ test("카테고리를 만들 때 공개 여부를 정한다", async ({ page, ema
   expect(categories.find((category) => category.name.startsWith("비밀"))?.isPublic).toBe(false);
 });
 
-test("카테고리는 손잡이를 끌어 순서를 바꾸고, 피드 묶음도 그 순서를 따른다", async ({ page, email }, testInfo) => {
+test("카테고리는 카드를 잡고 끌어 순서를 바꾸고, 피드 묶음도 그 순서를 따른다", async ({ page, email }, testInfo) => {
   await signInAndOnboard(page, email, `순서${testInfo.testId.slice(-6)}${RUN_TAG}`);
   const user = await prisma.user.findUniqueOrThrow({ where: { email } });
   await prisma.category.createMany({
@@ -104,11 +104,14 @@ test("카테고리는 손잡이를 끌어 순서를 바꾸고, 피드 묶음도 
   const handleOf = (name: string) =>
     page.getByRole("listitem").filter({ hasText: name }).getByRole("button", { name: "순서 바꾸기 손잡이" });
   const names = () => page.getByRole("button", { name: /고치기$/ }).allTextContents();
+  // 마우스는 손잡이 없이 카드를 잡는다(2026-10-14 요청). 키보드는 Tab으로 오면 보이는 버튼(handleOf)을 쓴다.
+  const cardOf = (name: string) =>
+    page.getByRole("listitem").filter({ hasText: name }).getByRole("button", { name: /고치기$/ });
 
   // 마우스로 "운동"을 맨 위로 끈다.
-  const from = await handleOf("운동").boundingBox();
-  const to = await handleOf(FIRST_CATEGORY).boundingBox();
-  if (!from || !to) throw new Error("손잡이를 찾지 못했다");
+  const from = await cardOf("운동").boundingBox();
+  const to = await cardOf(FIRST_CATEGORY).boundingBox();
+  if (!from || !to) throw new Error("카드를 찾지 못했다");
   await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2);
   await page.mouse.down();
   await page.mouse.move(to.x + to.width / 2, to.y - 10, { steps: 12 });

@@ -90,8 +90,7 @@ export function EventSection({
             const when = describeEventWhen(event);
             // D-day를 끈 일정은 이름과 시간만 보인다.
             const dday = event.dday ? ddayLabel(event.startDate, event.endDate, todayDate) : null;
-            // 카드 바탕은 줄(li)이 깐다. 순서를 바꿀 수 있으면 손잡이가 카드 안 왼쪽에 들어와, 카드 왼쪽 끝이 "일정" 제목·"+ 일정 더 적기"와 맞는다.
-            // 손잡이를 카드 밖에 두었을 때는 카드가 손잡이 폭만큼 밀려 줄이 어긋나고, 손잡이가 카드 위쪽에 붙어 보였다(2026-10-14 요청).
+            // 카드 바탕은 줄(li)이 깐다. 카드 왼쪽 끝이 "일정" 제목·"+ 일정 더 적기"와 맞는다.
             const card = (
               <div className="flex items-stretch">
                 {/* 색은 카드 안쪽의 둥근 막대로 보인다. 카드 가장자리에 붙인 띠는 둥근 모서리를 따라 위아래가 가늘어졌다.
@@ -123,7 +122,7 @@ export function EventSection({
             return { id: event.id, label: event.title, node: card };
           });
 
-          // 둘 이상이면 손잡이(폰은 길게 눌러)로 순서를 바꾼다. 하나뿐이면 바꿀 것이 없어 손잡이를 두지 않는다.
+          // 둘 이상이면 카드를 잡고 끌어(폰은 길게 눌러) 순서를 바꾼다. 하나뿐이면 바꿀 것이 없다.
           return rows.length > 1 ? (
             <SortableList variant="card" gap="gap-2" noun="일정" save={reorderEvents} items={rows} />
           ) : (

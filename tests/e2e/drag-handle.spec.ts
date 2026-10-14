@@ -6,7 +6,8 @@ import { addTodo } from "./todo-helpers";
 
 import { RUN_TAG } from "./run-tag";
 
-// PC에서는 끌어서 순서를 바꾸는 손잡이가 마우스를 올려야만 보여, 끌 수 있다는 것을 알 길이 없었다(커서만 바뀜).
+// 예전에는 PC에 늘 보이는 손잡이(⠿)로 끌었다. 2026-10-14 요청으로 손잡이를 없애고 줄 아무 데나 잡고 끈다.
+// 끌 수 있다는 것은 손 모양 커서와 고치기 창의 안내로 알린다. 키보드용 버튼은 Tab으로 왔을 때만 보인다.
 const EMAIL = `e2e-draghandle-${RUN_TAG}@modori.test`;
 
 test.afterAll(async () => {
@@ -14,7 +15,7 @@ test.afterAll(async () => {
   await prisma.$disconnect();
 });
 
-test("넓은 화면에서도 순서 손잡이가 마우스를 올리지 않아도 보이고, 무엇인지 말풍선으로 알려 준다", async ({ page }) => {
+test("넓은 화면에는 손잡이가 없고 줄 자체를 잡는다. 그냥 누르면 고치기 창이 열리고 끄는 법을 알려 준다", async ({ page }) => {
   await prisma.user.deleteMany({ where: { email: EMAIL } });
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.goto("/login");
@@ -26,10 +27,25 @@ test("넓은 화면에서도 순서 손잡이가 마우스를 올리지 않아�
   await expect(page).toHaveURL("/");
   await addTodo(page, "끌어서 옮길 일");
 
-  const handle = page.getByRole("button", { name: "순서 바꾸기 손잡이" }).first();
-  // 마우스는 다른 곳에 둔다(올리지 않은 상태).
+  // 키보드용 버튼은 화면에 자리를 차지하지 않는다(화면 읽기 전용 크기).
+  const keyboardHandle = page.getByRole("button", { name: "순서 바꾸기 손잡이" }).first();
   await page.mouse.move(2, 2);
-  await expect(handle).toBeVisible();
-  expect(await handle.evaluate((el) => Number(getComputedStyle(el).opacity))).toBe(1);
-  await expect(handle).toHaveAttribute("title", "끌어서 순서 바꾸기");
+  const box = await keyboardHandle.boundingBox();
+  expect(box && box.width <= 1 && box.height <= 1).toBe(true);
+
+  // 줄에는 잡을 수 있다는 손 모양 커서가 뜬다.
+  const row = page.getByRole("listitem").filter({ hasText: "끌어서 옮길 일" });
+  await expect(row).toHaveCSS("cursor", "grab");
+
+  // 끌지 않고 누르면 원래대로 고치기 창이 열리고, 끄는 법을 알려 준다.
+  await row.getByText("끌어서 옮길 일", { exact: true }).click();
+  await expect(page.getByRole("dialog", { name: "할 일" })).toBeVisible();
+  await expect(page.getByText("할 일 줄을 잡고 끌면 순서를 바꾸거나 다른 카테고리로 옮길 수 있어요.")).toBeVisible();
+
+  // Tab으로 키보드용 버튼에 오면 그때 보인다.
+  await page.keyboard.press("Escape");
+  await keyboardHandle.focus();
+  await page.keyboard.press("Shift+Tab");
+  await page.keyboard.press("Tab");
+  await expect.poll(async () => (await keyboardHandle.boundingBox())?.width ?? 0).toBeGreaterThan(10);
 });

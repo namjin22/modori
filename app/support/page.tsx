@@ -40,7 +40,7 @@ export default function SupportPage() {
             </div>
             <div>
               <dt className="font-medium text-foreground">할 일 순서는 어떻게 바꾸나요?</dt>
-              <dd>폰에서는 할 일을 길게 눌러 집은 뒤 끌어요. 컴퓨터에서는 왼쪽 손잡이를 끌어요.</dd>
+              <dd>폰에서는 할 일을 길게 눌러 집은 뒤 끌어요. 컴퓨터에서는 줄을 잡고 끌어요.</dd>
             </div>
             <div>
               <dt className="font-medium text-foreground">불쾌한 사람을 어떻게 하나요?</dt>

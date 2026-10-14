@@ -45,7 +45,7 @@ export type BoardGroup = {
 const containerId = (key: string) => `group:${key}`;
 
 /**
- * 그날의 할 일 판. 손잡이를 끌어 같은 묶음 안에서 순서를 바꾸고, 다른 카테고리 묶음으로 옮길 수도 있다.
+ * 그날의 할 일 판. 줄을 잡고 끌어 같은 묶음 안에서 순서를 바꾸고, 다른 카테고리 묶음으로 옮길 수도 있다.
  * 옮기면 바로 그 묶음에 들어가 보이고, 저장이 실패하면 끌기 전 모양으로 되돌린다.
  */
 export function TodoBoard({ date, groups }: { date: string; groups: BoardGroup[] }) {
