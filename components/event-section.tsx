@@ -4,6 +4,7 @@ import { useState } from "react";
 
 import { EventForm } from "@/components/event-form";
 import { Modal } from "@/components/modal";
+import { SortableList } from "@/components/sortable-list";
 import { UndoableDeleteButton } from "@/components/undoable-delete-button";
 import { useBlurOutside } from "@/components/use-blur-outside";
 import { formatKST, formatMonthDayKST, parseKSTDate } from "@/lib/date";
@@ -11,7 +12,7 @@ import { ddayLabel } from "@/lib/dday";
 import { describeEventWhen, formatTime } from "@/lib/event-time";
 import { LIMITS } from "@/lib/limits";
 
-import { deleteEvent, restoreEvent } from "@/app/(tabs)/events/actions";
+import { deleteEvent, reorderEvents, restoreEvent } from "@/app/(tabs)/events/actions";
 
 export type DayEvent = {
   id: string;
@@ -83,16 +84,14 @@ export function EventSection({
         </div>
       )}
 
-      {events.length > 0 && (
-        <ul className="flex flex-col gap-2">
-          {events.map((event) => {
+      {events.length > 0 &&
+        (() => {
+          const rows = events.map((event) => {
             const when = describeEventWhen(event);
             // D-day를 끈 일정은 이름과 시간만 보인다.
             const dday = event.dday ? ddayLabel(event.startDate, event.endDate, todayDate) : null;
-
-            return (
-              <li
-                key={event.id}
+            const card = (
+              <div
                 className="overflow-hidden rounded-xl bg-surface"
                 // 왼쪽 띠가 일정 색이다. 흰색이 배경에 묻히지 않게 띠 바로 옆에 옅은 선을 한 줄 더 둔다.
                 style={{
@@ -116,11 +115,22 @@ export function EventSection({
                   </span>
                   {dday && <Dday label={dday} />}
                 </button>
-              </li>
+              </div>
             );
-          })}
-        </ul>
-      )}
+            return { id: event.id, label: event.title, node: card };
+          });
+
+          // 둘 이상이면 손잡이(폰은 길게 눌러)로 순서를 바꾼다. 하나뿐이면 바꿀 것이 없어 손잡이를 두지 않는다.
+          return rows.length > 1 ? (
+            <SortableList variant="todo" noun="일정" save={reorderEvents} items={rows} />
+          ) : (
+            <ul className="flex flex-col gap-2">
+              {rows.map((row) => (
+                <li key={row.id}>{row.node}</li>
+              ))}
+            </ul>
+          );
+        })()}
 
       {/* 제목("일정")만 있으면 누를 수 있는 곳인지 모른다. 예전에는 비어 있을 때만 이 버튼이 있어서
           하나를 만들면 더 넣을 길이 안 보였다. 하루 상한까지는 늘 둔다. */}

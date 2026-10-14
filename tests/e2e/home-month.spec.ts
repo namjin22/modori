@@ -208,7 +208,10 @@ test("서버 응답이 늦어도 적기·체크·고치기·옮기기·지우기
   await page.getByRole("button", { name: "내일 하기", exact: true }).click();
   await expect(page.getByRole("listitem").filter({ hasText: "옮길 할 일" })).toHaveCount(0, fast);
   await expect
-    .poll(async () => formatKST((await prisma.todo.findFirstOrThrow({ where: { userId: me.id, content: "옮길 할 일" } })).date))
+    // 서버 액션마다 2.5초를 일부러 늦춘 시험이라(slowServerActions) 앞 단계 저장이 이어지면 기본 10초가 빠듯하다.
+    .poll(async () => formatKST((await prisma.todo.findFirstOrThrow({ where: { userId: me.id, content: "옮길 할 일" } })).date), {
+      timeout: 25_000,
+    })
     .toBe(formatKST(addDays(todayIn("Asia/Seoul"), 1)));
 });
 
