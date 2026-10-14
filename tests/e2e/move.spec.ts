@@ -165,3 +165,51 @@ test("오늘이 가득 차 있으면 들어가는 만큼만 옮기고 남은 수
   expect(await prisma.todo.count({ where: { userId: user.id, date: today } })).toBe(50);
   expect(await prisma.todo.count({ where: { userId: user.id, date: yesterday } })).toBe(2);
 });
+
+test("끝낸 할 일은 옮기지 않고 '또 하기'로 다른 날에 베낀다. 끝낸 기록은 그날에 남는다", async ({ page, email }, testInfo) => {
+  await signUp(page, email, `또하기${testInfo.testId.slice(-6)}${RUN_TAG}`);
+  await addTodo(page, "영어 단어 외우기");
+  const me = await prisma.user.findUniqueOrThrow({ where: { email } });
+
+  // 안 끝낸 일에는 예전 문구(옮기기)가 보인다.
+  await openTodo(page, "영어 단어 외우기");
+  await expect(page.getByRole("button", { name: "내일 하기", exact: true })).toBeVisible();
+  await page.keyboard.press("Escape");
+
+  await page.getByRole("button", { name: "완료", exact: true }).click();
+  await expect(page.getByText("1개 중 1개 완료")).toBeVisible();
+
+  // 끝낸 일에는 "또 하기"가 보이고, 누르면 내일에 새 할 일이 생기며 오늘의 끝낸 기록은 그대로다.
+  await openTodo(page, "영어 단어 외우기");
+  await expect(page.getByRole("button", { name: "내일 하기", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "다른 날 또 하기" })).toBeVisible();
+  await page.getByRole("button", { name: "내일 또 하기", exact: true }).click();
+  const tomorrow = addDays(todayKST(), 1);
+  await expect(page.getByText(`${formatMonthDayKST(tomorrow)}에 또 하기로 적었어요`)).toBeVisible();
+
+  await expect
+    .poll(async () =>
+      (await prisma.todo.findMany({ where: { userId: me.id, content: "영어 단어 외우기" }, orderBy: { date: "asc" } })).map((todo) => [
+        formatKST(todo.date),
+        todo.done,
+      ]),
+    )
+    .toEqual([
+      [formatKST(todayKST()), true],
+      [formatKST(tomorrow), false],
+    ]);
+
+  // 오늘 화면에는 끝낸 일이 그대로 있고, 내일 화면에는 안 끝낸 새 할 일이 있다.
+  await expect(page.getByText("1개 중 1개 완료")).toBeVisible();
+  await page.goto(`/?date=${formatKST(tomorrow)}`);
+  await expect(page.getByRole("button", { name: "영어 단어 외우기", exact: true })).toBeVisible();
+  await expect(page.getByText("1개 중 0개 완료")).toBeVisible();
+
+  // 같은 날로는 또 하지 않는다(다른 날 또 하기에서 고른 날이 그날이면 거절).
+  await page.goto("/");
+  await openTodo(page, "영어 단어 외우기");
+  await page.getByRole("button", { name: "다른 날 또 하기" }).click();
+  await chooseDate(page, "또 할 날짜", formatKST(todayKST()));
+  await page.getByRole("button", { name: "또 하기", exact: true }).click();
+  await expect(page.getByRole("dialog").getByRole("alert")).toHaveText("이미 그날이에요. 다른 날을 골라 주세요.");
+});

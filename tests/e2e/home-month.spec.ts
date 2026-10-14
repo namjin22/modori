@@ -195,12 +195,20 @@ test("서버 응답이 늦어도 적기·체크·고치기·옮기기·지우기
   await expect(page.getByRole("listitem").filter({ hasText: "지울 할 일" })).toHaveCount(0, fast);
   await expect.poll(() => prisma.todo.count({ where: { userId: me.id, content: "지울 할 일" } })).toBe(0);
 
-  // 옮기기: "내일 하기"를 누르는 즉시 오늘 목록에서 빠진다.
-  await page.getByRole("button", { name: "고친 할 일", exact: true }).click();
+  // 옮기기(안 끝낸 일): "내일 하기"를 누르는 즉시 오늘 목록에서 빠진다.
+  // (끝낸 일은 옮기지 않고 "내일 또 하기"로 베낀다. 2026-10-14 요청이라 끝낸 일 대신 새로 적은 안 끝낸 일로 본다.)
+  await page.getByRole("button", { name: `${me.categories[0].name}에 할 일 쓰기` }).click();
+  const moveInput = page.getByLabel(`${me.categories[0].name} 할 일`);
+  await moveInput.fill("옮길 할 일");
+  await moveInput.press("Enter");
+  await expect(page.getByRole("listitem").filter({ hasText: "옮길 할 일" })).toBeVisible(fast);
+  await page.keyboard.press("Escape");
+  await expect(page.locator("[aria-busy=true]")).toHaveCount(0);
+  await page.getByRole("button", { name: "옮길 할 일", exact: true }).click();
   await page.getByRole("button", { name: "내일 하기", exact: true }).click();
-  await expect(page.getByRole("listitem").filter({ hasText: "고친 할 일" })).toHaveCount(0, fast);
+  await expect(page.getByRole("listitem").filter({ hasText: "옮길 할 일" })).toHaveCount(0, fast);
   await expect
-    .poll(async () => formatKST((await prisma.todo.findFirstOrThrow({ where: { userId: me.id, content: "고친 할 일" } })).date))
+    .poll(async () => formatKST((await prisma.todo.findFirstOrThrow({ where: { userId: me.id, content: "옮길 할 일" } })).date))
     .toBe(formatKST(addDays(todayIn("Asia/Seoul"), 1)));
 });
 

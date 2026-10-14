@@ -2,13 +2,13 @@
 
 import { useState, useTransition } from "react";
 
-import { deleteTodo, moveTodo, restoreTodo, updateTodo } from "@/app/(tabs)/actions";
+import { deleteTodo, moveTodo, repeatTodo, restoreTodo, updateTodo } from "@/app/(tabs)/actions";
 import { DatePicker } from "@/components/date-picker";
 import { Modal } from "@/components/modal";
 import { ReceivedReactions } from "@/components/received-reactions";
 import { SubmitButton } from "@/components/submit-button";
 import { TodoCheckbox } from "@/components/todo-checkbox";
-import { useTodoStore } from "@/components/todo-store";
+import { PENDING_PREFIX, useTodoStore } from "@/components/todo-store";
 import { useToast } from "@/components/toast";
 import { UndoableDeleteButton } from "@/components/undoable-delete-button";
 import { useSaveFailure } from "@/components/use-save-failure";
@@ -152,7 +152,14 @@ export function TodoRow({
             </label>
           )}
           {/* 날짜 옮기기는 자주 누르므로 메모·삭제·저장보다 위에 둔다(사용자 요청). */}
-          <MoveToDay id={todo.id} date={date} quickMove={quickMove} onMoved={() => setOpen(false)} />
+          <MoveToDay
+            id={todo.id}
+            date={date}
+            quickMove={quickMove}
+            done={todo.done}
+            todo={todo}
+            onMoved={() => setOpen(false)}
+          />
           <textarea
             name="memo"
             defaultValue={draft?.memo ?? todo.memo ?? ""}
@@ -200,15 +207,23 @@ export function TodoRow({
  * 할 일을 다음 날이나 고른 날로 옮긴다. 할 일 폼 안에 들어가므로(폼 안에 폼을 둘 수 없다) 버튼으로 보낸다.
  * 날짜는 달력 창에서 고르고(components/date-picker.tsx), "옮기기"를 눌러야 옮겨진다.
  */
+/**
+ * 안 끝낸 할 일은 다른 날로 "옮기고", 이미 끝낸 할 일은 끝낸 기록을 그 날에 두고 다른 날에 "또 하기"(베끼기)를 더한다.
+ * 끝낸 일을 옮겨 버리면 그날 한 일의 기록이 사라진다.
+ */
 function MoveToDay({
   id,
   date,
   quickMove,
+  done,
+  todo,
   onMoved,
 }: {
   id: string;
   date: string;
   quickMove: { label: string; target: string };
+  done: boolean;
+  todo: Todo;
   onMoved: () => void;
 }) {
   const nextDay = formatKST(addDays(parseKSTDate(date), 1));
@@ -224,14 +239,31 @@ function MoveToDay({
     setMessage(null);
     // 같은 날은 서버에 묻지 않아도 안다(먼저 옮겨 보이면 줄이 사라졌다 돌아온다). 서버도 같은 이유로 거절한다.
     if (target === date) {
-      setMessage("이미 그날의 할 일이에요.");
+      setMessage(done ? "이미 그날이에요. 다른 날을 골라 주세요." : "이미 그날의 할 일이에요.");
       return;
     }
     startTransition(async () => {
-      // 홈에서는 누르는 즉시 그 날로 옮겨 보여 준다. 이 줄은 목록에서 사라지므로 거절 이유는 알림으로 띄운다.
-      store?.({ type: "patch", id, patch: { date: target } });
+      // 홈에서는 누르는 즉시 그 날로 옮겨(또 하기는 그 날에 더해) 보여 준다. 거절 이유는 알림으로 띄운다.
+      if (done) {
+        store?.({
+          type: "add",
+          todo: {
+            id: `${PENDING_PREFIX}${crypto.randomUUID()}`,
+            date: target,
+            content: todo.content,
+            done: false,
+            color: todo.color,
+            memo: todo.memo,
+            doneAt: null,
+            category: todo.category?.id ? { id: todo.category.id, name: todo.category.name, color: todo.category.color } : null,
+            received: [],
+          },
+        });
+      } else {
+        store?.({ type: "patch", id, patch: { date: target } });
+      }
       try {
-        const result = await moveTodo(id, target);
+        const result = await (done ? repeatTodo(id, target) : moveTodo(id, target));
         if (!result.ok) {
           if (store) toast({ message: result.message });
           else setMessage(result.message);
@@ -246,12 +278,13 @@ function MoveToDay({
   }
 
   const button = "h-10 flex-1 rounded-xl border border-border text-sm font-medium disabled:opacity-50";
+  const quickLabel = done ? quickMove.label.replace(/하기$/, "또 하기") : quickMove.label;
 
   return (
     <div className="flex flex-col gap-2">
       <div className="flex gap-2">
         <button type="button" disabled={pending} onClick={() => move(quickMove.target)} className={button}>
-          {quickMove.label}
+          {quickLabel}
         </button>
         <button
           type="button"
@@ -259,16 +292,16 @@ function MoveToDay({
           onClick={() => setPicking((value) => !value)}
           className={`${button} ${picking ? "border-brand text-brand" : ""}`}
         >
-          다른 날에 하기
+          {done ? "다른 날 또 하기" : "다른 날에 하기"}
         </button>
       </div>
 
       {picking && (
         <div className="flex flex-col gap-2 rounded-xl border border-border p-3">
-          <p className="text-xs text-muted">어느 날로 옮길까요?</p>
+          <p className="text-xs text-muted">{done ? "어느 날에 또 할까요?" : "어느 날로 옮길까요?"}</p>
           <div className="flex items-center gap-2">
             <div className="min-w-0 flex-1">
-              <DatePicker label="옮길 날짜" value={day} onChange={setDay} compact />
+              <DatePicker label={done ? "또 할 날짜" : "옮길 날짜"} value={day} onChange={setDay} compact />
             </div>
             <button
               type="button"
@@ -276,7 +309,7 @@ function MoveToDay({
               onClick={() => move(day)}
               className="h-10 shrink-0 rounded-xl bg-brand px-4 text-sm font-semibold text-brand-contrast disabled:opacity-50"
             >
-              {pending ? "옮기는 중" : "옮기기"}
+              {pending ? (done ? "적는 중" : "옮기는 중") : done ? "또 하기" : "옮기기"}
             </button>
           </div>
         </div>
