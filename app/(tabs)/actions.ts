@@ -353,6 +353,54 @@ export async function moveTodo(id: string, day: string): Promise<TodoMove> {
   return { ok: true, message: `${formatMonthDayKST(date)}로 옮겼어요` };
 }
 
+/**
+ * 이미 끝낸 할 일을 다른 날에 "또 하기". 옮기는 것이 아니라 베끼는 것이다: 끝낸 기록은 그 날에 그대로 두고, 같은 내용·카테고리·
+ * 색·메모의 새 할 일(안 끝낸 상태)을 그 날에 더한다. 루틴 표시는 가져가지 않는다(루틴 할 일이 아니라 보통 할 일이 된다).
+ * 끝낸 일만 베낀다. 안 끝낸 일은 옮기기(moveTodo)를 쓴다.
+ */
+export async function repeatTodo(id: string, day: string): Promise<TodoMove> {
+  const user = await requireUser();
+  const date = readDay(day);
+  if (!date) return { ok: false, message: "날짜를 골라주세요." };
+  if (Math.abs(daysBetween(todayIn(user.timezone), date)) > MAX_MOVE_DAYS) {
+    return { ok: false, message: "1년 안의 날짜에만 할 수 있어요." };
+  }
+
+  const todo = await prisma.todo.findFirst({
+    where: { id, userId: user.id },
+    select: { date: true, done: true, content: true, memo: true, color: true, category: { select: { id: true, archivedAt: true } } },
+  });
+  if (!todo) return { ok: false, message: "할 일을 찾을 수 없어요." };
+  if (!todo.done) return { ok: false, message: "끝낸 할 일만 또 할 수 있어요." };
+  if (isSameKSTDate(todo.date, date)) return { ok: false, message: "이미 그날이에요. 다른 날을 골라 주세요." };
+
+  const count = await prisma.todo.count({ where: { userId: user.id, date } });
+  if (count >= LIMITS.todosPerDay) {
+    return { ok: false, message: `그날은 벌써 ${LIMITS.todosPerDay}개예요. 하루에 ${LIMITS.todosPerDay}개까지 적을 수 있어요.` };
+  }
+  const last = await prisma.todo.findFirst({
+    where: { userId: user.id, date },
+    orderBy: { order: "desc" },
+    select: { order: true },
+  });
+
+  await prisma.todo.create({
+    data: {
+      userId: user.id,
+      date,
+      content: todo.content,
+      memo: todo.memo,
+      color: todo.color,
+      // 보관한 카테고리에는 새로 적지 않는다. 그때는 카테고리 없음으로 둔다.
+      categoryId: todo.category && !todo.category.archivedAt ? todo.category.id : null,
+      order: (last?.order ?? -1) + 1,
+    },
+  });
+
+  revalidatePath("/");
+  return { ok: true, message: `${formatMonthDayKST(date)}에 또 하기로 적었어요` };
+}
+
 export type UndoneMove = { ok: boolean; message: string };
 
 /**
