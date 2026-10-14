@@ -1681,3 +1681,9 @@ VM에 시험 DB(사용자 1000, 할 일 108만, 반응 24만, 280MB)를 만들�
 - `components/avatar-choice.tsx`: fieldset `min-w-0`(캐릭터 칸을 넘기면 화면 전체가 넓어지던 문제). E2E `onboarding-avatar.spec`에 360px 폭 시험 추가.
 - `app/desktop/login/{page,actions}.tsx` + `lib/desktop-login.ts`: 모바일(`from=app-ios|app-android`)은 브라우저 창에서 온보딩을 건너뛰고 앱 창에서 닉네임을 정한다. E2E `mobile-login.spec`에 시험 추가. 기존 시험은 고치지 않았고 모두 통과.
 - 안드로이드 막대 색: `styles.xml`·`bools.xml`(네이티브) + 로그인 창 `toolbarColor`. **새 AAB가 있어야 보인다**(GitHub Actions android → AAB 받아 비공개 테스트 새 출시로 올리기). 실제 기기 확인 전.
+
+## 2026-10-14 (넘기기 버튼, 애니메이션)
+
+- 옆으로 넘기는 줄(사진 칸·친구 줄)에 마우스용 ‹ › 버튼: `components/scroll-row.tsx`. 시험 `onboarding-avatar.spec`.
+- 애니메이션: `app/globals.css`(rise·fade-in·pop, 창 배경, details) + `lib/motion.ts`(useSwapIn·useBump·useFlipList) + `components/swap-in.tsx`. 나타날 때만 움직인다. 실제 폰에서 느낌은 확인 전.
+- 검증: `npm run verify` 단위 202×3, E2E 241 통과.

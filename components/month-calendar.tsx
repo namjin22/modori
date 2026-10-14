@@ -18,6 +18,7 @@ import { contrastTextColor } from "@/lib/colors";
 
 import { DayFill } from "@/components/day-fill";
 import { EventDragGrid } from "@/components/event-drag-grid";
+import { SwapIn } from "@/components/swap-in";
 
 const WEEKDAY_NAMES = ["일", "월", "화", "수", "목", "금", "토"];
 // 한 칸에 이름을 몇 개까지 보여줄지. 넘치면 "+n"으로 접는다.
@@ -80,9 +81,11 @@ export function MonthCalendar({
     // 폰에서는 달력이 첫 화면을 다 차지해 할 일이 안 보였다. 간격·칸 높이를 줄여 할 일을 위로 올린다(넓은 화면은 그대로).
     <section className="flex flex-col gap-2 sm:gap-4">
       <header className="flex items-center justify-between">
-        <h2 className="text-lg font-bold">
-          {Number(year)}년 {Number(month)}월
-        </h2>
+        <SwapIn swapKey={monthKey}>
+          <h2 className="text-lg font-bold">
+            {Number(year)}년 {Number(month)}월
+          </h2>
+        </SwapIn>
         <div className="flex items-center gap-1">
           {!isThisMonth && (
             <Link prefetch={false}
@@ -127,86 +130,90 @@ export function MonthCalendar({
           ))}
         </div>
 
-        <DayGrid editable={editableEvents}>
-          {Array.from({ length: leadingBlanks }, (_, index) => (
-            <div key={`blank-${index}`} />
-          ))}
+        {/* 달을 넘기면 넘긴 쪽에서 날짜 칸이 미끄러져 들어온다. 요일 줄은 그대로 둔다. */}
+        <SwapIn swapKey={monthKey}>
+          <DayGrid editable={editableEvents}>
+            {Array.from({ length: leadingBlanks }, (_, index) => (
+              <div key={`blank-${index}`} />
+            ))}
 
-          {days.map((day) => {
-            const key = formatKST(day);
-            const summary = summaries.get(key);
-            const doneColors = summary?.doneColors ?? [];
-            const events = eventsByDate.get(key) ?? [];
-            const isToday = isSameKSTDate(day, today);
-            const isSelected = isSameKSTDate(day, selected);
-            const eventLabel = events.length
-              ? `, 일정 ${events
-                  .slice(0, MAX_CHIPS)
-                  .map((event) => event.title)
-                  .join(", ")}${events.length > MAX_CHIPS ? ` 외 ${events.length - MAX_CHIPS}개` : ""}`
-              : "";
+            {days.map((day) => {
+              const key = formatKST(day);
+              const summary = summaries.get(key);
+              const doneColors = summary?.doneColors ?? [];
+              const events = eventsByDate.get(key) ?? [];
+              const isToday = isSameKSTDate(day, today);
+              const isSelected = isSameKSTDate(day, selected);
+              const eventLabel = events.length
+                ? `, 일정 ${events
+                    .slice(0, MAX_CHIPS)
+                    .map((event) => event.title)
+                    .join(", ")}${events.length > MAX_CHIPS ? ` 외 ${events.length - MAX_CHIPS}개` : ""}`
+                : "";
 
-            return (
-              <DayLink
-                key={key}
-                href={dayHref(key)}
-                onSelect={onSelectDay && (() => onSelectDay(key))}
-                aria-label={`${day.getUTCDate()}일, 완료 ${doneColors.length > 0 ? "있음" : "없음"}`}
-                aria-describedby={events.length ? `calendar-events-${key}` : undefined}
-                aria-current={isSelected ? "date" : undefined}
-                data-date={key}
-                // 일정 이름표를 끄는 동안 바뀔 기간의 칸(EventDragGrid가 붙인다).
-                className={`relative flex flex-col items-center gap-0.5 rounded-lg px-0.5 py-1 transition-colors hover:bg-surface-hover data-[drag-range]:bg-brand-subtle data-[drag-range]:ring-1 data-[drag-range]:ring-brand/50 ${compact ? "min-h-10" : "min-h-11 sm:min-h-16"}`}
-              >
-                <span
-                  className={`flex size-6 items-center justify-center rounded-full text-xs ${
-                    isSelected
-                      ? "bg-foreground font-bold text-background"
-                      : isToday
-                        ? "font-bold text-brand"
-                        : "text-foreground"
-                  }`}
+              return (
+                <DayLink
+                  key={key}
+                  href={dayHref(key)}
+                  onSelect={onSelectDay && (() => onSelectDay(key))}
+                  aria-label={`${day.getUTCDate()}일, 완료 ${doneColors.length > 0 ? "있음" : "없음"}`}
+                  aria-describedby={events.length ? `calendar-events-${key}` : undefined}
+                  aria-current={isSelected ? "date" : undefined}
+                  data-date={key}
+                  // 일정 이름표를 끄는 동안 바뀔 기간의 칸(EventDragGrid가 붙인다).
+                  className={`relative flex flex-col items-center gap-0.5 rounded-lg px-0.5 py-1 transition-colors hover:bg-surface-hover data-[drag-range]:bg-brand-subtle data-[drag-range]:ring-1 data-[drag-range]:ring-brand/50 ${compact ? "min-h-10" : "min-h-11 sm:min-h-16"}`}
                 >
-                  {day.getUTCDate()}
-                </span>
+                  <span
+                    // 새로 고른 날은 동그라미가 한 번 튀어 올라 어디를 눌렀는지 보인다(클래스가 붙는 순간 한 번 돈다).
+                    className={`flex size-6 items-center justify-center rounded-full text-xs transition-colors ${
+                      isSelected
+                        ? "animate-pop bg-foreground font-bold text-background"
+                        : isToday
+                          ? "font-bold text-brand"
+                          : "text-foreground"
+                    }`}
+                  >
+                    {day.getUTCDate()}
+                  </span>
 
-                <DayFill
-                  id={`month-fill-${key}`}
-                  total={summary?.total ?? 0}
-                  doneColors={doneColors}
-                  size={compact ? 16 : 20}
-                />
+                  <DayFill
+                    id={`month-fill-${key}`}
+                    total={summary?.total ?? 0}
+                    doneColors={doneColors}
+                    size={compact ? 16 : 20}
+                  />
 
-                <span aria-hidden className="flex w-full flex-col gap-px">
-                  {events.slice(0, MAX_CHIPS).map((event) => (
-                    <span
-                      key={event.id}
-                      data-event-id={editableEvents ? event.id : undefined}
-                      data-event-start={event.start}
-                      data-event-end={event.end}
-                      title={editableEvents ? "끌어서 기간 바꾸기" : undefined}
-                      // 마우스로 끌 때는 바로 잡는다. 손가락(pointer-coarse)은 쓸면 화면이 스크롤되고, 길게 눌러 집은 뒤 끈다(EventDragGrid).
-                      className={`truncate rounded px-1 text-[10px] font-medium leading-[15px] ring-1 ring-inset ring-foreground/15 transition-transform ${editableEvents ? "cursor-grab select-none [-webkit-touch-callout:none] pointer-fine:touch-none data-[drag-armed]:relative data-[drag-armed]:z-10 data-[drag-armed]:scale-110 data-[drag-armed]:ring-2 data-[drag-armed]:ring-foreground" : ""}`}
-                      style={{ backgroundColor: event.color, color: contrastTextColor(event.color) }}
-                    >
-                      {event.title}
-                    </span>
-                  ))}
-                  {events.length > MAX_CHIPS && (
-                    <span className="text-[10px] leading-[15px] text-muted">
-                      +{events.length - MAX_CHIPS}
+                  <span aria-hidden className="flex w-full flex-col gap-px">
+                    {events.slice(0, MAX_CHIPS).map((event) => (
+                      <span
+                        key={event.id}
+                        data-event-id={editableEvents ? event.id : undefined}
+                        data-event-start={event.start}
+                        data-event-end={event.end}
+                        title={editableEvents ? "끌어서 기간 바꾸기" : undefined}
+                        // 마우스로 끌 때는 바로 잡는다. 손가락(pointer-coarse)은 쓸면 화면이 스크롤되고, 길게 눌러 집은 뒤 끈다(EventDragGrid).
+                        className={`truncate rounded px-1 text-[10px] font-medium leading-[15px] ring-1 ring-inset ring-foreground/15 transition-transform ${editableEvents ? "cursor-grab select-none [-webkit-touch-callout:none] pointer-fine:touch-none data-[drag-armed]:relative data-[drag-armed]:z-10 data-[drag-armed]:scale-110 data-[drag-armed]:ring-2 data-[drag-armed]:ring-foreground" : ""}`}
+                        style={{ backgroundColor: event.color, color: contrastTextColor(event.color) }}
+                      >
+                        {event.title}
+                      </span>
+                    ))}
+                    {events.length > MAX_CHIPS && (
+                      <span className="text-[10px] leading-[15px] text-muted">
+                        +{events.length - MAX_CHIPS}
+                      </span>
+                    )}
+                  </span>
+                  {events.length > 0 && (
+                    <span id={`calendar-events-${key}`} className="sr-only">
+                      {eventLabel.slice(2)}
                     </span>
                   )}
-                </span>
-                {events.length > 0 && (
-                  <span id={`calendar-events-${key}`} className="sr-only">
-                    {eventLabel.slice(2)}
-                  </span>
-                )}
-              </DayLink>
-            );
-          })}
-        </DayGrid>
+                </DayLink>
+              );
+            })}
+          </DayGrid>
+        </SwapIn>
       </div>
 
       <p className="text-center text-xs text-muted sm:text-sm">이번 달 완료 {doneCount}개</p>

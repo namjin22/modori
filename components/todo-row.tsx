@@ -59,7 +59,8 @@ export function TodoRow({
   const store = useTodoStore();
 
   return (
-    <div className={`py-2.5 pr-3 ${saving ? "pointer-events-none opacity-60" : ""}`} aria-busy={saving || undefined}>
+    // 방금 적은 할 일은 살짝 떠오르며 들어온다(저장이 끝나 진짜 줄로 바뀔 때는 움직이지 않는다).
+    <div className={`py-2.5 pr-3 ${saving ? "pointer-events-none animate-rise opacity-60" : ""}`} aria-busy={saving || undefined}>
       {/* 메모가 있으면 줄이 길어진다. 체크는 가운데가 아니라 할 일 글자 줄에 맞춘다. */}
       <div className="flex items-start gap-3">
         <div className="mt-px">
@@ -297,7 +298,7 @@ function MoveToDay({
       </div>
 
       {picking && (
-        <div className="flex flex-col gap-2 rounded-xl border border-border p-3">
+        <div className="flex animate-rise flex-col gap-2 rounded-xl border border-border p-3">
           <p className="text-xs text-muted">{done ? "어느 날에 또 할까요?" : "어느 날로 옮길까요?"}</p>
           <div className="flex items-center gap-2">
             <div className="min-w-0 flex-1">

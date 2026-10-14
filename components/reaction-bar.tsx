@@ -1,6 +1,6 @@
 "use client";
 
-import { useOptimistic, useState, useTransition, type ReactNode } from "react";
+import { useOptimistic, useRef, useState, useTransition, type ReactNode } from "react";
 
 import { toggleReaction } from "@/app/(tabs)/feed/actions";
 import { Dori } from "@/components/dori";
@@ -8,6 +8,7 @@ import { CHARACTERS, DEFAULT_CHARACTER, type CharacterId } from "@/lib/character
 import { Modal } from "@/components/modal";
 import { ReactionGlyph } from "@/components/reaction-glyph";
 import { useSaveFailure } from "@/components/use-save-failure";
+import { useBump } from "@/lib/motion";
 import {
   CHARACTER_REACTIONS,
   labelOfReaction,
@@ -45,6 +46,7 @@ export function ReactionBar({
   const [tab, setTab] = useState<CharacterId | typeof EMOJI_TAB>(DEFAULT_CHARACTER);
   // 누가 눌렀는지 보는 창. 누른 칩의 이모지를 기억해 그 반응을 맨 위에 둔다.
   const [whoOpened, setWhoOpened] = useState<string | null>(null);
+  const [initialEmojis] = useState(() => new Set(summary.map((item) => item.emoji)));
   const [, startTransition] = useTransition();
   const saveFailed = useSaveFailure();
 
@@ -100,9 +102,11 @@ export function ReactionBar({
       className={`flex flex-wrap items-center gap-1 ${compact ? "ml-auto max-w-full shrink-0 justify-end" : ""}`}
     >
       {optimistic.map(({ emoji, count, mine }) => (
-        <button
+        <ReactionChip
           key={emoji}
-          type="button"
+          count={count}
+          // 처음 그릴 때 있던 칩은 가만히 두고, 방금 보낸 반응의 칩만 통 튀어 나온다.
+          fresh={!initialEmojis.has(emoji)}
           onClick={() => setWhoOpened(emoji)}
           aria-label={`${labelOfReaction(emoji)} ${count}개${mine ? ", 내가 누름" : ""}, 누가 눌렀는지 보기`}
           className={`flex ${chip} items-center gap-1 rounded-full transition-colors active:scale-90 ${
@@ -112,8 +116,7 @@ export function ReactionBar({
           }`}
         >
           <ReactionGlyph value={emoji} size={glyphSize} />
-          <span className="text-xs font-semibold">{count}</span>
-        </button>
+        </ReactionChip>
       ))}
 
       <button
@@ -189,7 +192,7 @@ export function ReactionBar({
             }`}
           >
             {tab === EMOJI_TAB ? (
-              <ul role="tabpanel" aria-label="이모지" className="grid grid-cols-6 gap-1.5 pb-4">
+              <ul role="tabpanel" aria-label="이모지" className="grid animate-fade-in grid-cols-6 gap-1.5 pb-4">
                 {REACTIONS.map(({ emoji, label }) => (
                   <li key={emoji}>
                     <PickButton label={label} mine={isMine(emoji)} onPick={() => pick(emoji)} small>
@@ -201,7 +204,13 @@ export function ReactionBar({
                 ))}
               </ul>
             ) : (
-              <ul role="tabpanel" aria-label={CHARACTERS.find((item) => item.id === tab)?.name} className="grid grid-cols-5 gap-2">
+              <ul
+                // 종류를 바꾸면 칸이 서서히 바뀐다(탭마다 다른 목록이라 새로 그려지며 한 번 돈다).
+                key={tab}
+                role="tabpanel"
+                aria-label={CHARACTERS.find((item) => item.id === tab)?.name}
+                className="grid animate-fade-in grid-cols-5 gap-2"
+              >
                 {CHARACTER_REACTIONS.filter((reaction) => reaction.character === tab).map(({ value, mood, character, label }) => (
                   <li key={value}>
                     <PickButton label={label} mine={isMine(value)} onPick={() => pick(value)}>
@@ -215,6 +224,34 @@ export function ReactionBar({
         </div>
       </Modal>
     </div>
+  );
+}
+
+/** 받은 반응 칩 하나. 개수가 바뀌면 숫자가 한 번 튄다(내가 보내거나 취소한 순간). */
+function ReactionChip({
+  count,
+  fresh,
+  onClick,
+  className,
+  children,
+  "aria-label": label,
+}: {
+  count: number;
+  fresh: boolean;
+  onClick: () => void;
+  className: string;
+  children: ReactNode;
+  "aria-label": string;
+}) {
+  const number = useRef<HTMLSpanElement>(null);
+  useBump(number, count, 1.4);
+  return (
+    <button type="button" onClick={onClick} aria-label={label} className={`${className} ${fresh ? "animate-pop" : ""}`}>
+      {children}
+      <span ref={number} className="inline-block text-xs font-semibold">
+        {count}
+      </span>
+    </button>
   );
 }
 

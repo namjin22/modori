@@ -52,6 +52,8 @@ export function DayFill({
             width={64}
             height={share + 0.5}
             fill={color}
+            // 할 일을 끝내면 그 칸이 서서히 칠해진다. 새로 생긴 칸에만 돈다.
+            className="animate-fade-in"
           />
         ))}
       </g>

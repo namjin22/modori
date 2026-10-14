@@ -88,6 +88,7 @@ export function SortableRow({
     // 할 일은 투두메이트처럼 줄마다 카드를 두지 않는다. 올리거나 펼쳤을 때만 바탕을 깐다.
     <li
       ref={setNodeRef}
+      data-row-id={id}
       style={{ transform: CSS.Transform.toString(transform), transition }}
       onTouchStart={onTouchStart as TouchEventHandler<HTMLLIElement> | undefined}
       // 길게 누르면 폰이 글자 선택·메뉴를 띄워 집기를 가로챈다. 손가락 화면에서만 막는다.
