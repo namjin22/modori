@@ -32,3 +32,9 @@ export async function isInAppBrowser(): Promise<boolean> {
 export async function isMobileApp(): Promise<boolean> {
   return (await userAgent()).includes(MOBILE_UA_MARK);
 }
+
+/** 안드로이드 앱에서 왔는지. Apple 로그인은 iOS 앱 심사 때문에 있는 것이라 안드로이드 앱에서는 숨긴다(app/login/page.tsx). */
+export async function isAndroidApp(): Promise<boolean> {
+  const ua = await userAgent();
+  return ua.includes(MOBILE_UA_MARK) && /Android/i.test(ua);
+}
