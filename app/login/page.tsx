@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { AppleLogo } from "@/components/apple-logo";
 import { Logo } from "@/components/logo";
 import { isAppleConfigured, isDataGSMConfigured, isMockAuth, signIn } from "@/lib/auth";
-import { isDesktopApp, isInAppBrowser, isMobileApp } from "@/lib/desktop";
+import { isAndroidApp, isDesktopApp, isInAppBrowser, isMobileApp } from "@/lib/desktop";
 import { safeNext } from "@/lib/next-path";
 import { getCurrentUser } from "@/lib/session";
 
@@ -38,6 +38,8 @@ export default async function LoginPage({
   if (await getCurrentUser()) redirect(next);
   const desktop = await isDesktopApp();
   const mobile = await isMobileApp();
+  // Apple 로그인은 iPhone 앱 심사(지침 4.8) 때문에 둔 것이다. 안드로이드 앱에는 보이지 않는다(웹 브라우저에는 그대로).
+  const showApple = isAppleConfigured && !(await isAndroidApp());
   const inApp = !desktop && !mobile && (await isInAppBrowser());
 
   const message = error
@@ -81,7 +83,7 @@ export default async function LoginPage({
           <NativeLoginButtons
             providers={[
               { id: "google", label: "Google로 계속하기", primary: true },
-              ...(isAppleConfigured ? [{ id: "apple" as const, label: "Apple로 계속하기", primary: false }] : []),
+              ...(showApple ? [{ id: "apple" as const, label: "Apple로 계속하기", primary: false }] : []),
               ...(isDataGSMConfigured ? [{ id: "datagsm" as const, label: "DataGSM으로 계속하기", primary: false }] : []),
             ]}
           />
