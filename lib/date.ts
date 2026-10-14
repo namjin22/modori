@@ -47,6 +47,20 @@ export function dateIn(instant: Date, timezone: string): Date {
   return new Date(Date.UTC(read("year"), read("month") - 1, read("day")));
 }
 
+const clockFormatters = new Map<string, Intl.DateTimeFormat>();
+
+/** 그 시각이 그 시간대의 시계로 자정부터 몇 분째인가(0~1439). 할 일 리마인드를 보낼 때를 잰다(lib/reminder.ts). */
+export function minuteOfDayIn(instant: Date, timezone: string): number {
+  let formatter = clockFormatters.get(timezone);
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat("en-US", { timeZone: timezone, hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
+    clockFormatters.set(timezone, formatter);
+  }
+  const parts = formatter.formatToParts(instant);
+  const read = (type: string) => Number(parts.find((part) => part.type === type)?.value);
+  return read("hour") * 60 + read("minute");
+}
+
 /** 그 시간대에서 지금의 "오늘". 사용자 화면은 이것을, 운영자 지표는 todayKST를 쓴다. */
 export function todayIn(timezone: string): Date {
   return dateIn(new Date(), timezone);

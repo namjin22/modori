@@ -1,5 +1,12 @@
 import type { Instrumentation } from "next";
 
+/** 서버가 켜질 때 한 번. 할 일 리마인드를 1분마다 확인하는 반복을 건다(lib/reminder-send.ts). */
+export async function register() {
+  if (process.env.NEXT_RUNTIME !== "nodejs") return;
+  const { startReminderLoop } = await import("@/lib/reminder-send");
+  startReminderLoop();
+}
+
 /**
  * 서버에서 난 오류를 DB에 남긴다(lib/errors.ts). /admin/errors에서 보고, GitHub Actions가
  * 매시간 수를 세어 있으면 알린다. 외부 서비스 없이 Next가 제공하는 훅만 쓴다.
