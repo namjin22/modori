@@ -7,7 +7,7 @@ import { useTodoStore } from "@/components/todo-store";
 import { useToast } from "@/components/toast";
 import { useSaveFailure } from "@/components/use-save-failure";
 
-/** 지난 날 화면의 "안 끝낸 일 N개 모두 오늘 하기". 오늘 화면이 아니므로 누르면 그 날 목록에서 사라지고 알림이 뜬다. */
+/** 오늘이 아닌 날(지난 날·앞날) 화면의 "안 끝낸 일 N개 모두 오늘 하기". 오늘 화면이 아니므로 누르면 그 날 목록에서 사라지고 알림이 뜬다. */
 export function MoveUndoneButton({ date, today, count }: { date: string; today: string; count: number }) {
   const [pending, startTransition] = useTransition();
   const toast = useToast();

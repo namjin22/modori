@@ -222,7 +222,8 @@ export function HomeView({ data }: { data: HomeData }) {
             </div>
           )}
 
-          {isPast && undoneCount > 0 && <MoveUndoneButton date={selected} today={data.today} count={undoneCount} />}
+          {/* 지난 날의 못 한 일, 미리 계획한 앞날의 일 모두 한 번에 오늘로 옮긴다(오늘 화면에는 없다). */}
+        {!isToday && undoneCount > 0 && <MoveUndoneButton date={selected} today={data.today} count={undoneCount} />}
 
           {/* 앞날짜에 아직 "예정"인 루틴이 남아 있으면 다 끝낸 게 아니다. 축하 배너는 TodoProgress가 띄운다. */}
           <TodoProgress
