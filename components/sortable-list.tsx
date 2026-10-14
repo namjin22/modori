@@ -131,7 +131,10 @@ export function SortableList({
   save,
   noun,
   variant = "todo",
+  gap = "",
 }: {
+  // 줄 사이 간격 클래스(예: "gap-2"). card 모양은 기본 간격이 있고, todo 모양은 줄을 붙여 둔다.
+  gap?: string;
   items: SortableItem[];
   save: (ids: string[]) => Promise<void>;
   // 화면 읽기 안내에서 이름을 모를 때 부르는 말.
@@ -216,7 +219,7 @@ export function SortableList({
       <SortableContext items={order} strategy={verticalListSortingStrategy}>
         {/* 저장이 끝났는지 화면 밖에서도 알 수 있어야 한다.
             드래그 직후 새로고침하면 요청이 끊기기 때문이다. */}
-        <ul className={`flex flex-col ${variant === "card" ? "gap-3" : ""}`} aria-busy={isSaving}>
+        <ul className={`flex flex-col ${gap || (variant === "card" ? "gap-3" : "")}`} aria-busy={isSaving}>
           {order.map((id) => (
             <SortableRow key={id} id={id} node={byId.get(id)} variant={variant} />
           ))}
