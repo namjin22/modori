@@ -134,6 +134,8 @@ test("지난 날의 할 일은 오늘 하기로 오늘에 옮기고, 안 끝낸 
   await expect(page.getByText(`${formatMonthDayKST(todayKST())}로 옮겼어요`)).toBeVisible();
 
   // 남은 안 끝낸 일 둘을 한꺼번에. 끝낸 일은 그대로 남는다.
+  // 한꺼번에 옮기기는 맨 아래에 접혀 있다(2026-10-14 요청). 먼저 연다.
+  await page.getByRole("button", { name: "안 끝낸 일 한꺼번에 넘기기" }).click();
   await page.getByRole("button", { name: "안 끝낸 일 2개 모두 오늘 하기" }).click();
   await expect(page.getByText("안 끝낸 일 2개를 오늘로 옮겼어요")).toBeVisible();
   await expect(page.getByRole("button", { name: /모두 오늘 하기/ })).toHaveCount(0);
@@ -144,8 +146,7 @@ test("지난 날의 할 일은 오늘 하기로 오늘에 옮기고, 안 끝낸 
     await expect(page.getByRole("button", { name: content, exact: true })).toBeVisible();
   }
   await expect(page.getByRole("button", { name: "어제 끝낸 일", exact: true })).toHaveCount(0);
-  // 오늘 화면에는 모두 오늘 하기가 없다.
-  await expect(page.getByRole("button", { name: /모두 오늘 하기/ })).toHaveCount(0);
+  // 오늘 화면에서는 "오늘 하기"가 아니라 "내일 하기"로 넘긴다(아래 시험).
 });
 
 test("오늘이 가득 차 있으면 들어가는 만큼만 옮기고 남은 수를 알린다", async ({ page, email }, testInfo) => {
@@ -162,6 +163,8 @@ test("오늘이 가득 차 있으면 들어가는 만큼만 옮기고 남은 수
     ],
   });
   await page.goto(`/?date=${formatKST(yesterday)}`);
+  // 한꺼번에 옮기기는 맨 아래에 접혀 있다(2026-10-14 요청). 먼저 연다.
+  await page.getByRole("button", { name: "안 끝낸 일 한꺼번에 넘기기" }).click();
   await page.getByRole("button", { name: "안 끝낸 일 3개 모두 오늘 하기" }).click();
   await expect(page.getByText("오늘 넣을 수 있는 1개만 옮겼어요. 2개가 남았어요")).toBeVisible();
   expect(await prisma.todo.count({ where: { userId: user.id, date: today } })).toBe(50);
@@ -232,6 +235,8 @@ test("미리 계획해 둔 앞날의 안 끝낸 일도 '모두 오늘 하기'로
 
   // 앞날 화면에 안 끝낸 일 수만큼의 버튼이 있다(끝낸 일은 세지 않는다).
   await page.goto(`/?date=${formatKST(later)}`);
+  // 한꺼번에 옮기기는 맨 아래에 접혀 있다(2026-10-14 요청). 먼저 연다.
+  await page.getByRole("button", { name: "안 끝낸 일 한꺼번에 넘기기" }).click();
   await page.getByRole("button", { name: "안 끝낸 일 2개 모두 오늘 하기" }).click();
   await expect(page.getByText(/오늘로 옮겼어요|2개/).first()).toBeVisible();
 
@@ -241,7 +246,41 @@ test("미리 계획해 둔 앞날의 안 끝낸 일도 '모두 오늘 하기'로
   // 끝낸 일은 그 날에 그대로 있다.
   expect((await prisma.todo.findMany({ where: { userId: user.id, date: later } })).map((todo) => todo.content)).toEqual(["이미 끝낸 일"]);
 
-  // 오늘 화면에는 이 버튼이 없다.
+  // 오늘 화면에서는 "오늘 하기"가 아니라 "내일 하기"가 나온다(아래 시험).
   await page.goto("/");
   await expect(page.getByRole("button", { name: /모두 오늘 하기/ })).toHaveCount(0);
+});
+
+test("오늘 못 끝낸 일은 맨 아래 접힌 버튼을 열어 '모두 내일 하기'로 한꺼번에 넘긴다. 일정 바로 밑에는 없다", async ({ page, email }, testInfo) => {
+  await signUp(page, email, `내일넘기기${testInfo.testId.slice(-6)}${RUN_TAG}`);
+  const user = await prisma.user.findUniqueOrThrow({ where: { email } });
+  const category = await prisma.category.findFirstOrThrow({ where: { userId: user.id } });
+  const today = todayKST();
+  const tomorrow = addDays(today, 1);
+  await prisma.todo.createMany({
+    data: [
+      { userId: user.id, categoryId: category.id, date: today, content: "못 끝낸 하나", order: 0 },
+      { userId: user.id, categoryId: category.id, date: today, content: "못 끝낸 둘", order: 1 },
+      { userId: user.id, categoryId: category.id, date: today, content: "오늘 끝낸 일", order: 2, done: true, doneAt: new Date() },
+    ],
+  });
+  await page.reload();
+
+  // 평소에는 접혀 있어 옮기는 버튼이 보이지 않고, 목록의 맨 아래(할 일들보다 아래)에 있다.
+  const toggle = page.getByRole("button", { name: "안 끝낸 일 한꺼번에 넘기기" });
+  await expect(toggle).toBeVisible();
+  await expect(page.getByRole("button", { name: /모두 내일 하기/ })).toHaveCount(0);
+  const toggleBox = await toggle.boundingBox();
+  const lastRow = await page.getByRole("listitem").filter({ hasText: "오늘 끝낸 일" }).boundingBox();
+  if (!toggleBox || !lastRow) throw new Error("좌표를 구하지 못했다");
+  expect(toggleBox.y).toBeGreaterThan(lastRow.y);
+
+  await toggle.click();
+  await page.getByRole("button", { name: "안 끝낸 일 2개 모두 내일 하기" }).click();
+  await expect(page.getByText("안 끝낸 일 2개를 내일로 옮겼어요")).toBeVisible();
+
+  await expect
+    .poll(async () => (await prisma.todo.findMany({ where: { userId: user.id, date: tomorrow }, orderBy: { order: "asc" } })).map((todo) => todo.content))
+    .toEqual(["못 끝낸 하나", "못 끝낸 둘"]);
+  expect((await prisma.todo.findMany({ where: { userId: user.id, date: today } })).map((todo) => todo.content)).toEqual(["오늘 끝낸 일"]);
 });

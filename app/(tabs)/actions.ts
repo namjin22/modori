@@ -5,7 +5,7 @@ import { Prisma } from "@prisma/client";
 import { isPaletteColor } from "@/lib/colors";
 import { revalidatePath } from "next/cache";
 
-import { daysBetween, formatKST, formatMonthDayKST, isSameKSTDate, parseKSTDate, todayIn } from "@/lib/date";
+import { addDays, daysBetween, formatKST, formatMonthDayKST, isSameKSTDate, parseKSTDate, todayIn } from "@/lib/date";
 import { isId, readIdList } from "@/lib/ids";
 import { LIMITS } from "@/lib/limits";
 import { readMemo } from "@/lib/memo";
@@ -408,13 +408,24 @@ export type UndoneMove = { ok: boolean; message: string };
  * 화면에 보이는 순서(order)대로 오늘 맨 아래에 붙는다. 루틴 할 일은 moveTodo와 같이 루틴에서 떼고 원래 날을 건너뛴다고 남긴다.
  * 오늘은 옮기지 않는다(오늘 할 일을 오늘로 옮기는 일이 된다). 앞날에 미리 적어 둔 안 끝낸 일은 오늘로 당겨 온다.
  */
-export async function moveUndoneToToday(fromDay: string): Promise<UndoneMove> {
+async function moveUndone(fromDay: string, to: "today" | "tomorrow"): Promise<UndoneMove> {
   const user = await requireUser();
   const from = readDay(fromDay);
   if (!from) return { ok: false, message: "날짜를 읽지 못했어요. 새로 고쳐 주세요." };
-  const today = todayIn(user.timezone);
-  // 지난 날의 못 한 일도, 미리 계획해 둔 앞날의 일도 오늘로 당겨 올 수 있다(앞날은 2026-10-14 요청). 오늘 자신은 옮길 것이 없다.
-  if (daysBetween(from, today) === 0) return { ok: false, message: "오늘의 할 일은 이미 오늘이에요." };
+  const now = todayIn(user.timezone);
+  let today: Date; // 옮겨 갈 날(이름은 아래 코드가 그대로 쓴다)
+  let label: string;
+  if (to === "today") {
+    // 지난 날의 못 한 일도, 미리 계획해 둔 앞날의 일도 오늘로 당겨 올 수 있다(앞날은 2026-10-14 요청). 오늘 자신은 옮길 것이 없다.
+    if (daysBetween(from, now) === 0) return { ok: false, message: "오늘의 할 일은 이미 오늘이에요." };
+    today = now;
+    label = "오늘";
+  } else {
+    // 오늘 못 끝낸 일을 모두 내일로 넘긴다(2026-10-14 요청). 오늘 화면에서만 쓴다.
+    if (daysBetween(from, now) !== 0) return { ok: false, message: "오늘의 할 일만 내일로 넘길 수 있어요." };
+    today = addDays(now, 1);
+    label = "내일";
+  }
 
   const [undone, todayCount, last] = await Promise.all([
     prisma.todo.findMany({
@@ -428,7 +439,7 @@ export async function moveUndoneToToday(fromDay: string): Promise<UndoneMove> {
   if (undone.length === 0) return { ok: false, message: "옮길 할 일이 없어요." };
 
   const room = Math.max(0, LIMITS.todosPerDay - todayCount);
-  if (room === 0) return { ok: false, message: `오늘은 벌써 ${LIMITS.todosPerDay}개예요. 하루에 ${LIMITS.todosPerDay}개까지 적을 수 있어요.` };
+  if (room === 0) return { ok: false, message: `${label}은 벌써 ${LIMITS.todosPerDay}개예요. 하루에 ${LIMITS.todosPerDay}개까지 적을 수 있어요.` };
   const moving = undone.slice(0, room);
   const start = (last?.order ?? -1) + 1;
 
@@ -452,9 +463,19 @@ export async function moveUndoneToToday(fromDay: string): Promise<UndoneMove> {
     ok: true,
     message:
       left > 0
-        ? `오늘 넣을 수 있는 ${moving.length}개만 옮겼어요. ${left}개가 남았어요`
-        : `안 끝낸 일 ${moving.length}개를 오늘로 옮겼어요`,
+        ? `${label} 넣을 수 있는 ${moving.length}개만 옮겼어요. ${left}개가 남았어요`
+        : `안 끝낸 일 ${moving.length}개를 ${label === "오늘" ? "오늘로" : "내일로"} 옮겼어요`,
   };
+}
+
+/** 오늘이 아닌 날(지난 날·앞날)의 안 끝낸 일을 모두 오늘로. */
+export async function moveUndoneToToday(fromDay: string): Promise<UndoneMove> {
+  return moveUndone(fromDay, "today");
+}
+
+/** 오늘의 안 끝낸 일을 모두 내일로. */
+export async function moveUndoneToTomorrow(fromDay: string): Promise<UndoneMove> {
+  return moveUndone(fromDay, "tomorrow");
 }
 
 /**
