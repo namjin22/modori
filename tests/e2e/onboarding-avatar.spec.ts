@@ -125,3 +125,28 @@ test.describe("좁은 폰 화면(마이페이지)", () => {
     expect(widths.groupScroll).toBeGreaterThan(widths.groupClient);
   });
 });
+
+test("마우스 화면에서는 사진 칸 양 끝의 ‹ › 버튼으로 넘긴다(Shift+휠을 몰라도 된다)", async ({ page, email }, testInfo) => {
+  await page.setViewportSize({ width: 360, height: 800 });
+  await startOnboarding(page, email, `넘김${testInfo.testId.slice(-6)}${RUN_TAG}`);
+  const group = page.getByRole("radiogroup", { name: "프로필 사진" });
+  const scrollLeft = () => group.evaluate((element) => element.scrollLeft);
+
+  // 처음에는 왼쪽 끝이라 오른쪽 버튼만 있다.
+  await expect(page.getByRole("button", { name: "왼쪽으로 넘기기" })).toHaveCount(0);
+  await page.getByRole("button", { name: "오른쪽으로 넘기기" }).click();
+  await expect.poll(scrollLeft).toBeGreaterThan(0);
+  await expect(page.getByRole("button", { name: "왼쪽으로 넘기기" })).toBeVisible();
+  await page.getByRole("button", { name: "왼쪽으로 넘기기" }).click();
+  await expect.poll(scrollLeft).toBe(0);
+});
+
+test.describe("손가락 화면", () => {
+  test.use({ viewport: { width: 360, height: 740 }, hasTouch: true, isMobile: true });
+
+  test("손가락 화면에서는 넘기기 버튼을 띄우지 않는다(쓸어 넘긴다)", async ({ page, email }, testInfo) => {
+    await startOnboarding(page, email, `쓸기${testInfo.testId.slice(-6)}${RUN_TAG}`);
+    await expect(page.getByRole("radiogroup", { name: "프로필 사진" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "오른쪽으로 넘기기" })).toBeHidden();
+  });
+});
