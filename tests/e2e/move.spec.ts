@@ -102,10 +102,12 @@ test("내일 하기를 누르면 오늘 할 일이 내일로 옮겨진다", asyn
   await expect(page.getByText(`${formatMonthDayKST(tomorrow)}로 옮겼어요`)).toBeVisible();
   await expect(page.getByRole("button", { name: "빨래 개기", exact: true })).toHaveCount(0);
 
-  // 내일 화면에서는 버튼 이름이 "다음 날에 하기"가 된다.
+  // 오늘이 아닌 날(내일 화면)에서는 버튼 이름이 "오늘 하기"가 되고, 누르면 오늘로 당겨 온다(2026-10-14 요청).
   await page.goto(`/?date=${formatKST(tomorrow)}`);
   await openTodo(page, "빨래 개기");
-  await expect(page.getByRole("dialog").getByRole("button", { name: "다음 날에 하기" })).toBeVisible();
+  await expect(page.getByRole("dialog").getByRole("button", { name: "다음 날에 하기" })).toHaveCount(0);
+  await page.getByRole("dialog").getByRole("button", { name: "오늘 하기" }).click();
+  await expect(page.getByText(`${formatMonthDayKST(todayKST())}로 옮겼어요`)).toBeVisible();
 });
 
 test("지난 날의 할 일은 오늘 하기로 오늘에 옮기고, 안 끝낸 일은 모두 오늘 하기로 한꺼번에 옮긴다", async ({ page, email }, testInfo) => {
