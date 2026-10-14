@@ -58,12 +58,13 @@ export function BottomNav({ unreadNotifications }: { unreadNotifications: number
                   isActive ? "text-brand" : "text-muted hover:text-foreground"
                 }`}
               >
-                <span className="relative">
+                {/* 탭을 옮기면 새 탭의 그림이 한 번 튄다(클래스가 붙는 순간 한 번 돈다). */}
+                <span className={`relative ${isActive ? "animate-pop" : ""}`}>
                   <Icon active={isActive} />
                   {badge > 0 && (
                     <span
                       aria-label={`안 읽은 알림 ${badge}개`}
-                      className="absolute -right-2 -top-1 min-w-4 rounded-full bg-brand px-1 text-[10px] font-bold leading-4 text-brand-contrast"
+                      className="absolute -right-2 -top-1 min-w-4 animate-pop rounded-full bg-brand px-1 text-[10px] font-bold leading-4 text-brand-contrast"
                     >
                       {badge}
                     </span>

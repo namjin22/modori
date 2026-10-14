@@ -215,9 +215,46 @@ h2 {
   }
 }
 
-/* 떠 있는 창 뒤를 어둡게 덮는다. backdrop은 유틸리티로 잘 닿지 않아 여기에 둔다. */
+/* 떠 있는 창 뒤를 어둡게 덮는다. backdrop은 유틸리티로 잘 닿지 않아 여기에 둔다.
+   창(modal-in)과 같이 서서히 어두워진다. 갑자기 깜깜해지면 화면이 꺼진 것처럼 보였다. */
 dialog::backdrop {
   background: rgb(0 0 0 / 0.5);
+}
+
+dialog[open]::backdrop {
+  animation: fade-in 160ms ease-out;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+/* 눌러서 바뀐 것을 알아보게 한 번 튀어 오른다(새로 고른 날짜, 다 끝낸 날의 축하). */
+@keyframes pop {
+  0% {
+    transform: scale(0.85);
+  }
+  60% {
+    transform: scale(1.08);
+  }
+  100% {
+    transform: none;
+  }
+}
+
+/* 펼침(details)을 열면 안의 내용이 밀려 나오듯 나타난다. 루틴 화면 등 모든 펼침에 같이 걸린다. */
+details[open] > :not(summary) {
+  animation: rise 0.18s ease-out both;
+}
+
+/* 애니메이션 이름. 화면에서는 animate-rise처럼 쓴다. 나타날 때만 움직이고, 사라질 때는 바로 사라진다
+   (사라지는 동안 남아 있으면 같은 자리를 다시 누를 때 헷갈린다). */
+@theme {
+  --animate-rise: rise 0.18s ease-out both;
+  --animate-fade-in: fade-in 0.15s ease-out both;
+  --animate-pop: pop 0.28s ease-out;
 }
 
 /* 색 견본·색 점·색 칩의 가장자리. 팔레트에 흰색과 검정이 있어서, 라이트 모드에서는

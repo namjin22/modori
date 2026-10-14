@@ -9,6 +9,7 @@ import { countUnreadNotifications, requireUser } from "@/lib/session";
 import { Dori } from "@/components/dori";
 import { FeedItem } from "@/components/feed-item";
 import { RecommendedFriends } from "@/components/recommended-friends";
+import { ScrollRow } from "@/components/scroll-row";
 import { avatarUrl } from "@/lib/avatar";
 
 const FRIEND_ROW_SIZE = 20;
@@ -132,37 +133,39 @@ export default async function FeedPage({
       {/* 친구 얼굴을 가로로 늘어놓고 옆으로 넘긴다. 누르면 그 친구 화면으로 간다.
           화면 가장자리까지 스크롤되게 바깥 여백만큼 넓혔다. */}
       {friends.length > 0 && (
-        <nav aria-label="친구" className="-mx-5 overflow-x-auto px-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          <ul className="flex gap-4">
-            {friends.map((friend) => (
-              <li key={friend.id} className="shrink-0">
-                <Link
-                  prefetch={false}
-                  href={`/feed/u/${friend.id}`}
-                  className="flex w-16 flex-col items-center gap-1.5"
-                >
-                  <Avatar src={avatarUrl(friend)} size={56} />
-                  <span className="w-full truncate text-center text-xs">
-                    {friend.nickname}
-                  </span>
-                </Link>
-              </li>
-            ))}
-            {followingCount > friends.length && (
-              <li className="shrink-0">
-                <Link
-                  prefetch={false}
-                  href="/feed/following"
-                  className="flex w-16 flex-col items-center gap-1.5"
-                >
-                  <span className="flex size-14 items-center justify-center rounded-full bg-surface text-sm font-semibold text-muted">
-                    +{followingCount - friends.length}
-                  </span>
-                  <span className="w-full truncate text-center text-xs text-muted">전체 보기</span>
-                </Link>
-              </li>
-            )}
-          </ul>
+        <nav aria-label="친구">
+          <ScrollRow className="-mx-5 px-5">
+            <ul className="flex gap-4">
+              {friends.map((friend) => (
+                <li key={friend.id} className="shrink-0">
+                  <Link
+                    prefetch={false}
+                    href={`/feed/u/${friend.id}`}
+                    className="flex w-16 flex-col items-center gap-1.5"
+                  >
+                    <Avatar src={avatarUrl(friend)} size={56} />
+                    <span className="w-full truncate text-center text-xs">
+                      {friend.nickname}
+                    </span>
+                  </Link>
+                </li>
+              ))}
+              {followingCount > friends.length && (
+                <li className="shrink-0">
+                  <Link
+                    prefetch={false}
+                    href="/feed/following"
+                    className="flex w-16 flex-col items-center gap-1.5"
+                  >
+                    <span className="flex size-14 items-center justify-center rounded-full bg-surface text-sm font-semibold text-muted">
+                      +{followingCount - friends.length}
+                    </span>
+                    <span className="w-full truncate text-center text-xs text-muted">전체 보기</span>
+                  </Link>
+                </li>
+              )}
+            </ul>
+          </ScrollRow>
         </nav>
       )}
 

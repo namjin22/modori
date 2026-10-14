@@ -139,7 +139,7 @@ export function CategoryAdder({
             });
           }}
           {...blurOutside}
-          className="flex items-center gap-2 border-b-2 pb-1 pl-1"
+          className="flex animate-rise items-center gap-2 border-b-2 pb-1 pl-1"
           style={{ borderColor: color ?? "var(--color-border)" }}
         >
           <input type="hidden" name="date" value={date} />

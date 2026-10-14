@@ -1689,3 +1689,9 @@ VM에 시험 DB(사용자 1000, 할 일 108만, 반응 24만, 280MB)를 만들�
 - 심사용 시연 데이터 SQL을 `deploy/seed-review-demo.sql`로 만들었다(심사용 계정 `a01076476547@gmail.com` = `review-user`, 시연 친구 "모도리친구" = `review-friend`, 서로 팔로우·공개/비공개 카테고리·반응). 운영자 요청으로 2026-10-14에 운영 DB에 넣었다(사용자 2·카테고리 5·할 일 11·팔로우 2·반응 2). 처음 시도는 권한 규칙에 막혔고, 운영자가 "넣어 줘"라고 한 뒤 넣었다.
 - `docs/metrics.md`: 시연 계정은 가입 경로 `demo`로 센다.
 - `docs/app-store-listing.md`: 시간대 문구를 "휴대폰 시간대를 자동으로"로 바꿨다.
+
+## 2026-10-14 (넘기기 버튼, 애니메이션)
+
+- 옆으로 넘기는 줄(사진 칸·친구 줄)에 마우스용 ‹ › 버튼: `components/scroll-row.tsx`. 시험 `onboarding-avatar.spec`.
+- 애니메이션: `app/globals.css`(rise·fade-in·pop, 창 배경, details) + `lib/motion.ts`(useSwapIn·useBump·useFlipList) + `components/swap-in.tsx`. 나타날 때만 움직인다. 실제 폰에서 느낌은 확인 전.
+- 검증: `npm run verify` 단위 202×3, E2E 241 통과.

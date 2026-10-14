@@ -63,7 +63,8 @@ export function TodoProgress({
     <CompletionContext.Provider value={(id, done) => changeDone({ id, done })}>
       <DoneIdsContext.Provider value={new Set(doneItems.map((item) => item.id))}>
       {celebrating && (
-        <div className="flex items-center gap-3 rounded-2xl bg-brand-subtle px-4 py-3">
+        // 마지막 하나를 체크하는 순간 통 튀어 나온다. 그냥 나타나면 무엇이 생겼는지 놓친다.
+        <div className="flex animate-pop items-center gap-3 rounded-2xl bg-brand-subtle px-4 py-3">
           <Dori mood="party" size={56} />
           <div>
             <p className="font-semibold text-brand">할 일을 다 끝냈어요</p>

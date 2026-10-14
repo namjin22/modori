@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 
 import { DoriFace } from "@/components/avatar";
 import { toSquareDataUrl } from "@/components/profile-image-field";
+import { ScrollRow } from "@/components/scroll-row";
 import { CHARACTERS, DEFAULT_CHARACTER, type CharacterId } from "@/lib/characters";
 
 /**
@@ -44,19 +45,16 @@ export function AvatarChoice({
   // 칸은 같은 폭(5rem)으로 옆으로 늘어서고 손가락으로 넘겨 본다. 세로로 쌓으면 가입 화면의 절반을 차지했다(아이폰 사용자 피드백).
   const tile = (selected: boolean) =>
     `flex w-20 shrink-0 snap-start flex-col items-center gap-1.5 rounded-2xl p-3 text-sm transition-colors ${
-      selected ? "bg-brand-subtle font-semibold text-brand ring-2 ring-brand" : "bg-surface text-muted hover:bg-surface-hover"
+      selected ? "animate-pop bg-brand-subtle font-semibold text-brand ring-2 ring-brand" : "bg-surface text-muted hover:bg-surface-hover"
     }`;
 
   return (
     // fieldset은 기본 min-width가 내용 폭(min-content)이라, 옆으로 넘기는 칸들이 페이지 전체를 넓혔다. min-w-0으로 끊어야 칸 안에서만 넘어간다.
     <fieldset className="flex min-w-0 flex-col gap-4">
       <legend className="mb-4 px-1 text-sm font-medium">프로필 사진</legend>
-      {/* 한 줄로 늘어놓고 옆으로 넘긴다. 고른 칸의 테두리가 잘리지 않게 안쪽 여백을 두고, 화면 끝까지 넘어가 보이게 좌우로 조금 넓힌다. */}
-      <div
-        role="radiogroup"
-        aria-label="프로필 사진"
-        className="-mx-2 flex snap-x snap-mandatory gap-3 overflow-x-auto overscroll-x-contain px-2 py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-      >
+      {/* 한 줄로 늘어놓고 옆으로 넘긴다. 고른 칸의 테두리가 잘리지 않게 안쪽 여백을 두고, 화면 끝까지 넘어가 보이게 좌우로 조금 넓힌다.
+          칸 맞춤(snap)도 그 여백(scroll-px-2)을 기준으로 한다. 빠지면 처음부터 8px 넘어가 첫 칸 테두리가 잘렸다. */}
+      <ScrollRow role="radiogroup" aria-label="프로필 사진" className="-mx-2 flex snap-x snap-mandatory scroll-px-2 gap-3 px-2 py-1">
         {CHARACTERS.map((item) => {
           const selected = choice === "character" && character === item.id;
           return (
@@ -97,7 +95,7 @@ export function AvatarChoice({
           )}
           {busy ? "줄이는 중" : "내 사진"}
         </button>
-      </div>
+      </ScrollRow>
 
       {photo && choice === "photo" && (
         <button type="button" onClick={() => fileRef.current?.click()} className="w-fit px-1 text-xs text-brand">
