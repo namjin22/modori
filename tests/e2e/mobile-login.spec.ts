@@ -131,3 +131,27 @@ test("iOS 앱은 가입 경로를 app-ios로 보내고, 돌아오면 앱 위에 
   expect(await page.evaluate(() => sessionStorage.getItem("closed"))).toBe("1");
   await context.close();
 });
+
+test("로그인 화면은 폰 앱에서 스크롤 없이 화면에 꽉 차고, Google 버튼에 G 표시가 있다", async ({ browser }) => {
+  for (const size of [{ width: 360, height: 640 }, { width: 412, height: 915 }, { width: 320, height: 568 }]) {
+    const context = await browser.newContext({ userAgent: MOBILE_UA, viewport: size, hasTouch: true, isMobile: true });
+    const page = await context.newPage();
+    await page.goto("/login");
+    const google = page.getByRole("button", { name: "Google로 계속하기" });
+    await expect(google).toBeVisible();
+    // 버튼 안에 색이 있는 G(svg)가 있다.
+    await expect(google.locator("svg")).toHaveCount(1);
+
+    // 문서 전체도, 로그인 화면 안쪽도 보이는 높이를 넘지 않는다(스크롤이 없다).
+    const scroll = await page.evaluate(() => {
+      const main = document.querySelector("main") as HTMLElement;
+      return {
+        documentOverflow: document.documentElement.scrollHeight - window.innerHeight,
+        mainOverflow: main.scrollHeight - main.clientHeight,
+      };
+    });
+    expect(scroll.documentOverflow).toBeLessThanOrEqual(0);
+    expect(scroll.mainOverflow).toBeLessThanOrEqual(0);
+    await context.close();
+  }
+});

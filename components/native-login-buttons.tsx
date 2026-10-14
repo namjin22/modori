@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { AppleLogo } from "@/components/apple-logo";
+import { GoogleLogo } from "@/components/google-logo";
 import { appSource, capacitor, createVerifier, finishNativeLogin, VERIFIER_KEY } from "@/lib/native-login";
 
 /**
@@ -53,8 +54,9 @@ export function NativeLoginButtons({ providers }: { providers: { id: "google" | 
           type="button"
           onClick={() => void start(provider.id)}
           className={`flex h-14 w-full items-center justify-center gap-2 rounded-2xl text-base font-semibold transition-colors active:scale-[0.98] ${
-            provider.primary
-              ? "bg-brand text-brand-contrast hover:bg-brand-hover"
+            provider.id === "google"
+              ? // Google의 버튼 지침: 색이 있는 G는 흰 바탕의 버튼 위에 둔다.
+                "bg-white text-neutral-900 ring-1 ring-black/15 hover:bg-neutral-100"
               : provider.id === "apple"
                 ? // Apple의 버튼 지침: 검정 바탕(어두운 화면에서는 흰 바탕)에 사과 표시.
                   "bg-foreground text-background"
@@ -62,6 +64,7 @@ export function NativeLoginButtons({ providers }: { providers: { id: "google" | 
           }`}
         >
           {provider.id === "apple" && <AppleLogo />}
+          {provider.id === "google" && <GoogleLogo />}
           {provider.label}
         </button>
       ))}

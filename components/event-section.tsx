@@ -91,17 +91,17 @@ export function EventSection({
             // D-day를 끈 일정은 이름과 시간만 보인다.
             const dday = event.dday ? ddayLabel(event.startDate, event.endDate, todayDate) : null;
             const card = (
-              <div
-                className="overflow-hidden rounded-xl bg-surface"
-                // 왼쪽 띠가 일정 색이다. 흰색이 배경에 묻히지 않게 띠 바로 옆에 옅은 선을 한 줄 더 둔다.
-                style={{
-                  boxShadow: `inset 4px 0 0 ${event.color}, inset 5px 0 0 color-mix(in srgb, var(--color-foreground) 18%, transparent)`,
-                }}
-              >
+              <div className="relative overflow-hidden rounded-xl bg-surface ring-1 ring-inset ring-foreground/10">
+                {/* 왼쪽 띠가 일정 색이다. 카드 모서리 안쪽으로 곧게 잘리고, 흰색이 묻히지 않게 띠 오른쪽에 옅은 선을 둔다. */}
+                <span
+                  aria-hidden
+                  className="absolute inset-y-0 left-0 w-1.5 border-r border-foreground/15"
+                  style={{ backgroundColor: event.color }}
+                />
                 <button
                   type="button"
                   onClick={() => setEditing(event)}
-                  className="flex w-full cursor-pointer items-center gap-3 px-4 py-3 text-left"
+                  className="flex w-full cursor-pointer items-center gap-3 py-3 pl-5 pr-4 text-left"
                 >
                   {/* 기간을 제목 옆에 두면 좁은 폰(320px)에서 제목이 세 글자만 남는다. 아래 줄로 내린다. */}
                   <span className="flex min-w-0 flex-1 flex-col">
@@ -122,7 +122,7 @@ export function EventSection({
 
           // 둘 이상이면 손잡이(폰은 길게 눌러)로 순서를 바꾼다. 하나뿐이면 바꿀 것이 없어 손잡이를 두지 않는다.
           return rows.length > 1 ? (
-            <SortableList variant="todo" noun="일정" save={reorderEvents} items={rows} />
+            <SortableList variant="todo" gap="gap-2" noun="일정" save={reorderEvents} items={rows} />
           ) : (
             <ul className="flex flex-col gap-2">
               {rows.map((row) => (

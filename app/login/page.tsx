@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { AppleLogo } from "@/components/apple-logo";
+import { GoogleLogo } from "@/components/google-logo";
 import { Logo } from "@/components/logo";
 import { isAppleConfigured, isDataGSMConfigured, isMockAuth, signIn } from "@/lib/auth";
 import { isAndroidApp, isDesktopApp, isInAppBrowser, isMobileApp } from "@/lib/desktop";
@@ -50,7 +51,9 @@ export default async function LoginPage({
     // 이름만 덩그러니 있으면 첫 화면이 휑하다. 위아래로 갈라서, 가운데는 브랜드,
     // 아래는 누를 것을 둔다. 손가락이 닿는 곳에 버튼이 오는 배치이기도 하다.
     // 태블릿·넓은 화면은 화면이 길어서, 갈라 두면 로고와 버튼이 너무 멀다. 가운데로 모은다.
-    <main className="mx-auto flex min-h-screen w-full max-w-sm flex-col px-6 pb-10 md:justify-center md:gap-12 md:pb-0">
+    // 화면에 꽉 차게 두고 스크롤하지 않는다(폰 앱: 100vh는 주소창·상태 막대를 뺀 보이는 높이보다 커서 스크롤이 생겼다).
+    // 내용이 보이는 높이를 넘을 때만(작은 폰, 오류 안내가 길 때) 안에서 스크롤한다. 앱의 상태 막대 자리(body 위 여백)를 뺀다.
+    <main className="mx-auto flex h-[calc(100dvh-env(safe-area-inset-top,0px))] w-full max-w-sm flex-col overflow-y-auto overscroll-none px-6 pb-[max(1.5rem,env(safe-area-inset-bottom,0px))] md:justify-center md:gap-12 md:pb-0">
       <div className="flex flex-1 flex-col items-center justify-center gap-4 text-center md:flex-none">
         <Logo size={64} />
         <div>
@@ -120,8 +123,9 @@ export default async function LoginPage({
             >
               <button
                 type="submit"
-                className="h-14 w-full rounded-2xl bg-brand text-base font-semibold text-brand-contrast transition-colors hover:bg-brand-hover active:scale-[0.98]"
+                className="flex h-14 w-full items-center justify-center gap-2.5 rounded-2xl bg-white text-base font-semibold text-neutral-900 ring-1 ring-black/15 transition-colors hover:bg-neutral-100 active:scale-[0.98]"
               >
+                <GoogleLogo />
                 Google로 계속하기
               </button>
             </form>
@@ -188,7 +192,7 @@ export default async function LoginPage({
         <Link
           href="/privacy"
           prefetch={false}
-          className="mt-3 self-center py-2 text-xs text-muted underline underline-offset-4"
+          className="self-center py-2 text-xs text-muted underline underline-offset-4"
         >
           개인정보처리방침
         </Link>
