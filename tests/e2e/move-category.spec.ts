@@ -30,7 +30,7 @@ async function signIn(page: Page, email: string, nickname: string) {
   await expect(homeReady(page)).toBeVisible();
 }
 
-/** 손잡이를 잡아 다른 칸(또는 줄) 위로 끌어다 놓는다. */
+/** 줄을 잡아 다른 칸(또는 줄) 위로 끌어다 놓는다. 손잡이는 없앴다(2026-10-14 요청). */
 async function dragHandleTo(page: Page, handle: Locator, target: Locator) {
   const from = await handle.boundingBox();
   const to = await target.boundingBox();
@@ -62,7 +62,7 @@ test("할 일을 끌어 다른 카테고리로 옮기면 그 카테고리 묶음
   await page.goto("/");
   const row = page.getByRole("listitem").filter({ hasText: "옮길 일" });
   const target = page.getByRole("listitem").filter({ hasText: "도착에 있던 일" });
-  await dragHandleTo(page, row.getByRole("button", { name: "순서 바꾸기 손잡이" }), target);
+  await dragHandleTo(page, row.getByText("옮길 일", { exact: true }), target);
 
   // 놓는 순간 도착 묶음(이름 줄 "도착" 아래)에 들어가 보인다.
   const arrival = page.locator("section").filter({ has: page.getByRole("button", { name: "도착에 할 일 쓰기" }) });

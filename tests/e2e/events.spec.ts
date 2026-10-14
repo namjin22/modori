@@ -301,7 +301,7 @@ test("일정도 할 일처럼 색을 골라 만들고 바꾼다. 달력 이름�
   await expect(chip).toHaveCSS("background-color", "rgb(34, 197, 94)");
 });
 
-test("같은 날 일정의 순서를 손잡이를 끌어 바꾸고, 새로 만든 일정은 맨 아래에 붙는다", async ({ page, email }, testInfo) => {
+test("같은 날 일정의 순서를 카드를 잡고 끌어 바꾸고, 새로 만든 일정은 맨 아래에 붙는다", async ({ page, email }, testInfo) => {
   await signInAndOnboard(page, email, `일정순서${testInfo.testId.slice(-6)}${RUN_TAG}`);
   await addEvent(page, "첫째 일정");
   await addEvent(page, "둘째 일정");
@@ -309,9 +309,9 @@ test("같은 날 일정의 순서를 손잡이를 끌어 바꾸고, 새로 만�
   const titles = () => page.locator("ul[aria-busy] li").evaluateAll((nodes) => nodes.map((node) => node.textContent ?? ""));
   await expect.poll(titles).toEqual([expect.stringContaining("첫째 일정"), expect.stringContaining("둘째 일정")]);
 
-  // 첫째의 손잡이를 잡아 둘째 아래로 옮긴다.
+  // 첫째 카드를 잡아 둘째 아래로 옮긴다. 손잡이는 없앴다(2026-10-14 요청).
   const items = page.locator("ul[aria-busy] > li");
-  const handle = items.nth(0).getByRole("button", { name: "순서 바꾸기 손잡이" });
+  const handle = items.nth(0).getByText("첫째 일정");
   const from = await handle.boundingBox();
   const to = await items.nth(1).boundingBox();
   if (!from || !to) throw new Error("좌표를 구하지 못했다");

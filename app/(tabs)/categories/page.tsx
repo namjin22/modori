@@ -73,7 +73,7 @@ export default async function CategoriesPage() {
           <p>아직 카테고리가 없어요</p>
         </DoriMessage>
       ) : (
-        // 손잡이(⠿)를 끌어 순서를 바꾼다. 피드의 카테고리 묶음도 이 순서를 따른다.
+        // 카드를 잡고 끌어 순서를 바꾼다. 피드의 카테고리 묶음도 이 순서를 따른다.
         <SortableList
           variant="card"
           noun="카테고리"

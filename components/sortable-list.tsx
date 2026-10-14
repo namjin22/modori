@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode, type TouchEventHandler, useState, useTransition } from "react";
+import { type MouseEventHandler, type ReactNode, type SyntheticEvent, type TouchEventHandler, useState, useTransition } from "react";
 
 import {
   DndContext,
@@ -36,8 +36,8 @@ export type SortableItem = {
 };
 
 /**
- * todo: 할 일 줄처럼 바탕 없이 평평하게. 손잡이는 늘 보이되 흐리고, 올리면 또렷해진다.
- * card: 카테고리처럼 줄마다 카드이고 손잡이가 늘 보인다.
+ * todo: 할 일 줄처럼 바탕 없이 평평하게. 올리거나 펼쳤을 때만 바탕을 깐다.
+ * card: 카테고리처럼 줄마다 카드.
  */
 export type Variant = "todo" | "card";
 
@@ -58,13 +58,26 @@ export function buzzOnTouchDrag(activator: Event) {
   if (activator.type.startsWith("touch")) navigator.vibrate?.(15);
 }
 
-/** 마우스는 손잡이를 8px 넘게 끌면, 손가락은 줄을 길게 누르면(LONG_PRESS_MS) 집는다. 키보드는 손잡이에서 스페이스. */
+/**
+ * 마우스는 줄 아무 데나 누른 채 8px 넘게 움직이면, 손가락은 줄을 길게 누르면(LONG_PRESS_MS) 집는다. 그냥 누르면 원래 누르기(체크·고치기 창)다.
+ * 키보드는 Tab으로 오면 나타나는 "순서 바꾸기"에서 스페이스.
+ */
 export function useRowSensors() {
   return useSensors(
     useSensor(MouseSensor, { activationConstraint: { distance: 8 } }),
     useSensor(TouchSensor, { activationConstraint: { delay: LONG_PRESS_MS, tolerance: 8 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
+}
+
+/** 글 적는 칸·고르는 칸에서 누른 것은 글자 선택·입력이라 집지 않는다(카테고리 이름 고치기 칸 등). */
+function unlessTyping<E extends SyntheticEvent>(handler: ((event: E) => void) | undefined) {
+  if (!handler) return undefined;
+  return (event: E) => {
+    const target = event.target;
+    if (target instanceof Element && target.closest("input, textarea, select, [contenteditable='true'], [data-no-drag]")) return;
+    handler(event);
+  };
 }
 
 /**
@@ -81,8 +94,8 @@ export function SortableRow({
     useSortable({ id });
 
   const card = variant === "card";
-  // 손가락으로 길게 누르는 것은 줄 전체에서, 마우스·키보드는 손잡이에서 받는다.
-  const { onTouchStart, ...handleListeners } = listeners ?? {};
+  // 마우스·손가락은 줄 전체에서, 키보드는 Tab으로 오면 보이는 버튼에서 받는다.
+  const { onTouchStart, onMouseDown, ...keyListeners } = listeners ?? {};
 
   return (
     // 할 일은 투두메이트처럼 줄마다 카드를 두지 않는다. 올리거나 펼쳤을 때만 바탕을 깐다.
@@ -90,32 +103,31 @@ export function SortableRow({
       ref={setNodeRef}
       data-row-id={id}
       style={{ transform: CSS.Transform.toString(transform), transition }}
-      onTouchStart={onTouchStart as TouchEventHandler<HTMLLIElement> | undefined}
+      onMouseDown={unlessTyping(onMouseDown as MouseEventHandler<HTMLLIElement> | undefined)}
+      onTouchStart={unlessTyping(onTouchStart as TouchEventHandler<HTMLLIElement> | undefined)}
       // 길게 누르면 폰이 글자 선택·메뉴를 띄워 집기를 가로챈다. 손가락 화면에서만 막는다.
       onContextMenu={(event) => {
         if (window.matchMedia("(pointer: coarse)").matches) event.preventDefault();
       }}
-      className={`group/row transition-colors pointer-coarse:select-none pointer-coarse:[-webkit-touch-callout:none] pointer-coarse:active:bg-surface ${
+      // 마우스 화면에서는 손 모양 커서로 잡을 수 있다는 것을 알린다(손잡이를 없앴다, 2026-10-14 요청).
+      className={`group/row transition-colors pointer-fine:cursor-grab pointer-coarse:select-none pointer-coarse:[-webkit-touch-callout:none] pointer-coarse:active:bg-surface ${
         card ? "rounded-2xl bg-surface" : "rounded-xl hover:bg-surface has-[details[open]]:bg-surface"
       } ${
         isDragging ? (dragPlaceholder ? "opacity-30" : "relative z-10 scale-[1.02] bg-surface opacity-95 shadow-xl ring-2 ring-brand") : ""
       }`}
     >
-      <div className={`flex ${card ? "items-center pl-2" : "items-stretch"}`}>
-        {/* 손잡이를 따로 둔다. 목록 어디나 잡히면 체크나 수정 버튼을 누를 수 없다. */}
+      <div className={`relative flex ${card ? "items-center pl-2" : "items-stretch"}`}>
+        {/* 손잡이는 없앴다. 줄 아무 데나 잡고 끈다(2026-10-14 요청). 키보드 사용자는 끌 수 없으니 Tab으로 왔을 때만 이 버튼이
+            나타나고, 스페이스·방향키로 옮긴다(화면 읽기 안내도 이 버튼에 붙는다). 손가락 화면에는 키보드가 없어 두지 않는다. */}
         <button
           type="button"
           aria-label="순서 바꾸기 손잡이"
-          // 마우스를 올려야만 보이면 PC 사용자는 끌 수 있다는 것을 모른다(커서만 바뀐다). 늘 보이되 흐리게 두고, 올리면 또렷해진다.
-          title="끌어서 순서 바꾸기"
-          // 손가락 화면(pointer-coarse)에서는 손잡이를 없앤다. 줄을 길게 눌러 집는다.
-          className={`flex w-6 shrink-0 cursor-grab touch-none justify-center rounded-lg py-2.5 text-muted/60 pointer-coarse:hidden transition-colors hover:bg-surface-hover hover:text-foreground focus-visible:text-foreground active:cursor-grabbing ${
-            card ? "" : "self-start"
-          }`}
+          // 여백·바탕은 보일 때만 준다. 평소에 여백이 있으면 화면 읽기 전용 크기(1px)보다 커져 화면에 조각이 남는다.
+          className="sr-only z-10 rounded-lg text-xs text-foreground focus-visible:not-sr-only focus-visible:absolute focus-visible:left-0 focus-visible:top-1/2 focus-visible:-translate-y-1/2 focus-visible:bg-surface focus-visible:px-2 focus-visible:py-1 focus-visible:shadow pointer-coarse:hidden"
           {...attributes}
-          {...handleListeners}
+          {...keyListeners}
         >
-          ⠿
+          ⠿ 순서 바꾸기
         </button>
         <div className="min-w-0 flex-1">{node}</div>
       </div>
@@ -124,7 +136,7 @@ export function SortableRow({
 }
 
 /**
- * 손잡이로 끌어 순서를 바꾸는 목록. 할 일(components/sortable-todo-list.tsx)과 카테고리가 같이 쓴다.
+ * 줄을 잡고 끌어 순서를 바꾸는 목록. 할 일(components/sortable-todo-list.tsx)과 카테고리가 같이 쓴다.
  * 순서를 바꾸면 바로 보여 주고, save가 실패하면 서버 순서로 되돌린다.
  */
 export function SortableList({
