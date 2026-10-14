@@ -12,7 +12,7 @@ import { type DayEvent, EventSection } from "@/components/event-section";
 import { FirstTodoButton } from "@/components/first-todo-button";
 import { type CalendarEvent, MonthCalendar } from "@/components/month-calendar";
 import { DayNavLink, isModifiedClick, useMonthDay } from "@/components/month-day";
-import { MoveUndoneButton } from "@/components/move-undone-button";
+import { BulkMove } from "@/components/move-undone-button";
 import { ScheduledRoutineRow } from "@/components/scheduled-routine-row";
 import { TodoBoard } from "@/components/todo-board";
 import { TodoProgress } from "@/components/todo-progress";
@@ -222,9 +222,6 @@ export function HomeView({ data }: { data: HomeData }) {
             </div>
           )}
 
-          {/* 지난 날의 못 한 일, 미리 계획한 앞날의 일 모두 한 번에 오늘로 옮긴다(오늘 화면에는 없다). */}
-        {!isToday && undoneCount > 0 && <MoveUndoneButton date={selected} today={data.today} count={undoneCount} />}
-
           {/* 앞날짜에 아직 "예정"인 루틴이 남아 있으면 다 끝낸 게 아니다. 축하 배너는 TodoProgress가 띄운다. */}
           <TodoProgress
             key={selected}
@@ -297,6 +294,9 @@ export function HomeView({ data }: { data: HomeData }) {
               </ul>
             </section>
           )}
+
+          {/* 안 끝낸 일을 한꺼번에 옮기는 곳은 가장 밑의 할 일 아래에 접어 둔다. 눌러야 옮기는 버튼이 나온다. */}
+          <BulkMove date={selected} today={data.today} count={undoneCount} />
         </div>
       </div>
     </TodoStoreProvider>

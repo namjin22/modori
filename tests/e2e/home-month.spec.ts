@@ -161,6 +161,8 @@ async function slowServerActions(page: Page, delayMs: number) {
 }
 
 test("서버 응답이 늦어도 적기·체크·고치기·옮기기·지우기는 바로 화면에 보인다", async ({ page }) => {
+  // 서버 액션마다 2.5초를 일부러 늦추고 일곱 번 가까이 저장하는 시험이라 기본 30초가 빠듯하다(동작이 아니라 시간 예산).
+  test.setTimeout(75_000);
   const me = await signUp(page);
   const category = me.categories[0].name;
   const todayKey = formatKST(todayIn("Asia/Seoul"));
