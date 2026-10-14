@@ -406,14 +406,15 @@ export type UndoneMove = { ok: boolean; message: string };
 /**
  * 지난 날의 안 끝낸 할 일을 모두 오늘로 옮긴다("모두 오늘 하기"). 오늘이 하루 상한(50개)에 차 있으면 들어가는 만큼만 옮기고 남은 수를 알린다.
  * 화면에 보이는 순서(order)대로 오늘 맨 아래에 붙는다. 루틴 할 일은 moveTodo와 같이 루틴에서 떼고 원래 날을 건너뛴다고 남긴다.
- * 오늘이나 앞날은 옮기지 않는다(오늘 할 일을 오늘로 옮기는 일이 되고, 앞날은 "미룬" 것이 아니다).
+ * 오늘은 옮기지 않는다(오늘 할 일을 오늘로 옮기는 일이 된다). 앞날에 미리 적어 둔 안 끝낸 일은 오늘로 당겨 온다.
  */
 export async function moveUndoneToToday(fromDay: string): Promise<UndoneMove> {
   const user = await requireUser();
   const from = readDay(fromDay);
   if (!from) return { ok: false, message: "날짜를 읽지 못했어요. 새로 고쳐 주세요." };
   const today = todayIn(user.timezone);
-  if (daysBetween(from, today) <= 0) return { ok: false, message: "지난 날의 할 일만 오늘로 옮길 수 있어요." };
+  // 지난 날의 못 한 일도, 미리 계획해 둔 앞날의 일도 오늘로 당겨 올 수 있다(앞날은 2026-10-14 요청). 오늘 자신은 옮길 것이 없다.
+  if (daysBetween(from, today) === 0) return { ok: false, message: "오늘의 할 일은 이미 오늘이에요." };
 
   const [undone, todayCount, last] = await Promise.all([
     prisma.todo.findMany({

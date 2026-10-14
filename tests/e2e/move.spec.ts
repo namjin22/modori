@@ -215,3 +215,33 @@ test("끝낸 할 일은 옮기지 않고 '또 하기'로 다른 날에 베낀다
   await page.getByRole("button", { name: "또 하기", exact: true }).click();
   await expect(page.getByRole("dialog").getByRole("alert")).toHaveText("이미 그날이에요. 다른 날을 골라 주세요.");
 });
+
+test("미리 계획해 둔 앞날의 안 끝낸 일도 '모두 오늘 하기'로 한 번에 오늘로 당겨 온다", async ({ page, email }, testInfo) => {
+  await signUp(page, email, `당기기${testInfo.testId.slice(-6)}${RUN_TAG}`);
+  const user = await prisma.user.findUniqueOrThrow({ where: { email } });
+  const category = await prisma.category.findFirstOrThrow({ where: { userId: user.id } });
+  const today = todayKST();
+  const later = addDays(today, 3);
+  await prisma.todo.createMany({
+    data: [
+      { userId: user.id, categoryId: category.id, date: later, content: "미리 계획 1", order: 0 },
+      { userId: user.id, categoryId: category.id, date: later, content: "미리 계획 2", order: 1 },
+      { userId: user.id, categoryId: category.id, date: later, content: "이미 끝낸 일", order: 2, done: true, doneAt: new Date() },
+    ],
+  });
+
+  // 앞날 화면에 안 끝낸 일 수만큼의 버튼이 있다(끝낸 일은 세지 않는다).
+  await page.goto(`/?date=${formatKST(later)}`);
+  await page.getByRole("button", { name: "안 끝낸 일 2개 모두 오늘 하기" }).click();
+  await expect(page.getByText(/오늘로 옮겼어요|2개/).first()).toBeVisible();
+
+  await expect
+    .poll(async () => (await prisma.todo.findMany({ where: { userId: user.id, date: today }, orderBy: { order: "asc" } })).map((todo) => todo.content))
+    .toEqual(["미리 계획 1", "미리 계획 2"]);
+  // 끝낸 일은 그 날에 그대로 있다.
+  expect((await prisma.todo.findMany({ where: { userId: user.id, date: later } })).map((todo) => todo.content)).toEqual(["이미 끝낸 일"]);
+
+  // 오늘 화면에는 이 버튼이 없다.
+  await page.goto("/");
+  await expect(page.getByRole("button", { name: /모두 오늘 하기/ })).toHaveCount(0);
+});
