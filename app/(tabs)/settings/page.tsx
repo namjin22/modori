@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { LogoutButton } from "@/components/logout-button";
 import { RecommendSwitch } from "@/components/recommend-switch";
+import { ReminderSetting } from "@/components/reminder-setting";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { TimezoneSelect } from "@/components/timezone-select";
 import { TIMEZONES } from "@/lib/timezones";
@@ -27,11 +28,13 @@ export default async function SettingsPage() {
   const windows = await isWindowsBrowser();
   const timezone = timezoneOrDefault(user.timezone);
   const todayHere = dateIn(new Date(), timezone);
-  const [following, followers, blockedCount, admin] = await Promise.all([
+  const [following, followers, blockedCount, admin, reminder, devices] = await Promise.all([
     prisma.follow.count({ where: { followerId: user.id } }),
     prisma.follow.count({ where: { followingId: user.id } }),
     prisma.block.count({ where: { blockerId: user.id } }),
     isAdmin(user.id),
+    prisma.user.findUniqueOrThrow({ where: { id: user.id }, select: { reminderMinute: true } }),
+    prisma.pushToken.count({ where: { userId: user.id } }),
   ]);
   // 운영자에게만: 아직 처리하지 않은 신고 수. 신고는 빨리 확인해야 한다.
   const openReports = admin ? await prisma.report.count({ where: { handledAt: null } }) : 0;
@@ -105,6 +108,14 @@ export default async function SettingsPage() {
           <TimezoneSelect current={timezone} todayLabel={`${formatMonthDayKST(todayHere)} (${WEEKDAY_NAMES[weekdayKST(todayHere)]})`} />
         )}
       </section>
+
+      {/* 리마인드는 앱 푸시로만 보낸다(웹 브라우저에는 푸시가 없다). 앱에서만 보인다. */}
+      {mobileApp && (
+        <section className="flex flex-col gap-4 rounded-2xl bg-surface p-5">
+          <h2 className="text-sm font-semibold text-muted">알림</h2>
+          <ReminderSetting minute={reminder.reminderMinute} hasDevice={devices > 0} />
+        </section>
+      )}
 
       <section className="flex flex-col gap-4 rounded-2xl bg-surface p-5">
         <h2 className="text-sm font-semibold text-muted">친구 찾기</h2>

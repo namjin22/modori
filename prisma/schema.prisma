@@ -39,6 +39,10 @@ model User {
   recommendBlocked  Boolean   @default(false)
   // 이 사람의 "오늘"을 정하는 시간대(IANA 이름, lib/timezones.ts의 목록 중 하나). 날짜 값(@db.Date)은 시각 없는 달력의 날이라 시간대와 무관하다.
   timezone          String    @default("Asia/Seoul")
+  // 할 일 리마인드(앱 푸시, 하루 한 번). 이 사람 시간대로 자정부터 몇 분째에 보낼지. 비어 있으면 끔(기본). lib/reminder.ts.
+  reminderMinute    Int?
+  // 리마인드를 마지막으로 보낸(또는 보낼 차례를 넘긴) 그 사람의 날. 하루에 두 번 보내지 않게 한다.
+  reminderSentOn    DateTime? @db.Date
   createdAt         DateTime  @default(now())
 
   accounts       Account[]

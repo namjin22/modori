@@ -1,6 +1,6 @@
 # App Store 등록정보 (한국어)
 
-App Store Connect → 앱 → 배포 화면에 그대로 붙여 넣는다. 제외 기능(타이머·일기·리마인더·AI, CLAUDE.md 규칙 7)은 쓰지 않는다.
+App Store Connect → 앱 → 배포 화면에 그대로 붙여 넣는다. 제외 기능(타이머·일기·AI, CLAUDE.md 규칙 7)은 쓰지 않는다.
 Google Play 등록정보는 `docs/store-listing.md`, 서명·업로드 방법은 `docs/mobile-release.md`.
 
 ## 앱 정보

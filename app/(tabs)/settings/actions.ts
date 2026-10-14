@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { prisma } from "@/lib/prisma";
+import { isReminderMinute, sentOnWhenSet } from "@/lib/reminder";
 import { requireUser } from "@/lib/session";
 import { isAllowedTimezone } from "@/lib/timezones";
 
@@ -23,5 +24,20 @@ export async function setTimezone(timezone: string): Promise<{ ok: boolean }> {
   if (!isAllowedTimezone(timezone)) return { ok: false };
   await prisma.user.update({ where: { id: user.id }, data: { timezone } });
   revalidatePath("/", "layout");
+  return { ok: true };
+}
+
+/**
+ * 할 일 리마인드(앱 푸시, 하루 한 번)를 켜고 시각을 정하거나(자정부터 몇 분째, 5분 단위) 끈다(null).
+ * 오늘의 그 시각이 이미 지났으면 오늘 몫은 보낸 것으로 쳐서, 고르자마자 알림이 울리지 않게 한다(lib/reminder.ts).
+ */
+export async function setReminder(minute: number | null): Promise<{ ok: boolean }> {
+  const user = await requireUser();
+  if (minute !== null && !isReminderMinute(minute)) return { ok: false };
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { reminderMinute: minute, reminderSentOn: minute === null ? null : sentOnWhenSet(minute, user.timezone, new Date()) },
+  });
+  revalidatePath("/settings");
   return { ok: true };
 }

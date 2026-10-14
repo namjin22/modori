@@ -1695,3 +1695,9 @@ VM에 시험 DB(사용자 1000, 할 일 108만, 반응 24만, 280MB)를 만들�
 - 옆으로 넘기는 줄(사진 칸·친구 줄)에 마우스용 ‹ › 버튼: `components/scroll-row.tsx`. 시험 `onboarding-avatar.spec`.
 - 애니메이션: `app/globals.css`(rise·fade-in·pop, 창 배경, details) + `lib/motion.ts`(useSwapIn·useBump·useFlipList) + `components/swap-in.tsx`. 나타날 때만 움직인다. 실제 폰에서 느낌은 확인 전.
 - 검증: `npm run verify` 단위 202×3, E2E 241 통과.
+
+## 2026-10-14 (손잡이 없애기, 할 일 리마인드)
+
+- 손잡이 없애기: PR #193(줄 아무 데나 잡고 끌기, 키보드는 Tab으로 올 때만 보이는 버튼).
+- 할 일 리마인드: `lib/reminder.ts`(계산), `lib/reminder-send.ts`(1분 반복, `instrumentation.ts`의 register에서 시작), `components/reminder-setting.tsx`(마이페이지, 앱에서만), 마이그레이션 `daily_reminder`(열 추가만). CLAUDE.md 규칙 7에서 리마인더를 뺐다(운영자 결정, 하루 한 번만 허용).
+- 시험: `tests/unit/reminder.test.ts`, `tests/e2e/reminder.spec.ts`. 시험 DB(Neon)에는 `prisma migrate deploy`로 적용했다. 실제 폰에서 알림이 오는지는 배포 뒤 확인 필요.
