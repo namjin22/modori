@@ -7,7 +7,7 @@ import { DEFAULT_EVENT_COLOR, isPaletteColor } from "@/lib/colors";
 import { daysBetween, formatKST, formatMonthDayKST, parseKSTDate } from "@/lib/date";
 import { firstOverfullDay } from "@/lib/event-limit";
 import { formatTime, parseTime } from "@/lib/event-time";
-import { isId } from "@/lib/ids";
+import { isId, readIdList } from "@/lib/ids";
 import { LIMITS } from "@/lib/limits";
 import { readMemo } from "@/lib/memo";
 import { prisma } from "@/lib/prisma";
@@ -279,3 +279,30 @@ export async function resizeEvent(
   });
   revalidatePath("/");
 }
+
+const MAX_EVENT_REORDER = 100;
+
+/**
+ * 그 날 일정의 순서를 저장한다(ids는 화면에 보이는 위에서 아래 순서). 일정마다 sortOrder에 -n … -1을 차례로 준다.
+ * 바꾸지 않은 일정(0)은 이들 아래로 가므로, 새로 만든 일정은 맨 아래에 붙는다. 같은 일정이 여러 날에 걸쳐 있으면 어느 날에서든
+ * 바꾼 순서가 모든 날에 적용된다(일정에 순서 값이 하나뿐이다). 남의 일정이나 모르는 id가 섞여 오면 통째로 무시한다.
+ */
+export async function reorderEvents(ids: string[]): Promise<void> {
+  const user = await requireUser();
+  const orderedIds = readIdList(ids, MAX_EVENT_REORDER);
+  if (!orderedIds || orderedIds.length === 0 || new Set(orderedIds).size !== orderedIds.length) return;
+
+  const owned = await prisma.event.count({ where: { userId: user.id, id: { in: orderedIds } } });
+  if (owned !== orderedIds.length) return;
+
+  const n = orderedIds.length;
+  await prisma.$transaction(
+    orderedIds.map((id, index) =>
+      // 도중에 다른 탭에서 지운 일정이 있어도 나머지는 저장한다.
+      prisma.event.updateMany({ where: { id, userId: user.id }, data: { sortOrder: index - n } }),
+    ),
+  );
+
+  revalidatePath("/");
+}
+

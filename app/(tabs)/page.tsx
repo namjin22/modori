@@ -52,6 +52,8 @@ const EVENT_SELECT = {
 } as const;
 
 const EVENT_ORDER = [
+  // 손으로 바꾼 순서가 먼저다(components/event-section.tsx). 안 바꾼 일정은 모두 0이라 아래 순서를 따른다.
+  { sortOrder: "asc" },
   { startDate: "asc" },
   { startTime: { sort: "asc", nulls: "first" } },
   { createdAt: "asc" },

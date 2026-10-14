@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "Event" ADD COLUMN     "sortOrder" INTEGER NOT NULL DEFAULT 0;
