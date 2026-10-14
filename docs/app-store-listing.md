@@ -43,6 +43,10 @@ Google Play 등록정보는 `docs/store-listing.md`, 서명·업로드 방법은
 - 어떤 카테고리를 공개할지는 내가 정해요. 비공개 카테고리와 일정, 메모는 나만 봐요.
 - 불쾌한 사람은 신고하거나 차단할 수 있어요.
 
+■ 알림
+- 친구가 보낸 반응과 새 팔로워를 알려 줘요.
+- 원하면 하루 한 번, 정한 시각에 오늘 남은 할 일 수를 알려 줘요.
+
 ■ 기록
 - 달력과 통계로 내가 얼마나 채웠는지 돌아봐요.
 
@@ -98,9 +102,11 @@ iPad는 지원하지 않는다(iPhone 전용).
 - 심사자는 자기 Apple ID로 "Apple로 계속하기"를 눌러 들어올 수 있다. 그래도 심사용 Google 계정(2단계 인증을 끈 새 계정)을 하나 만들어 아이디·비밀번호를 적어 두면 막히지 않는다.
 - 친구 기능을 보여 주려고, 심사용 계정이 팔로우한 시연용 계정과 공개 할 일을 미리 만들어 둔다.
 
-메모(영문 권장, 아래를 붙여 넣는다):
+메모(영문 권장, 아래를 붙여 넣는다). 할 일 리마인드(2026-10-14)가 배포되기 전에 제출하면 리마인드 문장은 뺀다(설명과 앱이 다르면 거절된다):
 
 ```
+Demo account: Google sign-in with the account above (2-step verification is off). It already follows a demo friend ("모도리친구") so the social features are visible. You can also use "Sign in with Apple".
+
 Modori is a to-do app where friends follow each other and react to completed tasks.
 The app is a native shell (Capacitor) around our web service https://modori.site, which is the same codebase for Android, desktop and web. The server renders all screens, so the app needs a network connection.
 
@@ -112,12 +118,13 @@ User-generated content (Guideline 1.2): other users can see a followed user's ni
 - Block: same menu > Block. Blocking removes follows and reactions both ways and hides both users from each other. Blocked users are listed in My Page > Blocked users.
 - Reports are reviewed by the operator (penamjin@gmail.com), normally within 24 hours; offending accounts are removed. The terms of service (Settings > Terms) prohibit objectionable content.
 
-No tracking, no ads, no in-app purchases. Push notifications are optional and only for reactions and new followers.
+Push notifications are optional: reactions, new followers, and (if the user turns it on in My Page > 알림) one daily reminder of how many tasks are left today.
+No tracking, no ads, no in-app purchases.
 ```
 
 ## 올리기 전 확인
 - [x] (2026-10-13) 서버에 Apple 로그인 키 4개를 넣었고 로그인 화면에 "Apple로 계속하기"가 보인다(`docs/mobile-release.md` 4절)
-- [ ] TestFlight에서 실제 iPhone으로 로그인 → 앱으로 돌아오기, 여백, 길게 눌러 옮기기를 확인했다
-- [ ] 심사용 Google 계정과 시연용 친구 계정을 만들었다
+- [x] (2026-10-14, 운영자 확인: 로그인·알림·계정 지우기) TestFlight에서 실제 iPhone으로 로그인 → 앱으로 돌아오기, 여백, 길게 눌러 옮기기를 확인했다
+- [x] (2026-10-14) 심사용 Google 계정과 시연용 친구 계정을 만들었다(`deploy/seed-review-demo.sql`)
 - [ ] 개인정보(App Privacy) 답과 연령 등급을 입력했다
 - [ ] 수출 규정(암호화): 앱이 HTTPS만 써서 면제(`ITSAppUsesNonExemptEncryption=false`가 이미 들어 있다)
