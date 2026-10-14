@@ -10,6 +10,8 @@ import { LIMITS } from "@/lib/limits";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 
+import { createEventRoutine } from "./event-routine-actions";
+
 const MAX_CONTENT_LENGTH = 200;
 // 되돌리기 스냅숏의 id 목록 상한. 몇 년 돈 루틴이어도 이만큼은 안 된다.
 const MAX_SNAPSHOT_IDS = 20_000;
@@ -51,6 +53,9 @@ export async function createRoutine(
   _previous: RoutineFormState,
   formData: FormData,
 ): Promise<RoutineFormState> {
+  // 루틴 만들기 칸에서 "일정"을 고르면 반복 일정으로 만든다(app/(tabs)/routines/event-routine-actions.ts).
+  if (readText(formData, "kind") === "EVENT") return createEventRoutine(_previous, formData);
+
   const user = await requireUser();
 
   const content = readText(formData, "content").slice(0, MAX_CONTENT_LENGTH);
@@ -86,8 +91,12 @@ export async function createRoutine(
   });
   if (!owned) return { message: "고른 카테고리를 찾을 수 없어요." };
 
-  const count = await prisma.routine.count({ where: { userId: user.id } });
-  if (count >= LIMITS.routines) {
+  // 상한은 반복 일정과 합쳐 센다.
+  const [count, eventCount] = await Promise.all([
+    prisma.routine.count({ where: { userId: user.id } }),
+    prisma.eventRoutine.count({ where: { userId: user.id } }),
+  ]);
+  if (count + eventCount >= LIMITS.routines) {
     return { message: `루틴은 ${LIMITS.routines}개까지 만들 수 있어요. 안 쓰는 루틴을 지워주세요.` };
   }
 

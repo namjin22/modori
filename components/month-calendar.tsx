@@ -32,7 +32,15 @@ export type DaySummary = {
 };
 
 /** 달력에 이름으로 보일 일정. start·end("YYYY-MM-DD")는 이름표를 끌어 기간을 바꿀 때 쓴다. */
-export type CalendarEvent = { id: string; title: string; color: string; start: string; end: string };
+export type CalendarEvent = {
+  id: string;
+  title: string;
+  color: string;
+  start: string;
+  end: string;
+  // 반복 일정처럼 끌어 기간을 바꿀 수 없는 이름표.
+  fixed?: boolean;
+};
 
 /**
  * 한 달 달력. 칸에는 일정 이름만 글자로 보이고, 할 일은 글자 대신 날짜 아래 표시(DayFill)가
@@ -187,12 +195,12 @@ export function MonthCalendar({
                     {events.slice(0, MAX_CHIPS).map((event) => (
                       <span
                         key={event.id}
-                        data-event-id={editableEvents ? event.id : undefined}
+                        data-event-id={editableEvents && !event.fixed ? event.id : undefined}
                         data-event-start={event.start}
                         data-event-end={event.end}
-                        title={editableEvents ? "끌어서 기간 바꾸기" : undefined}
+                        title={editableEvents && !event.fixed ? "끌어서 기간 바꾸기" : undefined}
                         // 마우스로 끌 때는 바로 잡는다. 손가락(pointer-coarse)은 쓸면 화면이 스크롤되고, 길게 눌러 집은 뒤 끈다(EventDragGrid).
-                        className={`truncate rounded px-1 text-[10px] font-medium leading-[15px] ring-1 ring-inset ring-foreground/15 transition-transform ${editableEvents ? "cursor-grab select-none [-webkit-touch-callout:none] pointer-fine:touch-none data-[drag-armed]:relative data-[drag-armed]:z-10 data-[drag-armed]:scale-110 data-[drag-armed]:ring-2 data-[drag-armed]:ring-foreground" : ""}`}
+                        className={`truncate rounded px-1 text-[10px] font-medium leading-[15px] ring-1 ring-inset ring-foreground/15 transition-transform ${editableEvents && !event.fixed ? "cursor-grab select-none [-webkit-touch-callout:none] pointer-fine:touch-none data-[drag-armed]:relative data-[drag-armed]:z-10 data-[drag-armed]:scale-110 data-[drag-armed]:ring-2 data-[drag-armed]:ring-foreground" : ""}`}
                         style={{ backgroundColor: event.color, color: contrastTextColor(event.color) }}
                       >
                         {event.title}

@@ -59,7 +59,7 @@ function spreadEvents(events: DayEvent[], monthStart: Date, monthEnd: Date): Map
       const key = formatKST(day);
       byDate.set(key, [
         ...(byDate.get(key) ?? []),
-        { id: event.id, title: event.title, color: event.color, start: formatKST(event.startDate), end: formatKST(event.endDate) },
+        { id: event.id, title: event.title, color: event.color, start: formatKST(event.startDate), end: formatKST(event.endDate), fixed: Boolean(event.repeat) },
       ]);
       day = addDays(day, 1);
     }

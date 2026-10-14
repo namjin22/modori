@@ -33,3 +33,21 @@ export function matchesRule(routine: RoutineRule, date: Date): boolean {
     }
   }
 }
+
+const WEEKDAY_NAMES = ["일", "월", "화", "수", "목", "금", "토"];
+
+/** 반복 규칙을 사람이 읽는 말로. "매일", "매주 월·수", "매월 1·15일". 할 일 루틴과 반복 일정이 같이 쓴다. */
+export function describeRoutineRule(routine: Pick<Routine, "freq" | "byWeekday" | "byMonthday">): string {
+  if (routine.freq === "DAILY") return "매일";
+  if (routine.freq === "WEEKLY") {
+    return `매주 ${routine.byWeekday
+      .slice()
+      .sort((a, b) => a - b)
+      .map((day) => WEEKDAY_NAMES[day])
+      .join("·")}`;
+  }
+  return `매월 ${routine.byMonthday
+    .slice()
+    .sort((a, b) => a - b)
+    .join("·")}일`;
+}

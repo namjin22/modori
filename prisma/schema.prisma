@@ -51,6 +51,7 @@ model User {
   categories     Category[]
   todos          Todo[]
   routines       Routine[]
+  eventRoutines  EventRoutine[]
   events         Event[]
   following      Follow[]       @relation("follower")
   followers      Follow[]       @relation("following")
@@ -367,4 +368,39 @@ model Report {
 
   @@index([reportedId])
   @@index([handledAt, createdAt])
+}
+
+// 반복 일정(일정 루틴, 2026-10-14). 할 일 루틴과 달리 날마다 줄을 만들지 않는다. 규칙만 두고, 화면을 그릴 때 그 기간의 날짜로
+// 펼친다(lib/event-routine.ts). 앞날 달력에도 보여야 해서 미리 만들면 몇 년치 줄이 생긴다. 하루짜리만(여러 날 반복은 없다).
+model EventRoutine {
+  id         String      @id @default(cuid())
+  userId     String
+  title      String
+  color      String
+  // 자정부터 몇 분(일정과 같다). 비어 있으면 하루 종일.
+  startTime  Int?
+  endTime    Int?
+  freq       RoutineFreq
+  byWeekday  Int[]       @default([]) // WEEKLY일 때. 0=일 … 6=토
+  byMonthday Int[]       @default([]) // MONTHLY일 때. 1 … 31
+  startDate  DateTime    @db.Date
+  endDate    DateTime?   @db.Date
+  pausedAt   DateTime?
+  createdAt  DateTime    @default(now())
+
+  user  User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  skips EventRoutineSkip[]
+
+  @@index([userId])
+}
+
+// 반복 일정에서 "이 날만 빼기"를 한 날.
+model EventRoutineSkip {
+  eventRoutineId String
+  date           DateTime @db.Date
+  createdAt      DateTime @default(now())
+
+  eventRoutine EventRoutine @relation(fields: [eventRoutineId], references: [id], onDelete: Cascade)
+
+  @@id([eventRoutineId, date])
 }

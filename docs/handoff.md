@@ -1701,3 +1701,7 @@ VM에 시험 DB(사용자 1000, 할 일 108만, 반응 24만, 280MB)를 만들�
 - 손잡이 없애기: PR #193(줄 아무 데나 잡고 끌기, 키보드는 Tab으로 올 때만 보이는 버튼).
 - 할 일 리마인드: `lib/reminder.ts`(계산), `lib/reminder-send.ts`(1분 반복, `instrumentation.ts`의 register에서 시작), `components/reminder-setting.tsx`(마이페이지, 앱에서만), 마이그레이션 `daily_reminder`(열 추가만). CLAUDE.md 규칙 7에서 리마인더를 뺐다(운영자 결정, 하루 한 번만 허용).
 - 시험: `tests/unit/reminder.test.ts`, `tests/e2e/reminder.spec.ts`. 시험 DB(Neon)에는 `prisma migrate deploy`로 적용했다. 실제 폰에서 알림이 오는지는 배포 뒤 확인 필요.
+
+## 2026-10-14 (반복 일정)
+
+- 새 표 `EventRoutine`·`EventRoutineSkip`(마이그레이션 `event_routine`, 표 추가만, 시험 DB에 적용). `lib/event-routine.ts`(펼치기), `app/(tabs)/routines/event-routine-actions.ts`, 루틴 화면·홈 일정 목록·달력. 시험 `tests/unit/event-routine.test.ts`, `tests/e2e/event-routine.spec.ts`.
