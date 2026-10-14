@@ -13,7 +13,7 @@
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>
         <item name="android:background">@null</item>
-        <!-- 상태 막대·내비게이션 막대·창 바탕을 앱 배경색(웹의 --background)과 같게 한다. 안 맞추면 어두운 화면에서 위아래 막대가 회색 띠로 보였다.
+        <!-- 상태 막대·내비게이션 막대·창 바탕을 앱 배경색(웹의 background 색)과 같게 한다. 안 맞추면 어두운 화면에서 위아래 막대가 회색 띠로 보였다.
              Android 15+는 막대가 투명이라 창 바탕이 비쳐 보이므로 windowBackground도 같이 맞춘다. 아이콘 색(밝은/어두운)은 bools.xml이 정한다. -->
         <item name="android:windowBackground">@color/splash_background</item>
         <item name="android:statusBarColor">@color/splash_background</item>
