@@ -45,6 +45,7 @@
 | 가입 경로 | `User.signupSource` | 초대 링크의 `?from=` 값을 `lib/signup-source.ts`의 head 스크립트가 브라우저 localStorage(`modori-from`)에 처음 한 번 적고, 가입(온보딩)할 때 서버로 보낸다. 쿠키를 쓰지 않는다. 모양(소문자·숫자·하이픈 20자)이 틀리면 버리고 가입은 그대로 한다(`lib/signup-source.ts`). 앱 안에서 연 화면은 user agent 꼬리표(`ModoriMobile`)로 `app-android`, 로그인 링크에도 `from=app-android`를 실어 시스템 브라우저에서도 이어진다 | 계정이 있는 동안. 하루 합계에는 경로별 누적 숫자만 남는다 |
 | 누적(가입 단계, 팔로우 수) | 원래 표(`User`·`Todo`·`Follow`·`Reaction`)를 센다 | 지표 화면을 열 때, 그리고 하루 합계에 | — |
 
+- App Store 심사용 시연 계정 둘(`deploy/seed-review-demo.sql`, 2026-10-14)은 `signupSource = 'demo'`다. 가입자 수에는 들어가므로 실제 사용자 수를 말할 때는 경로 `demo`를 빼서 읽는다(2명).
 - 하루 합계는 한국 자정 기준이다. 가입자·팔로우 같은 누적은 그날 끝까지 만든 것, 할 일·반응은 그날 만든 것이다.
 - 하루 합계가 필요한 이유: 할 일·반응·계정은 나중에 지워지고, 쓴 날짜는 90일 뒤 지운다. 합계를 찍어 두지 않으면
   몇 달 뒤 "출시 첫 주에 몇 명이 썼나"에 답할 수 없다.

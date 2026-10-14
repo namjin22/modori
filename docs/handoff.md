@@ -1681,6 +1681,14 @@ VM에 시험 DB(사용자 1000, 할 일 108만, 반응 24만, 280MB)를 만들�
 - `components/avatar-choice.tsx`: fieldset `min-w-0`(캐릭터 칸을 넘기면 화면 전체가 넓어지던 문제). E2E `onboarding-avatar.spec`에 360px 폭 시험 추가.
 - `app/desktop/login/{page,actions}.tsx` + `lib/desktop-login.ts`: 모바일(`from=app-ios|app-android`)은 브라우저 창에서 온보딩을 건너뛰고 앱 창에서 닉네임을 정한다. E2E `mobile-login.spec`에 시험 추가. 기존 시험은 고치지 않았고 모두 통과.
 - 안드로이드 막대 색: `styles.xml`·`bools.xml`(네이티브) + 로그인 창 `toolbarColor`. **새 AAB가 있어야 보인다**(GitHub Actions android → AAB 받아 비공개 테스트 새 출시로 올리기). 실제 기기 확인 전.
+- 안드로이드 AAB 1차 빌드가 XML 주석의 `--`로 깨져 `fix/android-xml-comment`(PR #189, 자동 병합 예약)로 고쳐 다시 빌드했다. 비공개 테스트에 버전 코드 11로 올림.
+
+## 2026-10-14 (iOS 심사 준비)
+
+- 운영자 확인: 친구 피드백 수렴, Apple 로그인·알림·계정 지우기 동작. 남은 것은 App Store Connect 입력과 제출(`docs/app-store-listing.md`).
+- 심사용 시연 데이터 SQL을 `deploy/seed-review-demo.sql`로 만들었다(심사용 계정 `a01076476547@gmail.com` = `review-user`, 시연 친구 "모도리친구" = `review-friend`, 서로 팔로우·공개/비공개 카테고리·반응). 운영자 요청으로 2026-10-14에 운영 DB에 넣었다(사용자 2·카테고리 5·할 일 11·팔로우 2·반응 2). 처음 시도는 권한 규칙에 막혔고, 운영자가 "넣어 줘"라고 한 뒤 넣었다.
+- `docs/metrics.md`: 시연 계정은 가입 경로 `demo`로 센다.
+- `docs/app-store-listing.md`: 시간대 문구를 "휴대폰 시간대를 자동으로"로 바꿨다.
 
 ## 2026-10-14 (넘기기 버튼, 애니메이션)
 
