@@ -16,7 +16,7 @@ Google Play 등록정보는 `docs/store-listing.md`, 서명·업로드 방법은
 | 지원 URL | https://modori.site/support |
 | 마케팅 URL | https://modori.site |
 | 가격 | 무료, 인앱 결제 없음 |
-| 지원 국가 | 대한민국만으로 시작(해외 친구가 있으면 모든 국가로 넓힌다. 시간대 설정이 있어 쓸 수 있다) |
+| 지원 국가 | 대한민국만으로 시작(해외 친구가 있으면 모든 국가로 넓힌다. 앱은 휴대폰 시간대를 자동으로 따라 쓸 수 있다) |
 
 ## 프로모션 텍스트 (170자, 심사 없이 언제든 바꿀 수 있다)
 친구를 팔로우하고, 끝낸 할 일에 도리 표정으로 반응을 보내 보세요. 카테고리 색으로 하루가 채워지는 걸 한눈에 볼 수 있어요.
@@ -47,7 +47,7 @@ Google Play 등록정보는 `docs/store-listing.md`, 서명·업로드 방법은
 - 달력과 통계로 내가 얼마나 채웠는지 돌아봐요.
 
 ■ 어디서 살든
-- 지금 있는 나라·도시의 시간대를 골라 하루가 바뀌는 시각을 맞춰요.
+- 휴대폰의 시간대를 자동으로 따라, 지금 있는 곳의 자정에 하루가 바뀌어요.
 
 ■ 안심하고 쓰세요
 - 비밀번호를 만들지 않아요. Apple 또는 Google 계정으로 로그인해요.
@@ -116,7 +116,7 @@ No tracking, no ads, no in-app purchases. Push notifications are optional and on
 ```
 
 ## 올리기 전 확인
-- [ ] 서버에 Apple 로그인 키 4개를 넣었고 로그인 화면에 "Apple로 계속하기"가 보인다(`docs/mobile-release.md` 4절)
+- [x] (2026-10-13) 서버에 Apple 로그인 키 4개를 넣었고 로그인 화면에 "Apple로 계속하기"가 보인다(`docs/mobile-release.md` 4절)
 - [ ] TestFlight에서 실제 iPhone으로 로그인 → 앱으로 돌아오기, 여백, 길게 눌러 옮기기를 확인했다
 - [ ] 심사용 Google 계정과 시연용 친구 계정을 만들었다
 - [ ] 개인정보(App Privacy) 답과 연령 등급을 입력했다
