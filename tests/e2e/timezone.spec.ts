@@ -69,15 +69,19 @@ test("목록에 없는 시간대는 서버가 받지 않는다", async ({ page }
   await signUp(page);
   const me = await prisma.user.findUniqueOrThrow({ where: { email: EMAIL } });
   // 서버 액션을 브라우저에서 직접 부르지 못하니 화면의 select 값을 조작해 보낸다.
+  // 값을 끼우고 고르는 것을 한 번에 한다. 둘을 나누면 그 사이에 화면이 다시 그려져(안내 카드·새로 받기) 끼운 값이 사라져
+  // 가끔 실패했다(검증 때마다 한 번씩). 확인하는 내용(목록에 없는 값은 서버가 거절)은 그대로다.
   await page.goto("/settings");
+  await expect(page.getByLabel("시간대", { exact: true })).toBeVisible();
   await page.getByLabel("시간대", { exact: true }).evaluate((el) => {
     const select = el as HTMLSelectElement;
     const option = document.createElement("option");
     option.value = "Mars/Olympus";
     option.textContent = "화성";
     select.appendChild(option);
+    select.value = "Mars/Olympus";
+    select.dispatchEvent(new Event("change", { bubbles: true }));
   });
-  await page.getByLabel("시간대", { exact: true }).selectOption("Mars/Olympus");
   await page.waitForTimeout(1500);
   expect((await prisma.user.findUniqueOrThrow({ where: { id: me.id } })).timezone).toBe("Asia/Seoul");
 });

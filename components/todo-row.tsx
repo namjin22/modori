@@ -42,7 +42,7 @@ export function TodoRow({
   todo: Todo;
   // 이 할 일의 날짜("YYYY-MM-DD"). "다른 날에 하기"의 처음 값(다음 날)을 여기서 정한다.
   date: string;
-  // 한 번에 옮기는 버튼. 지난 날 할 일은 "오늘 하기", 오늘 할 일은 "내일 하기", 앞날 할 일은 "다음 날에 하기"(app/(tabs)/page.tsx가 정한다).
+  // 한 번에 옮기는 버튼. 오늘 할 일은 "내일 하기", 오늘이 아닌 날(지난 날·앞날)의 할 일은 "오늘 하기"(components/home-view.tsx가 정한다).
   quickMove: { label: string; target: string };
   // 친구들이 이 할 일에 보낸 반응. 종류별로 묶여 온다.
   received?: ReceivedReaction[];

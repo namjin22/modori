@@ -93,10 +93,13 @@ export function HomeView({ data }: { data: HomeData }) {
   const today = parseKSTDate(data.today);
   const isToday = selected === data.today;
   const isPast = daysBetween(today, date) < 0;
-  // 할 일 창의 한 번에 옮기기: 지난 날은 오늘로, 오늘·앞날은 다음 날로.
+  // 할 일 창의 한 번에 옮기기: 오늘의 일은 내일로, 오늘이 아닌 날(지난 날·앞날)의 일은 오늘로.
   const quickMove = isPast
     ? { label: "오늘 하기", target: data.today }
-    : { label: isToday ? "내일 하기" : "다음 날에 하기", target: formatKST(addDays(date, 1)) };
+    : isToday
+      ? { label: "내일 하기", target: formatKST(addDays(date, 1)) }
+      : // 앞날의 안 끝낸 일은 "오늘 하기"로 당겨 오는 쪽이 자연스럽다(2026-10-14 요청). 다른 날은 "다른 날에 하기"로 고른다.
+        { label: "오늘 하기", target: data.today };
 
   const monthStart = parseKSTMonth(data.month);
   const todos = allTodos.filter((todo) => todo.date === selected);
