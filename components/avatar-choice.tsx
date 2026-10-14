@@ -48,7 +48,8 @@ export function AvatarChoice({
     }`;
 
   return (
-    <fieldset className="flex flex-col gap-4">
+    // fieldset은 기본 min-width가 내용 폭(min-content)이라, 옆으로 넘기는 칸들이 페이지 전체를 넓혔다. min-w-0으로 끊어야 칸 안에서만 넘어간다.
+    <fieldset className="flex min-w-0 flex-col gap-4">
       <legend className="mb-4 px-1 text-sm font-medium">프로필 사진</legend>
       {/* 한 줄로 늘어놓고 옆으로 넘긴다. 고른 칸의 테두리가 잘리지 않게 안쪽 여백을 두고, 화면 끝까지 넘어가 보이게 좌우로 조금 넓힌다. */}
       <div
