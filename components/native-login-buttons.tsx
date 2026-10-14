@@ -37,7 +37,9 @@ export function NativeLoginButtons({ providers }: { providers: { id: "google" | 
         if (!finishNativeLogin(result.url)) setProblem("로그인을 마치지 못했어요. 다시 눌러 주세요.");
         return;
       }
-      await browser?.open({ url: login.toString() });
+      // 로그인 창 위쪽 막대를 앱 배경색(app/globals.css의 --background)에 맞춘다. 안 맞추면 검은 막대가 따로 떠 보였다.
+      const dark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+      await browser?.open({ url: login.toString(), toolbarColor: dark ? "#0E1013" : "#F7F8FA" });
     } catch (error) {
       // 로그인 창을 닫아 취소한 것은 오류가 아니다.
       if ((error as { code?: string } | null)?.code === "CANCELED") return;

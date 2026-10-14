@@ -74,3 +74,10 @@ export type AppLoginProvider = keyof typeof APP_LOGIN_PROVIDERS;
 export function isAppLoginProvider(value: unknown): value is AppLoginProvider {
   return typeof value === "string" && Object.hasOwn(APP_LOGIN_PROVIDERS, value);
 }
+
+/** 모바일 앱이 로그인 링크에 달아 보내는 경로 이름. 이 앱들은 가입(닉네임 정하기)을 브라우저가 아니라 앱 안에서 마친다. */
+export type MobileSource = "app-ios" | "app-android";
+
+export function isMobileSource(value: unknown): value is MobileSource {
+  return value === "app-ios" || value === "app-android";
+}

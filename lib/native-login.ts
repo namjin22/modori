@@ -35,7 +35,7 @@ export type CapacitorBridge = {
   isNativePlatform?: () => boolean;
   getPlatform?: () => string;
   Plugins?: {
-    Browser?: { open: (options: { url: string }) => Promise<void>; close?: () => Promise<void> };
+    Browser?: { open: (options: { url: string; toolbarColor?: string }) => Promise<void>; close?: () => Promise<void> };
     App?: {
       addListener: ((event: "appUrlOpen", handler: (data: { url: string }) => void) => Promise<unknown>) &
         ((event: "backButton", handler: (data: { canGoBack: boolean }) => void) => Promise<unknown>);

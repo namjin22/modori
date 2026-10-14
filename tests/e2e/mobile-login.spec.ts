@@ -155,3 +155,32 @@ test("로그인 화면은 폰 앱에서 스크롤 없이 화면에 꽉 차고, G
     await context.close();
   }
 });
+
+test("모바일 앱 로그인은 처음 온 사람도 브라우저에서 가입 화면을 거치지 않고, 앱 안에서 닉네임을 정한다", async ({ browser, email }) => {
+  const verifier = Buffer.from("modori-mobile-signup-verifier-0001").toString("base64url");
+  const challenge = createHash("sha256").update(verifier).digest("base64url");
+
+  // 시스템 브라우저 창: 로그인만 하고, 닉네임 입력 없이 바로 앱으로 돌아가는 링크가 나온다.
+  const system = await browser.newContext();
+  const systemPage = await system.newPage();
+  await systemPage.goto(`/desktop/login?challenge=${challenge}&from=app-android`);
+  await systemPage.getByLabel("테스트 이메일").fill(email);
+  await systemPage.getByRole("button", { name: "테스트 로그인" }).click();
+  const open = systemPage.getByRole("link", { name: "모도리 앱 열기" });
+  await expect(open).toBeVisible();
+  await expect(systemPage.getByPlaceholder("닉네임")).toHaveCount(0);
+  const code = new URL((await open.getAttribute("href")) ?? "").searchParams.get("code") ?? "";
+  await system.close();
+
+  // 앱 창: 코드를 바꿔 로그인하면 앱 안에서 닉네임 정하기가 열리고, 가입 경로는 앱의 꼬리표로 센다.
+  const app = await browser.newContext({ userAgent: MOBILE_UA });
+  const appPage = await app.newPage();
+  await appPage.goto(`/api/desktop/exchange?code=${encodeURIComponent(code)}&verifier=${verifier}`);
+  await expect(appPage.getByPlaceholder("닉네임")).toBeVisible();
+  await appPage.getByPlaceholder("닉네임").fill(`앱안${RUN_TAG}`);
+  await appPage.getByLabel("개인정보 수집·이용에 동의해요").check();
+  await appPage.getByRole("button", { name: "시작하기" }).click();
+  await expect(appPage).toHaveURL(/\/$/);
+  expect((await prisma.user.findUniqueOrThrow({ where: { email } })).signupSource).toBe("app-android");
+  await app.close();
+});

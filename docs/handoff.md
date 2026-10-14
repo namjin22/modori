@@ -1675,3 +1675,9 @@ VM에 시험 DB(사용자 1000, 할 일 108만, 반응 24만, 280MB)를 만들�
 - 개발/운영 서버 분리: 같은 VM에 dev 앱·DB를 따로 띄우고 `dev.modori.site`로 잇는 방안 — 운영자 결정 대기(진행하지 않음).
 - 시험 DB(Neon) 순간 끊김으로 E2E가 무더기 실패하는 일이 또 있었다(재실행 통과).
 - 2026-10-14: iOS 알림이 안 오던 원인은 APNs 키 환경(Sandbox 전용). 알림 전용 Production 키 `APNS_KEY_ID`·`APNS_PRIVATE_KEY`를 서버 `.env`에 넣었고, 아이폰 두 대에 시험 알림이 200으로 접수됐다. 개발/운영 서버 분리는 하지 않기로 했다(운영자 결정).
+
+## 2026-10-14 (핫픽스) — 가입 화면 가로 늘어남, 앱 안 가입, 안드로이드 막대 색
+
+- `components/avatar-choice.tsx`: fieldset `min-w-0`(캐릭터 칸을 넘기면 화면 전체가 넓어지던 문제). E2E `onboarding-avatar.spec`에 360px 폭 시험 추가.
+- `app/desktop/login/{page,actions}.tsx` + `lib/desktop-login.ts`: 모바일(`from=app-ios|app-android`)은 브라우저 창에서 온보딩을 건너뛰고 앱 창에서 닉네임을 정한다. E2E `mobile-login.spec`에 시험 추가. 기존 시험은 고치지 않았고 모두 통과.
+- 안드로이드 막대 색: `styles.xml`·`bools.xml`(네이티브) + 로그인 창 `toolbarColor`. **새 AAB가 있어야 보인다**(GitHub Actions android → AAB 받아 비공개 테스트 새 출시로 올리기). 실제 기기 확인 전.

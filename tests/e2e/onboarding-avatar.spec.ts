@@ -77,3 +77,51 @@ test("가입할 때 캐릭터(몽이)를 고르면 그 캐릭터로 시작한다
   expect(saved.profileImage).toBeNull();
   await expect(page.locator("[data-avatar='mong'] svg").first()).toBeVisible();
 });
+
+test.describe("좁은 폰 화면", () => {
+  test.use({ viewport: { width: 360, height: 740 }, hasTouch: true, isMobile: true });
+
+  test("프로필 사진 칸을 옆으로 넘겨도 화면 전체가 넓어지지 않고 칸 안에서만 넘어간다", async ({ page, email }, testInfo) => {
+    await startOnboarding(page, email, `폭${testInfo.testId.slice(-6)}${RUN_TAG}`);
+    const widths = await page.evaluate(() => {
+      const group = document.querySelector('[role="radiogroup"]');
+      if (!(group instanceof HTMLElement)) throw new Error("프로필 사진 칸이 없다.");
+      return {
+        page: document.documentElement.scrollWidth,
+        view: document.documentElement.clientWidth,
+        groupScroll: group.scrollWidth,
+        groupClient: group.clientWidth,
+      };
+    });
+    expect(widths.page).toBeLessThanOrEqual(widths.view);
+    expect(widths.groupScroll).toBeGreaterThan(widths.groupClient);
+  });
+});
+
+test.describe("좁은 폰 화면(마이페이지)", () => {
+  test.use({ viewport: { width: 360, height: 740 }, hasTouch: true, isMobile: true });
+
+  test("마이페이지 프로필 수정에서도 사진 칸만 옆으로 넘어가고 화면과 카드는 그대로다", async ({ page, email }, testInfo) => {
+    await startOnboarding(page, email, `프필${testInfo.testId.slice(-6)}${RUN_TAG}`);
+    await page.getByRole("button", { name: "시작하기" }).click();
+    await expect(homeReady(page)).toBeVisible();
+    await page.goto("/settings/profile");
+    await expect(page.getByRole("radiogroup", { name: "프로필 사진" })).toBeVisible();
+    const widths = await page.evaluate(() => {
+      const group = document.querySelector('[role="radiogroup"]');
+      if (!(group instanceof HTMLElement)) throw new Error("프로필 사진 칸이 없다.");
+      const card = group.closest("section");
+      return {
+        page: document.documentElement.scrollWidth,
+        view: document.documentElement.clientWidth,
+        pageHeightOk: document.documentElement.scrollHeight >= document.documentElement.clientHeight,
+        card: card?.getBoundingClientRect().right ?? 0,
+        groupScroll: group.scrollWidth,
+        groupClient: group.clientWidth,
+      };
+    });
+    expect(widths.page).toBeLessThanOrEqual(widths.view);
+    expect(widths.card).toBeLessThanOrEqual(widths.view);
+    expect(widths.groupScroll).toBeGreaterThan(widths.groupClient);
+  });
+});
