@@ -10,6 +10,7 @@ import {
   startOfMonthKST,
   todayIn,
 } from "@/lib/date";
+import { expandEventRoutines } from "@/lib/event-routine";
 import { prisma } from "@/lib/prisma";
 import { groupReceivedReactions } from "@/lib/reactions";
 import { ensureRoutineTodos, listRoutineRange } from "@/lib/routine-todos";
@@ -82,7 +83,7 @@ export default async function FeedPage({
   // 이 날짜를 여는 순간 루틴 할 일이 없으면 만든다. 미래 날짜에는 만들지 않는다.
   await ensureRoutineTodos(user, date);
 
-  const [todos, categories, routines, events, upcoming] = await Promise.all([
+  const [todos, categories, routines, events, upcoming, eventRoutines, eventSkips] = await Promise.all([
     prisma.todo.findMany({
       where: { userId: user.id, date: { gte: from, lte: to } },
       orderBy: { order: "asc" },
@@ -125,6 +126,14 @@ export default async function FeedPage({
       select: EVENT_SELECT,
       take: 20,
     }),
+    // 반복 일정(일정 루틴)은 규칙만 있다. 기간에 걸치는 것을 받아 날짜로 펼친다(lib/event-routine.ts).
+    prisma.eventRoutine.findMany({
+      where: { userId: user.id, startDate: { lte: to }, OR: [{ endDate: null }, { endDate: { gte: from } }] },
+    }),
+    prisma.eventRoutineSkip.findMany({
+      where: { date: { gte: from, lte: to }, eventRoutine: { userId: user.id } },
+      select: { eventRoutineId: true, date: true },
+    }),
   ]);
 
   const data: HomeData = {
@@ -145,7 +154,8 @@ export default async function FeedPage({
     categories,
     scheduled: routines.scheduled,
     pending: routines.pending,
-    events,
+    // 보통 일정 다음에 반복 일정. 반복 일정은 끌어 기간을 바꾸거나 순서를 바꾸지 않는다(components/event-section.tsx).
+    events: [...events, ...expandEventRoutines(eventRoutines, eventSkips, from, to)],
     upcoming,
   };
 

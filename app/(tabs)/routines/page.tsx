@@ -1,12 +1,15 @@
 import Link from "next/link";
 
 import { CategoryChip } from "@/components/category-chip";
+import { EventRoutineEditButton } from "@/components/event-routine-edit-button";
 import { RoutineEditButton } from "@/components/routine-edit-button";
 import { RoutineForm } from "@/components/routine-form";
 import { UndoableDeleteButton } from "@/components/undoable-delete-button";
 import { formatKST, todayIn } from "@/lib/date";
+import { describeEventWhen } from "@/lib/event-time";
 import { groupByCategory } from "@/lib/group-by-category";
 import { prisma } from "@/lib/prisma";
+import { describeRoutineRule } from "@/lib/routine";
 import { requireUser } from "@/lib/session";
 
 import {
@@ -15,34 +18,19 @@ import {
   restoreRoutine,
   toggleRoutinePause,
 } from "./actions";
+import {
+  deleteEventRoutine,
+  endEventRoutineToday,
+  restoreEventRoutine,
+  toggleEventRoutinePause,
+} from "./event-routine-actions";
 import { BackLink } from "@/components/back-link";
 import { DoriMessage } from "@/components/dori-message";
-
-const WEEKDAY_NAMES = ["일", "월", "화", "수", "목", "금", "토"];
-
-function describeRule(routine: {
-  freq: string;
-  byWeekday: number[];
-  byMonthday: number[];
-}): string {
-  if (routine.freq === "DAILY") return "매일";
-  if (routine.freq === "WEEKLY") {
-    return `매주 ${routine.byWeekday
-      .slice()
-      .sort((a, b) => a - b)
-      .map((day) => WEEKDAY_NAMES[day])
-      .join("·")}`;
-  }
-  return `매월 ${routine.byMonthday
-    .slice()
-    .sort((a, b) => a - b)
-    .join("·")}일`;
-}
 
 export default async function RoutinesPage() {
   const user = await requireUser();
 
-  const [routines, categories] = await Promise.all([
+  const [routines, categories, eventRoutines] = await Promise.all([
     prisma.routine.findMany({
       where: { userId: user.id },
       orderBy: { order: "asc" },
@@ -53,6 +41,7 @@ export default async function RoutinesPage() {
       orderBy: { order: "asc" },
       select: { id: true, name: true, color: true },
     }),
+    prisma.eventRoutine.findMany({ where: { userId: user.id }, orderBy: { createdAt: "asc" } }),
   ]);
 
   // 오늘 화면과 같은 방식으로 묶는다. 루틴이 열 개를 넘으면 쭉 나열된 목록은 읽기 힘들다.
@@ -66,7 +55,7 @@ export default async function RoutinesPage() {
       </header>
 
       <p className="text-sm text-muted">
-        정해둔 날이 오면 할 일로 들어와요. 아직 안 온 날에는 예정으로만 보여요.
+        할 일 루틴은 정해둔 날이 오면 할 일로 들어와요(앞날에는 예정으로만 보여요). 일정 루틴은 달력과 일정 목록에 미리 떠요.
       </p>
 
       {categories.length === 0 ? (
@@ -111,10 +100,62 @@ export default async function RoutinesPage() {
       </details>
       )}
 
+      {eventRoutines.length > 0 && (
+        <section aria-label="반복 일정" className="flex flex-col gap-3">
+          <h2 className="text-sm font-semibold">반복 일정</h2>
+          <ul className="flex flex-col gap-3">
+            {eventRoutines.map((routine) => {
+              const time = describeEventWhen({ ...routine, endDate: routine.startDate });
+              return (
+                <li key={routine.id} className="rounded-2xl bg-surface p-4">
+                  <div className="flex items-center gap-2">
+                    <span aria-hidden className="color-edge size-2.5 shrink-0 rounded-full" style={{ backgroundColor: routine.color }} />
+                    <span className="flex-1 truncate font-medium">{routine.title}</span>
+                    {routine.pausedAt && <span className="text-xs text-muted">멈춤</span>}
+                  </div>
+                  <p className="mt-1 text-xs text-muted">
+                    {describeRoutineRule(routine)}
+                    {time && ` · ${time}`}
+                    {routine.endDate && ` · ${formatKST(routine.endDate)}까지`}
+                  </p>
+                  <div className="-mx-2 mt-1 flex flex-wrap">
+                    <EventRoutineEditButton routine={routine} />
+                    <form action={toggleEventRoutinePause}>
+                      <input type="hidden" name="id" value={routine.id} />
+                      <input type="hidden" name="paused" value={String(!routine.pausedAt)} />
+                      <button type="submit" className="h-8 rounded-lg px-2 text-xs text-muted hover:bg-surface-hover">
+                        {routine.pausedAt ? "다시 시작" : "잠시 멈춤"}
+                      </button>
+                    </form>
+                    {!routine.endDate && (
+                      <form action={endEventRoutineToday}>
+                        <input type="hidden" name="id" value={routine.id} />
+                        <button type="submit" className="h-8 rounded-lg px-2 text-xs text-muted hover:bg-surface-hover">
+                          오늘까지만
+                        </button>
+                      </form>
+                    )}
+                    <UndoableDeleteButton
+                      id={routine.id}
+                      remove={deleteEventRoutine}
+                      restore={restoreEventRoutine}
+                      message="반복 일정을 지웠어요"
+                      className="h-8 rounded-lg px-2 text-xs text-danger hover:bg-surface-hover"
+                    />
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
+
       {routines.length === 0 ? (
+        eventRoutines.length === 0 && (
         <DoriMessage mood="happy">
           <p>아직 루틴이 없어요</p>
         </DoriMessage>
+        )
       ) : (
         groups.map((group) => (
           <section key={group.key} className="flex flex-col gap-3">
@@ -142,7 +183,7 @@ export default async function RoutinesPage() {
                   </div>
 
                   <p className="mt-1 text-xs text-muted">
-                    {describeRule(routine)}
+                    {describeRoutineRule(routine)}
                     {routine.endDate && ` · ${formatKST(routine.endDate)}까지`}
                   </p>
 

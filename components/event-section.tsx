@@ -1,11 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import Link from "next/link";
+import { useState, useTransition } from "react";
 
 import { EventForm } from "@/components/event-form";
 import { Modal } from "@/components/modal";
 import { SortableList } from "@/components/sortable-list";
+import { useToast } from "@/components/toast";
 import { UndoableDeleteButton } from "@/components/undoable-delete-button";
+import { useSaveFailure } from "@/components/use-save-failure";
 import { useBlurOutside } from "@/components/use-blur-outside";
 import { formatKST, formatMonthDayKST, parseKSTDate } from "@/lib/date";
 import { ddayLabel } from "@/lib/dday";
@@ -13,6 +16,7 @@ import { describeEventWhen, formatTime } from "@/lib/event-time";
 import { LIMITS } from "@/lib/limits";
 
 import { deleteEvent, reorderEvents, restoreEvent } from "@/app/(tabs)/events/actions";
+import { includeEventOccurrence, skipEventOccurrence } from "@/app/(tabs)/routines/event-routine-actions";
 
 export type DayEvent = {
   id: string;
@@ -25,6 +29,8 @@ export type DayEvent = {
   color: string;
   memo: string | null;
   dday: boolean;
+  // 반복 일정(일정 루틴)을 그 날로 펼친 것이면 있다(lib/event-routine.ts). 이 날만 빼기는 되고, 고치기는 루틴 화면에서 한다.
+  repeat?: { routineId: string; date: string; rule: string };
 };
 
 /**
@@ -53,6 +59,10 @@ export function EventSection({
     if (title && title.value.trim() === "") setCreating(false);
   });
   const [editing, setEditing] = useState<DayEvent | null>(null);
+  const [repeatOpen, setRepeatOpen] = useState<DayEvent | null>(null);
+  // 하루 상한·순서 바꾸기는 그 날에만 있는 일정끼리. 반복 일정은 따로 둔다.
+  const single = events.filter((event) => !event.repeat);
+  const repeats = events.filter((event) => event.repeat);
   const todayDate = parseKSTDate(today);
 
   return (
@@ -84,41 +94,10 @@ export function EventSection({
         </div>
       )}
 
-      {events.length > 0 &&
+      {single.length > 0 &&
         (() => {
-          const rows = events.map((event) => {
-            const when = describeEventWhen(event);
-            // D-day를 끈 일정은 이름과 시간만 보인다.
-            const dday = event.dday ? ddayLabel(event.startDate, event.endDate, todayDate) : null;
-            // 카드 바탕은 줄(li)이 깐다. 카드 왼쪽 끝이 "일정" 제목·"+ 일정 더 적기"와 맞는다.
-            const card = (
-              <div className="flex items-stretch">
-                {/* 색은 카드 안쪽의 둥근 막대로 보인다. 카드 가장자리에 붙인 띠는 둥근 모서리를 따라 위아래가 가늘어졌다.
-                    흰색·검정이 바탕에 묻히지 않게 테두리(color-edge)를 두른다. */}
-                <span
-                  aria-hidden
-                  className="color-edge my-3 w-1.5 shrink-0 rounded-full"
-                  style={{ backgroundColor: event.color }}
-                />
-                <button
-                  type="button"
-                  onClick={() => setEditing(event)}
-                  className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 py-3 pl-3 pr-4 text-left"
-                >
-                  {/* 기간을 제목 옆에 두면 좁은 폰(320px)에서 제목이 세 글자만 남는다. 아래 줄로 내린다. */}
-                  <span className="flex min-w-0 flex-1 flex-col">
-                    <span className="truncate font-medium">{event.title}</span>
-                    {when && <span className="text-xs text-muted">{when}</span>}
-                    {event.memo && (
-                      <span className="mt-0.5 line-clamp-3 whitespace-pre-line wrap-break-word text-[13px] text-muted">
-                        {event.memo}
-                      </span>
-                    )}
-                  </span>
-                  {dday && <Dday label={dday} />}
-                </button>
-              </div>
-            );
+          const rows = single.map((event) => {
+            const card = <EventCard event={event} todayDate={todayDate} onOpen={() => setEditing(event)} />;
             return { id: event.id, label: event.title, node: card };
           });
 
@@ -137,16 +116,27 @@ export function EventSection({
           );
         })()}
 
+      {/* 반복 일정(일정 루틴)은 순서를 바꾸지 않고 시각순으로 둔다. 누르면 이 날만 빼거나 루틴 화면으로 간다. */}
+      {repeats.length > 0 && (
+        <ul aria-label="반복 일정" className="flex flex-col gap-2">
+          {repeats.map((event) => (
+            <li key={event.id} className="rounded-2xl bg-surface pl-2">
+              <EventCard event={event} todayDate={todayDate} onOpen={() => setRepeatOpen(event)} />
+            </li>
+          ))}
+        </ul>
+      )}
+
       {/* 제목("일정")만 있으면 누를 수 있는 곳인지 모른다. 예전에는 비어 있을 때만 이 버튼이 있어서
           하나를 만들면 더 넣을 길이 안 보였다. 하루 상한까지는 늘 둔다. */}
       {!creating &&
-        (events.length < LIMITS.eventsPerDay ? (
+        (single.length < LIMITS.eventsPerDay ? (
           <button
             type="button"
             onClick={() => setCreating(true)}
             className="rounded-xl border border-dashed border-border py-3 text-sm text-muted hover:bg-surface"
           >
-            {events.length === 0 ? "시험이나 행사 적어두기" : "+ 일정 더 적기"}
+            {single.length === 0 ? "시험이나 행사 적어두기" : "+ 일정 더 적기"}
           </button>
         ) : (
           <p className="text-center text-xs text-muted">
@@ -220,7 +210,92 @@ export function EventSection({
           </>
         )}
       </Modal>
+
+      <RepeatModal event={repeatOpen} onClose={() => setRepeatOpen(null)} />
     </section>
+  );
+}
+
+/** 반복 일정의 그 날 하나. 이 날만 빼기(되돌릴 수 있다), 이름·시간·규칙은 루틴 화면에서 고친다. */
+function RepeatModal({ event, onClose }: { event: DayEvent | null; onClose: () => void }) {
+  const [pending, startTransition] = useTransition();
+  const toast = useToast();
+  const saveFailed = useSaveFailure();
+  const repeat = event?.repeat;
+
+  function skip() {
+    if (!repeat) return;
+    startTransition(async () => {
+      try {
+        const skipped = await skipEventOccurrence({ routineId: repeat.routineId, date: repeat.date });
+        onClose();
+        if (!skipped) return;
+        toast({ message: "이 날만 반복 일정을 뺐어요", action: { label: "되돌리기", run: () => includeEventOccurrence(skipped) } });
+      } catch (error) {
+        saveFailed(error);
+      }
+    });
+  }
+
+  return (
+    <Modal open={event !== null} onClose={onClose} title="반복 일정">
+      {event && repeat && (
+        <>
+          <div className="flex items-start gap-3">
+            <span aria-hidden className="color-edge mt-1 size-3 shrink-0 rounded-full" style={{ backgroundColor: event.color }} />
+            <div className="min-w-0">
+              <p className="font-semibold">{event.title}</p>
+              <p className="text-sm text-muted">
+                {[`↻ ${repeat.rule}`, describeEventWhen(event)].filter(Boolean).join(" · ")}
+              </p>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              disabled={pending}
+              onClick={skip}
+              className="h-11 rounded-xl border border-border text-sm font-medium disabled:opacity-50"
+            >
+              {pending ? "빼는 중" : "이 날만 빼기"}
+            </button>
+            <Link
+              prefetch={false}
+              href="/routines"
+              className="flex h-11 items-center justify-center rounded-xl bg-brand text-sm font-semibold text-brand-contrast"
+            >
+              루틴에서 고치기
+            </Link>
+          </div>
+        </>
+      )}
+    </Modal>
+  );
+}
+
+/** 일정 카드 한 장. 바탕은 줄(li)이 깐다. 반복 일정이면 이름 아래에 반복 규칙이 붙는다. */
+function EventCard({ event, todayDate, onOpen }: { event: DayEvent; todayDate: Date; onOpen: () => void }) {
+  const when = describeEventWhen(event);
+  // D-day를 끈 일정은 이름과 시간만 보인다. 반복 일정에는 D-day가 없다.
+  const dday = event.dday ? ddayLabel(event.startDate, event.endDate, todayDate) : null;
+  const detail = [event.repeat ? `↻ ${event.repeat.rule}` : null, when].filter(Boolean).join(" · ");
+  return (
+    <div className="flex items-stretch">
+      {/* 색은 카드 안쪽의 둥근 막대로 보인다. 카드 가장자리에 붙인 띠는 둥근 모서리를 따라 위아래가 가늘어졌다.
+          흰색·검정이 바탕에 묻히지 않게 테두리(color-edge)를 두른다. */}
+      <span aria-hidden className="color-edge my-3 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: event.color }} />
+      <button type="button" onClick={onOpen} className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 py-3 pl-3 pr-4 text-left">
+        {/* 기간을 제목 옆에 두면 좁은 폰(320px)에서 제목이 세 글자만 남는다. 아래 줄로 내린다. */}
+        <span className="flex min-w-0 flex-1 flex-col">
+          <span className="truncate font-medium">{event.title}</span>
+          {detail && <span className="text-xs text-muted">{detail}</span>}
+          {event.memo && (
+            <span className="mt-0.5 line-clamp-3 whitespace-pre-line wrap-break-word text-[13px] text-muted">{event.memo}</span>
+          )}
+        </span>
+        {dday && <Dday label={dday} />}
+      </button>
+    </div>
   );
 }
 
