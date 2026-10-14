@@ -90,18 +90,21 @@ export function EventSection({
             const when = describeEventWhen(event);
             // D-day를 끈 일정은 이름과 시간만 보인다.
             const dday = event.dday ? ddayLabel(event.startDate, event.endDate, todayDate) : null;
+            // 카드 바탕은 줄(li)이 깐다. 순서를 바꿀 수 있으면 손잡이가 카드 안 왼쪽에 들어와, 카드 왼쪽 끝이 "일정" 제목·"+ 일정 더 적기"와 맞는다.
+            // 손잡이를 카드 밖에 두었을 때는 카드가 손잡이 폭만큼 밀려 줄이 어긋나고, 손잡이가 카드 위쪽에 붙어 보였다(2026-10-14 요청).
             const card = (
-              <div className="relative overflow-hidden rounded-xl bg-surface ring-1 ring-inset ring-foreground/10">
-                {/* 왼쪽 띠가 일정 색이다. 카드 모서리 안쪽으로 곧게 잘리고, 흰색이 묻히지 않게 띠 오른쪽에 옅은 선을 둔다. */}
+              <div className="flex items-stretch">
+                {/* 색은 카드 안쪽의 둥근 막대로 보인다. 카드 가장자리에 붙인 띠는 둥근 모서리를 따라 위아래가 가늘어졌다.
+                    흰색·검정이 바탕에 묻히지 않게 테두리(color-edge)를 두른다. */}
                 <span
                   aria-hidden
-                  className="absolute inset-y-0 left-0 w-1.5 border-r border-foreground/15"
+                  className="color-edge my-3 w-1.5 shrink-0 rounded-full"
                   style={{ backgroundColor: event.color }}
                 />
                 <button
                   type="button"
                   onClick={() => setEditing(event)}
-                  className="flex w-full cursor-pointer items-center gap-3 py-3 pl-5 pr-4 text-left"
+                  className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 py-3 pl-3 pr-4 text-left"
                 >
                   {/* 기간을 제목 옆에 두면 좁은 폰(320px)에서 제목이 세 글자만 남는다. 아래 줄로 내린다. */}
                   <span className="flex min-w-0 flex-1 flex-col">
@@ -122,11 +125,14 @@ export function EventSection({
 
           // 둘 이상이면 손잡이(폰은 길게 눌러)로 순서를 바꾼다. 하나뿐이면 바꿀 것이 없어 손잡이를 두지 않는다.
           return rows.length > 1 ? (
-            <SortableList variant="todo" gap="gap-2" noun="일정" save={reorderEvents} items={rows} />
+            <SortableList variant="card" gap="gap-2" noun="일정" save={reorderEvents} items={rows} />
           ) : (
+            // 순서를 바꿀 것이 없을 때도 같은 카드 모양(components/sortable-list.tsx의 card 줄)으로 둔다.
             <ul className="flex flex-col gap-2">
               {rows.map((row) => (
-                <li key={row.id}>{row.node}</li>
+                <li key={row.id} className="rounded-2xl bg-surface pl-2">
+                  {row.node}
+                </li>
               ))}
             </ul>
           );
