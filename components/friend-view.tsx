@@ -8,6 +8,7 @@ import { Dori } from "@/components/dori";
 import { FeedItem } from "@/components/feed-item";
 import { MonthCalendar } from "@/components/month-calendar";
 import { DayNavLink, isModifiedClick, useMonthDay } from "@/components/month-day";
+import { SwapIn } from "@/components/swap-in";
 import { addDays, formatKST, parseKSTDate, parseKSTMonth, weekdayKST } from "@/lib/date";
 import { summarizeByDate } from "@/lib/day-summary";
 import { groupByCategory } from "@/lib/group-by-category";
@@ -93,10 +94,11 @@ export function FriendView({ profile, data }: { profile: ReactNode; data: Friend
       <div className="flex flex-col gap-6 lg:pb-12">
         <header className="flex items-center justify-between">
           {dayNav(formatKST(addDays(date, -1)), "이전 날", "‹")}
-          <div className="text-center">
+          {/* 날짜를 넘기면 넘긴 쪽에서 미끄러져 들어온다(홈과 같다, components/home-view.tsx). */}
+          <SwapIn swapKey={selected} className="text-center">
             <p className="text-xs text-muted">{isToday ? "오늘" : selected}</p>
             <h2 className="text-lg font-bold">{formatHeading(selected)}</h2>
-          </div>
+          </SwapIn>
           {dayNav(formatKST(addDays(date, 1)), "다음 날", "›")}
         </header>
 
@@ -115,30 +117,32 @@ export function FriendView({ profile, data }: { profile: ReactNode; data: Friend
           </Link>
         )}
 
-        {todos.length === 0 ? (
-          <div className="flex flex-col items-center gap-2 py-8 text-center">
-            <Dori mood="calm" size={80} />
-            <p className="text-sm text-muted">할 일이 없어요</p>
-          </div>
-        ) : (
-          // 내 화면과 같이 카테고리로 묶는다. 쭉 나열하면 무엇을 하는 사람인지 안 보인다.
-          groups.map((group) => (
-            <section key={group.key} className="flex flex-col gap-2">
-              <div className="flex items-center gap-2">
-                <CategoryChip name={group.name} color={group.color} />
-                <span className="text-xs text-muted">
-                  {group.items.filter((todo) => todo.done).length}/{group.items.length}
-                </span>
-              </div>
+        <SwapIn swapKey={selected} className="flex flex-col gap-6">
+          {todos.length === 0 ? (
+            <div className="flex flex-col items-center gap-2 py-8 text-center">
+              <Dori mood="calm" size={80} />
+              <p className="text-sm text-muted">할 일이 없어요</p>
+            </div>
+          ) : (
+            // 내 화면과 같이 카테고리로 묶는다. 쭉 나열하면 무엇을 하는 사람인지 안 보인다.
+            groups.map((group) => (
+              <section key={group.key} className="flex flex-col gap-2">
+                <div className="flex items-center gap-2">
+                  <CategoryChip name={group.name} color={group.color} />
+                  <span className="text-xs text-muted">
+                    {group.items.filter((todo) => todo.done).length}/{group.items.length}
+                  </span>
+                </div>
 
-              <ul className="flex flex-col divide-y divide-border rounded-2xl bg-surface px-4">
-                {group.items.map((todo) => (
-                  <FeedItem compact key={todo.id} todo={todo} viewerId={data.viewerId} showAuthor={false} />
-                ))}
-              </ul>
-            </section>
-          ))
-        )}
+                <ul className="flex flex-col divide-y divide-border rounded-2xl bg-surface px-4">
+                  {group.items.map((todo) => (
+                    <FeedItem compact key={todo.id} todo={todo} viewerId={data.viewerId} showAuthor={false} />
+                  ))}
+                </ul>
+              </section>
+            ))
+          )}
+        </SwapIn>
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode, useRef, useState } from "react";
+import { type ReactNode, useCallback, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import {
@@ -26,6 +26,7 @@ import { moveTodoToCategory, reorderTodos } from "@/app/(tabs)/actions";
 import { buzzOnTouchDrag, GENTLE_AUTO_SCROLL, SortableRow, useRowSensors, type SortableItem } from "@/components/sortable-list";
 import { useOptimisticDoneIds } from "@/components/todo-progress";
 import { useSaveFailure } from "@/components/use-save-failure";
+import { useFlipList } from "@/lib/motion";
 
 export type BoardGroup = {
   key: string;
@@ -262,6 +263,17 @@ function BoardSection({
   const id = containerId(group.key);
   const { setNodeRef, isOver } = useDroppable({ id, disabled: !group.droppable });
   const shown = useDoneBelow(ids, items, dragging);
+  // 체크해서 아래로 내려가거나 빠진 자리를 메울 때 줄이 미끄러져 간다. 끄는 동안은 dnd-kit이 움직인다.
+  const list = useRef<HTMLUListElement | null>(null);
+  useFlipList(list, dragging);
+  // 그릴 때마다 새 함수를 넘기면 React가 ref를 떼었다 붙여 dnd-kit이 놓을 자리를 다시 잰다. 한 번만 만든다.
+  const listRef = useCallback(
+    (node: HTMLUListElement | null) => {
+      setNodeRef(node);
+      list.current = node;
+    },
+    [setNodeRef],
+  );
   const empty = ids.length === 0;
   const hidden = empty && !(dragging && group.droppable);
   const emptyLook = `min-h-10 rounded-xl border border-dashed ${isOver ? "border-brand bg-brand-subtle" : "border-border"}`;
@@ -272,7 +284,7 @@ function BoardSection({
       <SortableContext id={id} items={shown} strategy={verticalListSortingStrategy}>
         {/* 끌고 있는 동안에는 빈 카테고리도 놓을 자리를 보인다. 평소에는 빈 묶음이 자리를 차지하지 않는다. */}
         <ul
-          ref={setNodeRef}
+          ref={listRef}
           aria-busy={empty ? undefined : saving}
           className={`flex flex-col ${hidden ? "hidden" : ""} ${empty ? emptyLook : ""}`}
         >

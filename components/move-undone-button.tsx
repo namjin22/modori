@@ -60,7 +60,7 @@ export function BulkMove({ date, today, count }: { date: string; today: string; 
           type="button"
           disabled={pending}
           onClick={run}
-          className="h-11 w-full rounded-2xl border border-border text-sm font-medium disabled:opacity-50"
+          className="h-11 w-full animate-rise rounded-2xl border border-border text-sm font-medium disabled:opacity-50"
         >
           {pending ? "옮기는 중" : `안 끝낸 일 ${count}개 모두 ${word} 하기`}
         </button>

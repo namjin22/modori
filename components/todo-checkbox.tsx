@@ -1,6 +1,6 @@
 "use client";
 
-import { useOptimistic } from "react";
+import { useOptimistic, useRef } from "react";
 
 import { useCompletionCount } from "@/components/todo-progress";
 import { useTodoStore } from "@/components/todo-store";
@@ -8,6 +8,7 @@ import { useSaveFailure } from "@/components/use-save-failure";
 
 import { toggleTodo } from "@/app/(tabs)/actions";
 import { onColorText } from "@/lib/colors";
+import { useBump } from "@/lib/motion";
 
 // 서버 왕복을 기다렸다가 체크 표시를 바꾸면 손가락보다 화면이 한참 늦다.
 // 먼저 바꿔 보여주고, 서버 응답이 오면 진짜 값으로 맞춰진다.
@@ -26,6 +27,9 @@ export function TodoCheckbox({
   // 홈에서는 달력 칸의 채움까지 같이 바뀐다.
   const store = useTodoStore();
   const saveFailed = useSaveFailure();
+  // 체크하는 순간 네모가 한 번 통 튄다. 색만 바뀌면 눌렸는지 손끝으로 느끼기 어렵다.
+  const box = useRef<HTMLSpanElement>(null);
+  useBump(box, optimisticDone);
 
   return (
     <form
@@ -57,6 +61,7 @@ export function TodoCheckbox({
         className="group relative flex size-[22px] shrink-0 items-center justify-center after:absolute after:-inset-2.5 after:content-['']"
       >
         <span
+          ref={box}
           aria-hidden
           // 투두메이트처럼 둥근 네모. 안 한 일은 회색으로 채우고, 한 일은 카테고리 색으로 채운다.
           style={
