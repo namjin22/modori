@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 
 import { deleteTodo, moveTodo, repeatTodo, restoreTodo, updateTodo } from "@/app/(tabs)/actions";
+import { ChoicePicker } from "@/components/choice-picker";
 import { DatePicker } from "@/components/date-picker";
 import { Modal } from "@/components/modal";
 import { ReceivedReactions } from "@/components/received-reactions";
@@ -136,21 +137,17 @@ export function TodoRow({
             className="h-12 w-full rounded-xl bg-surface-hover px-4 text-[15px] outline-none focus:ring-2 focus:ring-brand"
           />
           {categories && todo.category?.id && categories.some((option) => option.id === todo.category?.id) && (
-            <label className="flex items-center gap-3 text-sm">
+            <div className="flex items-center gap-3 text-sm">
               <span className="shrink-0 text-muted">카테고리</span>
-              <select
-                name="categoryId"
-                defaultValue={todo.category.id}
-                aria-label="할 일 카테고리"
-                className="h-10 min-w-0 flex-1 rounded-xl bg-surface-hover px-3 text-[15px] outline-none focus:ring-2 focus:ring-brand"
-              >
-                {categories.map((option) => (
-                  <option key={option.id} value={option.id}>
-                    {option.name}
-                  </option>
-                ))}
-              </select>
-            </label>
+              <div className="min-w-0 flex-1">
+                <ChoicePicker
+                  label="할 일 카테고리"
+                  name="categoryId"
+                  defaultValue={todo.category.id}
+                  options={categories.map((option) => ({ value: option.id, label: option.name, color: option.color }))}
+                />
+              </div>
+            </div>
           )}
           {/* 날짜 옮기기는 자주 누르므로 메모·삭제·저장보다 위에 둔다(사용자 요청). */}
           <MoveToDay

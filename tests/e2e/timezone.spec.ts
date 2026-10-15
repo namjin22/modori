@@ -44,8 +44,12 @@ test("기본은 서울이고, 마이페이지에서 시간대를 고르면 오�
 
   // 서울과 오늘이 가장 멀어지는 곳(뉴질랜드 +12/+13과 하와이 -10)을 번갈아 고른다.
   await page.goto("/settings");
-  const select = page.getByLabel("시간대", { exact: true });
-  await select.selectOption("Pacific/Honolulu");
+  // 시간대는 목록 창에서 고른다(2026-10-15, 휴대폰 기본 선택창 대신).
+  const choose = async (label: RegExp) => {
+    await page.getByRole("button", { name: "시간대", exact: true }).click();
+    await page.getByRole("dialog", { name: "시간대" }).getByRole("radio", { name: label }).click();
+  };
+  await choose(/하와이/);
   await expect.poll(async () => (await prisma.user.findUniqueOrThrow({ where: { email: EMAIL } })).timezone).toBe("Pacific/Honolulu");
   await expect(page.getByText(heading("Pacific/Honolulu").split(" ").slice(0, 2).join(" "), { exact: false }).first()).toBeVisible();
 
@@ -59,7 +63,7 @@ test("기본은 서울이고, 마이페이지에서 시간대를 고르면 오�
 
   // 다시 서울로 돌리면 오늘도 서울 기준으로 돌아온다.
   await page.goto("/settings");
-  await page.getByLabel("시간대", { exact: true }).selectOption("Asia/Seoul");
+  await choose(/서울/);
   await expect.poll(async () => (await prisma.user.findUniqueOrThrow({ where: { email: EMAIL } })).timezone).toBe("Asia/Seoul");
   await page.goto("/");
   await expect(page.getByRole("heading", { name: heading("Asia/Seoul"), level: 1 })).toBeVisible();
@@ -68,20 +72,20 @@ test("기본은 서울이고, 마이페이지에서 시간대를 고르면 오�
 test("목록에 없는 시간대는 서버가 받지 않는다", async ({ page }) => {
   await signUp(page);
   const me = await prisma.user.findUniqueOrThrow({ where: { email: EMAIL } });
-  // 서버 액션을 브라우저에서 직접 부르지 못하니 화면의 select 값을 조작해 보낸다.
-  // 값을 끼우고 고르는 것을 한 번에 한다. 둘을 나누면 그 사이에 화면이 다시 그려져(안내 카드·새로 받기) 끼운 값이 사라져
-  // 가끔 실패했다(검증 때마다 한 번씩). 확인하는 내용(목록에 없는 값은 서버가 거절)은 그대로다.
+  // 서버 액션을 브라우저에서 직접 부르지 못하니, 목록에서 정상적으로 고른 요청을 보내는 길에 값을 바꿔치기한다.
+  // (2026-10-15 전에는 화면의 select에 가짜 항목을 끼웠다. 선택칸을 앱의 목록 창으로 바꿔 끼울 select가 없다.)
+  // 확인하는 내용(목록에 없는 값은 서버가 거절)은 그대로다.
   await page.goto("/settings");
-  await expect(page.getByLabel("시간대", { exact: true })).toBeVisible();
-  await page.getByLabel("시간대", { exact: true }).evaluate((el) => {
-    const select = el as HTMLSelectElement;
-    const option = document.createElement("option");
-    option.value = "Mars/Olympus";
-    option.textContent = "화성";
-    select.appendChild(option);
-    select.value = "Mars/Olympus";
-    select.dispatchEvent(new Event("change", { bubbles: true }));
+  await page.route("**/settings", async (route) => {
+    const body = route.request().postData();
+    if (route.request().method() === "POST" && body?.includes("Pacific/Honolulu")) {
+      await route.continue({ postData: body.replaceAll("Pacific/Honolulu", "Mars/Olympus") });
+    } else {
+      await route.continue();
+    }
   });
+  await page.getByRole("button", { name: "시간대", exact: true }).click();
+  await page.getByRole("dialog", { name: "시간대" }).getByRole("radio", { name: /하와이/ }).click();
   await page.waitForTimeout(1500);
   expect((await prisma.user.findUniqueOrThrow({ where: { id: me.id } })).timezone).toBe("Asia/Seoul");
 });
