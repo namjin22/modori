@@ -134,8 +134,6 @@ test("지난 날의 할 일은 오늘 하기로 오늘에 옮기고, 안 끝낸 
   await expect(page.getByText(`${formatMonthDayKST(todayKST())}로 옮겼어요`)).toBeVisible();
 
   // 남은 안 끝낸 일 둘을 한꺼번에. 끝낸 일은 그대로 남는다.
-  // 한꺼번에 옮기기는 맨 아래에 접혀 있다(2026-10-14 요청). 먼저 연다.
-  await page.getByRole("button", { name: "안 끝낸 일 한꺼번에 넘기기" }).click();
   await page.getByRole("button", { name: "안 끝낸 일 2개 모두 오늘 하기" }).click();
   await expect(page.getByText("안 끝낸 일 2개를 오늘로 옮겼어요")).toBeVisible();
   await expect(page.getByRole("button", { name: /모두 오늘 하기/ })).toHaveCount(0);
@@ -163,8 +161,6 @@ test("오늘이 가득 차 있으면 들어가는 만큼만 옮기고 남은 수
     ],
   });
   await page.goto(`/?date=${formatKST(yesterday)}`);
-  // 한꺼번에 옮기기는 맨 아래에 접혀 있다(2026-10-14 요청). 먼저 연다.
-  await page.getByRole("button", { name: "안 끝낸 일 한꺼번에 넘기기" }).click();
   await page.getByRole("button", { name: "안 끝낸 일 3개 모두 오늘 하기" }).click();
   await expect(page.getByText("오늘 넣을 수 있는 1개만 옮겼어요. 2개가 남았어요")).toBeVisible();
   expect(await prisma.todo.count({ where: { userId: user.id, date: today } })).toBe(50);
@@ -235,8 +231,6 @@ test("미리 계획해 둔 앞날의 안 끝낸 일도 '모두 오늘 하기'로
 
   // 앞날 화면에 안 끝낸 일 수만큼의 버튼이 있다(끝낸 일은 세지 않는다).
   await page.goto(`/?date=${formatKST(later)}`);
-  // 한꺼번에 옮기기는 맨 아래에 접혀 있다(2026-10-14 요청). 먼저 연다.
-  await page.getByRole("button", { name: "안 끝낸 일 한꺼번에 넘기기" }).click();
   await page.getByRole("button", { name: "안 끝낸 일 2개 모두 오늘 하기" }).click();
   await expect(page.getByText(/오늘로 옮겼어요|2개/).first()).toBeVisible();
 
@@ -251,7 +245,7 @@ test("미리 계획해 둔 앞날의 안 끝낸 일도 '모두 오늘 하기'로
   await expect(page.getByRole("button", { name: /모두 오늘 하기/ })).toHaveCount(0);
 });
 
-test("오늘 못 끝낸 일은 맨 아래 접힌 버튼을 열어 '모두 내일 하기'로 한꺼번에 넘긴다. 일정 바로 밑에는 없다", async ({ page, email }, testInfo) => {
+test("오늘 못 끝낸 일은 맨 아래 버튼 하나로 '모두 내일 하기'로 넘기고, 잘못 눌렀으면 되돌린다", async ({ page, email }, testInfo) => {
   await signUp(page, email, `내일넘기기${testInfo.testId.slice(-6)}${RUN_TAG}`);
   const user = await prisma.user.findUniqueOrThrow({ where: { email } });
   const category = await prisma.category.findFirstOrThrow({ where: { userId: user.id } });
@@ -266,21 +260,26 @@ test("오늘 못 끝낸 일은 맨 아래 접힌 버튼을 열어 '모두 내일
   });
   await page.reload();
 
-  // 평소에는 접혀 있어 옮기는 버튼이 보이지 않고, 목록의 맨 아래(할 일들보다 아래)에 있다.
-  const toggle = page.getByRole("button", { name: "안 끝낸 일 한꺼번에 넘기기" });
-  await expect(toggle).toBeVisible();
-  await expect(page.getByRole("button", { name: /모두 내일 하기/ })).toHaveCount(0);
-  const toggleBox = await toggle.boundingBox();
+  // 접힌 버튼 없이 바로 넘기는 버튼 하나가 목록의 맨 아래(할 일들보다 아래)에 있다(2026-10-16 요청).
+  const button = page.getByRole("button", { name: "안 끝낸 일 2개 모두 내일 하기" });
+  await expect(button).toBeVisible();
+  await expect(page.getByRole("button", { name: "안 끝낸 일 한꺼번에 넘기기" })).toHaveCount(0);
+  const buttonBox = await button.boundingBox();
   const lastRow = await page.getByRole("listitem").filter({ hasText: "오늘 끝낸 일" }).boundingBox();
-  if (!toggleBox || !lastRow) throw new Error("좌표를 구하지 못했다");
-  expect(toggleBox.y).toBeGreaterThan(lastRow.y);
+  if (!buttonBox || !lastRow) throw new Error("좌표를 구하지 못했다");
+  expect(buttonBox.y).toBeGreaterThan(lastRow.y);
 
-  await toggle.click();
-  await page.getByRole("button", { name: "안 끝낸 일 2개 모두 내일 하기" }).click();
+  await button.click();
   await expect(page.getByText("안 끝낸 일 2개를 내일로 옮겼어요")).toBeVisible();
-
   await expect
     .poll(async () => (await prisma.todo.findMany({ where: { userId: user.id, date: tomorrow }, orderBy: { order: "asc" } })).map((todo) => todo.content))
     .toEqual(["못 끝낸 하나", "못 끝낸 둘"]);
   expect((await prisma.todo.findMany({ where: { userId: user.id, date: today } })).map((todo) => todo.content)).toEqual(["오늘 끝낸 일"]);
+
+  // 알림의 되돌리기로 원래 날, 원래 순서로 돌아온다.
+  await page.getByRole("button", { name: "되돌리기" }).click();
+  await expect
+    .poll(async () => (await prisma.todo.findMany({ where: { userId: user.id, date: today }, orderBy: { order: "asc" } })).map((todo) => todo.content))
+    .toEqual(["못 끝낸 하나", "못 끝낸 둘", "오늘 끝낸 일"]);
+  await expect(page.getByRole("button", { name: "못 끝낸 하나", exact: true })).toBeVisible();
 });
