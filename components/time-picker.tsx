@@ -58,7 +58,7 @@ export function TimePicker({
         value={pad(minute)}
         disabled={!value}
         onChange={(event) => onChange(`${hourText}:${event.target.value}`)}
-        className={`${select} w-20 shrink-0`}
+        className={`${select} w-24 shrink-0`}
       >
         {minutes.map((option) => (
           <option key={option} value={pad(option)}>
