@@ -39,7 +39,7 @@ test("루틴 화면에서 매일 반복 일정을 만들면 홈의 달력과 일
   await page.getByLabel("반복 일정 이름").fill("학원");
   await page.getByRole("checkbox", { name: "하루 종일" }).uncheck();
   // 하루 종일을 끄면 저녁 6~7시가 들어간다.
-  await expect(page.getByLabel("반복 일정 시작 시", { exact: true })).toHaveValue("18");
+  await expect(page.getByRole("button", { name: /^반복 일정 시작 시간 / })).toHaveAccessibleName("반복 일정 시작 시간 오후 6:00, 바꾸기");
   await page.getByRole("button", { name: "루틴 추가" }).click();
   await expect(page.getByRole("status").filter({ hasText: "반복 일정을 만들었어요." })).toBeVisible();
   const repeats = page.getByRole("region", { name: "반복 일정" });

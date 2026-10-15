@@ -167,7 +167,8 @@ test("이미 만든 루틴의 내용과 카테고리를 고치면 오늘 할 일
   await page.getByRole("listitem").filter({ hasText: "물 마시기" }).getByRole("button", { name: "고치기" }).click();
   const dialog = page.getByRole("dialog", { name: "루틴 고치기" });
   await dialog.getByLabel("루틴 내용 수정").fill("물 2리터 마시기");
-  await dialog.getByLabel("루틴 카테고리 수정").selectOption({ label: "운동" });
+  await dialog.getByRole("button", { name: "루틴 카테고리 수정" }).click();
+  await page.getByRole("dialog", { name: "루틴 카테고리 수정" }).getByRole("radio", { name: "운동" }).click();
   await dialog.getByRole("button", { name: "저장" }).click();
   await expect(dialog).toBeHidden();
   await expect(page.getByRole("listitem").filter({ hasText: "물 2리터 마시기" })).toBeVisible();

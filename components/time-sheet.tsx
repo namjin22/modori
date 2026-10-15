@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 
+import { Chevron } from "@/components/choice-picker";
 import { Modal } from "@/components/modal";
 import { formatReminderMinute } from "@/lib/reminder";
 
@@ -19,14 +20,20 @@ export function TimeSheet({
   label,
   value,
   onChange,
+  optional = false,
+  fallback = 9 * 60,
 }: {
-  // 창 제목이자 버튼의 이름(화면 읽기). 예: "알림 시각".
+  // 창 제목이자 버튼의 이름(화면 읽기). 예: "알림 시각", "새 일정 시작 시간".
   label: string;
-  value: number;
-  onChange: (minute: number) => void;
+  // 비어 있으면(null) "없음". optional일 때만 비울 수 있다.
+  value: number | null;
+  onChange: (minute: number | null) => void;
+  optional?: boolean;
+  // 비어 있는 칸을 열었을 때 처음 보일 시각.
+  fallback?: number;
 }) {
   const [open, setOpen] = useState(false);
-  const [draft, setDraft] = useState(value);
+  const [draft, setDraft] = useState(value ?? fallback);
   const hour24 = Math.floor(draft / 60);
   const pm = hour24 >= 12;
   const hour12 = hour24 % 12 === 0 ? 12 : hour24 % 12;
@@ -47,17 +54,16 @@ export function TimeSheet({
     <>
       <button
         type="button"
-        aria-label={`${label} ${formatReminderMinute(value)}, 바꾸기`}
+        aria-label={`${label} ${value === null ? "없음" : formatReminderMinute(value)}, 바꾸기`}
+        aria-haspopup="dialog"
         onClick={() => {
-          setDraft(value);
+          setDraft(value ?? fallback);
           setOpen(true);
         }}
-        className="flex h-11 w-full items-center justify-between gap-2 rounded-xl bg-surface-hover px-4 text-[15px] font-medium tabular-nums"
+        className="flex h-11 w-full min-w-0 items-center justify-between gap-2 rounded-xl bg-surface-hover px-4 text-[15px] font-medium tabular-nums"
       >
-        {formatReminderMinute(value)}
-        <span aria-hidden className="text-xs text-muted">
-          바꾸기
-        </span>
+        <span className={value === null ? "text-muted" : ""}>{value === null ? "없음" : formatReminderMinute(value)}</span>
+        <Chevron />
       </button>
 
       <Modal open={open} onClose={() => setOpen(false)} title={label}>
@@ -120,10 +126,23 @@ export function TimeSheet({
           </div>
         </fieldset>
 
-        <div className="grid grid-cols-2 gap-2">
+        <div className={`grid gap-2 ${optional ? "grid-cols-3" : "grid-cols-2"}`}>
           <button type="button" onClick={() => setOpen(false)} className="h-12 rounded-xl bg-surface-hover text-sm font-semibold">
             취소
           </button>
+          {/* 끝 시간처럼 안 정해도 되는 칸은 비울 수 있다. */}
+          {optional && (
+            <button
+              type="button"
+              onClick={() => {
+                setOpen(false);
+                if (value !== null) onChange(null);
+              }}
+              className="h-12 rounded-xl bg-surface-hover text-sm font-semibold text-muted"
+            >
+              없음
+            </button>
+          )}
           <button
             type="button"
             onClick={() => {

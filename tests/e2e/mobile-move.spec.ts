@@ -68,13 +68,16 @@ test("할 일 창에서 카테고리를 골라 끌지 않고 다른 카테고리
   await addTodo(page, "줄넘기");
 
   await openTodo(page, "줄넘기");
-  const select = page.getByLabel("할 일 카테고리");
-  await expect(select).toHaveValue((await prisma.category.findFirstOrThrow({ where: { userId: user.id, name: FIRST_CATEGORY } })).id);
-  await select.selectOption({ label: "운동" });
+  // 카테고리는 목록 창에서 고른다(2026-10-15, 휴대폰 기본 선택창 대신). 처음 값은 지금 카테고리다.
+  const picker = page.getByRole("button", { name: "할 일 카테고리" });
+  await expect(picker).toContainText(FIRST_CATEGORY);
+  await picker.click();
+  await page.getByRole("dialog", { name: "할 일 카테고리" }).getByRole("radio", { name: "운동" }).click();
+  await expect(picker).toContainText("운동");
   await page.getByRole("button", { name: "저장", exact: true }).click();
 
   // 창이 닫히고, 줄이 운동 칩 아래(운동 묶음)로 간다. 묶음 순서는 오늘 → 운동이다.
-  await expect(page.getByLabel("할 일 카테고리")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "할 일 카테고리" })).toHaveCount(0);
   const below = async () => {
     const chip = await page.getByRole("button", { name: "운동에 할 일 쓰기" }).boundingBox();
     const row = await page.getByRole("listitem").filter({ hasText: "줄넘기" }).boundingBox();

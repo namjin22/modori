@@ -34,15 +34,20 @@ function dayCell(page: Page, date: Date) {
 }
 
 /**
- * 일정 시간을 고른다. "하루 종일"을 끄고 시·분 드롭다운에서 고른다(2026-09-29, 기본 시간 칸이 맥에서 AM/PM을
- * 바꾸기 어려워 드롭다운으로 바꿨다). 확인하는 내용은 예전에 시간 칸에 글자를 넣던 때와 같다.
+ * 일정 시간을 고른다. "하루 종일"을 끄고 시각 고르기 창에서 오전·오후, 시, 분을 누른다(2026-10-15, 휴대폰 기본 선택창 대신
+ * 앱의 창으로 바꿨다. 그 전에는 시·분 드롭다운). 확인하는 내용은 예전에 시간 칸에 글자를 넣던 때와 같다.
  */
 async function setEventTime(page: Page, which: "시작" | "종료", time: string, label = "새 일정") {
   const allDay = page.getByRole("checkbox", { name: "하루 종일" });
   if (await allDay.isChecked()) await allDay.uncheck();
-  const [hour, minute] = time.split(":");
-  await page.getByLabel(`${label} ${which} 시`, { exact: true }).selectOption(hour);
-  await page.getByLabel(`${label} ${which} 분`, { exact: true }).selectOption(minute);
+  const [hour, minute] = time.split(":").map(Number);
+  await page.getByRole("button", { name: new RegExp(`^${label} ${which} 시간 `) }).click();
+  const sheet = page.getByRole("dialog", { name: `${label} ${which} 시간` });
+  await sheet.getByRole("radio", { name: hour >= 12 ? "오후" : "오전" }).click();
+  await sheet.getByRole("radio", { name: `${hour % 12 === 0 ? 12 : hour % 12}시`, exact: true }).click();
+  await sheet.getByRole("radio", { name: `${minute}분`, exact: true }).click();
+  await sheet.getByRole("button", { name: "확인" }).click();
+  await expect(sheet).toBeHidden();
 }
 
 test.afterAll(async () => {
@@ -182,8 +187,7 @@ test("일정에 시간을 넣으면 목록에 시간이 보이고 시간순으�
   // 고치는 창에도 시간이 그대로 들어 있다.
   await page.keyboard.press("Escape");
   await openEvent(page, "오후 발표");
-  await expect(page.getByLabel("일정 시작 시", { exact: true })).toHaveValue("14");
-  await expect(page.getByLabel("일정 시작 분", { exact: true })).toHaveValue("00");
+  await expect(page.getByRole("button", { name: /^일정 시작 시간 / })).toHaveAccessibleName("일정 시작 시간 오후 2:00, 바꾸기");
 });
 
 test("달력에서 일정 이름을 다른 날로 끌면 기간이 늘어난다", async ({ page, email }, testInfo) => {

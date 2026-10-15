@@ -6,6 +6,7 @@ import {
   createRoutine,
   type RoutineFormState,
 } from "@/app/(tabs)/routines/actions";
+import { ChoicePicker } from "@/components/choice-picker";
 import { ColorSwatches } from "@/components/color-swatches";
 import { DatePicker } from "@/components/date-picker";
 import { LabeledSwitch } from "@/components/labeled-switch";
@@ -29,7 +30,7 @@ export function RoutineForm({
   categories,
   today,
 }: {
-  categories: { id: string; name: string }[];
+  categories: { id: string; name: string; color?: string }[];
   today: string;
 }) {
   // 주기를 고르기 전에는 요일·날짜를 다 보여줄 이유가 없다. 폼이 화면을 넘어간다.
@@ -79,17 +80,11 @@ export function RoutineForm({
             className="h-12 rounded-xl bg-surface-hover px-3 outline-none focus:ring-2 focus:ring-brand"
           />
 
-          <select
+          <ChoicePicker
+            label="루틴 카테고리"
             name="categoryId"
-            aria-label="루틴 카테고리"
-            className="h-12 rounded-xl bg-surface-hover px-3 text-sm"
-          >
-            {categories.map((category) => (
-              <option key={category.id} value={category.id}>
-                {category.name}
-              </option>
-            ))}
-          </select>
+            options={categories.map((category) => ({ value: category.id, label: category.name, color: category.color }))}
+          />
         </>
       ) : (
         <EventRoutineFields />

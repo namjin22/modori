@@ -3,6 +3,7 @@
 import { useOptimistic, useSyncExternalStore, useTransition } from "react";
 
 import { setTimezone } from "@/app/(tabs)/settings/actions";
+import { ChoicePicker } from "@/components/choice-picker";
 import { useSaveFailure } from "@/components/use-save-failure";
 import { deviceTimezone, subscribeNothing } from "@/lib/device-timezone";
 import { isAllowedTimezone, TIMEZONES } from "@/lib/timezones";
@@ -32,25 +33,19 @@ export function TimezoneSelect({ current, todayLabel }: { current: string; today
 
   return (
     <div className="flex flex-col gap-3">
-      <label className="flex flex-col gap-1.5">
+      <div className="flex flex-col gap-1.5">
         <span className="text-sm font-medium">내 시간대</span>
-        <select
+        <ChoicePicker
+          label="시간대"
           value={optimistic}
           disabled={pending}
-          onChange={(event) => choose(event.target.value)}
-          aria-label="시간대"
-          className="h-12 w-full rounded-xl bg-surface-hover px-3 text-[15px] outline-none focus:ring-2 focus:ring-brand"
-        >
-          {TIMEZONES.map((zone) => (
-            <option key={zone.value} value={zone.value}>
-              {zone.label}
-            </option>
-          ))}
-        </select>
+          onChange={choose}
+          options={TIMEZONES.map((zone) => ({ value: zone.value, label: zone.label }))}
+        />
         <span className="text-xs text-muted">
           오늘, 루틴, 달력이 이 시간대 기준으로 움직여요. 지금 이 시간대의 오늘은 <b className="font-semibold text-foreground">{todayLabel}</b>이에요.
         </span>
-      </label>
+      </div>
 
       {deviceDiffers && (
         <button

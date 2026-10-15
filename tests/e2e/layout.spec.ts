@@ -97,7 +97,7 @@ test("가장 좁은 폰(320px)에서 루틴 폼을 열어도 가로로 넘치지
   );
   expect(overflow).toBeLessThanOrEqual(0);
   // 루틴은 카테고리 안에 들어간다. 고르지 않아도 첫 카테고리가 잡혀 있다.
-  await expect(page.getByLabel("루틴 카테고리")).not.toHaveValue("");
+  await expect(page.locator('input[name="categoryId"]')).not.toHaveValue("");
 });
 
 test("넓은 화면에서 할 일이 많아 스크롤해도 왼쪽 달력은 제자리에 있다", async ({ page, email }, testInfo) => {
