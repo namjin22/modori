@@ -95,19 +95,6 @@ export default async function SettingsPage() {
         <ThemeToggle />
       </section>
 
-      <section className="flex flex-col gap-4 rounded-2xl bg-surface p-5">
-        <h2 className="text-sm font-semibold text-muted">시간대</h2>
-        {/* 모바일 앱은 휴대폰의 시간대를 저절로 따른다(components/timezone-nudge.tsx). 고르는 칸 대신 지금 값만 보인다. */}
-        {mobileApp ? (
-          <p className="text-[15px]">
-            {TIMEZONES.find((zone) => zone.value === timezone)?.label ?? timezone} · 오늘 {formatMonthDayKST(todayHere)} (
-            {WEEKDAY_NAMES[weekdayKST(todayHere)]})
-            <span className="mt-1 block text-xs text-muted">앱에서는 휴대폰의 시간대를 자동으로 따라요.</span>
-          </p>
-        ) : (
-          <TimezoneSelect current={timezone} todayLabel={`${formatMonthDayKST(todayHere)} (${WEEKDAY_NAMES[weekdayKST(todayHere)]})`} />
-        )}
-      </section>
 
       {/* 리마인드는 앱 푸시로만 보낸다(웹 브라우저에는 푸시가 없다). 앱에서만 보인다. */}
       {mobileApp && (
@@ -128,6 +115,21 @@ export default async function SettingsPage() {
 
       {/* 앱 안에서는 받을 필요가 없어 숨긴다. */}
       {!desktop && windows && <DesktopDownload />}
+
+      {/* 시간대는 자주 바꾸지 않아 로그아웃 바로 위에 둔다(2026-10-15 요청). */}
+      <section className="flex flex-col gap-4 rounded-2xl bg-surface p-5">
+        <h2 className="text-sm font-semibold text-muted">시간대</h2>
+        {/* 모바일 앱은 휴대폰의 시간대를 저절로 따른다(components/timezone-nudge.tsx). 고르는 칸 대신 지금 값만 보인다. */}
+        {mobileApp ? (
+          <p className="text-[15px]">
+            {TIMEZONES.find((zone) => zone.value === timezone)?.label ?? timezone} · 오늘 {formatMonthDayKST(todayHere)} (
+            {WEEKDAY_NAMES[weekdayKST(todayHere)]})
+            <span className="mt-1 block text-xs text-muted">앱에서는 휴대폰의 시간대를 자동으로 따라요.</span>
+          </p>
+        ) : (
+          <TimezoneSelect current={timezone} todayLabel={`${formatMonthDayKST(todayHere)} (${WEEKDAY_NAMES[weekdayKST(todayHere)]})`} />
+        )}
+      </section>
 
       <LogoutButton />
 

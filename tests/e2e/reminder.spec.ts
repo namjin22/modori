@@ -46,23 +46,29 @@ test.describe("앱", () => {
     await toggle.check();
     // 처음 켜면 저녁 9시.
     await expect.poll(saved).toBe(21 * 60);
-    await expect(page.getByLabel("리마인드 시", { exact: true })).toHaveValue("21");
+    // 시각은 휴대폰 기본 선택창이 아니라 앱의 창에서 고른다(2026-10-15 요청, components/time-sheet.tsx).
+    const timeButton = page.getByRole("button", { name: /^알림 시각 / });
+    await expect(timeButton).toHaveAccessibleName("알림 시각 오후 9:00, 바꾸기");
     await expect(page.getByRole("note")).toContainText("알림이 꺼져 있어 받을 수 없어요");
 
-    await page.getByLabel("리마인드 시", { exact: true }).selectOption("22");
-    await page.getByLabel("리마인드 분", { exact: true }).selectOption("30");
+    await timeButton.click();
+    const sheet = page.getByRole("dialog", { name: "알림 시각" });
+    await sheet.getByRole("radio", { name: "10시" }).click();
+    await sheet.getByRole("radio", { name: "30분" }).click();
+    await expect(sheet).toContainText("오후 10:30");
+    await sheet.getByRole("button", { name: "확인" }).click();
     await expect.poll(saved).toBe(22 * 60 + 30);
 
     // 새로 열어도 그대로이고, 알림을 받을 기기가 있으면 안내가 사라진다.
     const user = await prisma.user.findUniqueOrThrow({ where: { email } });
     await prisma.pushToken.create({ data: { userId: user.id, token: `remind-${testInfo.testId}-${RUN_TAG}`, platform: "android" } });
     await page.reload();
-    await expect(page.getByLabel("리마인드 시", { exact: true })).toHaveValue("22");
+    await expect(timeButton).toHaveAccessibleName("알림 시각 오후 10:30, 바꾸기");
     await expect(page.getByRole("note")).toHaveCount(0);
 
     await page.getByRole("checkbox", { name: /할 일 리마인드/ }).uncheck();
     await expect.poll(saved).toBeNull();
-    await expect(page.getByLabel("리마인드 시", { exact: true })).toHaveCount(0);
+    await expect(timeButton).toHaveCount(0);
   });
 });
 

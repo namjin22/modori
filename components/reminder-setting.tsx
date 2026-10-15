@@ -4,16 +4,10 @@ import { useOptimistic, useTransition } from "react";
 
 import { setReminder } from "@/app/(tabs)/settings/actions";
 import { LabeledSwitch } from "@/components/labeled-switch";
-import { TimePicker } from "@/components/time-picker";
+import { TimeSheet } from "@/components/time-sheet";
 import { useSaveFailure } from "@/components/use-save-failure";
 import { DEFAULT_REMINDER_MINUTE } from "@/lib/reminder";
 
-const pad = (value: number) => String(value).padStart(2, "0");
-const toClock = (minute: number) => `${pad(Math.floor(minute / 60))}:${pad(minute % 60)}`;
-const fromClock = (clock: string) => {
-  const [hour, minute] = clock.split(":").map(Number);
-  return hour * 60 + minute;
-};
 
 /**
  * 마이페이지의 할 일 리마인드 켜기·시각 고르기(앱에서만 보인다). 누르면 바로 바뀌고 서버에는 뒤따라 저장한다.
@@ -49,7 +43,7 @@ export function ReminderSetting({ minute, hasDevice }: { minute: number | null; 
         <div className="flex animate-rise items-center gap-3">
           <span className="shrink-0 text-sm text-muted">알림 시각</span>
           <div className="min-w-0 flex-1">
-            <TimePicker label="리마인드" value={toClock(shown)} onChange={(clock) => clock && save(fromClock(clock))} />
+            <TimeSheet label="알림 시각" value={shown} onChange={save} />
           </div>
         </div>
       )}

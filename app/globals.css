@@ -257,6 +257,19 @@ details[open] > :not(summary) {
   --animate-pop: pop 0.28s ease-out;
 }
 
+/* 고르는 칸(select)의 ▾. 브라우저 기본 화살표는 칸 오른쪽 끝에 바짝 붙어 어색했다(2026-10-15 요청). 기본 화살표를 끄고
+   오른쪽에서 12px 띄운 작은 화살표를 그리고, 글자가 화살표에 닿지 않게 오른쪽 안쪽 여백을 넓힌다.
+   레이어 밖에 두어 px-3 같은 유틸리티의 오른쪽 여백보다 앞선다. 회색 화살표는 라이트·다크 어디서나 보인다. */
+select:not([multiple]) {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238b95a1' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 1rem;
+  padding-right: 2.25rem;
+}
+
 /* 색 견본·색 점·색 칩의 가장자리. 팔레트에 흰색과 검정이 있어서, 라이트 모드에서는
    흰색이, 다크 모드에서는 검정이 배경에 묻힌다. 글자색을 옅게 섞어 테마마다
    알아서 반대쪽 명도의 선이 생기게 한다.

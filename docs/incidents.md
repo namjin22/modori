@@ -155,3 +155,7 @@
 - 1) `ce4dc90`(할 일 리마인드): PR #194에서 GitHub `verify` 통과, `main`의 `verify`가 도는 중에 배포. 배포 성공, `/login` 200.
 - 2) 반복 일정(PR, 이 커밋): 로컬 `npm run verify`(단위 216×3, E2E 246) 통과 뒤 GitHub `verify`를 기다리지 않고 합쳐 배포. 새 표 마이그레이션(`event_routine`, 표 추가만)은 deploy.sh가 적용한다.
 - 재발 방지 아님(의도한 절차). 배포 뒤 `main`의 `verify` 결과를 확인한다.
+
+## 2026-10-15 — 급한 수동 배포(장애 아님)
+
+- 운영자 요청 화면 수정(리마인드 시각 창, 고르는 칸 화살표, 마이페이지 순서, 줄·카드 여백)을 로컬 `npm run verify`(단위 216×3, E2E 246) 통과 뒤 GitHub `verify`를 기다리지 않고 합쳐 `deploy-gsmsv`를 손으로 돌렸다. 배포 뒤 `main`의 `verify` 결과를 확인한다.

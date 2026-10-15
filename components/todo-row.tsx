@@ -60,7 +60,7 @@ export function TodoRow({
 
   return (
     // 방금 적은 할 일은 살짝 떠오르며 들어온다(저장이 끝나 진짜 줄로 바뀔 때는 움직이지 않는다).
-    <div className={`py-2.5 pr-3 ${saving ? "pointer-events-none animate-rise opacity-60" : ""}`} aria-busy={saving || undefined}>
+    <div className={`py-2.5 ${saving ? "pointer-events-none animate-rise opacity-60" : ""}`} aria-busy={saving || undefined}>
       {/* 메모가 있으면 줄이 길어진다. 체크는 가운데가 아니라 할 일 글자 줄에 맞춘다. */}
       <div className="flex items-start gap-3">
         <div className="mt-px">
