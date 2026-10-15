@@ -401,7 +401,9 @@ export async function repeatTodo(id: string, day: string): Promise<TodoMove> {
   return { ok: true, message: `${formatMonthDayKST(date)}에 또 하기로 적었어요` };
 }
 
-export type UndoneMove = { ok: boolean; message: string };
+/** 한꺼번에 옮긴 할 일을 되돌릴 때 필요한 값. 옮기기 전의 날·순서·루틴 연결. */
+export type UndoneSnapshot = { from: string; to: string; todos: { id: string; order: number; routineId: string | null }[] };
+export type UndoneMove = { ok: boolean; message: string; undo?: UndoneSnapshot };
 
 /**
  * 지난 날의 안 끝낸 할 일을 모두 오늘로 옮긴다("모두 오늘 하기"). 오늘이 하루 상한(50개)에 차 있으면 들어가는 만큼만 옮기고 남은 수를 알린다.
@@ -431,7 +433,7 @@ async function moveUndone(fromDay: string, to: "today" | "tomorrow"): Promise<Un
     prisma.todo.findMany({
       where: { userId: user.id, date: from, done: false },
       orderBy: { order: "asc" },
-      select: { id: true, routineId: true },
+      select: { id: true, routineId: true, order: true },
     }),
     prisma.todo.count({ where: { userId: user.id, date: today } }),
     prisma.todo.findFirst({ where: { userId: user.id, date: today }, orderBy: { order: "desc" }, select: { order: true } }),
@@ -461,11 +463,41 @@ async function moveUndone(fromDay: string, to: "today" | "tomorrow"): Promise<Un
   const left = undone.length - moving.length;
   return {
     ok: true,
+    // 버튼 한 번에 바로 옮기므로 잘못 눌렀을 때 알림에서 되돌린다(restoreUndone).
+    undo: { from: formatKST(from), to: formatKST(today), todos: moving },
     message:
       left > 0
         ? `${label} 넣을 수 있는 ${moving.length}개만 옮겼어요. ${left}개가 남았어요`
         : `안 끝낸 일 ${moving.length}개를 ${label === "오늘" ? "오늘로" : "내일로"} 옮겼어요`,
   };
+}
+
+/**
+ * 한꺼번에 옮긴 것을 되돌린다. 원래 날·순서·루틴 연결로 돌리고, 옮기며 남긴 "루틴 건너뜀"도 지운다.
+ * 값은 브라우저에서 오므로 본인 것이고 아직 옮겨 간 날에 그대로 있는(끝내지도 다시 옮기지도 않은) 할 일만 돌린다.
+ */
+export async function restoreUndone(snapshot: UndoneSnapshot): Promise<string | void> {
+  const user = await requireUser();
+  const from = readDay(snapshot.from);
+  const to = readDay(snapshot.to);
+  if (!from || !to || !Array.isArray(snapshot.todos)) return;
+  const todos = snapshot.todos
+    .slice(0, LIMITS.todosPerDay)
+    .filter((todo) => isId(todo.id) && Number.isInteger(todo.order) && (todo.routineId === null || isId(todo.routineId)));
+  const routineIds = todos.flatMap((todo) => (todo.routineId ? [todo.routineId] : []));
+  const owned = new Set(
+    (await prisma.routine.findMany({ where: { id: { in: routineIds }, userId: user.id }, select: { id: true } })).map((routine) => routine.id),
+  );
+  await prisma.$transaction([
+    prisma.routineSkip.deleteMany({ where: { routineId: { in: [...owned] }, date: from } }),
+    ...todos.map((todo) =>
+      prisma.todo.updateMany({
+        where: { id: todo.id, userId: user.id, date: to, done: false },
+        data: { date: from, order: todo.order, routineId: todo.routineId && owned.has(todo.routineId) ? todo.routineId : null },
+      }),
+    ),
+  ]);
+  revalidatePath("/");
 }
 
 /** 오늘이 아닌 날(지난 날·앞날)의 안 끝낸 일을 모두 오늘로. */
