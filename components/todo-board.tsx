@@ -238,7 +238,7 @@ export function TodoBoard({ date, groups }: { date: string; groups: BoardGroup[]
           <DragOverlay>
             {/* 집힌 것이 한눈에 보이게 살짝 키우고 테두리를 두른다(폰에서 길게 눌러 집었을 때 "선택됐다"는 표시). */}
             {activeId ? (
-              <div className="scale-[1.03] rounded-xl bg-surface shadow-xl ring-2 ring-brand">{items.get(activeId)?.node}</div>
+              <div className="scale-[1.03] rounded-xl bg-surface px-3 shadow-xl ring-2 ring-brand">{items.get(activeId)?.node}</div>
             ) : null}
           </DragOverlay>,
           document.body,

@@ -108,7 +108,7 @@ export function EventSection({
             // 순서를 바꿀 것이 없을 때도 같은 카드 모양(components/sortable-list.tsx의 card 줄)으로 둔다.
             <ul className="flex flex-col gap-2">
               {rows.map((row) => (
-                <li key={row.id} className="rounded-2xl bg-surface pl-2">
+                <li key={row.id} className="rounded-2xl bg-surface">
                   {row.node}
                 </li>
               ))}
@@ -120,7 +120,7 @@ export function EventSection({
       {repeats.length > 0 && (
         <ul aria-label="반복 일정" className="flex flex-col gap-2">
           {repeats.map((event) => (
-            <li key={event.id} className="rounded-2xl bg-surface pl-2">
+            <li key={event.id} className="rounded-2xl bg-surface">
               <EventCard event={event} todayDate={todayDate} onOpen={() => setRepeatOpen(event)} />
             </li>
           ))}
@@ -283,7 +283,7 @@ function EventCard({ event, todayDate, onOpen }: { event: DayEvent; todayDate: D
     <div className="flex items-stretch">
       {/* 색은 카드 안쪽의 둥근 막대로 보인다. 카드 가장자리에 붙인 띠는 둥근 모서리를 따라 위아래가 가늘어졌다.
           흰색·검정이 바탕에 묻히지 않게 테두리(color-edge)를 두른다. */}
-      <span aria-hidden className="color-edge my-3 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: event.color }} />
+      <span aria-hidden className="color-edge my-3 ml-4 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: event.color }} />
       <button type="button" onClick={onOpen} className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 py-3 pl-3 pr-4 text-left">
         {/* 기간을 제목 옆에 두면 좁은 폰(320px)에서 제목이 세 글자만 남는다. 아래 줄로 내린다. */}
         <span className="flex min-w-0 flex-1 flex-col">

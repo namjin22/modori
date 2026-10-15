@@ -111,12 +111,14 @@ export function SortableRow({
       }}
       // 마우스 화면에서는 손 모양 커서로 잡을 수 있다는 것을 알린다(손잡이를 없앴다, 2026-10-14 요청).
       className={`group/row transition-colors pointer-fine:cursor-grab pointer-coarse:select-none pointer-coarse:[-webkit-touch-callout:none] pointer-coarse:active:bg-surface ${
-        card ? "rounded-2xl bg-surface" : "rounded-xl hover:bg-surface has-[details[open]]:bg-surface"
+        // 할 일 줄은 좌우로 12px 넓혀 바탕·테두리가 양쪽에 같은 여백으로 둘린다. 손잡이를 없앤 뒤 왼쪽만 붙어 보였다(2026-10-15 요청).
+        // 넓힌 만큼 안쪽 여백을 줘서 체크 네모는 카테고리 이름표와 같은 세로줄에 남는다.
+        card ? "rounded-2xl bg-surface" : "-mx-3 rounded-xl px-3 hover:bg-surface has-[details[open]]:bg-surface"
       } ${
         isDragging ? (dragPlaceholder ? "opacity-30" : "relative z-10 scale-[1.02] bg-surface opacity-95 shadow-xl ring-2 ring-brand") : ""
       }`}
     >
-      <div className={`relative flex ${card ? "items-center pl-2" : "items-stretch"}`}>
+      <div className={`relative flex ${card ? "items-center" : "items-stretch"}`}>
         {/* 손잡이는 없앴다. 줄 아무 데나 잡고 끈다(2026-10-14 요청). 키보드 사용자는 끌 수 없으니 Tab으로 왔을 때만 이 버튼이
             나타나고, 스페이스·방향키로 옮긴다(화면 읽기 안내도 이 버튼에 붙는다). 손가락 화면에는 키보드가 없어 두지 않는다. */}
         <button
