@@ -152,7 +152,8 @@ export async function updateTodo(formData: FormData) {
 
   const memo = readMemo(formData.get("memo"));
   // 메모 공개 스위치는 그 칸이 있는 화면에서만 바꾼다(스위치가 꺼져 있으면 값이 오지 않아 표시 칸으로 가린다).
-  const memoPublic = formData.get("memoPublicField") === "1" ? formData.get("memoPublic") === "on" : undefined;
+  // 화면은 "메모 비공개" 스위치다(켜면 나만 본다, 기본은 공개, 2026-10-18).
+  const memoPublic = formData.get("memoPublicField") === "1" ? formData.get("memoPrivate") !== "on" : undefined;
   // 카테고리는 폼에 있을 때만 바꾼다(폰에서 끌지 않고 옮기는 길). 끌어서 옮길 때(moveTodoToCategory)처럼 따로 고른 색은 버린다.
   // 보관했거나 남의 카테고리면 카테고리는 그대로 두고 글자·메모만 저장한다.
   const rawCategory = formData.get("categoryId");

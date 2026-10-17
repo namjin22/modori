@@ -10,6 +10,7 @@ import {
 import { ColorSwatches } from "@/components/color-swatches";
 import { DatePicker } from "@/components/date-picker";
 import { LabeledSwitch } from "@/components/labeled-switch";
+import { PrivateSwitch } from "@/components/private-switch";
 import { SubmitButton } from "@/components/submit-button";
 import { TimePicker } from "@/components/time-picker";
 import { useFormAction } from "@/components/use-form-action";
@@ -60,8 +61,8 @@ export function EventForm({
   const [endDate, setEndDate] = useState(event?.endDate ?? defaultDate);
   const [startTime, setStartTime] = useState(event?.startTime ?? "");
   const [endTime, setEndTime] = useState(event?.endTime ?? "");
-  // 새 일정은 친구에게 보이는 채로 시작한다. 예전 일정(나만 봐요로 약속했던 것)은 저장된 값(비공개)을 따른다.
-  const [isPublic, setIsPublic] = useState(event?.isPublic ?? true);
+  // 새 일정은 공개로 시작한다(비공개 스위치 꺼짐). 고칠 때는 저장된 값을 따른다.
+  const [isPrivate, setIsPrivate] = useState(event ? !event.isPublic : false);
 
   // 시작을 끝보다 늦게 옮기면 끝을 한 시간 뒤로 따라 옮긴다. 그대로 두면 저장할 때 "끝이 시작보다 이르다"에 걸린다.
   // "HH:MM"은 글자 순서가 시간 순서와 같아 그대로 견준다.
@@ -166,21 +167,15 @@ export function EventForm({
         className="w-full resize-none rounded-xl bg-surface-hover px-4 py-3 text-sm outline-none placeholder:text-muted focus:ring-2 focus:ring-brand"
       />
 
-      {/* 팔로우한 친구에게 이 일정을 보일지, 메모까지 보일지(2026-10-17). 일정을 숨기면 메모도 숨는다. */}
+      {/* 팔로우한 친구에게 숨길지(기본은 보인다, 2026-10-18). 일정을 숨기면 메모도 숨는다. */}
       <div className="flex flex-col gap-3 rounded-xl border border-border p-3">
-        <LabeledSwitch
-          name="isPublic"
-          title="친구에게 보이기"
-          description="끄면 이 일정은 나만 봐요"
-          checked={isPublic}
-          onChange={setIsPublic}
-        />
-        {isPublic && (
-          <LabeledSwitch
-            name="memoPublic"
-            title="메모도 보이기"
-            description="끄면 메모는 나만 봐요"
-            defaultChecked={event?.memoPublic ?? false}
+        <PrivateSwitch description="켜면 이 일정은 나만 봐요" checked={isPrivate} onChange={setIsPrivate} />
+        {!isPrivate && (
+          <PrivateSwitch
+            name="memoPrivate"
+            title="메모 비공개"
+            description="켜면 메모는 나만 봐요"
+            defaultChecked={event ? !event.memoPublic : false}
           />
         )}
       </div>

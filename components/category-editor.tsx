@@ -10,7 +10,7 @@ import {
 import { ColorSwatches } from "@/components/color-swatches";
 import { Modal } from "@/components/modal";
 import { UndoableDeleteButton } from "@/components/undoable-delete-button";
-import { PublicSwitch } from "@/components/public-switch";
+import { PrivateSwitch } from "@/components/private-switch";
 import { useSaveFailure } from "@/components/use-save-failure";
 
 type Category = { id: string; name: string; color: string; isPublic: boolean };
@@ -117,7 +117,7 @@ export function CategoryEditor({ category }: { category: Category }) {
 
           <ColorSwatches name="color" legend="색" defaultValue={category.color} />
 
-          <PublicSwitch defaultChecked={category.isPublic} />
+          <PrivateSwitch description="켜면 이 카테고리의 할 일은 나만 봐요" defaultChecked={!category.isPublic} />
         </form>
 
         <div className="flex items-center justify-between border-t border-border pt-4">

@@ -50,7 +50,7 @@ export async function createCategory(formData: FormData) {
       name,
       color,
       // 만들 때 공개 여부를 정한다. 만든 뒤 창을 열어 끄기 전까지 친구에게 보이는 틈이 없게.
-      isPublic: formData.get("isPublic") === "on",
+      isPublic: formData.get("isPrivate") !== "on",
       order: (last?.order ?? -1) + 1,
     },
   });
@@ -87,7 +87,7 @@ export async function updateCategory(formData: FormData): Promise<CategoryUpdate
 
   await prisma.category.updateMany({
     where: { id, userId: user.id },
-    data: { name, color, isPublic: formData.get("isPublic") === "on" },
+    data: { name, color, isPublic: formData.get("isPrivate") !== "on" },
   });
 
   revalidatePath("/categories");

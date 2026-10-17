@@ -122,7 +122,8 @@ test("비공개 카테고리의 할 일은 피드에 보이지 않는다", async
   await page.goto("/categories");
   await openCategory(page, FIRST_CATEGORY);
   // 만들기 폼에도 같은 스위치가 있어서 고치는 창 안에서 찾는다.
-  await page.getByRole("dialog").getByLabel("친구 피드에 보이기").uncheck();
+  // 2026-10-18부터 "비공개" 스위치를 켜서 숨긴다(예전에는 "친구 피드에 보이기"를 껐다).
+  await page.getByRole("dialog").getByRole("checkbox", { name: /^비공개/ }).check();
   await expect(page.getByText("저장했어요")).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(
