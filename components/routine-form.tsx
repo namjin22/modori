@@ -192,7 +192,7 @@ export function RoutineForm({
 export function EventRoutineFields({
   initial,
 }: {
-  initial?: { title: string; color: string; startTime: string; endTime: string };
+  initial?: { title: string; color: string; startTime: string; endTime: string; isPublic?: boolean };
 }) {
   const [allDay, setAllDay] = useState(!initial?.startTime);
   const [startTime, setStartTime] = useState(initial?.startTime ?? "");
@@ -238,6 +238,13 @@ export function EventRoutineFields({
         <input type="hidden" name="endTime" value={allDay ? "" : endTime} />
       </div>
       <ColorSwatches name="color" legend="색" defaultValue={initial?.color ?? DEFAULT_EVENT_COLOR} />
+      {/* 팔로우한 친구에게 보일지(일정과 같다, 2026-10-17). 새로 만들 때는 켜진 채로 시작한다. */}
+      <LabeledSwitch
+        name="isPublic"
+        title="친구에게 보이기"
+        description="끄면 이 반복 일정은 나만 봐요"
+        defaultChecked={initial?.isPublic ?? true}
+      />
     </>
   );
 }

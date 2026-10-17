@@ -30,6 +30,9 @@ type EventInput = {
   color: string | undefined;
   memo: string | null;
   dday: boolean;
+  // 팔로워에게 보일지, 메모까지 보일지(2026-10-17).
+  isPublic: boolean;
+  memoPublic: boolean;
 };
 
 function readText(formData: FormData, key: string): string {
@@ -86,8 +89,11 @@ function readEventInput(formData: FormData): EventInput | string {
 
   // 스위치가 꺼져 있으면 값이 오지 않는다.
   const dday = formData.get("dday") === "on";
+  const isPublic = formData.get("isPublic") === "on";
+  // 일정을 숨기면 메모도 같이 숨는다(메모만 보이는 일은 없다).
+  const memoPublic = isPublic && formData.get("memoPublic") === "on";
 
-  return { title, startDate, endDate, startTime, endTime, color, memo, dday };
+  return { title, startDate, endDate, startTime, endTime, color, memo, dday, isPublic, memoPublic };
 }
 
 /**
@@ -168,6 +174,8 @@ export type DeletedEvent = {
   color: string;
   memo: string | null;
   dday: boolean;
+  isPublic?: boolean;
+  memoPublic?: boolean;
 };
 
 export async function deleteEvent(id: string): Promise<DeletedEvent | null> {
@@ -189,6 +197,8 @@ export async function deleteEvent(id: string): Promise<DeletedEvent | null> {
     color: event.color,
     memo: event.memo,
     dday: event.dday,
+    isPublic: event.isPublic,
+    memoPublic: event.memoPublic,
   };
 }
 
@@ -206,6 +216,8 @@ export async function restoreEvent(snapshot: DeletedEvent): Promise<string | voi
   formData.set("endTime", typeof snapshot.endTime === "string" ? snapshot.endTime : "");
   formData.set("memo", typeof snapshot.memo === "string" ? snapshot.memo : "");
   if (snapshot.dday !== false) formData.set("dday", "on");
+  if (snapshot.isPublic === true) formData.set("isPublic", "on");
+  if (snapshot.memoPublic === true) formData.set("memoPublic", "on");
   const input = readEventInput(formData);
   if (typeof input === "string") {
     console.warn("[event] 되돌릴 값이 올바르지 않다.", input);

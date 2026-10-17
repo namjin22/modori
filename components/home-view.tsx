@@ -10,7 +10,7 @@ import { DayRollover } from "@/components/day-rollover";
 import { Dori } from "@/components/dori";
 import { type DayEvent, EventSection } from "@/components/event-section";
 import { FirstTodoButton } from "@/components/first-todo-button";
-import { type CalendarEvent, MonthCalendar } from "@/components/month-calendar";
+import { MonthCalendar } from "@/components/month-calendar";
 import { DayNavLink, isModifiedClick, useMonthDay } from "@/components/month-day";
 import { BulkMove } from "@/components/move-undone-button";
 import { ScheduledRoutineRow } from "@/components/scheduled-routine-row";
@@ -19,6 +19,7 @@ import { TodoBoard } from "@/components/todo-board";
 import { TodoProgress } from "@/components/todo-progress";
 import { TodoRow } from "@/components/todo-row";
 import { applyTodoChange, type HomeTodo, PENDING_PREFIX, TodoStoreProvider } from "@/components/todo-store";
+import { spreadEvents } from "@/lib/calendar-events";
 import { summarizeByDate } from "@/lib/day-summary";
 import { addDays, daysBetween, endOfMonthKST, formatKST, parseKSTDate, parseKSTMonth, weekdayKST } from "@/lib/date";
 import { groupByCategory } from "@/lib/group-by-category";
@@ -47,24 +48,6 @@ export type HomeData = {
 function formatHeading(key: string): string {
   const [, month, day] = key.split("-");
   return `${Number(month)}월 ${Number(day)}일 ${WEEKDAY_NAMES[weekdayKST(parseKSTDate(key))]}요일`;
-}
-
-/** 여러 날에 걸친 일정을 달력의 각 날짜에 펼쳐 놓는다. 이번 달 밖은 버린다. */
-function spreadEvents(events: DayEvent[], monthStart: Date, monthEnd: Date): Map<string, CalendarEvent[]> {
-  const byDate = new Map<string, CalendarEvent[]>();
-  for (const event of events) {
-    let day = event.startDate < monthStart ? monthStart : event.startDate;
-    const last = event.endDate > monthEnd ? monthEnd : event.endDate;
-    while (day <= last) {
-      const key = formatKST(day);
-      byDate.set(key, [
-        ...(byDate.get(key) ?? []),
-        { id: event.id, title: event.title, color: event.color, start: formatKST(event.startDate), end: formatKST(event.endDate), fixed: Boolean(event.repeat) },
-      ]);
-      day = addDays(day, 1);
-    }
-  }
-  return byDate;
 }
 
 const overlaps = (event: DayEvent, day: Date) => event.startDate <= day && event.endDate >= day;

@@ -140,6 +140,8 @@ export async function updateTodo(formData: FormData) {
   if (!content) return;
 
   const memo = readMemo(formData.get("memo"));
+  // 메모 공개 스위치는 그 칸이 있는 화면에서만 바꾼다(스위치가 꺼져 있으면 값이 오지 않아 표시 칸으로 가린다).
+  const memoPublic = formData.get("memoPublicField") === "1" ? formData.get("memoPublic") === "on" : undefined;
   // 카테고리는 폼에 있을 때만 바꾼다(폰에서 끌지 않고 옮기는 길). 끌어서 옮길 때(moveTodoToCategory)처럼 따로 고른 색은 버린다.
   // 보관했거나 남의 카테고리면 카테고리는 그대로 두고 글자·메모만 저장한다.
   const rawCategory = formData.get("categoryId");
@@ -156,6 +158,7 @@ export async function updateTodo(formData: FormData) {
     data: {
       content,
       ...(memo !== undefined && { memo }),
+      ...(memoPublic !== undefined && { memoPublic }),
       ...(moved && { categoryId: category.id, color: null }),
     },
   });
@@ -175,6 +178,7 @@ export type DeletedTodo = {
   color: string | null;
   routineId: string | null;
   memo: string | null;
+  memoPublic?: boolean;
   createdAt: string;
 };
 
@@ -214,6 +218,7 @@ export async function deleteTodo(id: string): Promise<DeletedTodo | null> {
     color: todo.color,
     routineId: todo.routineId,
     memo: todo.memo,
+    memoPublic: todo.memoPublic,
     createdAt: todo.createdAt.toISOString(),
   };
 }
@@ -279,6 +284,7 @@ export async function restoreTodo(snapshot: DeletedTodo): Promise<string | void>
               : null,
           routineId: routine?.id ?? null,
           memo: readMemo(snapshot.memo) ?? null,
+          memoPublic: snapshot.memoPublic === true,
           createdAt: readInstant(snapshot.createdAt, new Date()),
         },
       }),
@@ -368,7 +374,7 @@ export async function repeatTodo(id: string, day: string): Promise<TodoMove> {
 
   const todo = await prisma.todo.findFirst({
     where: { id, userId: user.id },
-    select: { date: true, done: true, content: true, memo: true, color: true, category: { select: { id: true, archivedAt: true } } },
+    select: { date: true, done: true, content: true, memo: true, memoPublic: true, color: true, category: { select: { id: true, archivedAt: true } } },
   });
   if (!todo) return { ok: false, message: "할 일을 찾을 수 없어요." };
   if (!todo.done) return { ok: false, message: "끝낸 할 일만 또 할 수 있어요." };
@@ -390,6 +396,7 @@ export async function repeatTodo(id: string, day: string): Promise<TodoMove> {
       date,
       content: todo.content,
       memo: todo.memo,
+      memoPublic: todo.memoPublic,
       color: todo.color,
       // 보관한 카테고리에는 새로 적지 않는다. 그때는 카테고리 없음으로 둔다.
       categoryId: todo.category && !todo.category.archivedAt ? todo.category.id : null,

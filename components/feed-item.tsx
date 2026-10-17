@@ -17,6 +17,8 @@ type FeedTodo = {
   reactions: { emoji: string; userId: string; user?: { nickname: string | null } | null }[];
   // 친구 화면에는 아직 안 끝낸 일도 온다. 피드는 끝낸 일만이라 비워 둔다.
   done?: boolean;
+  // 친구가 공개로 켠 메모(친구 화면). 없으면 비어 있다.
+  memo?: string | null;
 };
 
 export function FeedItem({
@@ -57,6 +59,10 @@ export function FeedItem({
           {done ? "✓" : ""}
         </span>
         <span className="min-w-0 grow basis-28 truncate text-[15px]">{todo.content}</span>
+        {todo.memo && (
+          // 체크 네모 폭만큼 들여 글자 줄과 맞춘다.
+          <span className="order-last basis-full whitespace-pre-line wrap-break-word pl-7 text-[13px] text-muted line-clamp-3">{todo.memo}</span>
+        )}
         {done && (
           <ReactionBar
             todoId={todo.id}

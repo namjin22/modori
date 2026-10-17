@@ -50,6 +50,8 @@ const EVENT_SELECT = {
   color: true,
   memo: true,
   dday: true,
+  isPublic: true,
+  memoPublic: true,
 } as const;
 
 const EVENT_ORDER = [
@@ -95,6 +97,7 @@ export default async function FeedPage({
         doneAt: true,
         color: true,
         memo: true,
+        memoPublic: true,
         category: { select: { id: true, name: true, color: true } },
         // 친구가 보낸 반응. 할 일 밑에 투두메이트처럼 보여준다(내가 내 일에 보낼 수는 없다).
         reactions: {

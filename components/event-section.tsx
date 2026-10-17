@@ -29,6 +29,9 @@ export type DayEvent = {
   color: string;
   memo: string | null;
   dday: boolean;
+  // 팔로워에게 보일지, 메모까지 보일지(2026-10-17). 반복 일정을 펼친 것에는 없다.
+  isPublic?: boolean;
+  memoPublic?: boolean;
   // 반복 일정(일정 루틴)을 그 날로 펼친 것이면 있다(lib/event-routine.ts). 이 날만 빼기는 되고, 고치기는 루틴 화면에서 한다.
   repeat?: { routineId: string; date: string; rule: string };
 };
@@ -191,6 +194,8 @@ export function EventSection({
                 startTime: editing.startTime === null ? "" : formatTime(editing.startTime),
                 endTime: editing.endTime === null ? "" : formatTime(editing.endTime),
                 memo: editing.memo ?? "",
+                isPublic: editing.isPublic ?? false,
+                memoPublic: editing.memoPublic ?? false,
                 dday: editing.dday,
                 color: editing.color,
               }}
