@@ -17,6 +17,7 @@ import { requireUser } from "@/lib/session";
 import { Avatar } from "@/components/avatar";
 import { BlockedProfile } from "@/components/blocked-profile";
 import { FriendView, type FriendData } from "@/components/friend-view";
+import { expandEventRoutines } from "@/lib/event-routine";
 import { SafetyMenu } from "@/components/safety-menu";
 import { BackLink } from "@/components/back-link";
 import { LockedProfile } from "@/components/locked-profile";
@@ -129,24 +130,42 @@ export default async function FriendDayPage({
   const to = daysBetween(monthEnd, date) > 0 ? date : monthEnd;
   const basePath = `/feed/u/${friend.id}`;
 
-  const todos = await prisma.todo.findMany({
-    where: { category: { isPublic: true }, userId: friend.id, date: { gte: from, lte: to } },
-    orderBy: { order: "asc" },
-    select: {
-      id: true,
-      date: true,
-      content: true,
-      done: true,
-      doneAt: true,
-      color: true,
-      user: { select: { id: true, nickname: true } },
-      category: { select: { id: true, name: true, color: true } },
-      reactions: {
-        select: { emoji: true, userId: true, user: { select: { nickname: true } } },
-        orderBy: { createdAt: "asc" },
+  const [todos, events, eventRoutines, eventSkips] = await Promise.all([
+    prisma.todo.findMany({
+      where: { category: { isPublic: true }, userId: friend.id, date: { gte: from, lte: to } },
+      orderBy: { order: "asc" },
+      select: {
+        id: true,
+        date: true,
+        content: true,
+        done: true,
+        doneAt: true,
+        color: true,
+        // 메모는 친구가 공개로 켠 것만 내보낸다(아래에서 걸러 비공개 메모는 브라우저로 가지 않는다).
+        memo: true,
+        memoPublic: true,
+        user: { select: { id: true, nickname: true } },
+        category: { select: { id: true, name: true, color: true } },
+        reactions: {
+          select: { emoji: true, userId: true, user: { select: { nickname: true } } },
+          orderBy: { createdAt: "asc" },
+        },
       },
-    },
-  });
+    }),
+    // 친구가 "친구에게 보이기"를 켠 일정만(2026-10-17). 메모는 메모까지 켠 것만.
+    prisma.event.findMany({
+      where: { userId: friend.id, isPublic: true, startDate: { lte: to }, endDate: { gte: from } },
+      orderBy: [{ sortOrder: "asc" }, { startDate: "asc" }, { startTime: { sort: "asc", nulls: "first" } }, { createdAt: "asc" }],
+      select: { id: true, title: true, startDate: true, endDate: true, startTime: true, endTime: true, color: true, memo: true, memoPublic: true },
+    }),
+    prisma.eventRoutine.findMany({
+      where: { userId: friend.id, isPublic: true, startDate: { lte: to }, OR: [{ endDate: null }, { endDate: { gte: from } }] },
+    }),
+    prisma.eventRoutineSkip.findMany({
+      where: { date: { gte: from, lte: to }, eventRoutine: { userId: friend.id, isPublic: true } },
+      select: { eventRoutineId: true, date: true },
+    }),
+  ]);
 
   const data: FriendData = {
     friendId: friend.id,
@@ -156,7 +175,16 @@ export default async function FriendDayPage({
     month: formatMonthKST(monthStart),
     from: formatKST(from),
     to: formatKST(to),
-    todos: todos.map(({ date: day, doneAt, ...todo }) => ({ ...todo, date: formatKST(day), doneAt: doneAt?.getTime() ?? null })),
+    todos: todos.map(({ date: day, doneAt, memo, memoPublic, ...todo }) => ({
+      ...todo,
+      memo: memoPublic ? memo : null,
+      date: formatKST(day),
+      doneAt: doneAt?.getTime() ?? null,
+    })),
+    events: [
+      ...events.map(({ memo, memoPublic, ...event }) => ({ ...event, memo: memoPublic ? memo : null })),
+      ...expandEventRoutines(eventRoutines, eventSkips, from, to).map((event) => ({ ...event, memo: null })),
+    ],
   };
 
   return (

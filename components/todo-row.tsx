@@ -5,6 +5,7 @@ import { useState, useTransition } from "react";
 import { deleteTodo, moveTodo, repeatTodo, restoreTodo, updateTodo } from "@/app/(tabs)/actions";
 import { ChoicePicker } from "@/components/choice-picker";
 import { DatePicker } from "@/components/date-picker";
+import { LabeledSwitch } from "@/components/labeled-switch";
 import { Modal } from "@/components/modal";
 import { ReceivedReactions } from "@/components/received-reactions";
 import { SubmitButton } from "@/components/submit-button";
@@ -23,6 +24,7 @@ type Todo = {
   done: boolean;
   color: string | null;
   memo: string | null;
+  memoPublic?: boolean;
   category: { id?: string; name: string; color: string } | null;
 };
 
@@ -106,6 +108,7 @@ export function TodoRow({
                   patch: {
                     content: edited.content.trim(),
                     memo: memo || null,
+                    memoPublic: formData.get("memoPublic") === "on",
                     ...(moved && { category, color: null }),
                   },
                 });
@@ -163,9 +166,17 @@ export function TodoRow({
             defaultValue={draft?.memo ?? todo.memo ?? ""}
             maxLength={MAX_MEMO_LENGTH}
             rows={3}
-            placeholder="메모 (나만 봐요)"
+            placeholder="메모"
             aria-label="할 일 메모"
             className="w-full resize-none rounded-xl bg-surface-hover px-4 py-3 text-sm outline-none placeholder:text-muted focus:ring-2 focus:ring-brand"
+          />
+          {/* 메모를 팔로워에게 보일지(2026-10-17). 할 일 자체는 카테고리 공개 여부를 따른다. 표시 칸은 이 스위치가 있는 화면이라는 표시다. */}
+          <input type="hidden" name="memoPublicField" value="1" />
+          <LabeledSwitch
+            name="memoPublic"
+            title="메모를 친구에게 보이기"
+            description="공개 카테고리의 할 일일 때 친구 화면에 메모가 보여요"
+            defaultChecked={todo.memoPublic ?? false}
           />
           {/* 손잡이가 없어 순서를 바꾸는 법이 안 보인다. 폰은 길게 눌러, 컴퓨터는 줄을 잡고 끈다. */}
           <p className="hidden text-xs text-muted pointer-coarse:block">할 일을 길게 누르면 집혀서, 끌어 순서를 바꿀 수 있어요.</p>

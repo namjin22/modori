@@ -43,7 +43,9 @@ function readNumbers(formData: FormData, key: string, min: number, max: number):
 }
 
 /** 이름·색·시각. 만들 때와 고칠 때 같이 쓴다. 문제가 있으면 보여 줄 문장을 돌려준다. */
-function readLook(formData: FormData): { title: string; color: string; startTime: number | null; endTime: number | null } | string {
+function readLook(
+  formData: FormData,
+): { title: string; color: string; startTime: number | null; endTime: number | null; isPublic: boolean } | string {
   const title = readText(formData, "title").slice(0, MAX_TITLE_LENGTH);
   if (!title) return "일정 이름을 적어주세요.";
   const rawColor = readText(formData, "color");
@@ -55,7 +57,8 @@ function readLook(formData: FormData): { title: string; color: string; startTime
   if (startTime === undefined || endTime === undefined) return "시간을 다시 골라주세요.";
   if (startTime === null && endTime !== null) return "시작 시간을 먼저 정해주세요.";
   if (startTime !== null && endTime !== null && endTime < startTime) return "끝나는 시간이 시작 시간보다 앞설 수 없어요.";
-  return { title, color, startTime, endTime };
+  // 팔로워에게 보일지(일정과 같다, 2026-10-17). 스위치가 꺼져 있으면 값이 오지 않는다.
+  return { title, color, startTime, endTime, isPublic: formData.get("isPublic") === "on" };
 }
 
 async function routineCount(userId: string): Promise<number> {
@@ -168,6 +171,7 @@ export type DeletedEventRoutine = {
   startDate: string;
   endDate: string | null;
   paused: boolean;
+  isPublic?: boolean;
   skipDates: string[];
 };
 
@@ -189,6 +193,7 @@ export async function deleteEventRoutine(id: string): Promise<DeletedEventRoutin
     startDate: formatKST(routine.startDate),
     endDate: routine.endDate ? formatKST(routine.endDate) : null,
     paused: routine.pausedAt !== null,
+    isPublic: routine.isPublic,
     skipDates: routine.skips.map((skip) => formatKST(skip.date)),
   };
 }
@@ -220,6 +225,7 @@ export async function restoreEventRoutine(snapshot: DeletedEventRoutine): Promis
         startDate,
         endDate: snapshot.endDate ? readDate(snapshot.endDate) : null,
         pausedAt: snapshot.paused ? new Date() : null,
+        isPublic: snapshot.isPublic === true,
         skips: {
           create: snapshot.skipDates
             .slice(0, 2000)

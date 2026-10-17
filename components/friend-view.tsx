@@ -9,7 +9,9 @@ import { FeedItem } from "@/components/feed-item";
 import { MonthCalendar } from "@/components/month-calendar";
 import { DayNavLink, isModifiedClick, useMonthDay } from "@/components/month-day";
 import { SwapIn } from "@/components/swap-in";
-import { addDays, formatKST, parseKSTDate, parseKSTMonth, weekdayKST } from "@/lib/date";
+import { spreadEvents } from "@/lib/calendar-events";
+import { addDays, endOfMonthKST, formatKST, parseKSTDate, parseKSTMonth, weekdayKST } from "@/lib/date";
+import { describeEventWhen } from "@/lib/event-time";
 import { summarizeByDate } from "@/lib/day-summary";
 import { groupByCategory } from "@/lib/group-by-category";
 
@@ -25,6 +27,21 @@ export type FriendTodo = {
   user: { id: string; nickname: string | null };
   category: { id: string; name: string; color: string } | null;
   reactions: { emoji: string; userId: string; user: { nickname: string | null } | null }[];
+  // 친구가 공개로 켠 메모만 온다. 아니면 비어 있다.
+  memo: string | null;
+};
+
+/** 친구가 "친구에게 보이기"를 켠 일정(반복 일정은 그 날로 펼친 것). 메모는 공개로 켠 것만 온다. */
+export type FriendEvent = {
+  id: string;
+  title: string;
+  startDate: Date;
+  endDate: Date;
+  startTime: number | null;
+  endTime: number | null;
+  color: string;
+  memo: string | null;
+  repeat?: { rule: string };
 };
 
 export type FriendData = {
@@ -36,6 +53,7 @@ export type FriendData = {
   from: string;
   to: string;
   todos: FriendTodo[];
+  events: FriendEvent[];
 };
 
 function formatHeading(key: string): string {
@@ -56,6 +74,7 @@ export function FriendView({ profile, data }: { profile: ReactNode; data: Friend
 
   // 내 화면과 같이 끝낸 일은 묶음 아래로 내린다. sort는 안정 정렬이라 같은 쪽 안의 순서는 그대로다.
   const todos = data.todos.filter((todo) => todo.date === selected);
+  const dayEvents = data.events.filter((event) => event.startDate <= date && event.endDate >= date);
   const groups = groupByCategory(todos, []).map((group) => ({
     ...group,
     items: [...group.items].sort((a, b) => Number(a.done) - Number(b.done)),
@@ -83,7 +102,7 @@ export function FriendView({ profile, data }: { profile: ReactNode; data: Friend
             selected={date}
             today={parseKSTDate(data.today)}
             summaries={summarizeByDate(data.todos)}
-            eventsByDate={new Map()}
+            eventsByDate={spreadEvents(data.events, monthStart, endOfMonthKST(monthStart))}
             dayHref={hrefFor}
             monthHref={(month) => `${basePath}?date=${selected}&month=${month}`}
             onSelectDay={select}
@@ -118,6 +137,7 @@ export function FriendView({ profile, data }: { profile: ReactNode; data: Friend
         )}
 
         <SwapIn swapKey={selected} className="flex flex-col gap-6">
+          {dayEvents.length > 0 && <FriendEvents events={dayEvents} />}
           {todos.length === 0 ? (
             <div className="flex flex-col items-center gap-2 py-8 text-center">
               <Dori mood="calm" size={80} />
@@ -145,5 +165,31 @@ export function FriendView({ profile, data }: { profile: ReactNode; data: Friend
         </SwapIn>
       </div>
     </div>
+  );
+}
+
+/** 친구의 그 날 일정. 보기만 한다(고치기·순서 바꾸기는 내 화면에서만). 내 일정 카드와 같은 모양이다. */
+function FriendEvents({ events }: { events: FriendEvent[] }) {
+  return (
+    <section aria-label="친구 일정" className="flex flex-col gap-2">
+      <p className="text-sm font-semibold">일정</p>
+      <ul className="flex flex-col gap-2">
+        {events.map((event) => {
+          const detail = [event.repeat ? `↻ ${event.repeat.rule}` : null, describeEventWhen(event)].filter(Boolean).join(" · ");
+          return (
+            <li key={event.id} className="flex items-stretch rounded-2xl bg-surface">
+              <span aria-hidden className="color-edge my-3 ml-4 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: event.color }} />
+              <div className="flex min-w-0 flex-1 flex-col py-3 pl-3 pr-4">
+                <span className="truncate font-medium">{event.title}</span>
+                {detail && <span className="text-xs text-muted">{detail}</span>}
+                {event.memo && (
+                  <span className="mt-0.5 line-clamp-3 whitespace-pre-line wrap-break-word text-[13px] text-muted">{event.memo}</span>
+                )}
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+    </section>
   );
 }

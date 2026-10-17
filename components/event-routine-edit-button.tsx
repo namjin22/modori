@@ -13,7 +13,7 @@ import { formatTime } from "@/lib/event-time";
 export function EventRoutineEditButton({
   routine,
 }: {
-  routine: { id: string; title: string; color: string; startTime: number | null; endTime: number | null };
+  routine: { id: string; title: string; color: string; startTime: number | null; endTime: number | null; isPublic: boolean };
 }) {
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -56,6 +56,7 @@ export function EventRoutineEditButton({
               color: routine.color,
               startTime: routine.startTime === null ? "" : formatTime(routine.startTime),
               endTime: routine.endTime === null ? "" : formatTime(routine.endTime),
+              isPublic: routine.isPublic,
             }}
           />
           <p className="text-xs text-muted">지난 날과 앞날 모두 바뀐 이름·시간으로 보여요.</p>
