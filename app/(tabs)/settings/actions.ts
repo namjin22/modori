@@ -41,3 +41,10 @@ export async function setReminder(minute: number | null): Promise<{ ok: boolean 
   revalidatePath("/settings");
   return { ok: true };
 }
+
+/** 팔로우한 친구가 할 일을 끝내면 앱 푸시로 받을지(lib/friend-done.ts). 소셜 알림 목록에는 이 값과 상관없이 보인다. */
+export async function setNotifyFriendDone(on: boolean) {
+  const user = await requireUser();
+  await prisma.user.update({ where: { id: user.id }, data: { notifyFriendDone: on === true } });
+  revalidatePath("/settings");
+}

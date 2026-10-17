@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { LogoutButton } from "@/components/logout-button";
+import { FriendDoneSwitch } from "@/components/friend-done-switch";
 import { RecommendSwitch } from "@/components/recommend-switch";
 import { ReminderSetting } from "@/components/reminder-setting";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -33,7 +34,7 @@ export default async function SettingsPage() {
     prisma.follow.count({ where: { followingId: user.id } }),
     prisma.block.count({ where: { blockerId: user.id } }),
     isAdmin(user.id),
-    prisma.user.findUniqueOrThrow({ where: { id: user.id }, select: { reminderMinute: true } }),
+    prisma.user.findUniqueOrThrow({ where: { id: user.id }, select: { reminderMinute: true, notifyFriendDone: true } }),
     prisma.pushToken.count({ where: { userId: user.id } }),
   ]);
   // 운영자에게만: 아직 처리하지 않은 신고 수. 신고는 빨리 확인해야 한다.
@@ -101,6 +102,7 @@ export default async function SettingsPage() {
         <section className="flex flex-col gap-4 rounded-2xl bg-surface p-5">
           <h2 className="text-sm font-semibold text-muted">알림</h2>
           <ReminderSetting minute={reminder.reminderMinute} hasDevice={devices > 0} />
+          <FriendDoneSwitch on={reminder.notifyFriendDone} />
         </section>
       )}
 
