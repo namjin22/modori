@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 
 import { Avatar } from "@/components/avatar";
 import { BackLink } from "@/components/back-link";
@@ -8,6 +9,7 @@ import { ReactionGlyph } from "@/components/reaction-glyph";
 import { SubmitButton } from "@/components/submit-button";
 import { avatarUrl } from "@/lib/avatar";
 import { dateIn, formatMonthDayKST } from "@/lib/date";
+import { friendDoneWhere } from "@/lib/friend-done";
 import { prisma } from "@/lib/prisma";
 import { labelOfReaction } from "@/lib/reactions";
 import { requireUser } from "@/lib/session";
@@ -17,9 +19,32 @@ import { followUser } from "../actions";
 export const metadata: Metadata = { title: "알림 · 모도리" };
 
 const MAX_ITEMS = 50;
+// 친구가 끝낸 일은 묶기 전에 이만큼만 받는다. 묶으면 줄 수는 훨씬 적다.
+const MAX_DONE_TODOS = 200;
+
+type DoneTodo = {
+  content: string;
+  doneAt: Date | null;
+  user: { id: string; nickname: string | null; profileImage: string | null; avatarCharacter: string | null };
+};
+
+/** 친구가 끝낸 일을 친구·날짜(내 시간대)마다 묶는다. 목록은 끝낸 시각 내림차순으로 와서, 묶음의 첫 일이 가장 최근 것이다. */
+function groupFriendDone(todos: DoneTodo[], timezone: string) {
+  const groups = new Map<string, { key: string; friend: DoneTodo["user"]; day: Date; at: Date; latest: string; count: number }>();
+  for (const todo of todos) {
+    if (!todo.doneAt) continue;
+    const day = dateIn(todo.doneAt, timezone);
+    const key = `${todo.user.id}:${day.getTime()}`;
+    const group = groups.get(key);
+    if (group) group.count += 1;
+    else groups.set(key, { key, friend: todo.user, day, at: todo.doneAt, latest: todo.content, count: 1 });
+  }
+  return [...groups.values()];
+}
 
 /**
- * 알림: 친구가 내 할 일에 보낸 반응과 나를 새로 팔로우한 사람을 시간순으로 모은다.
+ * 알림: 친구가 내 할 일에 보낸 반응, 나를 새로 팔로우한 사람, 친구가 끝낸 할 일(2026-10-17)을 시간순으로 모은다.
+ * 친구가 끝낸 일은 친구·날짜마다 한 줄로 묶는다(하나씩 늘어놓으면 반응·팔로우 알림이 묻힌다).
  * 주소는 예전 이름(받은 반응) 그대로 둔다. 하단 탭 뱃지가 여기로 온다.
  */
 export default async function NotificationsPage() {
@@ -29,7 +54,7 @@ export default async function NotificationsPage() {
   const lastSeenAt = user.lastSeenAt;
   const renderedAt = new Date();
 
-  const [reactions, follows, myFollowing] = await Promise.all([
+  const [reactions, follows, myFollowing, friendDone] = await Promise.all([
     prisma.reaction.findMany({
       where: { todoUserId: user.id, userId: { not: user.id } },
       orderBy: { createdAt: "desc" },
@@ -49,13 +74,25 @@ export default async function NotificationsPage() {
       },
     }),
     prisma.follow.findMany({ where: { followerId: user.id }, select: { followingId: true } }),
+    prisma.todo.findMany({
+      where: friendDoneWhere(user.id),
+      orderBy: { doneAt: "desc" },
+      take: MAX_DONE_TODOS,
+      select: {
+        content: true,
+        doneAt: true,
+        user: { select: { id: true, nickname: true, profileImage: true, avatarCharacter: true } },
+      },
+    }),
   ]);
+  const doneGroups = groupFriendDone(friendDone, user.timezone);
   const following = new Set(myFollowing.map((follow) => follow.followingId));
 
   // 두 종류를 한 줄로 세운다. 가장 최근 것이 위.
   const items = [
     ...reactions.map((reaction) => ({ kind: "reaction" as const, at: reaction.createdAt, reaction })),
     ...follows.map((follow) => ({ kind: "follow" as const, at: follow.createdAt, follow })),
+    ...doneGroups.map((done) => ({ kind: "done" as const, at: done.at, done })),
   ]
     .sort((a, b) => b.at.getTime() - a.at.getTime())
     .slice(0, MAX_ITEMS);
@@ -79,13 +116,34 @@ export default async function NotificationsPage() {
       {items.length === 0 ? (
         <DoriMessage mood="calm">
           <p>아직 받은 알림이 없어요</p>
-          <p className="text-xs">친구가 반응을 보내거나 나를 팔로우하면 여기 모여요</p>
+          <p className="text-xs">친구가 반응을 보내거나, 나를 팔로우하거나, 할 일을 끝내면 여기 모여요</p>
         </DoriMessage>
       ) : (
         <ul className="flex flex-col gap-3">
           {items.map((item) => {
             const isNew = item.at > lastSeenAt;
             const newMark = <NewMark isNew={isNew} />;
+
+            if (item.kind === "done") {
+              const { done } = item;
+              return (
+                <NotificationRow key={`done-${done.key}`} isNew={isNew}>
+                  <Link prefetch={false} href={`/feed/u/${done.friend.id}`} className="flex min-w-0 flex-1 items-center gap-3">
+                    <Avatar src={avatarUrl(done.friend)} size={40} />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold">
+                        {done.friend.nickname}님이 {done.count > 1 ? `할 일 ${done.count}개를` : "할 일을"} 끝냈어요
+                      </p>
+                      <p className="truncate text-xs text-muted">
+                        {done.latest}
+                        {done.count > 1 && ` 외 ${done.count - 1}개`} · {formatMonthDayKST(done.day)}
+                      </p>
+                    </div>
+                  </Link>
+                  {newMark}
+                </NotificationRow>
+              );
+            }
 
             if (item.kind === "follow") {
               const person = item.follow.follower;

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 
 import { FeedIcon, SettingsIcon, TodayIcon } from "@/components/tab-icons";
 
@@ -29,8 +30,49 @@ const TABS = [
   },
 ] as const;
 
-export function BottomNav({ unreadNotifications }: { unreadNotifications: number }) {
+// 열어 둔 화면에서 알림 수를 다시 묻는 간격. 짧으면 서버가 바빠지고, 길면 친구 소식이 늦게 보인다.
+const POLL_MS = 60 * 1000;
+
+/**
+ * 서버가 그린 알림 수를 쓰다가, 화면이 보이는 동안 1분마다(그리고 다시 볼 때) 새로 묻는다.
+ * 화면을 옮기지 않으면 숫자가 그대로라 웹·데스크톱에서 친구 소식을 몰랐다(2026-10-17 요청).
+ */
+function useLiveUnread(fromServer: number, paused: boolean): number {
+  const [live, setLive] = useState<{ base: number; count: number }>({ base: fromServer, count: fromServer });
+  // 서버가 새로 그린 값이 오면 그것을 따른다(렌더 중에 맞춘다).
+  if (live.base !== fromServer) setLive({ base: fromServer, count: fromServer });
+
+  useEffect(() => {
+    if (paused) return;
+    let stopped = false;
+    async function ask() {
+      if (document.visibilityState !== "visible") return;
+      try {
+        const response = await fetch("/api/notifications/unread", { cache: "no-store" });
+        if (!response.ok) return;
+        const { count } = (await response.json()) as { count: number };
+        if (!stopped && Number.isInteger(count)) setLive((current) => ({ ...current, count }));
+      } catch (error) {
+        // 잠깐 끊긴 것. 다음 차례에 다시 묻는다. 뱃지는 마지막 값을 그대로 둔다.
+        console.warn("[unread] 알림 수를 묻지 못했다.", error instanceof Error ? error.name : error);
+      }
+    }
+    const timer = setInterval(ask, POLL_MS);
+    document.addEventListener("visibilitychange", ask);
+    return () => {
+      stopped = true;
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", ask);
+    };
+  }, [paused]);
+
+  return live.count;
+}
+
+export function BottomNav({ unreadNotifications: fromServer }: { unreadNotifications: number }) {
   const pathname = usePathname();
+  // 알림 화면을 보는 중이면 이미 읽고 있다. 묻지 않는다.
+  const unreadNotifications = useLiveUnread(fromServer, pathname === "/feed/reactions");
 
   return (
     // 홈 화면에 추가해서 전체 화면으로 열면 아이폰 아래 막대가 탭을 가린다.

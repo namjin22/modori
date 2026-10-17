@@ -43,6 +43,8 @@ model User {
   reminderMinute    Int?
   // 리마인드를 마지막으로 보낸(또는 보낼 차례를 넘긴) 그 사람의 날. 하루에 두 번 보내지 않게 한다.
   reminderSentOn    DateTime? @db.Date
+  // 팔로우한 친구가 (공개 카테고리의) 할 일을 끝내면 앱 푸시로 받을지(2026-10-17). 기본은 받는다. 소셜 알림 목록에는 늘 보인다.
+  notifyFriendDone  Boolean   @default(true)
   createdAt         DateTime  @default(now())
 
   accounts       Account[]

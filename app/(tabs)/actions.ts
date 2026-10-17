@@ -4,12 +4,14 @@ import { Prisma } from "@prisma/client";
 
 import { isPaletteColor } from "@/lib/colors";
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 
 import { addDays, daysBetween, formatKST, formatMonthDayKST, isSameKSTDate, parseKSTDate, todayIn } from "@/lib/date";
 import { isId, readIdList } from "@/lib/ids";
 import { LIMITS } from "@/lib/limits";
 import { readMemo } from "@/lib/memo";
 import { prisma } from "@/lib/prisma";
+import { notifyFollowersOfDone } from "@/lib/friend-done";
 import { matchesRule } from "@/lib/routine";
 import { requireUser } from "@/lib/session";
 
@@ -124,11 +126,20 @@ export async function toggleTodo(formData: FormData) {
   }
 
   // 이미 그 상태면 0건으로 넘긴다. 완료 시각을 다시 찍으면 친구 소셜 목록에서 순서가 바뀐다.
-  await prisma.todo.updateMany({
+  const { count } = await prisma.todo.updateMany({
     where: { id, userId: user.id, done: !next },
     // 완료 시각은 캘린더와 피드가 쓰므로 같이 기록한다.
     data: { done: next, doneAt: next ? new Date() : null },
   });
+
+  // 친구들에게 "끝냈어요" 알림(공개 카테고리일 때만, 받기를 켠 팔로워에게). 응답을 늦추지 않게 응답 뒤에 보낸다.
+  if (next && count > 0) {
+    after(() =>
+      notifyFollowersOfDone({ id: user.id, nickname: user.nickname }, id).catch((error) =>
+        console.error("[push] 끝냄 알림을 보내지 못했다.", error),
+      ),
+    );
+  }
 
   revalidatePath("/");
 }

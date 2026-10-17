@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { loginHref, safeNext } from "@/lib/next-path";
 
 import { auth } from "@/lib/auth";
+import { countFriendsDoneSince } from "@/lib/friend-done";
 import { runDailyOnce } from "@/lib/daily";
 import { recordActiveDay } from "@/lib/metrics";
 import { prisma } from "@/lib/prisma";
@@ -58,7 +59,7 @@ export const requireUser = cache(async () => {
  * cache()로 감싸두면 한 요청 안에서 두 번 부르더라도 질의는 한 번만 나간다.
  */
 export const countUnreadNotifications = cache(async (userId: string, since: Date) => {
-  const [reactions, follows] = await Promise.all([
+  const [reactions, follows, friendsDone] = await Promise.all([
     prisma.reaction.count({
       where: {
         todoUserId: userId,
@@ -67,6 +68,8 @@ export const countUnreadNotifications = cache(async (userId: string, since: Date
       },
     }),
     prisma.follow.count({ where: { followingId: userId, createdAt: { gt: since } } }),
+    // 친구가 새로 끝낸 일은 일의 개수가 아니라 친구 수로 센다(lib/friend-done.ts).
+    countFriendsDoneSince(userId, since),
   ]);
-  return reactions + follows;
+  return reactions + follows + friendsDone;
 });
