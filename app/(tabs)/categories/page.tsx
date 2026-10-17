@@ -8,7 +8,7 @@ import { requireUser } from "@/lib/session";
 import { createCategory, reorderCategories, restoreCategory } from "./actions";
 import { BackLink } from "@/components/back-link";
 import { DoriMessage } from "@/components/dori-message";
-import { PublicSwitch } from "@/components/public-switch";
+import { PrivateSwitch } from "@/components/private-switch";
 import { SortableList } from "@/components/sortable-list";
 import { CategoryEditor } from "@/components/category-editor";
 
@@ -64,7 +64,7 @@ export default async function CategoriesPage() {
             legend="색"
             defaultValue={DEFAULT_NEW_COLOR}
           />
-          <PublicSwitch />
+          <PrivateSwitch description="켜면 이 카테고리의 할 일은 나만 봐요" />
         </form>
       )}
 

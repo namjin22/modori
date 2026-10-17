@@ -10,6 +10,7 @@ import { ChoicePicker } from "@/components/choice-picker";
 import { ColorSwatches } from "@/components/color-swatches";
 import { DatePicker } from "@/components/date-picker";
 import { LabeledSwitch } from "@/components/labeled-switch";
+import { PrivateSwitch } from "@/components/private-switch";
 import { SubmitButton } from "@/components/submit-button";
 import { TimePicker } from "@/components/time-picker";
 import { useFormAction } from "@/components/use-form-action";
@@ -238,13 +239,8 @@ export function EventRoutineFields({
         <input type="hidden" name="endTime" value={allDay ? "" : endTime} />
       </div>
       <ColorSwatches name="color" legend="색" defaultValue={initial?.color ?? DEFAULT_EVENT_COLOR} />
-      {/* 팔로우한 친구에게 보일지(일정과 같다, 2026-10-17). 새로 만들 때는 켜진 채로 시작한다. */}
-      <LabeledSwitch
-        name="isPublic"
-        title="친구에게 보이기"
-        description="끄면 이 반복 일정은 나만 봐요"
-        defaultChecked={initial?.isPublic ?? true}
-      />
+      {/* 팔로우한 친구에게 숨길지(일정과 같다, 기본은 보인다, 2026-10-18). */}
+      <PrivateSwitch description="켜면 이 반복 일정은 나만 봐요" defaultChecked={initial ? initial.isPublic === false : false} />
     </>
   );
 }

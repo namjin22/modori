@@ -49,20 +49,21 @@ test("친구가 공개로 켠 일정·반복 일정·메모만 보이고, 끈 �
   await prisma.todo.createMany({
     data: [
       { userId: friend.id, categoryId: category.id, date: today, content: "공개 메모 할 일", memo: "보이는 할 일 메모", memoPublic: true, order: 0 },
-      { userId: friend.id, categoryId: category.id, date: today, content: "비공개 메모 할 일", memo: "숨은 할 일 메모", order: 1 },
+      // 2026-10-18부터 기본값이 공개라, 숨길 것은 비공개를 적어 둔다.
+      { userId: friend.id, categoryId: category.id, date: today, content: "비공개 메모 할 일", memo: "숨은 할 일 메모", memoPublic: false, order: 1 },
     ],
   });
   await prisma.event.createMany({
     data: [
       { userId: friend.id, title: "공개 일정", startDate: today, endDate: today, color: "#dc2626", isPublic: true, memo: "보이는 일정 메모", memoPublic: true },
-      { userId: friend.id, title: "공개 일정 숨은 메모", startDate: today, endDate: today, color: "#22c55e", isPublic: true, memo: "숨은 일정 메모" },
-      { userId: friend.id, title: "비공개 일정", startDate: today, endDate: today, color: "#7c3aed" },
+      { userId: friend.id, title: "공개 일정 숨은 메모", startDate: today, endDate: today, color: "#22c55e", isPublic: true, memo: "숨은 일정 메모", memoPublic: false },
+      { userId: friend.id, title: "비공개 일정", startDate: today, endDate: today, color: "#7c3aed", isPublic: false },
     ],
   });
   await prisma.eventRoutine.createMany({
     data: [
       { userId: friend.id, title: "공개 학원", color: "#2563eb", freq: "DAILY", startDate: today, isPublic: true },
-      { userId: friend.id, title: "비공개 학원", color: "#2563eb", freq: "DAILY", startDate: today },
+      { userId: friend.id, title: "비공개 학원", color: "#2563eb", freq: "DAILY", startDate: today, isPublic: false },
     ],
   });
 
@@ -72,7 +73,7 @@ test("친구가 공개로 켠 일정·반복 일정·메모만 보이고, 끈 �
   await expect(events.getByText("공개 일정", { exact: true })).toBeVisible();
   await expect(events).toContainText("보이는 일정 메모");
   await expect(events.getByText("공개 일정 숨은 메모")).toBeVisible();
-  await expect(events.getByText("공개 학원")).toBeVisible();
+  await expect(events.getByText("공개 학원", { exact: true })).toBeVisible();
   await expect(page.getByText("보이는 할 일 메모")).toBeVisible();
   await expect(page.locator(`[data-date="${formatKST(today)}"]`)).toContainText("공개 일정");
 
@@ -83,31 +84,41 @@ test("친구가 공개로 켠 일정·반복 일정·메모만 보이고, 끈 �
   }
 });
 
-test("새 일정은 친구에게 보이는 채로 시작하고, 끄면 저장된다. 할 일 메모도 스위치로 공개한다", async ({ page, emails }, testInfo) => {
+test("새 일정·메모는 공개로 시작하고(비공개 스위치 꺼짐), 비공개를 켜면 숨겨 저장된다", async ({ page, emails }, testInfo) => {
   await signUp(page, emails.me, `나켜${testInfo.testId.slice(-6)}${RUN_TAG}`);
   const me = await prisma.user.findUniqueOrThrow({ where: { email: emails.me } });
 
   await page.getByRole("button", { name: "시험이나 행사 적어두기" }).click();
   await page.getByLabel("새 일정 이름").fill("보이는 시험");
-  await expect(page.getByRole("checkbox", { name: /친구에게 보이기/ })).toBeChecked();
-  await expect(page.getByRole("checkbox", { name: /메모도 보이기/ })).not.toBeChecked();
+  // 2026-10-18부터 "비공개" 스위치다. 기본은 공개(꺼짐)다.
+  await expect(page.getByRole("checkbox", { name: /^비공개/ })).not.toBeChecked();
+  await expect(page.getByRole("checkbox", { name: /^메모 비공개/ })).not.toBeChecked();
   await page.getByLabel("새 일정 이름").press("Enter");
   await expect.poll(async () => (await prisma.event.findFirst({ where: { userId: me.id, title: "보이는 시험" } }))?.isPublic).toBe(true);
 
   await page.getByRole("button", { name: "+ 일정 더 적기" }).click();
   await page.getByLabel("새 일정 이름").fill("숨긴 병원");
-  await page.getByRole("checkbox", { name: /친구에게 보이기/ }).uncheck();
-  await expect(page.getByRole("checkbox", { name: /메모도 보이기/ })).toHaveCount(0);
+  await page.getByRole("checkbox", { name: /^비공개/ }).check();
+  await expect(page.getByRole("checkbox", { name: /^메모 비공개/ })).toHaveCount(0);
   await page.getByLabel("새 일정 이름").press("Enter");
   await expect.poll(async () => (await prisma.event.findFirst({ where: { userId: me.id, title: "숨긴 병원" } }))?.isPublic).toBe(false);
 
   await addTodo(page, "메모 공개할 일");
   await page.getByRole("button", { name: "메모 공개할 일", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "할 일" });
+  // 메모도 기본은 공개다. 비공개를 켜야 숨는다.
+  await expect(dialog.getByRole("checkbox", { name: /^메모 비공개/ })).not.toBeChecked();
   await dialog.getByLabel("할 일 메모").fill("친구도 보는 메모");
-  await dialog.getByRole("checkbox", { name: /메모를 친구에게 보이기/ }).check();
   await dialog.getByRole("button", { name: "저장" }).click();
   await expect
     .poll(async () => prisma.todo.findFirst({ where: { userId: me.id, content: "메모 공개할 일" }, select: { memo: true, memoPublic: true } }))
     .toEqual({ memo: "친구도 보는 메모", memoPublic: true });
+
+  await page.getByRole("button", { name: /^메모 공개할 일/ }).first().click();
+  const again = page.getByRole("dialog", { name: "할 일" });
+  await again.getByRole("checkbox", { name: /^메모 비공개/ }).check();
+  await again.getByRole("button", { name: "저장" }).click();
+  await expect
+    .poll(async () => (await prisma.todo.findFirst({ where: { userId: me.id, content: "메모 공개할 일" } }))?.memoPublic)
+    .toBe(false);
 });

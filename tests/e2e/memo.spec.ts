@@ -77,12 +77,14 @@ test("일정에 메모를 적으면 일정 밑에 보인다", async ({ page, ema
   await expect(page.getByLabel("일정 메모", { exact: true })).toHaveValue("노트북 충전기");
 });
 
-test("친구 화면에는 할 일 메모가 보이지 않는다", async ({ page, email }, testInfo) => {
+// 2026-10-18 운영자 결정으로 메모도 기본 공개가 되었다(예전에는 늘 나만 봤다). 비공개를 켠 메모만 친구 화면에 없다.
+test("친구 화면에는 비공개를 켠 할 일 메모가 보이지 않는다", async ({ page, email }, testInfo) => {
   const tag = `${testInfo.testId.slice(-6)}${RUN_TAG}`;
   await signUp(page, email, `메주${tag}`);
   await addTodo(page, "비밀 메모 할 일");
   await openTodo(page, "비밀 메모 할 일");
   await page.getByLabel("할 일 메모").fill("나만 보는 메모");
+  await page.getByRole("checkbox", { name: /^메모 비공개/ }).check();
   await page.getByRole("button", { name: "저장", exact: true }).click();
   await expect(page.getByText("나만 보는 메모")).toBeVisible();
 

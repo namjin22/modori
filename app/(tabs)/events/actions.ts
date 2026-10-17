@@ -89,9 +89,10 @@ function readEventInput(formData: FormData): EventInput | string {
 
   // 스위치가 꺼져 있으면 값이 오지 않는다.
   const dday = formData.get("dday") === "on";
-  const isPublic = formData.get("isPublic") === "on";
+  // 화면은 "비공개" 스위치다(켜면 나만 본다, 기본은 공개, 2026-10-18).
+  const isPublic = formData.get("isPrivate") !== "on";
   // 일정을 숨기면 메모도 같이 숨는다(메모만 보이는 일은 없다).
-  const memoPublic = isPublic && formData.get("memoPublic") === "on";
+  const memoPublic = isPublic && formData.get("memoPrivate") !== "on";
 
   return { title, startDate, endDate, startTime, endTime, color, memo, dday, isPublic, memoPublic };
 }
@@ -216,8 +217,9 @@ export async function restoreEvent(snapshot: DeletedEvent): Promise<string | voi
   formData.set("endTime", typeof snapshot.endTime === "string" ? snapshot.endTime : "");
   formData.set("memo", typeof snapshot.memo === "string" ? snapshot.memo : "");
   if (snapshot.dday !== false) formData.set("dday", "on");
-  if (snapshot.isPublic === true) formData.set("isPublic", "on");
-  if (snapshot.memoPublic === true) formData.set("memoPublic", "on");
+  // 값을 모르는 예전 스냅숏은 숨긴 쪽으로 되살린다(보이던 것을 숨기는 쪽이 안전하다).
+  if (snapshot.isPublic !== true) formData.set("isPrivate", "on");
+  if (snapshot.memoPublic !== true) formData.set("memoPrivate", "on");
   const input = readEventInput(formData);
   if (typeof input === "string") {
     console.warn("[event] 되돌릴 값이 올바르지 않다.", input);

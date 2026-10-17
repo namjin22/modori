@@ -76,7 +76,8 @@ test("카테고리를 만들 때 공개 여부를 정한다", async ({ page, ema
   await page.goto("/categories");
 
   await page.getByLabel("새 카테고리 이름").fill("비밀 공부");
-  await page.getByLabel("친구 피드에 보이기").uncheck();
+  // 2026-10-18부터 "비공개" 스위치를 켜서 숨긴다(예전에는 "친구 피드에 보이기"를 껐다).
+  await page.getByRole("checkbox", { name: /^비공개/ }).check();
   await page.getByRole("button", { name: "추가", exact: true }).click();
   await expect(page.getByRole("button", { name: "비밀 공부 고치기" })).toContainText("비공개");
 

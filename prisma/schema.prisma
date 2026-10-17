@@ -173,7 +173,7 @@ model Todo {
   color      String? // 비어 있으면 카테고리 색을 쓴다
   memo       String? // 기본은 본인만 본다. memoPublic을 켜면 친구 화면에 보인다(2026-10-17)
   // 메모를 팔로워에게 보일지. 할 일 자체는 카테고리 공개 여부를 따르고, 메모는 이 스위치를 따로 따른다.
-  memoPublic Boolean   @default(false)
+  memoPublic Boolean   @default(true)
   createdAt  DateTime  @default(now())
 
   user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -244,11 +244,11 @@ model Event {
   endTime    Int?
   color      String
   memo       String? // 기본은 본인만 본다. memoPublic을 켜면 팔로워에게 보인다
-  // 팔로워에게 보일지(2026-10-17 운영자 결정). 그 전에 만든 일정은 "나만 봐요"로 약속했으므로 비공개(false)로 둔다.
-  // 새로 만드는 일정은 화면에서 켜진 채로 시작한다.
-  isPublic   Boolean  @default(false)
+  // 팔로워에게 보일지. 기본은 공개(2026-10-18 운영자 결정, 화면은 "비공개" 스위치). 2026-10-17 전에 만든 일정은
+  // "나만 봐요"로 약속했으므로 비공개(false)로 옮겨 두었고 그대로 둔다.
+  isPublic   Boolean  @default(true)
   // 메모를 팔로워에게 보일지. 일정이 공개일 때만 뜻이 있다.
-  memoPublic Boolean  @default(false)
+  memoPublic Boolean  @default(true)
   // D-day를 보일지. 끄면 일정 카드의 D-day와 "다가오는 일정" 목록에서 빠진다(일정이 많을 때 중요한 것만 남긴다).
   dday       Boolean  @default(true)
   // 같은 날 일정의 순서를 손으로 바꾼 값(작을수록 위). 바꾸지 않은 일정은 0이라 시작일·시각·만든 순서로 놓인다.
@@ -396,7 +396,7 @@ model EventRoutine {
   endDate    DateTime?   @db.Date
   pausedAt   DateTime?
   // 팔로워에게 보일지(일정과 같다). 새로 만들 때는 화면에서 켜진 채로 시작한다.
-  isPublic   Boolean     @default(false)
+  isPublic   Boolean     @default(true)
   createdAt  DateTime    @default(now())
 
   user  User               @relation(fields: [userId], references: [id], onDelete: Cascade)

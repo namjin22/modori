@@ -57,8 +57,8 @@ function readLook(
   if (startTime === undefined || endTime === undefined) return "시간을 다시 골라주세요.";
   if (startTime === null && endTime !== null) return "시작 시간을 먼저 정해주세요.";
   if (startTime !== null && endTime !== null && endTime < startTime) return "끝나는 시간이 시작 시간보다 앞설 수 없어요.";
-  // 팔로워에게 보일지(일정과 같다, 2026-10-17). 스위치가 꺼져 있으면 값이 오지 않는다.
-  return { title, color, startTime, endTime, isPublic: formData.get("isPublic") === "on" };
+  // 화면은 "비공개" 스위치다(켜면 나만 본다, 기본은 공개, 2026-10-18). 꺼져 있으면 값이 오지 않는다.
+  return { title, color, startTime, endTime, isPublic: formData.get("isPrivate") !== "on" };
 }
 
 async function routineCount(userId: string): Promise<number> {
