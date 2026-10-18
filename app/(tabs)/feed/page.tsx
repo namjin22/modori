@@ -79,7 +79,7 @@ export default async function FeedPage({
     }),
     prisma.follow.count({ where: { followerId: user.id } }),
     // 레이아웃이 같은 값을 이미 셌다. cache()가 막아주므로 질의는 한 번이다.
-    countUnreadNotifications(user.id, user.lastSeenAt),
+    countUnreadNotifications(user.id, user.lastSeenAt, user.notifyFriendDone),
   ]);
 
   const hasMore = page.length > FEED_SIZE;

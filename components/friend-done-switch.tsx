@@ -6,7 +6,7 @@ import { setNotifyFriendDone } from "@/app/(tabs)/settings/actions";
 import { LabeledSwitch } from "@/components/labeled-switch";
 import { useSaveFailure } from "@/components/use-save-failure";
 
-/** 마이페이지 "알림"의 친구 끝냄 푸시 켜기·끄기(앱에서만). 누르면 바로 바뀌고 서버에는 뒤따라 저장한다. */
+/** 친구가 끝낸 일 알림 켜기·끄기. 알림 화면 위(모든 화면)와 마이페이지 "알림"(앱)에 있다. 누르면 바로 바뀌고 서버에는 뒤따라 저장한다. */
 export function FriendDoneSwitch({ on }: { on: boolean }) {
   const [shown, setShown] = useOptimistic(on);
   const [, startTransition] = useTransition();
@@ -16,7 +16,7 @@ export function FriendDoneSwitch({ on }: { on: boolean }) {
     <LabeledSwitch
       name="notifyFriendDone"
       title="친구가 할 일을 끝내면 알림"
-      description="같은 친구의 알림은 10분에 한 번만 와요. 꺼도 소셜의 알림 목록에는 보여요."
+      description="끄면 알림 목록·소셜 탭 숫자·푸시에 뜨지 않아요. 푸시는 같은 친구마다 10분에 한 번이에요."
       checked={shown}
       onChange={(next) =>
         startTransition(async () => {

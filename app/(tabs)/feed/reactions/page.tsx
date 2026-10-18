@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Avatar } from "@/components/avatar";
 import { BackLink } from "@/components/back-link";
 import { DoriMessage } from "@/components/dori-message";
+import { FriendDoneSwitch } from "@/components/friend-done-switch";
 import { MarkNotificationsSeen, NewMark, NotificationRow } from "@/components/notifications-seen";
 import { ReactionGlyph } from "@/components/reaction-glyph";
 import { SubmitButton } from "@/components/submit-button";
@@ -74,16 +75,19 @@ export default async function NotificationsPage() {
       },
     }),
     prisma.follow.findMany({ where: { followerId: user.id }, select: { followingId: true } }),
-    prisma.todo.findMany({
-      where: friendDoneWhere(user.id),
-      orderBy: { doneAt: "desc" },
-      take: MAX_DONE_TODOS,
-      select: {
-        content: true,
-        doneAt: true,
-        user: { select: { id: true, nickname: true, profileImage: true, avatarCharacter: true } },
-      },
-    }),
+    // 친구 끝냄 알림을 끈 사람에게는 묻지도 보이지도 않는다(위의 스위치).
+    user.notifyFriendDone
+      ? prisma.todo.findMany({
+          where: friendDoneWhere(user.id),
+          orderBy: { doneAt: "desc" },
+          take: MAX_DONE_TODOS,
+          select: {
+            content: true,
+            doneAt: true,
+            user: { select: { id: true, nickname: true, profileImage: true, avatarCharacter: true } },
+          },
+        })
+      : Promise.resolve([]),
   ]);
   const doneGroups = groupFriendDone(friendDone, user.timezone);
   const following = new Set(myFollowing.map((follow) => follow.followingId));
@@ -112,6 +116,11 @@ export default async function NotificationsPage() {
         <BackLink href="/feed" label="소셜로" />
         <h1 className="text-2xl font-bold">알림</h1>
       </header>
+
+      {/* 친구가 끝낸 일은 많이 쌓일 수 있어 여기서 바로 끄고 켠다(2026-10-18 요청). 반응·팔로우 알림은 그대로다. */}
+      <section aria-label="알림 설정" className="rounded-2xl bg-surface p-4">
+        <FriendDoneSwitch on={user.notifyFriendDone} />
+      </section>
 
       {items.length === 0 ? (
         <DoriMessage mood="calm">

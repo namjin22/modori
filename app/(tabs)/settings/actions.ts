@@ -42,9 +42,12 @@ export async function setReminder(minute: number | null): Promise<{ ok: boolean 
   return { ok: true };
 }
 
-/** 팔로우한 친구가 할 일을 끝내면 앱 푸시로 받을지(lib/friend-done.ts). 소셜 알림 목록에는 이 값과 상관없이 보인다. */
+/**
+ * 팔로우한 친구가 할 일을 끝낸 것을 알림으로 받을지(lib/friend-done.ts). 끄면 알림 목록·소셜 탭 숫자·앱 푸시에 모두 뜨지 않는다.
+ * 알림 화면 위와 마이페이지에 같은 스위치가 있다. 숫자는 탭 공통 레이아웃이 세므로 레이아웃째 다시 그린다.
+ */
 export async function setNotifyFriendDone(on: boolean) {
   const user = await requireUser();
   await prisma.user.update({ where: { id: user.id }, data: { notifyFriendDone: on === true } });
-  revalidatePath("/settings");
+  revalidatePath("/", "layout");
 }
