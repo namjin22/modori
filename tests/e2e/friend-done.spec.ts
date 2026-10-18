@@ -82,6 +82,24 @@ test("친구가 공개 카테고리에서 끝낸 일이 알림 목록에 친구�
   await expect(page.getByText("비밀 일")).toHaveCount(0);
   // 알림 화면을 보면 읽은 것으로 친다.
   await expect.poll(unread).toBe(0);
+
+  // 알림 화면 위 스위치로 끄면 목록에서 사라지고, 새로 끝낸 일도 숫자에 들어가지 않는다(2026-10-18 요청).
+  const toggle = page.getByRole("region", { name: "알림 설정" }).getByRole("checkbox", { name: /친구가 할 일을 끝내면 알림/ });
+  await expect(toggle).toBeChecked();
+  await toggle.uncheck();
+  await expect.poll(async () => (await prisma.user.findUniqueOrThrow({ where: { id: me.id } })).notifyFriendDone).toBe(false);
+  await page.reload();
+  await expect(page.getByText(`친끝${tag}${RUN_TAG}님이`, { exact: false })).toHaveCount(0);
+  await prisma.todo.create({
+    data: { userId: friend.id, categoryId: open.id, date: today, content: "꺼 둔 뒤 끝낸 일", done: true, doneAt: new Date(), order: 3 },
+  });
+  expect(await unread()).toBe(0);
+
+  // 다시 켜면 돌아온다.
+  await page.getByRole("region", { name: "알림 설정" }).getByRole("checkbox", { name: /친구가 할 일을 끝내면 알림/ }).check();
+  await expect.poll(async () => (await prisma.user.findUniqueOrThrow({ where: { id: me.id } })).notifyFriendDone).toBe(true);
+  await page.reload();
+  await expect(page.getByText(`친끝${tag}${RUN_TAG}님이`, { exact: false }).first()).toBeVisible();
 });
 
 test.describe("앱", () => {

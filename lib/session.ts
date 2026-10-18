@@ -35,6 +35,8 @@ export const getCurrentUser = cache(async () => {
       bio: true,
       createdAt: true,
       lastSeenAt: true,
+      // 친구가 끝낸 일을 알림(목록·숫자·푸시)으로 받을지. 알림 화면 위 스위치로 끈다.
+      notifyFriendDone: true,
     },
   });
 });
@@ -58,7 +60,7 @@ export const requireUser = cache(async () => {
  * 안 읽은 알림 수(받은 반응 + 나를 새로 팔로우한 사람). 하단 탭의 뱃지와 소셜 화면이 같은 값을 쓰는데,
  * cache()로 감싸두면 한 요청 안에서 두 번 부르더라도 질의는 한 번만 나간다.
  */
-export const countUnreadNotifications = cache(async (userId: string, since: Date) => {
+export const countUnreadNotifications = cache(async (userId: string, since: Date, friendDone: boolean) => {
   const [reactions, follows, friendsDone] = await Promise.all([
     prisma.reaction.count({
       where: {
@@ -69,7 +71,7 @@ export const countUnreadNotifications = cache(async (userId: string, since: Date
     }),
     prisma.follow.count({ where: { followingId: userId, createdAt: { gt: since } } }),
     // 친구가 새로 끝낸 일은 일의 개수가 아니라 친구 수로 센다(lib/friend-done.ts).
-    countFriendsDoneSince(userId, since),
+    friendDone ? countFriendsDoneSince(userId, since) : 0,
   ]);
   return reactions + follows + friendsDone;
 });

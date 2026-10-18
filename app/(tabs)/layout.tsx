@@ -14,7 +14,7 @@ export default async function TabsLayout({ children }: { children: ReactNode }) 
   const user = await requireUser();
 
   // 웹과 데스크톱은 접속했을 때 뱃지로만 알린다. 모바일 앱은 받은 반응·새 팔로워를 푸시로도 알린다(components/push-registrar.tsx).
-  const unreadNotifications = await countUnreadNotifications(user.id, user.lastSeenAt);
+  const unreadNotifications = await countUnreadNotifications(user.id, user.lastSeenAt, user.notifyFriendDone);
 
   return (
     <ToastProvider>

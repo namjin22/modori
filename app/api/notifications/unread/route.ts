@@ -7,6 +7,6 @@ import { countUnreadNotifications, getCurrentUser } from "@/lib/session";
 export async function GET() {
   const user = await getCurrentUser();
   if (!user?.nickname) return Response.json({ count: 0 }, { status: 401, headers: { "Cache-Control": "no-store" } });
-  const count = await countUnreadNotifications(user.id, user.lastSeenAt);
+  const count = await countUnreadNotifications(user.id, user.lastSeenAt, user.notifyFriendDone);
   return Response.json({ count }, { headers: { "Cache-Control": "no-store" } });
 }
