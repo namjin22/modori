@@ -89,5 +89,5 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   // 정적 파일·이미지 최적화는 세지 않는다. 화면과 API 요청만 센다.
-  matcher: ["/((?!_next/static|_next/image|icons|favicon.ico|icon.svg|og.png|manifest.webmanifest|robots.txt).*)"],
+  matcher: ["/((?!_next/static|_next/image|icons|favicon.ico|icon.svg|og.png|manifest.webmanifest|robots.txt|sw.js).*)"],
 };

@@ -16,7 +16,7 @@
 | A | **iPhone 앱을 그대로 Apple silicon 맥에서**(App Store Connect의 "Apple silicon Mac에서 iPhone·iPad 앱 사용") | 아이폰 크기 창. 창 크기 조절이 어색하다 | 거의 없음(설정 확인, 맥에서 실행 점검) | iOS와 같이 된다 | M1 이상 맥만. 인텔 맥 불가. "폰 앱을 띄운" 느낌 |
 | B | **Mac Catalyst**(지금 iOS 프로젝트에 Mac 대상 추가) | 크기 조절되는 맥 창, 메뉴 막대 | Xcode 설정·아이콘·창 크기·키보드 단축키, CI에 Mac 빌드·업로드 추가 | APNs(같은 키) | Catalyst 대상 추가 뒤 Capacitor 플러그인 호환 점검 필요. 별도 심사 |
 | C | **Windows 앱(Electron)의 맥 빌드** | Windows 앱과 같은 창 | 빌드 설정만 | 데스크톱은 알림 없음(지금 정책) | App Store 밖 배포는 Developer ID 서명이 필요해 막힘. Mac App Store용 Electron은 샌드박스·인증서 작업이 커서 B보다 비싸다 |
-| D | **Safari "Dock에 추가"**(웹 앱) | 주소창 없는 창 | 사용법 안내만 | 없음(웹 푸시는 만들지 않는다, `docs/roadmap.md`) | 설치를 사용자가 직접 해야 한다 |
+| D | **Safari "Dock에 추가"**(웹 앱) | 주소창 없는 창 | 사용법 안내만 | Safari 웹 푸시(2026-10-19부터 브라우저에서 켤 수 있다) | 설치를 사용자가 직접 해야 한다 |
 
 ## 추천 순서
 

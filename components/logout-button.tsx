@@ -6,6 +6,7 @@ import { Dori } from "@/components/dori";
 import { Modal } from "@/components/modal";
 import { SubmitButton } from "@/components/submit-button";
 import { unregisterPushToken } from "@/lib/push-client";
+import { unsubscribeWebPush } from "@/lib/web-push-client";
 
 /**
  * 로그아웃은 한 번 더 묻는다. 마이페이지에서 스크롤하다 잘못 누르면 다시 로그인해야 하는데,
@@ -40,8 +41,14 @@ export function LogoutButton() {
             if (leaving) return;
             event.preventDefault();
             setLeaving(true);
-            // 이 기기가 로그아웃한 계정의 알림을 계속 받지 않게 번호를 먼저 지운다. 세션이 살아 있을 때 해야 한다.
-            void unregisterPushToken().finally(() => formRef.current?.submit());
+            // 이 기기가 로그아웃한 계정의 알림을 계속 받지 않게 번호·웹 푸시 구독을 먼저 지운다. 세션이 살아 있을 때 해야 한다.
+            void Promise.allSettled([unregisterPushToken(), unsubscribeWebPush()])
+              .then((results) => {
+                for (const result of results) {
+                  if (result.status === "rejected") console.warn("[logout] 알림 구독을 지우지 못했다.", result.reason);
+                }
+              })
+              .finally(() => formRef.current?.submit());
           }}
           className="grid grid-cols-2 gap-2"
         >

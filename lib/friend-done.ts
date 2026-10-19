@@ -29,7 +29,7 @@ export async function countFriendsDoneSince(viewerId: string, since: Date): Prom
 
 // 같은 친구의 끝냄 알림은 한 사람에게 10분에 한 번(lib/push.ts의 shouldNotify). 연달아 체크해도 폰이 계속 울리지 않는다.
 
-/** 할 일을 끝낸 사람의 팔로워에게 앱 푸시를 보낸다. 공개 카테고리의 할 일일 때만, 알림을 끈 사람(notifyFriendDone)은 빼고. */
+/** 할 일을 끝낸 사람의 팔로워에게 푸시(앱·웹)를 보낸다. 공개 카테고리의 할 일일 때만, 알림을 끈 사람(notifyFriendDone)은 빼고. */
 export async function notifyFollowersOfDone(doer: { id: string; nickname: string }, todoId: string): Promise<void> {
   const todo = await prisma.todo.findFirst({
     where: { id: todoId, userId: doer.id, done: true, category: { isPublic: true } },
@@ -42,7 +42,8 @@ export async function notifyFollowersOfDone(doer: { id: string; nickname: string
       following: { some: { followingId: doer.id } },
       nickname: { not: null },
       notifyFriendDone: true,
-      pushTokens: { some: {} },
+      // 앱 기기나 웹 푸시를 켠 브라우저가 하나라도 있는 사람만.
+      OR: [{ pushTokens: { some: {} } }, { webPushSubscriptions: { some: {} } }],
       ...notBlockedWith(doer.id),
     },
     select: { id: true },

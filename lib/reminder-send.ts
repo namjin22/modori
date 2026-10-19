@@ -30,7 +30,8 @@ export async function sendDueReminders(now: Date = new Date()): Promise<number> 
     await ensureRoutineTodos(owner, day);
     const left = await prisma.todo.count({ where: { userId: owner.id, date: day, done: false } });
     if (left === 0) continue;
-    await sendPushToUser(owner.id, reminderMessage(left));
+    // 리마인드는 앱 푸시로만(웹 푸시로 보내지 않는다, CLAUDE.md 규칙 7).
+    await sendPushToUser(owner.id, reminderMessage(left), { web: false });
     sent += 1;
   }
   return sent;
