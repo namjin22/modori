@@ -41,7 +41,7 @@ async function strangerWithPost(email: string, nickname: string, body: string) {
   return { stranger, post };
 }
 
-test("오늘 끝낸 할 일과 짧은 글을 올리면 모두의 피드 맨 위에 뜨고, 내 글은 지울 수 있다", async ({ page, emails }, testInfo) => {
+test("오늘 끝낸 할 일과 짧은 글을 올리면 공개 피드(모두) 맨 위에 뜨고, 내 글은 지울 수 있다", async ({ page, emails }, testInfo) => {
   const tag = testInfo.testId.slice(-6);
   await signUp(page, emails.me, `나피${tag}${RUN_TAG}`);
   const me = await prisma.user.findUniqueOrThrow({ where: { email: emails.me }, include: { categories: true } });
@@ -49,10 +49,10 @@ test("오늘 끝낸 할 일과 짧은 글을 올리면 모두의 피드 맨 위�
 
   // 하단 탭은 화면을 미리 받아 둔다. DB에 직접 넣은 할 일이 보이게 홈을 다시 연다(화면에서 체크하면 저절로 비워진다).
   await page.reload();
-  // 하단 소셜 탭은 모두의 피드부터 연다. 위에 [모두의 피드 | 내 친구] 탭이 있다.
+  // 하단 소셜 탭은 공개 피드(모두)부터 연다. 위에 [모두 | 내 친구] 탭이 있다.
   await page.getByRole("link", { name: "소셜", exact: true }).click();
   await expect(page).toHaveURL(/\/feed\/public$/);
-  await expect(page.getByRole("navigation", { name: "소셜 보기" }).getByRole("link", { name: "모두의 피드" })).toHaveAttribute("aria-current", "page");
+  await expect(page.getByRole("navigation", { name: "소셜 보기" }).getByRole("link", { name: "모두", exact: true })).toHaveAttribute("aria-current", "page");
 
   const composer = page.getByRole("form", { name: "피드에 올리기" });
   await expect(composer.getByRole("radio", { name: /수학 3장 끝/ })).toHaveAttribute("aria-checked", "true");
