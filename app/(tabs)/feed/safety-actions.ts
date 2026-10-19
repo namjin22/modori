@@ -59,13 +59,16 @@ export async function unblockUser(targetId: string): Promise<SafetyResult> {
 /**
  * 사용자를 신고한다. 운영자가 /admin/reports에서 확인한다. 같은 사람을 하루 안에 다시 신고하면 한 번만 받고(같은 말을 되풀이해
  * 운영자를 묻지 않게), 한 사람이 하루에 낼 수 있는 수에 한도를 둔다.
+ * 피드 글에서 신고하면 그 글(postId)을 같이 남긴다(2026-10-19). 운영자가 그 글을 보고 숨길 수 있다.
  */
-export async function reportUser(targetId: string, reason: string, detail: string): Promise<SafetyResult> {
+export async function reportUser(targetId: string, reason: string, detail: string, postId?: string): Promise<SafetyResult> {
   const user = await requireUser();
   if (!isReportReason(reason)) return { ok: false, message: "신고 이유를 골라 주세요." };
   if (!targetId || targetId === user.id) return { ok: false, message: "신고할 수 없는 사람이에요." };
   const target = await prisma.user.findFirst({ where: { id: targetId, nickname: { not: null } }, select: { id: true } });
   if (!target) return { ok: false, message: "이미 없는 사람이에요." };
+  // 그 사람이 쓴 글일 때만 잇는다(남의 글 번호를 끼워 넣지 못하게).
+  const post = postId ? await prisma.post.findFirst({ where: { id: postId, userId: target.id }, select: { id: true } }) : null;
 
   const since = new Date(Date.now() - DAY_MS);
   const [already, today] = await Promise.all([
@@ -76,7 +79,7 @@ export async function reportUser(targetId: string, reason: string, detail: strin
   if (today >= REPORTS_PER_DAY) return { ok: false, message: "오늘은 더 신고할 수 없어요. 내일 다시 해 주세요." };
 
   await prisma.report.create({
-    data: { reporterId: user.id, reportedId: target.id, reason, detail: detail.trim().slice(0, MAX_REPORT_DETAIL) || null },
+    data: { reporterId: user.id, reportedId: target.id, reason, detail: detail.trim().slice(0, MAX_REPORT_DETAIL) || null, postId: post?.id ?? null },
   });
   return { ok: true, message: "신고했어요. 운영자가 확인할게요." };
 }

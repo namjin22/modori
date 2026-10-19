@@ -7,6 +7,7 @@ import { ResumeRefresh } from "@/components/resume-refresh";
 import { TimezoneNudge } from "@/components/timezone-nudge";
 import { TimezoneProvider } from "@/components/timezone-context";
 import { ToastProvider } from "@/components/toast";
+import { canSeePublicFeed } from "@/lib/public-feed";
 import { countUnreadNotifications, requireUser } from "@/lib/session";
 
 // 탭 화면은 전부 로그인과 닉네임이 필요하다. 각 페이지에서 반복하지 않고 여기서 막는다.
@@ -14,7 +15,10 @@ export default async function TabsLayout({ children }: { children: ReactNode }) 
   const user = await requireUser();
 
   // 웹과 데스크톱은 접속했을 때 뱃지로만 알린다. 모바일 앱은 받은 반응·새 팔로워를 푸시로도 알린다(components/push-registrar.tsx).
-  const unreadNotifications = await countUnreadNotifications(user.id, user.lastSeenAt, user.notifyFriendDone);
+  const [unreadNotifications, publicFeed] = await Promise.all([
+    countUnreadNotifications(user.id, user.lastSeenAt, user.notifyFriendDone),
+    canSeePublicFeed(user.id),
+  ]);
 
   return (
     <ToastProvider>
@@ -26,7 +30,7 @@ export default async function TabsLayout({ children }: { children: ReactNode }) 
           <TimezoneNudge />
           {children}
         </PageFrame>
-        <BottomNav unreadNotifications={unreadNotifications} />
+        <BottomNav unreadNotifications={unreadNotifications} publicFeed={publicFeed} />
       </div>
       </TimezoneProvider>
     </ToastProvider>

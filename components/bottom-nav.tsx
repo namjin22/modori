@@ -17,6 +17,7 @@ const TABS = [
     isActive: (path: string) => FEED_PATHS.includes(path),
   },
   {
+    // 공개 피드가 열렸으면 소셜 탭은 피드(/feed/public)로 간다. 아래 BottomNav가 바꾼다.
     href: "/feed",
     label: "소셜",
     Icon: FeedIcon,
@@ -69,7 +70,14 @@ function useLiveUnread(fromServer: number, paused: boolean): number {
   return live.count;
 }
 
-export function BottomNav({ unreadNotifications: fromServer }: { unreadNotifications: number }) {
+export function BottomNav({
+  unreadNotifications: fromServer,
+  publicFeed = false,
+}: {
+  unreadNotifications: number;
+  // 공개 피드가 열렸는지(lib/public-feed.ts). 열렸으면 소셜 탭이 피드부터 연다.
+  publicFeed?: boolean;
+}) {
   const pathname = usePathname();
   // 알림 화면을 보는 중이면 이미 읽고 있다. 묻지 않는다.
   const unreadNotifications = useLiveUnread(fromServer, pathname === "/feed/reactions");
@@ -93,7 +101,7 @@ export function BottomNav({ unreadNotifications: fromServer }: { unreadNotificat
                   켜 두면 화면 하나 열 때 서버가 14~21번 돌아서 VM 한 대가 먼저 지치고, 요청 속도 제한
                   (세션마다 한 번에 60)도 금방 닿는다(docs/capacity.md). */}
               <Link
-                href={href}
+                href={href === "/feed" && publicFeed ? "/feed/public" : href}
                 prefetch
                 aria-current={isActive ? "page" : undefined}
                 className={`flex h-14 flex-col items-center justify-center gap-0.5 transition-colors active:scale-95 ${

@@ -15,7 +15,7 @@ type Step = "menu" | "report" | "block";
  * 다른 사람의 화면 위쪽의 "⋯" 버튼. 신고하기와 차단하기가 여기 있다(App Store 심사 지침 1.2: 사용자가 만든 내용이 보이는 앱은
  * 신고와 차단 수단이 있어야 한다). 신고는 운영자가 확인하고, 차단하면 서로의 팔로우·반응이 지워지고 서로 보이지 않는다.
  */
-export function SafetyMenu({ targetId, nickname }: { targetId: string; nickname: string }) {
+export function SafetyMenu({ targetId, nickname, postId }: { targetId: string; nickname: string; postId?: string }) {
   const [step, setStep] = useState<Step | null>(null);
   const [reason, setReason] = useState<ReportReason | "">("");
   const [pending, startTransition] = useTransition();
@@ -33,7 +33,7 @@ export function SafetyMenu({ targetId, nickname }: { targetId: string; nickname:
     const detail = String(formData.get("detail") ?? "");
     startTransition(async () => {
       try {
-        const result = await reportUser(targetId, reason, detail);
+        const result = await reportUser(targetId, reason, detail, postId);
         toast({ message: result.message });
         if (result.ok) close();
       } catch (error) {
