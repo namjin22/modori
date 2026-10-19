@@ -176,7 +176,9 @@ test("할 일은 날짜별로 따로 쌓인다", async ({ page }) => {
 test("기본 카테고리가 만들어지고 새 카테고리를 추가할 수 있다", async ({
   page,
 }) => {
-  await page.getByRole("link", { name: "카테고리", exact: true }).click();
+  // 카테고리·일정·루틴은 관리 메뉴 안에 있다(2026-10-19 요청). 먼저 연다.
+  await page.getByRole("button", { name: "관리 메뉴" }).click();
+  await page.getByRole("menuitem", { name: "카테고리" }).click();
   // 피드 화면에도 카테고리 칩이 있어서, 화면이 넘어간 뒤에 찾아야 한다.
   await expect(page).toHaveURL(/\/categories$/);
 

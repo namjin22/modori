@@ -7,6 +7,7 @@ import { useEffect, useOptimistic, useRef } from "react";
 import { Avatar } from "@/components/avatar";
 import { CategoryAdder } from "@/components/category-adder";
 import { DayRollover } from "@/components/day-rollover";
+import { ManageMenu } from "@/components/manage-menu";
 import { Dori } from "@/components/dori";
 import { type DayEvent, EventSection } from "@/components/event-section";
 import { FirstTodoButton } from "@/components/first-todo-button";
@@ -161,20 +162,15 @@ export function HomeView({ data }: { data: HomeData }) {
             {/* 카테고리와 루틴은 할 일을 적다가 바로 손보는 것이라 설정이 아니라 여기 둔다. */}
             {/* 가장 좁은 폰(320px)에서 달력 버튼만 다음 줄로 떨어지지 않게 여백을 줄인다. */}
             <nav aria-label="할 일 관리" className="flex flex-wrap items-center gap-1.5 min-[360px]:gap-2">
-              {[
-                ["/categories", "카테고리"],
-                ["/routines", "루틴"],
-                ["/stats", "기록"],
-              ].map(([href, label]) => (
-                <Link
-                  key={href}
-                  prefetch={false}
-                  href={href}
-                  className="flex h-8 items-center rounded-full bg-surface px-3 text-sm text-muted hover:text-foreground min-[360px]:px-3.5"
-                >
-                  {label}
-                </Link>
-              ))}
+              {/* 카테고리·일정·루틴은 메뉴 하나로 묶는다(2026-10-19 요청). 기록은 따로 둔다. */}
+              <ManageMenu />
+              <Link
+                prefetch={false}
+                href="/stats"
+                className="flex h-8 items-center rounded-full bg-surface px-3 text-sm text-muted hover:text-foreground min-[360px]:px-3.5"
+              >
+                기록
+              </Link>
               {!isToday && (
                 <Link
                   prefetch={false}

@@ -3,7 +3,7 @@
 import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
-import { DEFAULT_EVENT_COLOR, isPaletteColor } from "@/lib/colors";
+import { DEFAULT_EVENT_COLOR, isHexColor } from "@/lib/colors";
 import { daysBetween, formatKST, formatMonthDayKST, parseKSTDate } from "@/lib/date";
 import { firstOverfullDay } from "@/lib/event-limit";
 import { formatTime, parseTime } from "@/lib/event-time";
@@ -80,9 +80,9 @@ function readEventInput(formData: FormData): EventInput | string {
     return "끝나는 시간이 시작 시간보다 앞설 수 없어요.";
   }
 
-  // 할 일·카테고리와 같은 팔레트에서 고른다. 팔레트 밖의 값은 받지 않는다(색이 아닌 글이 style로 들어가지 않게).
+  // "#rrggbb" 꼴만 받는다(100색·직접 찍기·색상 코드, 2026-10-19). 색이 아닌 글이 style로 들어가지 않게 모양을 엄격히 본다.
   const rawColor = readText(formData, "color");
-  const color = rawColor && isPaletteColor(rawColor) ? rawColor : undefined;
+  const color = rawColor && isHexColor(rawColor) ? rawColor.toLowerCase() : undefined;
 
   // 비우면 메모 없음. 칸이 없던 요청(예전 화면)도 메모 없음으로 둔다.
   const memo = readMemo(formData.get("memo")) ?? null;
