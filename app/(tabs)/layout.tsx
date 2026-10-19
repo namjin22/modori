@@ -14,7 +14,7 @@ import { countUnreadNotifications, requireUser } from "@/lib/session";
 export default async function TabsLayout({ children }: { children: ReactNode }) {
   const user = await requireUser();
 
-  // 웹과 데스크톱은 접속했을 때 뱃지로만 알린다. 모바일 앱은 받은 반응·새 팔로워를 푸시로도 알린다(components/push-registrar.tsx).
+  // 웹과 데스크톱은 뱃지로 알리고, 켠 기기는 창이 열려 있는 동안 컴퓨터 알림도 띄운다(components/bottom-nav.tsx). 모바일 앱은 받은 반응·새 팔로워를 푸시로도 알린다(components/push-registrar.tsx).
   const [unreadNotifications, publicFeed] = await Promise.all([
     countUnreadNotifications(user.id, user.lastSeenAt, user.notifyFriendDone),
     canSeePublicFeed(user.id),
@@ -30,7 +30,7 @@ export default async function TabsLayout({ children }: { children: ReactNode }) 
           <TimezoneNudge />
           {children}
         </PageFrame>
-        <BottomNav unreadNotifications={unreadNotifications} publicFeed={publicFeed} />
+        <BottomNav userId={user.id} unreadNotifications={unreadNotifications} publicFeed={publicFeed} />
       </div>
       </TimezoneProvider>
     </ToastProvider>
