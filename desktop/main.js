@@ -4,7 +4,7 @@
 // 로그인: Google은 앱 안에 끼운 브라우저에서의 로그인을 막는다. 그래서 평소 브라우저에서 로그인하고,
 // 서버가 준 한 번 쓰는 코드를 처음에 만든 verifier와 함께 바꿔 세션을 받는다(웹의 lib/desktop-login.ts).
 
-const { app, BrowserWindow, Menu, shell } = require("electron");
+const { app, BrowserWindow, ipcMain, Menu, shell } = require("electron");
 const crypto = require("node:crypto");
 const path = require("node:path");
 
@@ -118,6 +118,7 @@ function createWindow() {
       contextIsolation: true,
       sandbox: true,
       nodeIntegration: false,
+      preload: path.join(__dirname, "preload.js"),
     },
   });
 
@@ -214,7 +215,17 @@ if (!app.requestSingleInstanceLock()) {
     else app.once("ready", () => handleDeepLink(url));
   });
 
+  // 컴퓨터 알림을 누르면 화면이 부른다(desktop/preload.js). 우리 창이 보낸 것만 받는다.
+  ipcMain.on("modori:focus", (event) => {
+    if (!win || event.sender !== win.webContents) return;
+    if (win.isMinimized()) win.restore();
+    win.show();
+    win.focus();
+  });
+
   app.whenReady().then(() => {
+    // Windows 알림 센터는 이 이름으로 앱을 찾는다. 설치 파일(electron-builder의 appId)과 같아야 알림이 뜬다(2026-10-19).
+    if (process.platform === "win32") app.setAppUserModelId("site.modori.desktop");
     setupMenu();
     createWindow();
     app.on("activate", () => {
