@@ -39,7 +39,9 @@ test("탭은 피드, 소셜, 마이페이지 셋이고 카테고리와 루틴은
   // 넓은 화면에서는 달력과 목록이 한 화면에 같이 있다.
   await expect(page.getByRole("link", { name: /일, 완료 (있음|없음)$/ }).first()).toBeVisible();
 
-  await page.getByRole("link", { name: "루틴", exact: true }).click();
+  // 카테고리·일정·루틴은 관리 메뉴 안에 있다(2026-10-19 요청). 먼저 연다.
+  await page.getByRole("button", { name: "관리 메뉴" }).click();
+  await page.getByRole("menuitem", { name: "루틴" }).click();
   await expect(page).toHaveURL(/\/routines$/);
   await expect(page.getByRole("link", { name: "피드", exact: true })).toHaveAttribute(
     "aria-current",

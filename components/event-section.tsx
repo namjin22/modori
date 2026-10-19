@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 
 import { EventForm } from "@/components/event-form";
+import { NEW_EVENT_EVENT } from "@/components/manage-menu";
 import { Modal } from "@/components/modal";
 import { SortableList } from "@/components/sortable-list";
 import { useToast } from "@/components/toast";
@@ -57,6 +58,16 @@ export function EventSection({
   today: string;
 }) {
   const [creating, setCreating] = useState(false);
+  const sectionRef = useRef<HTMLElement>(null);
+  // 관리 메뉴의 "일정"을 누르면 만들기 칸을 열고 이 칸으로 내린다(components/manage-menu.tsx).
+  useEffect(() => {
+    function open() {
+      setCreating(true);
+      sectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+    window.addEventListener(NEW_EVENT_EVENT, open);
+    return () => window.removeEventListener(NEW_EVENT_EVENT, open);
+  }, []);
   const blurOutside = useBlurOutside((container) => {
     const title = container.querySelector<HTMLInputElement>('input[name="title"]');
     if (title && title.value.trim() === "") setCreating(false);
@@ -69,7 +80,7 @@ export function EventSection({
   const todayDate = parseKSTDate(today);
 
   return (
-    <section aria-label="일정" className="flex flex-col gap-3">
+    <section ref={sectionRef} aria-label="일정" className="flex scroll-mt-4 flex-col gap-3">
       <button
         type="button"
         aria-expanded={creating}
