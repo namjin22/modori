@@ -84,7 +84,7 @@ function PickerBody({ initial, onCancel, onPick }: { initial: string; onCancel: 
 
       <section aria-label="색 목록" className="flex flex-col gap-2">
         <p className="text-xs text-muted">색 목록</p>
-        <div className="grid grid-cols-12 gap-1">
+        <div className="grid grid-cols-10 gap-1.5">
           {MORE_COLORS.map((color) => (
             <button
               key={color}
