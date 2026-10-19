@@ -3,6 +3,7 @@ import Link from "next/link";
 
 import { Avatar } from "@/components/avatar";
 import { BackLink } from "@/components/back-link";
+import { DesktopNotifySwitch } from "@/components/desktop-notify-switch";
 import { DoriMessage } from "@/components/dori-message";
 import { FriendDoneSwitch } from "@/components/friend-done-switch";
 import { MarkNotificationsSeen, NewMark, NotificationRow } from "@/components/notifications-seen";
@@ -118,8 +119,10 @@ export default async function NotificationsPage() {
       </header>
 
       {/* 친구가 끝낸 일은 많이 쌓일 수 있어 여기서 바로 끄고 켠다(2026-10-18 요청). 반응·팔로우 알림은 그대로다. */}
-      <section aria-label="알림 설정" className="rounded-2xl bg-surface p-4">
+      <section aria-label="알림 설정" className="flex flex-col gap-3 rounded-2xl bg-surface p-4">
         <FriendDoneSwitch on={user.notifyFriendDone} />
+        {/* 웹·데스크톱 창의 컴퓨터 알림(2026-10-19 요청). 알림을 띄울 수 없는 곳(모바일 앱)에서는 그리지 않는다. */}
+        <DesktopNotifySwitch userId={user.id} />
       </section>
 
       {items.length === 0 ? (

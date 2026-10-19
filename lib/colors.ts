@@ -75,15 +75,33 @@ function hslToHex(h: number, s: number, l: number): string {
   return `#${toHex(f(0) * 255)}${toHex(f(8) * 255)}${toHex(f(4) * 255)}`;
 }
 
-// 더 많은 색: 색상 12가지 × 밝기 8단계 + 회색 4 = 100색. 손으로 적으면 오타가 나서 공식으로 만든다.
-const MORE_HUES = [0, 20, 35, 50, 80, 130, 165, 190, 215, 240, 270, 320];
-const MORE_LIGHTNESS = [0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2];
+// 더 많은 색: 파스텔 색상 10가지 × 톤 9단계 + 바탕·회색 10 = 100색. 손으로 적으면 오타가 나서 공식으로 만든다.
+// 처음엔 색상환을 고르게 나눈 진한 색이었는데 "그냥 배열된 색"처럼 보인다는 의견을 받았다(2026-10-19).
+// 아주 연한 톤부터 차분한 톤까지 채도를 낮게 두고, 흰 글씨가 필요한 어두운 끝은 맨 아래 두 줄만 남겼다.
+const MORE_HUES = [345, 10, 28, 48, 88, 150, 180, 205, 232, 268];
+const MORE_TONES: [saturation: number, lightness: number][] = [
+  [0.75, 0.94],
+  [0.7, 0.9],
+  [0.66, 0.86],
+  [0.62, 0.82],
+  [0.56, 0.78],
+  [0.5, 0.74],
+  [0.44, 0.7],
+  [0.36, 0.65],
+  [0.26, 0.58],
+];
 export const MORE_COLORS: string[] = [
-  ...MORE_LIGHTNESS.flatMap((l) => MORE_HUES.map((h) => hslToHex(h, 0.75, l))),
-  "#e5e7eb",
-  "#9ca3af",
-  "#4b5563",
-  "#1f2937",
+  ...MORE_TONES.flatMap(([s, l]) => MORE_HUES.map((h) => hslToHex(h, s, l))),
+  "#fbf8f3",
+  "#f3ece2",
+  "#e8dfd3",
+  "#d6cbbd",
+  "#b9ad9f",
+  "#e9edf2",
+  "#cfd6df",
+  "#a5afbc",
+  "#6b7280",
+  "#374151",
 ];
 
 /** 색의 상대 휘도(WCAG). 읽을 수 없는 값이면 null. */

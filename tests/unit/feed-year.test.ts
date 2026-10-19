@@ -18,6 +18,8 @@ vi.mock("@/lib/session", () => ({
   requireUser: vi.fn().mockResolvedValue({ id: "viewer", lastSeenAt: null }),
   countUnreadNotifications: vi.fn().mockResolvedValue(0),
 }));
+// 2026-10-19부터 소셜 화면이 공개 피드 탭을 보일지 묻는다(운영자인지 DB를 본다). 이 시험과 상관없어 닫힌 것으로 둔다.
+vi.mock("@/lib/public-feed", () => ({ canSeePublicFeed: vi.fn().mockResolvedValue(false) }));
 vi.mock("@/lib/avatar", () => ({ avatarUrl: () => null }));
 vi.mock("@/components/avatar", () => ({ Avatar: () => null }));
 vi.mock("@/components/dori", () => ({ Dori: () => null }));

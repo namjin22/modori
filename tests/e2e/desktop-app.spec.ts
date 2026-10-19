@@ -87,6 +87,11 @@ test("앱에서 브라우저 로그인을 마치면 modori:// 링크로 앱 창�
     }, deepLink);
     await expect(homeReady(win)).toBeVisible();
 
+    // 컴퓨터 알림을 누르면 내려 둔 창을 올린다(desktop/preload.js). 웹 화면에는 이 함수 하나만 보인다.
+    await win.evaluate(() => window.modoriDesktop?.focus());
+    expect(await win.evaluate(() => Object.keys(window.modoriDesktop ?? {}))).toEqual(["focus"]);
+    expect(await win.evaluate(() => typeof (window as unknown as { require?: unknown }).require)).toBe("undefined");
+
     // 모도리 밖으로 가는 링크(의견 메일)는 앱 창이 아니라 바깥에서 연다.
     await win.goto(new URL("/settings", baseURL).toString());
     await win.getByRole("link", { name: "penamjin@gmail.com" }).dispatchEvent("click");

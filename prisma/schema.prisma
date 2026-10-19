@@ -54,6 +54,8 @@ model User {
   todos          Todo[]
   routines       Routine[]
   eventRoutines  EventRoutine[]
+  posts          Post[]
+  postReactions  PostReaction[]
   events         Event[]
   following      Follow[]       @relation("follower")
   followers      Follow[]       @relation("following")
@@ -371,9 +373,12 @@ model Report {
   detail     String?
   createdAt  DateTime  @default(now())
   handledAt  DateTime?
+  // 피드 글을 신고했으면 그 글(2026-10-19). 사람 화면에서 한 신고는 비어 있다. 글이 지워져도 신고 기록은 남는다.
+  postId     String?
 
-  reporter User @relation("reporter", fields: [reporterId], references: [id], onDelete: Cascade)
-  reported User @relation("reported", fields: [reportedId], references: [id], onDelete: Cascade)
+  reporter User  @relation("reporter", fields: [reporterId], references: [id], onDelete: Cascade)
+  reported User  @relation("reported", fields: [reportedId], references: [id], onDelete: Cascade)
+  post     Post? @relation(fields: [postId], references: [id], onDelete: SetNull)
 
   @@index([reportedId])
   @@index([handledAt, createdAt])
@@ -414,4 +419,39 @@ model EventRoutineSkip {
   eventRoutine EventRoutine @relation(fields: [eventRoutineId], references: [id], onDelete: Cascade)
 
   @@id([eventRoutineId, date])
+}
+
+// 공개 피드의 글(2026-10-19). 모든 가입자가 본다(차단 관계는 서로 안 보인다). 끝낸 할 일 하나와 짧은 글. 사진은 아직 없다.
+// 할 일은 올린 때의 글자·색을 그대로 적어 둔다. 할 일을 고치거나 지워도 이미 올린 글은 바뀌지 않는다.
+model Post {
+  id          String    @id @default(cuid())
+  userId      String
+  todoContent String
+  todoColor   String?
+  body        String
+  createdAt   DateTime  @default(now())
+  // 운영자가 신고를 보고 숨긴 시각. 숨긴 글은 아무에게도 보이지 않는다(쓴 사람에게도).
+  hiddenAt    DateTime?
+
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reactions PostReaction[]
+  reports   Report[]
+
+  @@index([createdAt])
+  @@index([userId, createdAt])
+}
+
+// 피드 글에 보낸 이모지 반응. 할 일 반응과 같은 값(lib/reactions.ts)을 쓴다.
+model PostReaction {
+  id        String   @id @default(cuid())
+  postId    String
+  userId    String
+  emoji     String
+  createdAt DateTime @default(now())
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId, emoji])
+  @@index([postId])
 }

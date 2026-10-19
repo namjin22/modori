@@ -37,6 +37,7 @@ export default defineConfig({
     timeout: 300_000,
     // 프로덕션 모드로 띄우면 Auth.js가 Vercel이 아닌 호스트를 신뢰하지 않는다
     // (UntrustedHost). 로컬 테스트 서버에만 주는 값이라 코드에는 넣지 않는다.
-    env: { AUTH_MODE: "mock", AUTH_TRUST_HOST: "true" },
+    // PUBLIC_FEED: 공개 피드는 iOS 심사 뒤에 열지만(lib/public-feed.ts) 시험 서버에서는 열어 둔다.
+    env: { AUTH_MODE: "mock", AUTH_TRUST_HOST: "true", PUBLIC_FEED: "on" },
   },
 });

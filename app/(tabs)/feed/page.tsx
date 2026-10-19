@@ -9,6 +9,8 @@ import { countUnreadNotifications, requireUser } from "@/lib/session";
 import { Dori } from "@/components/dori";
 import { FeedItem } from "@/components/feed-item";
 import { RecommendedFriends } from "@/components/recommended-friends";
+import { SocialTabs } from "@/components/social-tabs";
+import { canSeePublicFeed } from "@/lib/public-feed";
 import { ScrollRow } from "@/components/scroll-row";
 import { avatarUrl } from "@/lib/avatar";
 
@@ -39,7 +41,7 @@ export default async function FeedPage({
   const { after, r } = await searchParams;
   const cursor = readCursor(after);
 
-  const [page, follows, followingCount, unreadCount] = await Promise.all([
+  const [page, follows, followingCount, unreadCount, publicFeed] = await Promise.all([
     // 팔로우한 사람이 완료한 할 일 중 공개 카테고리만.
     // 카테고리를 고르지 않은 할 일은 공개 여부를 정한 적이 없으므로 내보내지 않는다.
     prisma.todo.findMany({
@@ -80,6 +82,7 @@ export default async function FeedPage({
     prisma.follow.count({ where: { followerId: user.id } }),
     // 레이아웃이 같은 값을 이미 셌다. cache()가 막아주므로 질의는 한 번이다.
     countUnreadNotifications(user.id, user.lastSeenAt, user.notifyFriendDone),
+    canSeePublicFeed(user.id),
   ]);
 
   const hasMore = page.length > FEED_SIZE;
@@ -129,6 +132,8 @@ export default async function FeedPage({
           </Link>
         </div>
       </header>
+      {/* 공개 피드가 열렸으면 [피드 | 내 친구] 탭을 둔다. 이 화면은 "내 친구"다(2026-10-19). */}
+      {publicFeed && <SocialTabs active="friends" />}
 
       {/* 친구 얼굴을 가로로 늘어놓고 옆으로 넘긴다. 누르면 그 친구 화면으로 간다.
           화면 가장자리까지 스크롤되게 바깥 여백만큼 넓혔다. */}

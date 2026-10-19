@@ -56,7 +56,8 @@ test.describe("폰", () => {
     // 링크(날짜 칸, 위쪽 화살표, 아래 탭), 글자, 버튼.
     expect(await menuBlocked(page, "a[data-date]")).toBe(true);
     expect(await menuBlocked(page, 'a[aria-label="이전 날"]')).toBe(true);
-    expect(await menuBlocked(page, 'nav a[href="/feed"]')).toBe(true);
+    // 아래 소셜 탭은 공개 피드가 열리면 /feed/public으로 간다(2026-10-19). 주소가 /feed로 시작하는 링크를 고른다.
+    expect(await menuBlocked(page, 'nav a[href^="/feed"]')).toBe(true);
     expect(await menuBlocked(page, "h1")).toBe(true);
     expect(await menuBlocked(page, 'button[aria-label$="에 할 일 쓰기"]')).toBe(true);
 
@@ -73,7 +74,7 @@ test.describe("폰", () => {
 test.describe("컴퓨터", () => {
   test("마우스 화면에서는 링크의 오른쪽 단추 메뉴를 막지 않는다", async ({ page }) => {
     await signUp(page);
-    expect(await menuBlocked(page, 'nav a[href="/feed"], a[href="/feed"]')).toBe(false);
+    expect(await menuBlocked(page, 'nav a[href^="/feed"], a[href^="/feed"]')).toBe(false);
     expect(await menuBlocked(page, "h1")).toBe(false);
     const selectable = await page.evaluate(() => getComputedStyle(document.body).userSelect);
     expect(selectable).not.toBe("none");
