@@ -26,6 +26,66 @@ export function isPaletteColor(value: string): boolean {
   return PALETTE.some((color) => color.value === value);
 }
 
+/**
+ * 저장할 수 있는 색인가. 기본 팔레트 밖의 색도 고를 수 있게 되면서(2026-10-19 요청: 100색, 색상 코드, 직접 찍기) "#rrggbb" 꼴이면 받는다.
+ * 모양을 엄격히 봐서 색이 아닌 글이 style로 들어가지 않게 한다.
+ */
+export function isHexColor(value: unknown): value is string {
+  return typeof value === "string" && /^#[0-9a-f]{6}$/i.test(value);
+}
+
+/** 사람이 친 색상 코드를 저장할 꼴("#rrggbb", 소문자)로. "3B82F6"·"#3b82f6"·"#38f"를 받는다. 아니면 null. */
+export function normalizeHex(raw: string): string | null {
+  const text = raw.trim().replace(/^#/, "").toLowerCase();
+  if (/^[0-9a-f]{3}$/.test(text)) return `#${[...text].map((c) => c + c).join("")}`;
+  return /^[0-9a-f]{6}$/.test(text) ? `#${text}` : null;
+}
+
+const toHex = (channel: number) => Math.round(Math.min(255, Math.max(0, channel))).toString(16).padStart(2, "0");
+
+/** 색상환(h 0~360)·채도(s 0~1)·밝기(v 0~1)를 "#rrggbb"로. 직접 찍는 색 판이 쓴다. */
+export function hsvToHex(h: number, s: number, v: number): string {
+  const f = (n: number) => {
+    const k = (n + h / 60) % 6;
+    return v - v * s * Math.max(0, Math.min(k, 4 - k, 1));
+  };
+  return `#${toHex(f(5) * 255)}${toHex(f(3) * 255)}${toHex(f(1) * 255)}`;
+}
+
+/** "#rrggbb"를 색상환·채도·밝기로. 색 판을 열 때 지금 색의 자리를 찾는다. */
+export function hexToHsv(hex: string): { h: number; s: number; v: number } {
+  const [r, g, b] = [1, 3, 5].map((offset) => Number.parseInt(hex.slice(offset, offset + 2), 16) / 255);
+  const max = Math.max(r, g, b);
+  const delta = max - Math.min(r, g, b);
+  let h = 0;
+  if (delta > 0) {
+    if (max === r) h = 60 * (((g - b) / delta) % 6);
+    else if (max === g) h = 60 * ((b - r) / delta + 2);
+    else h = 60 * ((r - g) / delta + 4);
+  }
+  return { h: (h + 360) % 360, s: max === 0 ? 0 : delta / max, v: max };
+}
+
+function hslToHex(h: number, s: number, l: number): string {
+  const a = s * Math.min(l, 1 - l);
+  const f = (n: number) => {
+    const k = (n + h / 30) % 12;
+    return l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1));
+  };
+  return `#${toHex(f(0) * 255)}${toHex(f(8) * 255)}${toHex(f(4) * 255)}`;
+}
+
+// 더 많은 색: 색상 12가지 × 밝기 8단계 + 회색 4 = 100색. 손으로 적으면 오타가 나서 공식으로 만든다.
+const MORE_HUES = [0, 20, 35, 50, 80, 130, 165, 190, 215, 240, 270, 320];
+const MORE_LIGHTNESS = [0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2];
+export const MORE_COLORS: string[] = [
+  ...MORE_LIGHTNESS.flatMap((l) => MORE_HUES.map((h) => hslToHex(h, 0.75, l))),
+  "#e5e7eb",
+  "#9ca3af",
+  "#4b5563",
+  "#1f2937",
+];
+
 /** 색의 상대 휘도(WCAG). 읽을 수 없는 값이면 null. */
 function luminance(color: string): number | null {
   const match = /^#([0-9a-f]{6})$/i.exec(color);

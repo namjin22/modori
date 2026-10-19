@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
-import { isPaletteColor } from "@/lib/colors";
+import { isHexColor } from "@/lib/colors";
 import { isId, readIdList } from "@/lib/ids";
 import { LIMITS } from "@/lib/limits";
 import { prisma } from "@/lib/prisma";
@@ -27,9 +27,8 @@ export async function createCategory(formData: FormData) {
   const user = await requireUser();
   const name = readText(formData, "name").slice(0, MAX_NAME_LENGTH);
   const color = readColor(formData);
-  // 새로 만들 때는 팔레트 색만 받는다. 아무 색이나 받으면 흰 배경에서 안 보이는
-  // 연한 색이나 글씨와 겹치는 색이 섞여 들어온다.
-  if (!name || !color || !isPaletteColor(color)) return;
+  // "#rrggbb" 꼴의 색이면 받는다(2026-10-19부터 100색·직접 찍기·색상 코드). 밝은 색은 칩 글씨가 어두운 색으로 바뀐다(lib/colors.ts).
+  if (!name || !color || !isHexColor(color)) return;
 
   // 이 폼은 결과를 받지 않는다. 30개는 화면으로 닿을 일이 없어 기록만 남긴다.
   const count = await prisma.category.count({ where: { userId: user.id, archivedAt: null } });
@@ -80,8 +79,7 @@ export async function updateCategory(formData: FormData): Promise<CategoryUpdate
   });
   if (!current) return { ok: false, message: "카테고리를 찾지 못했어요" };
 
-  // 팔레트 색이거나, 예전에 고른 색을 그대로 두는 경우만 받는다.
-  if (!isPaletteColor(color) && color !== current.color.toLowerCase()) {
+  if (!isHexColor(color)) {
     return { ok: false, message: "색을 골라주세요" };
   }
 

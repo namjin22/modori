@@ -2,7 +2,7 @@
 
 import { Prisma } from "@prisma/client";
 
-import { isPaletteColor } from "@/lib/colors";
+import { isHexColor } from "@/lib/colors";
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 
@@ -291,7 +291,7 @@ export async function restoreTodo(snapshot: DeletedTodo): Promise<string | void>
           order: Number.isInteger(snapshot.order) ? snapshot.order : 0,
           categoryId: category?.id ?? null,
           color:
-            snapshot.color && isPaletteColor(snapshot.color)
+            snapshot.color && isHexColor(snapshot.color)
               ? snapshot.color
               : null,
           routineId: routine?.id ?? null,

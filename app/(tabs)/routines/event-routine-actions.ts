@@ -3,7 +3,7 @@
 import { Prisma, type RoutineFreq } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
-import { DEFAULT_EVENT_COLOR, isPaletteColor } from "@/lib/colors";
+import { DEFAULT_EVENT_COLOR, isHexColor } from "@/lib/colors";
 import { formatKST, parseKSTDate, todayIn } from "@/lib/date";
 import { parseTime } from "@/lib/event-time";
 import { isId } from "@/lib/ids";
@@ -49,8 +49,8 @@ function readLook(
   const title = readText(formData, "title").slice(0, MAX_TITLE_LENGTH);
   if (!title) return "일정 이름을 적어주세요.";
   const rawColor = readText(formData, "color");
-  // 팔레트 밖의 값은 받지 않는다(색이 아닌 글이 style로 들어가지 않게).
-  const color = rawColor ? (isPaletteColor(rawColor) ? rawColor : null) : DEFAULT_EVENT_COLOR;
+  // "#rrggbb" 꼴만 받는다(2026-10-19). 색이 아닌 글이 style로 들어가지 않게 모양을 엄격히 본다.
+  const color = rawColor ? (isHexColor(rawColor) ? rawColor.toLowerCase() : null) : DEFAULT_EVENT_COLOR;
   if (!color) return "색을 다시 골라주세요.";
   const startTime = parseTime(readText(formData, "startTime"));
   const endTime = parseTime(readText(formData, "endTime"));
@@ -205,7 +205,7 @@ export async function restoreEventRoutine(snapshot: DeletedEventRoutine): Promis
   const title = snapshot.title.trim().slice(0, MAX_TITLE_LENGTH);
   const freq = FREQS.find((value) => value === snapshot.freq);
   const startDate = readDate(snapshot.startDate);
-  if (!title || !freq || !startDate || !isPaletteColor(snapshot.color)) return;
+  if (!title || !freq || !startDate || !isHexColor(snapshot.color)) return;
   if (!Array.isArray(snapshot.byWeekday) || !Array.isArray(snapshot.byMonthday) || !Array.isArray(snapshot.skipDates)) return;
   const time = (value: unknown) => (Number.isInteger(value) && (value as number) >= 0 && (value as number) < 24 * 60 ? (value as number) : null);
   if ((await routineCount(user.id)) >= LIMITS.routines) return `루틴은 ${LIMITS.routines}개까지 만들 수 있어요.`;
