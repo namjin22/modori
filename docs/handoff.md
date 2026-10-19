@@ -1721,3 +1721,12 @@ VM에 시험 DB(사용자 1000, 할 일 108만, 반응 24만, 280MB)를 만들�
 - 데스크톱 앱 1.0.4: AppUserModelId, `desktop/preload.js`(알림 누르면 창 올리기). **설치 파일은 `desktop-v1.0.4` 태그를 올려야 만들어진다.** 1.0.3 이하 앱에는 새로 설치하라는 안내가 뜬다.
 - 리뷰: 세 갈래 검토가 찾은 문제(알림 화면에서 묻기 멈춤, 수 비교로 정하던 것, 로그아웃 뒤 물려받음, 데스크톱 창 안 올라옴, 옛 앱, 개인정보 문구)를 고쳤다. 검토 확인 단계는 세션 한도로 멈춰 직접 코드로 확인했다.
 - 다음: B단계 웹 푸시(`web-push` 의존성 승인됨, 서비스 워커, VM `.env`에 VAPID 키, 구독 표, 개인정보 문서, roadmap "웹 푸시 제외" 고치기).
+
+## 2026-10-19 (웹 푸시) — 브랜치 `feat/web-push`
+
+- 의존성 `web-push` 3.6.7, `@types/web-push` 3.6.4(운영자가 "A를 먼저, 그다음 B까지"로 승인). 새 표 `WebPushSubscription`(마이그레이션 `web_push`, 표 추가만, 시험 DB에 적용).
+- 흐름: 알림 화면 스위치 → `lib/web-push-client.ts`(서비스 워커 `public/sw.js` 올리고 구독, `app/api/push/web`에 맡김) → `lib/push.ts`의 `sendPushToUser`가 웹 구독에도 보냄(`lib/web-push.ts`). 리마인드는 `web: false`. 웹 푸시를 못 쓰면 A(창이 열려 있을 때)로 켠다. `components/web-push-sync.tsx`가 화면을 열 때 구독을 다시 맡기거나(내 것) 끊는다(남의 것).
+- 운영 VM: `deploy/set-vapid.sh`로 VAPID 열쇠를 만들어 `/opt/modori/.env`에 넣었다(10/19, 비밀 열쇠는 화면에 안 나옴, 권한 600). 다음 배포 때 적용.
+- 시험: `tests/unit/web-push.test.ts`, `tests/e2e/web-push.spec.ts`(가짜 구독), `tests/e2e/service-worker.spec.ts`(Chrome 개발자 도구로 서비스 워커에 푸시를 넣음, 이 파일만 `channel: "chromium"` — 기본 headless 셸은 알림 권한을 늘 거절한다). 시험 서버는 돌 때마다 일회용 VAPID 열쇠를 만든다(`playwright.config.ts`).
+- 확인 못 한 것: 진짜 브라우저 푸시 서버(Chrome→Google 등)를 거쳐 도착하는 것. 배포 뒤 Chrome에서 켜고 다른 계정으로 반응을 보내 손으로 본다.
+- `npm audit`의 high 7개는 `sharp`·`source-map-js` 등 원래 있던 것이다(web-push와 무관). 이번에 고치지 않았다.

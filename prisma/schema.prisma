@@ -47,25 +47,26 @@ model User {
   notifyFriendDone  Boolean   @default(true)
   createdAt         DateTime  @default(now())
 
-  accounts       Account[]
-  sessions       Session[]
-  desktopLogins  DesktopLogin[]
-  categories     Category[]
-  todos          Todo[]
-  routines       Routine[]
-  eventRoutines  EventRoutine[]
-  posts          Post[]
-  postReactions  PostReaction[]
-  events         Event[]
-  following      Follow[]       @relation("follower")
-  followers      Follow[]       @relation("following")
-  reactions      Reaction[]
-  activeDays     ActiveDay[]
-  pushTokens     PushToken[]
-  blocking       Block[]        @relation("blocker")
-  blockedBy      Block[]        @relation("blocked")
-  reportsMade    Report[]       @relation("reporter")
-  reportsAgainst Report[]       @relation("reported")
+  accounts             Account[]
+  sessions             Session[]
+  desktopLogins        DesktopLogin[]
+  categories           Category[]
+  todos                Todo[]
+  routines             Routine[]
+  eventRoutines        EventRoutine[]
+  posts                Post[]
+  postReactions        PostReaction[]
+  events               Event[]
+  following            Follow[]              @relation("follower")
+  followers            Follow[]              @relation("following")
+  reactions            Reaction[]
+  activeDays           ActiveDay[]
+  pushTokens           PushToken[]
+  webPushSubscriptions WebPushSubscription[]
+  blocking             Block[]               @relation("blocker")
+  blockedBy            Block[]               @relation("blocked")
+  reportsMade          Report[]              @relation("reporter")
+  reportsAgainst       Report[]              @relation("reported")
 }
 
 model Account {
@@ -300,6 +301,23 @@ model PushToken {
   userId    String
   token     String   @unique
   platform  String // "android"(FCM) | "ios"(APNs)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// 컴퓨터 브라우저의 웹 푸시 구독(2026-10-19). 알림 화면의 "이 기기에서 알림 띄우기"를 켠 브라우저마다 한 줄.
+// endpoint는 브라우저 회사의 푸시 서버 주소(브라우저마다 다름), p256dh·auth는 알림 내용을 그 브라우저만 풀 수 있게 잠그는 공개 값이다.
+// 끄거나 로그아웃하면 지우고, 푸시 서버가 "없는 구독"이라고 답해도 지운다.
+model WebPushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

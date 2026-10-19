@@ -13,6 +13,7 @@
 | `docker-compose.yml` | `db`(Postgres 18)와 `app`(modori:latest). 앱은 127.0.0.1:3000에만 열린다 |
 | `.env` | 비밀 값. 권한 600. 저장소에 없다. `set-secrets.sh`로만 채운다 |
 | `set-secrets.sh` | 사람이 VM에서 직접 돌린다. 값을 화면에 보이지 않게 입력받는다 |
+| `set-vapid.sh` | 웹 푸시 서버 열쇠(VAPID)를 VM에서 만들어 `.env`에 넣는다. 이미 있으면 그대로 둔다. 바꾸면 브라우저 구독이 새 열쇠로 다시 맺어질 때까지 컴퓨터 알림이 멈춘다 |
 | `deploy.sh` | 이미지 받기 → 마이그레이션 → 앱 교체 → 응답 확인 |
 | `migrate-from-neon.sh` | 이관하는 날 한 번. Neon 데이터를 VM DB로 복사 |
 | `backup.sh` | 매일 04:00. VM 안 7일치(파일 권한 600) + 백업용 Neon에 통째로 복원 |
@@ -40,6 +41,7 @@ docker compose ps                  # 상태
 docker compose logs -f --tail 100 app
 docker compose restart app
 bash set-secrets.sh                # 비밀 값 넣기/바꾸기 (비우면 그대로 둔다)
+bash set-vapid.sh                  # 웹 푸시 열쇠 만들기(한 번만, 다음 배포 때 적용)
 bash backup.sh                     # 지금 백업
 systemctl list-timers modori-backup.timer
 ```

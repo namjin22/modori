@@ -97,7 +97,7 @@ export default async function SettingsPage() {
       </section>
 
 
-      {/* 리마인드는 앱 푸시로만 보낸다(웹 브라우저에는 푸시가 없다). 앱에서만 보인다. */}
+      {/* 리마인드는 앱 푸시로만 보낸다(웹 푸시로는 보내지 않는다, CLAUDE.md 규칙 7). 앱에서만 보인다. */}
       {mobileApp && (
         <section className="flex flex-col gap-4 rounded-2xl bg-surface p-5">
           <h2 className="text-sm font-semibold text-muted">알림</h2>

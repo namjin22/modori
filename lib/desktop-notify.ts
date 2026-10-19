@@ -3,6 +3,9 @@
  * 그래서 서버가 아니라 이 브라우저의 localStorage에 적는다. 브라우저 안에서만 부른다.
  * 켠 계정의 id를 같이 적는다. 학교 PC처럼 여럿이 쓰는 브라우저에서 다음 사람이 로그인해도(로그아웃이든 계정 지우기든)
  * 앞사람이 켠 알림을 물려받지 않는다.
+ *
+ * 켜는 방법은 둘이다. `push:<id>`는 웹 푸시(창을 닫아도 온다, lib/web-push-client.ts), `on:<id>`는 창이 열려 있는 동안
+ * 1분마다 물어 띄우는 것(웹 푸시를 못 쓰는 데스크톱 앱이나 서버에 열쇠가 없을 때). 둘이 겹치면 같은 알림이 두 번 뜬다.
  */
 export const DESKTOP_NOTIFY_KEY = "modori-desktop-notify";
 /** 같은 창의 다른 컴포넌트(하단 탭)에 켜고 끈 것을 알린다. storage 이벤트는 다른 창에만 간다. */
@@ -10,7 +13,9 @@ export const DESKTOP_NOTIFY_EVENT = "modori:desktop-notify";
 /** 이 버전부터 Windows 알림 센터에 앱 이름(AppUserModelId)을 알린다. 그 전 설치본은 알림이 조용히 사라진다. */
 const DESKTOP_NOTIFY_SINCE = [1, 0, 4];
 
-export type DesktopNotifyState = "unsupported" | "outdated" | "on" | "off" | "denied";
+export type DesktopNotifyMode = "push" | "poll";
+// "on"은 창이 열려 있을 때 띄우는 것, "push"는 웹 푸시.
+export type DesktopNotifyState = "unsupported" | "outdated" | "push" | "on" | "off" | "denied";
 
 /** 데스크톱 앱(desktop/main.js가 붙이는 `ModoriDesktop/x.y.z`)인데 알림이 안 되는 옛 버전인지. */
 function outdatedDesktopApp(ua: string): boolean {
@@ -35,20 +40,24 @@ export function canNotifyHere(): boolean {
   return !iPad && !/Android|iPhone|iPad|iPod|Mobile|ModoriMobile/i.test(ua);
 }
 
-/** 이 계정이 켜 두었고, 브라우저도 허락했는지. */
-export function desktopNotifyOn(userId: string): boolean {
-  if (!canNotifyHere() || outdatedDesktopApp(navigator.userAgent) || Notification.permission !== "granted") return false;
+/** 이 계정이 켜 두었고 브라우저도 허락했으면 켠 방법, 아니면 null. */
+export function desktopNotifyMode(userId: string): DesktopNotifyMode | null {
+  if (!canNotifyHere() || outdatedDesktopApp(navigator.userAgent) || Notification.permission !== "granted") return null;
+  let stored: string | null;
   try {
-    return localStorage.getItem(DESKTOP_NOTIFY_KEY) === `on:${userId}`;
+    stored = localStorage.getItem(DESKTOP_NOTIFY_KEY);
   } catch (error) {
     console.warn("[notify] 설정을 읽지 못했다.", error instanceof Error ? error.name : error);
-    return false;
+    return null;
   }
+  if (stored === `push:${userId}`) return "push";
+  if (stored === `on:${userId}`) return "poll";
+  return null;
 }
 
-export function saveDesktopNotify(userId: string, on: boolean): void {
+export function saveDesktopNotify(userId: string, mode: DesktopNotifyMode | null): void {
   try {
-    if (on) localStorage.setItem(DESKTOP_NOTIFY_KEY, `on:${userId}`);
+    if (mode) localStorage.setItem(DESKTOP_NOTIFY_KEY, `${mode === "push" ? "push" : "on"}:${userId}`);
     else localStorage.removeItem(DESKTOP_NOTIFY_KEY);
   } catch (error) {
     console.warn("[notify] 설정을 저장하지 못했다.", error instanceof Error ? error.name : error);
@@ -69,7 +78,8 @@ export function subscribeDesktopNotify(onChange: () => void): () => void {
 export function desktopNotifyState(userId: string): DesktopNotifyState {
   if (!canNotifyHere()) return "unsupported";
   if (outdatedDesktopApp(navigator.userAgent)) return "outdated";
-  if (desktopNotifyOn(userId)) return "on";
+  const mode = desktopNotifyMode(userId);
+  if (mode) return mode === "push" ? "push" : "on";
   return Notification.permission === "denied" ? "denied" : "off";
 }
 

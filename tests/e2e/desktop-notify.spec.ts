@@ -20,7 +20,7 @@ declare global {
   }
 }
 
-test("알림 화면에서 켜 두고 그 화면에 창을 둔 채 다른 일을 하면, 새 팔로워가 컴퓨터 알림으로 한 번 뜬다", async ({ page }) => {
+test("웹 푸시를 못 쓰는 브라우저에서 켜 두고 알림 화면에 창을 둔 채 다른 일을 하면, 새 팔로워가 컴퓨터 알림으로 한 번 뜬다", async ({ page }) => {
   await prisma.user.deleteMany({ where: { email: { in: [ME, FRIEND] } } });
   await page.addInitScript(() => {
     window.shownNotifications = [];
@@ -39,6 +39,10 @@ test("알림 화면에서 켜 두고 그 화면에 창을 둔 채 다른 일을 
     Object.defineProperty(window, "Notification", { value: FakeNotification, configurable: true });
     // 사용자가 다른 창을 보고 있는 것으로 둔다. 보고 있는 창에는 띄우지 않는다.
     document.hasFocus = () => false;
+    // 푸시 서버가 없는 브라우저(데스크톱 앱처럼)다. 웹 푸시를 못 켜면 창이 열려 있을 때의 알림으로 켠다.
+    PushManager.prototype.subscribe = async () => {
+      throw new DOMException("push service not available", "AbortError");
+    };
   });
 
   await page.goto("/login");
