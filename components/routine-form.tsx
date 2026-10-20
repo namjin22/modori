@@ -153,15 +153,16 @@ export function RoutineForm({
       )}
 
       {/* 날짜는 누르면 달력이 뜬다(components/date-picker.tsx). 한글 날짜가 길어 좁은 폰에서는 한 줄에 하나씩 둔다. */}
-      <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2">
+      {/* 짧은 날짜라 폰에서도 한 줄에 둘이 들어간다(일정 창과 같다, 2026-10-20). */}
+      <div className="grid grid-cols-2 gap-3">
         <div className="flex min-w-0 flex-col gap-1 text-xs text-muted">
           시작일
-          <DatePicker label="루틴 시작일" name="startDate" defaultValue={today} />
+          <DatePicker label="루틴 시작일" name="startDate" defaultValue={today} short />
         </div>
 
         <div className="flex min-w-0 flex-col gap-1 text-xs text-muted">
-          종료일 (없으면 계속)
-          <DatePicker label="루틴 종료일" name="endDate" clearable emptyText="계속 (종료일 없음)" />
+          종료일
+          <DatePicker label="루틴 종료일" name="endDate" clearable emptyText="계속 반복" short />
         </div>
       </div>
 
@@ -223,16 +224,12 @@ export function EventRoutineFields({
             }
           }}
         />
+        {/* 일정 창과 같이 시작·끝을 한 줄에 둔다(2026-10-20). */}
         {!allDay && (
-          <div className="flex flex-col gap-2">
-            <div className="flex items-center gap-3">
-              <span className="w-8 shrink-0 text-xs text-muted">시작</span>
-              <TimePicker label="반복 일정 시작" value={startTime} onChange={setStartTime} />
-            </div>
-            <div className="flex items-center gap-3">
-              <span className="w-8 shrink-0 text-xs text-muted">끝</span>
-              <TimePicker label="반복 일정 종료" value={endTime} onChange={setEndTime} optional />
-            </div>
+          <div className="flex animate-rise items-center gap-2">
+            <TimePicker label="반복 일정 시작" value={startTime} onChange={setStartTime} />
+            <span aria-hidden className="shrink-0 text-sm text-muted">~</span>
+            <TimePicker label="반복 일정 종료" value={endTime} onChange={setEndTime} optional />
           </div>
         )}
         <input type="hidden" name="startTime" value={allDay ? "" : startTime} />

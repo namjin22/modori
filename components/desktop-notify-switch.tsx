@@ -61,21 +61,18 @@ export function DesktopNotifySwitch({ userId }: { userId: string }) {
   }
 
   return (
-    <div className="flex flex-col gap-2 border-t border-border pt-3">
+    <div className="flex flex-col gap-1.5 border-t border-border pt-3">
       <LabeledSwitch
         name="desktopNotify"
         title="이 기기에서 알림 띄우기"
-        description={
-          state === "push"
-            ? "모도리 창을 닫아도 새 알림을 컴퓨터 알림으로 보여 줘요."
-            : "모도리 창을 열어 두면 새 알림을 컴퓨터 알림으로 보여 줘요. 1분마다 확인해요."
-        }
+        // 설명은 한 줄로 줄였다(알림 화면 위 설정이 목록을 너무 밀어냈다, 2026-10-20).
+        description={state === "push" ? "창을 닫아도 컴퓨터 알림으로 와요" : "창을 열어 둔 동안 컴퓨터 알림으로 와요"}
         checked={pending ?? (state === "on" || state === "push")}
         onChange={(next) => void change(next)}
       />
       {state === "denied" && pending === null && (
         <p role="status" className="text-xs text-danger">
-          브라우저가 알림을 막고 있어요. 주소창 왼쪽의 사이트 설정에서 알림을 허용한 뒤 다시 켜 주세요.
+          브라우저가 알림을 막았어요. 주소창 왼쪽 사이트 설정에서 허용해 주세요.
         </p>
       )}
     </div>

@@ -54,8 +54,8 @@ export function ManageMenu() {
         <div
           role="menu"
           aria-label="관리 메뉴"
-          // 버튼 아래에서 커지며 튀어나온다. 항목은 조금씩 늦게 떠오른다.
-          className="absolute left-0 top-10 z-30 flex w-48 origin-top-left animate-pop flex-col gap-0.5 rounded-2xl border border-border bg-surface p-1.5 shadow-xl"
+          // 버튼 아래에서 살짝 커지며 나온다(튀지 않게). 항목은 조금씩 늦게 떠오른다.
+          className="absolute left-0 top-10 z-30 flex w-48 origin-top-left animate-menu flex-col gap-0.5 rounded-2xl border border-border bg-surface p-1.5 shadow-xl"
         >
           <Link prefetch={false} href="/categories" role="menuitem" className={item} onClick={() => setOpen(false)}>
             <Glyph>🏷️</Glyph>

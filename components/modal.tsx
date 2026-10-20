@@ -70,9 +70,10 @@ export function Modal({
           event.clientX >= box.left && event.clientX <= box.right && event.clientY >= box.top && event.clientY <= box.bottom;
         if (!inside) onClose();
       }}
-      // m-auto가 있어야 가운데에 뜬다. Tailwind 기본 설정이 모든 요소의 margin을
-      // 0으로 만들어서, <dialog>가 원래 갖고 있는 가운데 정렬이 지워진다.
-      className="m-auto max-h-[85vh] w-[min(26rem,calc(100vw-2rem))] overflow-y-auto rounded-3xl bg-surface p-5 text-foreground shadow-xl open:animate-[modal-in_160ms_ease-out]"
+      // 가로는 가운데, 세로는 위쪽(화면 높이의 8%)에 붙인다. 예전에는 위아래 가운데(m-auto)였는데, 창 안에서 칸이 펼쳐지면
+      // (다른 날에 하기, 하루 종일 끄기) 창이 위아래로 같이 늘어 위쪽 끝과 제목이 튀어 올랐다(2026-10-20). 이제 아래로만 늘어난다.
+      // Tailwind 기본 설정이 모든 요소의 margin을 0으로 만들어 <dialog>의 원래 정렬이 지워지므로 여백을 직접 준다.
+      className="mx-auto mt-[max(1rem,8vh)] mb-auto max-h-[calc(100dvh-max(1rem,8vh)-1rem)] w-[min(26rem,calc(100vw-2rem))] overflow-y-auto rounded-3xl bg-surface p-5 text-foreground shadow-xl open:animate-[modal-in_160ms_ease-out]"
     >
       <div className="flex items-center justify-between gap-3">
         <h2 className="truncate text-base font-bold">{title}</h2>

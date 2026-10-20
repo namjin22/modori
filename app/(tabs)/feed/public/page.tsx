@@ -8,6 +8,7 @@ import { PostComposer } from "@/components/post-composer";
 import { PostDeleteButton } from "@/components/post-delete-button";
 import { ReactionBar } from "@/components/reaction-bar";
 import { SafetyMenu } from "@/components/safety-menu";
+import { SocialHeader } from "@/components/social-header";
 import { SocialTabs } from "@/components/social-tabs";
 import { avatarUrl } from "@/lib/avatar";
 import { dateIn, formatMonthDayKST, todayIn } from "@/lib/date";
@@ -16,7 +17,7 @@ import { prisma } from "@/lib/prisma";
 import { canSeePublicFeed, visiblePostsWhere } from "@/lib/public-feed";
 import { POSTS_PAGE } from "@/lib/public-feed-limits";
 import { othersByEmoji, summarizeReactions } from "@/lib/reactions";
-import { requireUser } from "@/lib/session";
+import { countUnreadNotifications, requireUser } from "@/lib/session";
 
 import { togglePostReaction } from "./actions";
 
@@ -40,7 +41,7 @@ export default async function PublicFeedPage({ searchParams }: { searchParams: P
   const cursor = readCursor((await searchParams).after);
   const today = todayIn(user.timezone);
 
-  const [doneToday, page] = await Promise.all([
+  const [doneToday, page, unread] = await Promise.all([
     prisma.todo.findMany({
       where: { userId: user.id, date: today, done: true },
       orderBy: { doneAt: "desc" },
@@ -64,6 +65,8 @@ export default async function PublicFeedPage({ searchParams }: { searchParams: P
         reactions: { select: { emoji: true, userId: true, user: { select: { nickname: true } } }, orderBy: { createdAt: "asc" } },
       },
     }),
+    // 레이아웃이 같은 값을 이미 셌다. cache()가 막아주므로 질의는 한 번이다.
+    countUnreadNotifications(user.id, user.lastSeenAt, user.notifyFriendDone),
   ]);
   const hasMore = page.length > POSTS_PAGE;
   const posts = hasMore ? page.slice(0, POSTS_PAGE) : page;
@@ -71,16 +74,7 @@ export default async function PublicFeedPage({ searchParams }: { searchParams: P
 
   return (
     <div className="flex flex-col gap-6">
-      <header className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">소셜</h1>
-        <Link
-          prefetch={false}
-          href="/feed/search"
-          className="h-9 rounded-full bg-brand px-4 text-sm font-semibold leading-9 text-brand-contrast"
-        >
-          친구 찾기
-        </Link>
-      </header>
+      <SocialHeader unread={unread} />
       <SocialTabs active="public" />
 
       <PostComposer

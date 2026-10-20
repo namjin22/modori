@@ -35,7 +35,7 @@ export function ReminderSetting({ minute, hasDevice }: { minute: number | null; 
       <LabeledSwitch
         name="reminder"
         title="할 일 리마인드"
-        description="하루 한 번, 정한 시각에 오늘 남은 할 일 수를 알려 줘요. 다 끝낸 날은 울리지 않아요."
+        description="하루 한 번 남은 할 일 수를 알려 줘요(다 끝낸 날은 조용히)"
         checked={shown !== null}
         onChange={(on) => save(on ? (minute ?? DEFAULT_REMINDER_MINUTE) : null)}
       />

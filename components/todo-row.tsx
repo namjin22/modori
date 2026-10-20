@@ -5,7 +5,7 @@ import { useState, useTransition } from "react";
 import { deleteTodo, moveTodo, repeatTodo, restoreTodo, updateTodo } from "@/app/(tabs)/actions";
 import { ChoicePicker } from "@/components/choice-picker";
 import { DatePicker } from "@/components/date-picker";
-import { PrivateSwitch } from "@/components/private-switch";
+import { MemoPrivateToggle } from "@/components/memo-private-toggle";
 import { Modal } from "@/components/modal";
 import { ReceivedReactions } from "@/components/received-reactions";
 import { SubmitButton } from "@/components/submit-button";
@@ -172,12 +172,7 @@ export function TodoRow({
           />
           {/* 메모를 친구에게 숨길지(기본은 보인다, 2026-10-18). 할 일 자체는 카테고리 공개 여부를 따른다. 표시 칸은 이 스위치가 있는 화면이라는 표시다. */}
           <input type="hidden" name="memoPublicField" value="1" />
-          <PrivateSwitch
-            name="memoPrivate"
-            title="메모 비공개"
-            description="켜면 메모는 나만 봐요"
-            defaultChecked={!(todo.memoPublic ?? true)}
-          />
+          <MemoPrivateToggle defaultChecked={!(todo.memoPublic ?? true)} />
           {/* 손잡이가 없어 순서를 바꾸는 법이 안 보인다. 폰은 길게 눌러, 컴퓨터는 줄을 잡고 끈다. */}
           <p className="hidden text-xs text-muted pointer-coarse:block">할 일을 길게 누르면 집혀서, 끌어 순서를 바꿀 수 있어요.</p>
           <p className="hidden text-xs text-muted pointer-fine:block">할 일 줄을 잡고 끌면 순서를 바꾸거나 다른 카테고리로 옮길 수 있어요.</p>

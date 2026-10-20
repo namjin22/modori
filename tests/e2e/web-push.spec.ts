@@ -76,7 +76,7 @@ test("웹 푸시로 켜면 구독이 서버에 맡겨지고, 창의 알림은 �
   const toggle = page.getByRole("checkbox", { name: /이 기기에서 알림 띄우기/ });
   await toggle.check();
   await expect(toggle).toBeChecked();
-  await expect(page.getByText("모도리 창을 닫아도 새 알림을 컴퓨터 알림으로 보여 줘요.")).toBeVisible();
+  await expect(page.getByText("창을 닫아도 컴퓨터 알림으로 와요")).toBeVisible();
   await expect.poll(mySubscriptions).toBe(1);
   expect(await page.evaluate(() => localStorage.getItem("modori-desktop-notify"))).toBe(`push:${me.id}`);
 

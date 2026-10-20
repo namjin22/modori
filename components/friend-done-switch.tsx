@@ -16,7 +16,7 @@ export function FriendDoneSwitch({ on }: { on: boolean }) {
     <LabeledSwitch
       name="notifyFriendDone"
       title="친구가 할 일을 끝내면 알림"
-      description="끄면 알림 목록·소셜 탭 숫자·푸시에 뜨지 않아요. 푸시는 같은 친구마다 10분에 한 번이에요."
+      description="끄면 목록·숫자·푸시 모두에서 빠져요"
       checked={shown}
       onChange={(next) =>
         startTransition(async () => {
