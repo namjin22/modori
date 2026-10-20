@@ -1734,7 +1734,7 @@ VM에 시험 DB(사용자 1000, 할 일 108만, 반응 24만, 280MB)를 만들�
 ## 2026-10-20 (피드 사진) — 브랜치 `feat/post-photo`
 
 - 피드 글에 사진 한 장. 새 표 `PostPhoto`(마이그레이션 `post_photo`, 표 추가만, 시험 DB에 적용). `components/post-photo-field.tsx`(브라우저에서 1080px JPEG로 줄임), `lib/post-photo.ts`(서버 검사), `app/api/post-photo/[id]/route.ts`(글을 볼 수 있는 사람에게만), 신고 화면에 사진. 하루 사진 글 3개.
-- 시험: `tests/unit/post-photo.test.ts`, `tests/e2e/post-photo.spec.ts`(줄이기·위치 정보 제거·거절·하루 상한·열람 권한).
+- 시험: `tests/unit/post-photo.test.ts`, `tests/e2e/public-feed.spec.ts` 끝의 사진 시험(줄이기·위치 정보 제거·거절·하루 상한·열람 권한). 공개 피드는 모두가 한 줄을 같이 봐서 글을 올리는 시험은 같은 파일에서 차례로 돌려야 한다(따로 두면 "맨 위 글이 내 글" 시험이 깨진다).
 - 방침·약관 시행일 10/20(사진과 사진 규칙). 공개(`LAUNCHED`)는 여전히 `false`. iOS 심사 중이라 운영 반영해도 운영자만 본다.
 - 운영 DB 마이그레이션은 배포가 `migrate deploy`로 한다.
 - 다음: iOS 심사 통과 뒤 `LAUNCHED = true`와 1.0.1 제출(심사 메모에 피드·사진·신고 안내). 공개 뒤 `PostPhoto` 용량을 본다(Neon 백업 한도 512MB).
