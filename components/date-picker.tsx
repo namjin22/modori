@@ -61,6 +61,7 @@ export function DatePicker({
   emptyText = "날짜 고르기",
   compact = false,
   short = false,
+  shortEmptyText,
 }: {
   // 화면 읽기용 이름. 단추 이름은 "새 일정 시작일: 2026년 10월 2일 (금)"처럼 읽힌다.
   label: string;
@@ -74,6 +75,8 @@ export function DatePicker({
   compact?: boolean;
   // 좁은 칸용: 단추에 짧은 날짜를 보인다.
   short?: boolean;
+  // 좁은 칸에서 비어 있을 때 보일 짧은 글. 단추 이름(화면 읽기)은 emptyText 그대로다.
+  shortEmptyText?: string;
 }) {
   const timezone = useTimezone();
   const [inner, setInner] = useState(defaultValue);
@@ -87,7 +90,9 @@ export function DatePicker({
   }
 
   const text = longLabel(current) ?? emptyText;
-  const shown = (short && shortLabel(current, todayIn(timezone).getUTCFullYear())) || text;
+  const shown = short
+    ? (shortLabel(current, todayIn(timezone).getUTCFullYear()) ?? (current ? text : (shortEmptyText ?? text)))
+    : text;
 
   return (
     <>

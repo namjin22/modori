@@ -162,7 +162,7 @@ export function RoutineForm({
 
         <div className="flex min-w-0 flex-col gap-1 text-xs text-muted">
           종료일
-          <DatePicker label="루틴 종료일" name="endDate" clearable emptyText="계속 반복" short />
+          <DatePicker label="루틴 종료일" name="endDate" clearable emptyText="계속 (종료일 없음)" shortEmptyText="계속 반복" short />
         </div>
       </div>
 
