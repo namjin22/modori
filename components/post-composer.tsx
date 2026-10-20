@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import { createPost, type PostFormState } from "@/app/(tabs)/feed/public/actions";
+import { PostPhotoField } from "@/components/post-photo-field";
 import { SubmitButton } from "@/components/submit-button";
 import { useFormAction } from "@/components/use-form-action";
 import { MAX_POST_BODY } from "@/lib/public-feed-limits";
@@ -10,13 +11,14 @@ import { MAX_POST_BODY } from "@/lib/public-feed-limits";
 type DoneTodo = { id: string; content: string; color: string | null };
 
 /**
- * 공개 피드에 올리기: 오늘 끝낸 할 일 하나를 고르고 짧은 글을 붙인다(사진은 아직 없다, 2026-10-19 운영자 결정).
- * 모르는 사람도 보는 곳이라 올리기 전에 그렇다고 알린다.
+ * 공개 피드에 올리기: 오늘 끝낸 할 일 하나를 고르고 짧은 글과 사진 한 장(2026-10-20)을 붙인다.
+ * 모르는 사람도 보는 곳이라 올리기 전에 그렇다고 알리고, 사진에는 얼굴·개인정보를 올리지 말라고 적는다.
  */
 export function PostComposer({ todos }: { todos: DoneTodo[] }) {
   const [state, action, pending] = useFormAction<PostFormState>(createPost, null);
   const [picked, setPicked] = useState(todos[0]?.id ?? "");
   const [length, setLength] = useState(0);
+  const [photo, setPhoto] = useState("");
   const form = useRef<HTMLFormElement>(null);
 
   // 올리면 글 칸을 비운다.
@@ -24,6 +26,7 @@ export function PostComposer({ todos }: { todos: DoneTodo[] }) {
     if (!state?.ok || !form.current) return;
     form.current.reset();
     setLength(0);
+    setPhoto("");
   }, [state]);
 
   if (todos.length === 0) {
@@ -66,6 +69,8 @@ export function PostComposer({ todos }: { todos: DoneTodo[] }) {
         aria-label="피드 글"
         className="w-full resize-none rounded-xl bg-surface-hover px-4 py-3 text-[15px] outline-none placeholder:text-muted focus:ring-2 focus:ring-brand"
       />
+      <PostPhotoField photo={photo} onChange={setPhoto} />
+      {photo && <p className="text-xs text-muted">사진에 얼굴이나 개인정보가 보이지 않게 해 주세요. 사진 속 위치 정보는 지우고 올려요.</p>}
       <div className="flex items-center justify-between gap-3">
         <p className="text-xs text-muted">
           모도리 사용자 누구나 볼 수 있어요 · {length}/{MAX_POST_BODY}

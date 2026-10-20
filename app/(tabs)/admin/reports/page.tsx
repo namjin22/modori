@@ -34,7 +34,7 @@ export default async function AdminReportsPage() {
       reporter: { select: { nickname: true } },
       reported: { select: { id: true, nickname: true, email: true, bio: true } },
       // 피드 글에서 한 신고면 그 글(2026-10-19). 지워졌으면 비어 있다.
-      post: { select: { id: true, todoContent: true, body: true, hiddenAt: true } },
+      post: { select: { id: true, todoContent: true, body: true, hiddenAt: true, photo: { select: { width: true, height: true } } } },
     },
   });
 
@@ -87,6 +87,17 @@ export default async function AdminReportsPage() {
                       <p className="text-xs text-muted">신고된 피드 글{report.post.hiddenAt ? " · 숨김" : ""}</p>
                       <p className="font-medium">✓ {report.post.todoContent}</p>
                       {report.post.body && <p className="whitespace-pre-line">{report.post.body}</p>}
+                      {report.post.photo && (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={`/api/post-photo/${report.post.id}`}
+                          alt="신고된 글의 사진"
+                          width={report.post.photo.width}
+                          height={report.post.photo.height}
+                          loading="lazy"
+                          className="max-h-64 w-auto max-w-full rounded-lg"
+                        />
+                      )}
                       {!report.post.hiddenAt && (
                         <form action={hidePost}>
                           <input type="hidden" name="postId" value={report.post.id} />

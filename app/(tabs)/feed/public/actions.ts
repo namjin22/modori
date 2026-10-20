@@ -9,12 +9,13 @@ import { isId } from "@/lib/ids";
 import { prisma } from "@/lib/prisma";
 import { canSeePublicFeed, visiblePostsWhere } from "@/lib/public-feed";
 import { MAX_POST_BODY, POSTS_PER_DAY } from "@/lib/public-feed-limits";
+import { PHOTO_POSTS_PER_DAY, parsePostPhoto } from "@/lib/post-photo";
 import { isReactionValue } from "@/lib/reactions";
 import { requireUser } from "@/lib/session";
 
 export type PostFormState = { message: string; ok?: boolean } | null;
 
-/** 오늘 끝낸 할 일 하나와 짧은 글을 공개 피드에 올린다. 할 일의 글자·색은 올린 때의 것을 적어 둔다. */
+/** 오늘 끝낸 할 일 하나와 짧은 글(과 사진 한 장, 있으면)을 공개 피드에 올린다. 할 일의 글자·색은 올린 때의 것을 적어 둔다. */
 export async function createPost(_previous: PostFormState, formData: FormData): Promise<PostFormState> {
   const user = await requireUser();
   if (!(await canSeePublicFeed(user.id))) return { message: "아직 열리지 않은 기능이에요." };
@@ -25,6 +26,13 @@ export async function createPost(_previous: PostFormState, formData: FormData): 
   const body = typeof raw === "string" ? raw.trim() : "";
   if (body.length > MAX_POST_BODY) return { message: `글은 ${MAX_POST_BODY}자까지 쓸 수 있어요.` };
 
+  // 사진은 없어도 된다. 있으면 브라우저가 줄여 보낸 JPEG data URL이고, 서버가 다시 검사한다.
+  const rawPhoto = formData.get("photo");
+  const photoValue = typeof rawPhoto === "string" ? rawPhoto : "";
+  if (formData.get("photoBusy")) return { message: "사진을 줄이는 중이에요. 잠깐 뒤에 올려 주세요." };
+  const photo = photoValue ? parsePostPhoto(photoValue) : null;
+  if (photoValue && !photo) return { message: "사진을 올리지 못했어요. 다른 사진으로 해 보세요." };
+
   const todo = await prisma.todo.findFirst({
     where: { id: todoId, userId: user.id, done: true, date: todayIn(user.timezone) },
     select: { content: true, color: true, category: { select: { color: true } } },
@@ -34,8 +42,21 @@ export async function createPost(_previous: PostFormState, formData: FormData): 
   const recent = await prisma.post.count({ where: { userId: user.id, createdAt: { gt: new Date(Date.now() - 24 * 60 * 60 * 1000) } } });
   if (recent >= POSTS_PER_DAY) return { message: `하루에 ${POSTS_PER_DAY}개까지 올릴 수 있어요.` };
 
+  if (photo) {
+    const withPhoto = await prisma.post.count({
+      where: { userId: user.id, createdAt: { gt: new Date(Date.now() - 24 * 60 * 60 * 1000) }, photo: { isNot: null } },
+    });
+    if (withPhoto >= PHOTO_POSTS_PER_DAY) return { message: `사진은 하루에 ${PHOTO_POSTS_PER_DAY}개 글까지 붙일 수 있어요.` };
+  }
+
   await prisma.post.create({
-    data: { userId: user.id, todoContent: todo.content, todoColor: todo.color ?? todo.category?.color ?? null, body },
+    data: {
+      userId: user.id,
+      todoContent: todo.content,
+      todoColor: todo.color ?? todo.category?.color ?? null,
+      body,
+      ...(photo && { photo: { create: photo } }),
+    },
   });
   revalidatePath("/feed/public");
   return { message: "피드에 올렸어요.", ok: true };

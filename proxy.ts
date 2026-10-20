@@ -53,7 +53,10 @@ async function bucketFor(request: NextRequest): Promise<{ bucket: string; rule: 
   if (pathname === "/api/errors" && request.method === "POST") {
     return { bucket: `errors:${key}`, rule: ERROR_REPORT_RULE };
   }
-  if (pathname.startsWith("/api/avatar/")) return { bucket: `avatar:${key}`, rule: AVATAR_RULE };
+  // 피드 한 화면에 사진이 여러 장 한꺼번에 와서(글 30개) 프로필 사진과 같은 넉넉한 버킷에 넣는다.
+  if (pathname.startsWith("/api/avatar/") || pathname.startsWith("/api/post-photo/")) {
+    return { bucket: `avatar:${key}`, rule: AVATAR_RULE };
+  }
   // 화면 미리 받기(주간 날짜 일곱 칸 등)는 한 화면에 여러 번 온다. 사람이 누른 요청과 같은 버킷에 넣으면 날짜를 몇 번 옮기는 사이 한도에 닿는다.
   if (request.headers.get("next-router-prefetch") === "1") return { bucket: `prefetch:${key}`, rule: PREFETCH_RULE };
   return { bucket: key, rule };

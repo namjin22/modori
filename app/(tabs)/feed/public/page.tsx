@@ -31,7 +31,7 @@ function readCursor(raw: string | undefined): { at: Date; id: string } | null {
 }
 
 /**
- * 공개 피드(2026-10-19): 모도리 사용자 누구나 올린 "끝낸 할 일 + 짧은 글"을 최신순으로 본다. 반응은 이모지만, 사진·댓글은 없다.
+ * 공개 피드(2026-10-19): 모도리 사용자 누구나 올린 "끝낸 할 일 + 짧은 글 + 사진 한 장(2026-10-20)"을 최신순으로 본다. 반응은 이모지만, 댓글은 없다.
  * 서로 차단한 사람의 글과 운영자가 숨긴 글은 보이지 않는다. 열리기 전에는 운영자만 본다(lib/public-feed.ts).
  */
 export default async function PublicFeedPage({ searchParams }: { searchParams: Promise<{ after?: string }> }) {
@@ -59,6 +59,7 @@ export default async function PublicFeedPage({ searchParams }: { searchParams: P
         todoContent: true,
         todoColor: true,
         createdAt: true,
+        photo: { select: { width: true, height: true } },
         user: { select: { id: true, nickname: true, profileImage: true, avatarCharacter: true } },
         reactions: { select: { emoji: true, userId: true, user: { select: { nickname: true } } }, orderBy: { createdAt: "asc" } },
       },
@@ -121,6 +122,19 @@ export default async function PublicFeedPage({ searchParams }: { searchParams: P
                   <span className="min-w-0 flex-1 truncate font-medium">{post.todoContent}</span>
                 </div>
                 {post.body && <p className="whitespace-pre-line wrap-break-word text-[15px]">{post.body}</p>}
+                {post.photo && (
+                  // 사진은 주소로 받아 브라우저가 한 번만 받아 둔다(글 30개의 사진을 HTML에 싣지 않는다). 크기를 알려 줘서 불러오는 동안 칸이 흔들리지 않는다.
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={`/api/post-photo/${post.id}`}
+                    alt={`${post.user.nickname ?? "사용자"}님이 올린 사진`}
+                    width={post.photo.width}
+                    height={post.photo.height}
+                    loading="lazy"
+                    decoding="async"
+                    className="max-h-[28rem] w-full rounded-xl bg-surface-hover object-cover"
+                  />
+                )}
                 <ReactionBar
                   todoId={post.id}
                   summary={summarizeReactions(post.reactions, user.id)}
