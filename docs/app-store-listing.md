@@ -19,7 +19,7 @@ Google Play 등록정보는 `docs/store-listing.md`, 서명·업로드 방법은
 | 지원 국가 | 대한민국만으로 시작(해외 친구가 있으면 모든 국가로 넓힌다. 앱은 휴대폰 시간대를 자동으로 따라 쓸 수 있다) |
 
 ## 프로모션 텍스트 (170자, 심사 없이 언제든 바꿀 수 있다)
-친구를 팔로우하고, 끝낸 할 일에 도리 표정으로 반응을 보내 보세요. 카테고리 색으로 하루가 채워지는 걸 한눈에 볼 수 있어요.
+오늘 할 일을 적고, 친구가 끝낸 일에 도리 표정으로 반응을 보내 보세요. 할 일과 일정을 루틴으로 반복하고, 정한 시각에 남은 할 일을 알려 줘요.
 
 ## 설명 (4000자)
 모도리는 친구와 함께 매일을 채워 가는 할 일 앱이에요.
@@ -27,24 +27,27 @@ Google Play 등록정보는 `docs/store-listing.md`, 서명·업로드 방법은
 날짜별로 할 일을 적고, 카테고리 색으로 나눠 한눈에 보세요. 끝낸 일이 늘수록 고양이 도리가 색으로 채워져요.
 
 ■ 할 일
-- 카테고리마다 색을 정해 날짜별로 기록해요.
-- 반복되는 일은 루틴으로 등록해요. 요일이나 날짜를 골라요.
-- 못 끝낸 일은 한 번에 오늘로 옮기거나 다른 날로 미뤄요.
-- 할 일을 길게 눌러 끌면 순서를 바꾸고 다른 카테고리로 옮겨요.
+- 카테고리마다 색을 정해 날짜별로 기록해요. 자주 쓰는 색 8가지 말고도 100가지 색이나 색상 코드로 고를 수 있어요.
 - 할 일마다 메모를 남겨요.
+- 못 끝낸 일은 버튼 하나로 한꺼번에 내일로 넘기거나, 하나씩 다른 날로 옮겨요.
+- 할 일을 길게 눌러 끌면 순서를 바꾸고 다른 카테고리로 옮겨요.
+
+■ 루틴
+- 매일, 요일마다, 매달 같은 날처럼 반복되는 할 일을 루틴으로 등록해요.
+- 학원·동아리 모임처럼 반복되는 일정도 루틴으로 만들 수 있어요.
 
 ■ 달력과 일정
 - 한 달 달력에서 날짜를 누르면 바로 그날의 할 일이 보여요.
-- 시험, 발표처럼 기다리는 날은 일정과 D-day로 적어요.
+- 시험, 발표처럼 기다리는 날은 일정으로 적고 D-day를 확인해요.
 
 ■ 친구와 함께
-- 친구를 팔로우하면 친구가 공개한 카테고리의 할 일을 볼 수 있어요.
+- 친구를 팔로우하면 친구의 할 일과 일정을 볼 수 있어요.
 - 끝낸 일에 이모지나 도리·몽이·하루·펭이 표정으로 반응을 보내요.
-- 숨기고 싶은 카테고리·일정·메모는 "비공개"를 켜면 나만 봐요.
+- 보여 주고 싶지 않은 카테고리·일정·메모는 "비공개"를 켜면 나만 봐요.
 - 불쾌한 사람은 신고하거나 차단할 수 있어요.
 
 ■ 알림
-- 친구가 보낸 반응과 새 팔로워를 알려 줘요.
+- 친구가 보낸 반응, 새 팔로워, 친구가 끝낸 할 일을 알려 줘요. 친구가 끝낸 일 알림은 끌 수 있어요.
 - 원하면 하루 한 번, 정한 시각에 오늘 남은 할 일 수를 알려 줘요.
 
 ■ 기록
@@ -102,25 +105,42 @@ iPad는 지원하지 않는다(iPhone 전용).
 - 심사자는 자기 Apple ID로 "Apple로 계속하기"를 눌러 들어올 수 있다. 그래도 심사용 Google 계정(2단계 인증을 끈 새 계정)을 하나 만들어 아이디·비밀번호를 적어 두면 막히지 않는다.
 - 친구 기능을 보여 주려고, 심사용 계정이 팔로우한 시연용 계정과 공개 할 일을 미리 만들어 둔다.
 
-메모(영문 권장, 아래를 붙여 넣는다). 할 일 리마인드(2026-10-14)가 배포되기 전에 제출하면 리마인드 문장은 뺀다(설명과 앱이 다르면 거절된다):
+메모(영문, 아래를 그대로 붙여 넣는다). 2026-10-20에 다시 썼다: 심사자가 3분 안에 기능을 다 볼 수 있게 순서를 주고, 아이폰에서만 되는 기능(푸시·리마인드·Apple 로그인)을 앞에 둔다.
+"웹을 감싼 앱"이라고 먼저 소개하던 문장은 뺐다(4.2 최소 기능 심사에서 그 말부터 보게 된다). 서버에서 화면을 받아 네트워크가 필요하다는 사실은 그대로 적는다.
 
 ```
-Demo account: Google sign-in with the account above (2-step verification is off). It already follows a demo friend ("모도리친구") so the social features are visible. You can also use "Sign in with Apple".
+Demo account: tap "Continue with Google" and sign in with the account in the Sign-In Information fields (2-step verification is off). You can also use "Sign in with Apple" with any Apple ID.
+The demo account already follows a demo friend "모도리친구", who has tasks, reactions and an upcoming exam, so every social screen has content.
 
-Modori is a to-do app where friends follow each other and react to completed tasks.
-The app is a native shell (Capacitor) around our web service https://modori.site, which is the same codebase for Android, desktop and web. The server renders all screens, so the app needs a network connection.
+What to try (about 3 minutes)
+1. Home (피드 tab): add a task, tap its checkbox to complete it, long-press and drag to reorder. The "관리" (Manage) menu opens Categories, a new Event, and Routines (repeating tasks and events).
+2. Social (소셜 tab): tap 모도리친구 to see their tasks and events, then tap an emoji under a completed task to react.
+3. Social > 알림 (Notifications): reactions, new followers and friends' completed tasks.
+4. My Page (마이페이지) > 알림: allow notifications to receive push notifications for reactions, new followers and friends' completed tasks (can be turned off), and turn on the optional daily reminder at a chosen time, which tells you how many tasks are left today.
 
-Sign in: tap "Sign in with Apple" or "Continue with Google". There is no password login (we never store passwords).
-Account deletion: My Page tab > "계정 지우기" (Delete account) at the bottom. Type your nickname to confirm. Apple tokens are revoked on deletion.
+On iPhone, Modori uses native push notifications (APNs), the daily reminder, Sign in with Apple, and the device time zone automatically. Screens are loaded from our server (https://modori.site), so a network connection is required.
 
-User-generated content (Guideline 1.2): other users can see a followed user's nickname, bio, profile photo and the tasks they chose to make public.
-- Report: open a user's page > "..." button at the top > Report (reason + optional text).
-- Block: same menu > Block. Blocking removes follows and reactions both ways and hides both users from each other. Blocked users are listed in My Page > Blocked users.
-- Reports are reviewed by the operator (penamjin@gmail.com), normally within 24 hours; offending accounts are removed. The terms of service (Settings > Terms) prohibit objectionable content.
+Account deletion: My Page > "계정 지우기" (Delete account) at the bottom. Type your nickname to confirm. All data is deleted and the Sign in with Apple token is revoked.
 
-Push notifications are optional: reactions, new followers, and (if the user turns it on in My Page > 알림) one daily reminder of how many tasks are left today.
-No tracking, no ads, no in-app purchases.
+User-generated content (Guideline 1.2): users only see people they follow (nickname, bio, profile photo, and the tasks and events they did not mark private).
+- Report: on a user's page, tap "⋯" at the top > 신고하기 (Report), choose a reason.
+- Block: same menu > 차단하기 (Block). Follows and reactions are removed both ways and the two users can no longer see each other.
+- The operator reviews reports within 24 hours and removes offending content and accounts. The Terms of Use (My Page > 이용약관) prohibit objectionable content.
+
+No ads, no tracking, no in-app purchases. Contact: penamjin@gmail.com
 ```
+
+## 다시 제출하기 (2026-10-20, 심사 대기 6일)
+
+"심사 대기 중"은 아직 아무도 보지 않은 상태라, 제출 내용이 막힌 원인일 가능성은 낮다. 심사에서 빼면 줄 맨 뒤로 간다. 그래도 다시 내는 이유는 제출 뒤에 서버 쪽 기능이 늘어 설명이 실제 앱과 달라졌기 때문이다(친구가 끝낸 일 알림, 반복 일정, 일정·메모 보기, 비공개 스위치, 100색). 설명과 앱이 다르면 2.3(정확한 메타데이터)으로 거절될 수 있다.
+
+1. 시연 데이터를 오늘 기준으로 다시 깐다: `deploy/refresh-review-demo.sql`(심사가 사흘 넘게 안 열리면 한 번 더).
+2. App Store Connect → 앱 심사 → 제출 항목을 열고 "심사에서 제거". 버전 상태가 "개발자 거부됨"이 된다.
+3. iOS 1.0 버전 화면에서 프로모션 텍스트·설명·심사 메모를 위 글로 바꾼다. 빌드는 같은 것을 쓴다(새 빌드 필요 없음).
+4. 앱 개인정보·연령 등급이 "완료"인지 확인하고 "심사에 추가" → "심사에 제출".
+5. 다시 48시간 넘게 "심사 대기 중"이면 App Store Connect 맨 아래 "문의하기" → App Review → 심사 상태 문의를 보낸다. 줄 순서는 잃지 않는다.
+
+공개 피드("모두" 탭)는 이번 심사에 넣지 않는다(운영자만 보인다). 심사 뒤 서버에서 바로 켜면 심사받지 않은 기능을 숨겨 둔 것으로 보일 수 있어서(2.3.1), 켤 때 새 버전(1.0.1)으로 심사 메모에 적어 다시 낸다.
 
 ## 올리기 전 확인
 - [x] (2026-10-13) 서버에 Apple 로그인 키 4개를 넣었고 로그인 화면에 "Apple로 계속하기"가 보인다(`docs/mobile-release.md` 4절)
