@@ -454,9 +454,22 @@ model Post {
   user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   reactions PostReaction[]
   reports   Report[]
+  photo     PostPhoto?
 
   @@index([createdAt])
   @@index([userId, createdAt])
+}
+
+// 피드 글에 붙인 사진 한 장(2026-10-20). 글 목록을 읽을 때 사진 바이트가 딸려 오지 않게 Post와 떼어 둔 표다.
+// 브라우저에서 긴 변 1080px 이하 JPEG로 다시 그려 올린다(위치 같은 사진 속 정보는 이 과정에서 사라진다). 한 장 대개 100~250KB.
+// 글을 지우거나 계정을 지우면 같이 지워진다.
+model PostPhoto {
+  postId String @id
+  data   Bytes
+  width  Int
+  height Int
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
 }
 
 // 피드 글에 보낸 이모지 반응. 할 일 반응과 같은 값(lib/reactions.ts)을 쓴다.

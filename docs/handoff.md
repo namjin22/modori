@@ -1730,3 +1730,12 @@ VM에 시험 DB(사용자 1000, 할 일 108만, 반응 24만, 280MB)를 만들�
 - 시험: `tests/unit/web-push.test.ts`, `tests/e2e/web-push.spec.ts`(가짜 구독), `tests/e2e/service-worker.spec.ts`(Chrome 개발자 도구로 서비스 워커에 푸시를 넣음, 이 파일만 `channel: "chromium"` — 기본 headless 셸은 알림 권한을 늘 거절한다). 시험 서버는 돌 때마다 일회용 VAPID 열쇠를 만든다(`playwright.config.ts`).
 - 확인 못 한 것: 진짜 브라우저 푸시 서버(Chrome→Google 등)를 거쳐 도착하는 것. 배포 뒤 Chrome에서 켜고 다른 계정으로 반응을 보내 손으로 본다.
 - `npm audit`의 high 7개는 `sharp`·`source-map-js` 등 원래 있던 것이다(web-push와 무관). 이번에 고치지 않았다.
+
+## 2026-10-20 (피드 사진) — 브랜치 `feat/post-photo`
+
+- 피드 글에 사진 한 장. 새 표 `PostPhoto`(마이그레이션 `post_photo`, 표 추가만, 시험 DB에 적용). `components/post-photo-field.tsx`(브라우저에서 1080px JPEG로 줄임), `lib/post-photo.ts`(서버 검사), `app/api/post-photo/[id]/route.ts`(글을 볼 수 있는 사람에게만), 신고 화면에 사진. 하루 사진 글 3개.
+- 시험: `tests/unit/post-photo.test.ts`, `tests/e2e/post-photo.spec.ts`(줄이기·위치 정보 제거·거절·하루 상한·열람 권한).
+- 방침·약관 시행일 10/20(사진과 사진 규칙). 공개(`LAUNCHED`)는 여전히 `false`. iOS 심사 중이라 운영 반영해도 운영자만 본다.
+- 운영 DB 마이그레이션은 배포가 `migrate deploy`로 한다.
+- 다음: iOS 심사 통과 뒤 `LAUNCHED = true`와 1.0.1 제출(심사 메모에 피드·사진·신고 안내). 공개 뒤 `PostPhoto` 용량을 본다(Neon 백업 한도 512MB).
+

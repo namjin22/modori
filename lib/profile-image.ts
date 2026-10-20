@@ -13,11 +13,11 @@ export const MAX_PROFILE_IMAGE_LENGTH = 120_000;
 const DATA_URL = /^data:image\/(png|jpeg|webp);base64,([A-Za-z0-9+/]+={0,2})$/;
 
 /** 0이 아니고 상한 이하여야 한다. */
-function withinLimit(width: number, height: number): boolean {
-  return width > 0 && height > 0 && width <= MAX_PROFILE_IMAGE_DIMENSION && height <= MAX_PROFILE_IMAGE_DIMENSION;
+function withinLimit(width: number, height: number, limit: number): boolean {
+  return width > 0 && height > 0 && width <= limit && height <= limit;
 }
 
-function hasPngStructure(bytes: Buffer): boolean {
+function hasPngStructure(bytes: Buffer, limit: number): boolean {
   if (bytes.length < 57 || !bytes.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))) return false;
   let offset = 8;
   let hasIdat = false;
@@ -27,7 +27,7 @@ function hasPngStructure(bytes: Buffer): boolean {
     if (end > bytes.length) return false;
     const chunk = bytes.toString("ascii", offset + 4, offset + 8);
     if (offset === 8 && (chunk !== "IHDR" || length !== 13 ||
-      !withinLimit(bytes.readUInt32BE(offset + 8), bytes.readUInt32BE(offset + 12)))) return false;
+      !withinLimit(bytes.readUInt32BE(offset + 8), bytes.readUInt32BE(offset + 12), limit))) return false;
     if (chunk === "IDAT" && length > 0) hasIdat = true;
     if (chunk === "IEND") return length === 0 && hasIdat && end === bytes.length;
     offset = end;
@@ -35,28 +35,38 @@ function hasPngStructure(bytes: Buffer): boolean {
   return false;
 }
 
-function hasJpegStructure(bytes: Buffer): boolean {
+/**
+ * JPEG 파일의 기본 구조를 확인하고 가로·세로를 읽는다. 구조가 틀리거나 상한(limit)을 넘으면 null.
+ * 피드 사진은 서버가 크기를 직접 읽어 적는다(보낸 쪽이 말한 크기는 믿지 않는다, lib/post-photo.ts).
+ */
+export function jpegSize(bytes: Buffer, limit: number): { width: number; height: number } | null {
   if (bytes.length < 12 || bytes[0] !== 0xff || bytes[1] !== 0xd8 ||
-    bytes[bytes.length - 2] !== 0xff || bytes[bytes.length - 1] !== 0xd9) return false;
+    bytes[bytes.length - 2] !== 0xff || bytes[bytes.length - 1] !== 0xd9) return null;
   let offset = 2;
-  let hasFrame = false;
+  let size: { width: number; height: number } | null = null;
   while (offset + 4 <= bytes.length - 2) {
-    if (bytes[offset++] !== 0xff) return false;
+    if (bytes[offset++] !== 0xff) return null;
     while (bytes[offset] === 0xff) offset++;
     const marker = bytes[offset++];
-    if (marker === 0 || marker === 0xd8 || marker === 0xd9 || offset + 2 > bytes.length - 2) return false;
+    if (marker === 0 || marker === 0xd8 || marker === 0xd9 || offset + 2 > bytes.length - 2) return null;
     const length = bytes.readUInt16BE(offset);
-    if (length < 2 || offset + length > bytes.length - 2) return false;
+    if (length < 2 || offset + length > bytes.length - 2) return null;
     if (marker >= 0xc0 && marker <= 0xcf && marker !== 0xc4 && marker !== 0xc8 && marker !== 0xcc) {
-      hasFrame = length >= 7 && withinLimit(bytes.readUInt16BE(offset + 5), bytes.readUInt16BE(offset + 3));
+      const width = bytes.readUInt16BE(offset + 5);
+      const height = bytes.readUInt16BE(offset + 3);
+      size = length >= 7 && withinLimit(width, height, limit) ? { width, height } : null;
     }
-    if (marker === 0xda) return hasFrame && length >= 6 && offset + length < bytes.length - 2;
+    if (marker === 0xda) return size && length >= 6 && offset + length < bytes.length - 2 ? size : null;
     offset += length;
   }
-  return false;
+  return null;
 }
 
-function hasWebpStructure(bytes: Buffer): boolean {
+function hasJpegStructure(bytes: Buffer, limit: number): boolean {
+  return jpegSize(bytes, limit) !== null;
+}
+
+function hasWebpStructure(bytes: Buffer, limit: number): boolean {
   if (bytes.length < 20 || bytes.toString("ascii", 0, 4) !== "RIFF" ||
     bytes.readUInt32LE(4) !== bytes.length - 8 || bytes.toString("ascii", 8, 12) !== "WEBP") return false;
   let offset = 12;
@@ -68,13 +78,13 @@ function hasWebpStructure(bytes: Buffer): boolean {
     if (data + size > bytes.length) return false;
     if (type === "VP8 " && size >= 10 && bytes.subarray(data + 3, data + 6).equals(Buffer.from([0x9d, 0x01, 0x2a]))) {
       // 손실 WebP: 가로·세로는 14비트씩이다.
-      if (!withinLimit(bytes.readUInt16LE(data + 6) & 0x3fff, bytes.readUInt16LE(data + 8) & 0x3fff)) return false;
+      if (!withinLimit(bytes.readUInt16LE(data + 6) & 0x3fff, bytes.readUInt16LE(data + 8) & 0x3fff, limit)) return false;
       hasImage = true;
     }
     if (type === "VP8L" && size >= 5 && bytes[data] === 0x2f) {
       // 무손실 WebP: 가로-1, 세로-1을 14비트씩 담는다.
       const bits = bytes.readUInt32LE(data + 1);
-      if (!withinLimit((bits & 0x3fff) + 1, ((bits >>> 14) & 0x3fff) + 1)) return false;
+      if (!withinLimit((bits & 0x3fff) + 1, ((bits >>> 14) & 0x3fff) + 1, limit)) return false;
       hasImage = true;
     }
     offset = data + size + (size % 2);
@@ -82,10 +92,10 @@ function hasWebpStructure(bytes: Buffer): boolean {
   return hasImage && offset === bytes.length;
 }
 
-function hasImageStructure(type: string, bytes: Buffer): boolean {
-  if (type === "png") return hasPngStructure(bytes);
-  if (type === "jpeg") return hasJpegStructure(bytes);
-  return hasWebpStructure(bytes);
+function hasImageStructure(type: string, bytes: Buffer, limit: number): boolean {
+  if (type === "png") return hasPngStructure(bytes, limit);
+  if (type === "jpeg") return hasJpegStructure(bytes, limit);
+  return hasWebpStructure(bytes, limit);
 }
 
 /**
@@ -97,5 +107,5 @@ export function isProfileImage(value: string): boolean {
   const match = DATA_URL.exec(value);
   if (!match || match[2].length % 4 !== 0) return false;
   const bytes = Buffer.from(match[2], "base64");
-  return bytes.toString("base64") === match[2] && hasImageStructure(match[1], bytes);
+  return bytes.toString("base64") === match[2] && hasImageStructure(match[1], bytes, MAX_PROFILE_IMAGE_DIMENSION);
 }
