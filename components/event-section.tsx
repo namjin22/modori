@@ -81,18 +81,31 @@ export function EventSection({
 
   return (
     <section ref={sectionRef} aria-label="일정" className="flex scroll-mt-4 flex-col gap-3">
-      <button
-        type="button"
-        aria-expanded={creating}
-        onClick={() => setCreating((value) => !value)}
-        // 열린 채로 다시 누르면 입력칸이 먼저 포커스를 잃어 닫혔다가 클릭으로 다시 열린다.
-        onMouseDown={(event) => {
-          if (creating) event.preventDefault();
-        }}
-        className="-mx-1.5 -my-1.5 w-fit px-1.5 py-1.5 text-sm font-semibold text-foreground"
-      >
-        일정
-      </button>
+      <div className="flex items-center justify-between">
+        <button
+          type="button"
+          aria-expanded={creating}
+          onClick={() => setCreating((value) => !value)}
+          // 열린 채로 다시 누르면 입력칸이 먼저 포커스를 잃어 닫혔다가 클릭으로 다시 열린다.
+          onMouseDown={(event) => {
+            if (creating) event.preventDefault();
+          }}
+          className="-mx-1.5 -my-1.5 w-fit px-1.5 py-1.5 text-sm font-semibold text-foreground"
+        >
+          일정
+        </button>
+        {/* 일정이 이미 있으면 더 넣는 버튼은 제목 줄 오른쪽에 작게 둔다. 예전에는 카드 아래에 폭 전체를 쓰는 점선 상자였다(2026-10-20). */}
+        {!creating && single.length > 0 && single.length < LIMITS.eventsPerDay && (
+          <button
+            type="button"
+            onClick={() => setCreating(true)}
+            aria-label="+ 일정 더 적기"
+            className="-my-1 flex h-8 items-center rounded-full px-3 text-xs font-medium text-muted hover:bg-surface hover:text-foreground"
+          >
+            + 추가
+          </button>
+        )}
+      </div>
 
       {creating && (
         <div
@@ -141,22 +154,21 @@ export function EventSection({
         </ul>
       )}
 
-      {/* 제목("일정")만 있으면 누를 수 있는 곳인지 모른다. 예전에는 비어 있을 때만 이 버튼이 있어서
-          하나를 만들면 더 넣을 길이 안 보였다. 하루 상한까지는 늘 둔다. */}
-      {!creating &&
-        (single.length < LIMITS.eventsPerDay ? (
-          <button
-            type="button"
-            onClick={() => setCreating(true)}
-            className="rounded-xl border border-dashed border-border py-3 text-sm text-muted hover:bg-surface"
-          >
-            {single.length === 0 ? "시험이나 행사 적어두기" : "+ 일정 더 적기"}
-          </button>
-        ) : (
-          <p className="text-center text-xs text-muted">
-            일정은 하루에 {LIMITS.eventsPerDay}개까지 둘 수 있어요
-          </p>
-        ))}
+      {/* 제목("일정")만 있으면 누를 수 있는 곳인지 모른다. 비어 있을 때는 이 상자, 하나라도 있으면 제목 줄의 "+ 추가"로 더 넣는다. */}
+      {!creating && single.length === 0 && (
+        <button
+          type="button"
+          onClick={() => setCreating(true)}
+          className="rounded-xl border border-dashed border-border py-3 text-sm text-muted hover:bg-surface"
+        >
+          시험이나 행사 적어두기
+        </button>
+      )}
+      {!creating && single.length >= LIMITS.eventsPerDay && (
+        <p className="text-center text-xs text-muted">
+          일정은 하루에 {LIMITS.eventsPerDay}개까지 둘 수 있어요
+        </p>
+      )}
 
       {upcoming.length > 0 && (
         <ul className="flex flex-col gap-1">
@@ -212,17 +224,17 @@ export function EventSection({
               }}
               onSaved={() => setEditing(null)}
               onCancel={() => setEditing(null)}
+              deleteButton={
+                <UndoableDeleteButton
+                  id={editing.id}
+                  remove={deleteEvent}
+                  restore={restoreEvent}
+                  message="일정을 지웠어요"
+                  onDone={() => setEditing(null)}
+                  className="-ml-2 h-11 rounded-xl px-2 text-sm font-medium text-danger"
+                />
+              }
             />
-            <div className="flex justify-end">
-              <UndoableDeleteButton
-                id={editing.id}
-                remove={deleteEvent}
-                restore={restoreEvent}
-                message="일정을 지웠어요"
-                onDone={() => setEditing(null)}
-                className="h-10 rounded-xl px-3 text-sm font-medium text-danger"
-              />
-            </div>
           </>
         )}
       </Modal>

@@ -29,6 +29,23 @@ function longLabel(value: string): string | null {
 }
 
 /**
+ * 좁은 칸에 쓰는 짧은 날짜. 올해는 "10월 2일 (금)", 다른 해는 "2027.1.5 (화)".
+ * 일정 창은 날짜 두 칸이 한 줄에 놓여 긴 날짜가 스크롤바만 생겨도 잘렸다(2026-10-20). 단추 이름(화면 읽기·시험용)은 긴 날짜 그대로다.
+ */
+function shortLabel(value: string, thisYear: number): string | null {
+  if (!value) return null;
+  try {
+    const date = parseKSTDate(value);
+    const [year, month, day] = [date.getUTCFullYear(), date.getUTCMonth() + 1, date.getUTCDate()];
+    const weekday = WEEKDAY_NAMES[weekdayKST(date)];
+    return year === thisYear ? `${month}월 ${day}일 (${weekday})` : `${year}.${month}.${day} (${weekday})`;
+  } catch (error) {
+    console.warn("[date-picker] 날짜를 읽지 못했다.", value, error instanceof Error ? error.name : error);
+    return null;
+  }
+}
+
+/**
  * 날짜 고르는 창. 브라우저 기본 날짜 칸(<input type="date">)은 기기마다 모양이 달랐고, 폰에서는 칸이 잘리거나 한 달씩
  * 넘기기가 불편했다(사용자 제보). 누르면 달력이 뜨고, 날을 누르면 바로 정해진다. 값은 "YYYY-MM-DD"로 주고받아 서버는 그대로다.
  *
@@ -43,6 +60,8 @@ export function DatePicker({
   clearable = false,
   emptyText = "날짜 고르기",
   compact = false,
+  short = false,
+  shortEmptyText,
 }: {
   // 화면 읽기용 이름. 단추 이름은 "새 일정 시작일: 2026년 10월 2일 (금)"처럼 읽힌다.
   label: string;
@@ -54,7 +73,12 @@ export function DatePicker({
   clearable?: boolean;
   emptyText?: string;
   compact?: boolean;
+  // 좁은 칸용: 단추에 짧은 날짜를 보인다.
+  short?: boolean;
+  // 좁은 칸에서 비어 있을 때 보일 짧은 글. 단추 이름(화면 읽기)은 emptyText 그대로다.
+  shortEmptyText?: string;
 }) {
+  const timezone = useTimezone();
   const [inner, setInner] = useState(defaultValue);
   const current = value ?? inner;
   const [open, setOpen] = useState(false);
@@ -66,6 +90,9 @@ export function DatePicker({
   }
 
   const text = longLabel(current) ?? emptyText;
+  const shown = short
+    ? (shortLabel(current, todayIn(timezone).getUTCFullYear()) ?? (current ? text : (shortEmptyText ?? text)))
+    : text;
 
   return (
     <>
@@ -83,7 +110,7 @@ export function DatePicker({
             <path d="M3.5 9.5h17M8 3.5v3M16 3.5v3" />
           </svg>
         </span>
-        <span className={`min-w-0 truncate ${current ? "" : "text-muted"}`}>{text}</span>
+        <span className={`min-w-0 truncate ${current ? "" : "text-muted"}`}>{shown}</span>
       </button>
 
       <Modal open={open} onClose={() => setOpen(false)} title="날짜 고르기">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 
 import {
   createEvent,
@@ -10,6 +10,7 @@ import {
 import { ColorSwatches } from "@/components/color-swatches";
 import { DatePicker } from "@/components/date-picker";
 import { LabeledSwitch } from "@/components/labeled-switch";
+import { MemoPrivateToggle } from "@/components/memo-private-toggle";
 import { PrivateSwitch } from "@/components/private-switch";
 import { SubmitButton } from "@/components/submit-button";
 import { TimePicker } from "@/components/time-picker";
@@ -43,12 +44,15 @@ export function EventForm({
   defaultDate,
   onSaved,
   onCancel,
+  deleteButton,
 }: {
   event?: EditingEvent;
   defaultDate: string;
   onSaved: () => void;
   // 취소를 누르면 만들기 칸이나 고치는 창을 닫는다.
   onCancel: () => void;
+  // 고치는 창의 삭제 버튼. 주면 취소·저장과 한 줄 왼쪽에 둔다(예전에는 그 아래 따로 한 줄을 차지했다, 2026-10-20).
+  deleteButton?: ReactNode;
 }) {
   const [state, action, pending] = useFormAction<EventFormState>(
     event ? updateEvent : createEvent,
@@ -104,15 +108,16 @@ export function EventForm({
         className="h-12 w-full rounded-xl bg-surface-hover px-4 text-[15px] outline-none placeholder:text-muted focus:ring-2 focus:ring-brand"
       />
 
-      {/* 날짜는 누르면 달력이 뜬다(components/date-picker.tsx). 한글 날짜가 길어 한 줄에 하나씩 둔다. */}
-      <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2">
+      {/* 날짜는 누르면 달력이 뜬다(components/date-picker.tsx). 짧은 날짜(10월 20일 (화))라 폰에서도 한 줄에 둘이 들어간다.
+          예전에는 긴 날짜라 폰에서는 한 줄에 하나씩, 넓은 화면에서는 스크롤바만 생겨도 "(..."로 잘렸다(2026-10-20). */}
+      <div className="grid grid-cols-2 gap-3">
         <div className="flex min-w-0 flex-col gap-1.5 text-xs text-muted">
           시작일
-          <DatePicker label={`${label} 시작일`} name="startDate" value={startDate} onChange={changeStartDate} />
+          <DatePicker label={`${label} 시작일`} name="startDate" value={startDate} onChange={changeStartDate} short />
         </div>
         <div className="flex min-w-0 flex-col gap-1.5 text-xs text-muted">
           종료일
-          <DatePicker label={`${label} 종료일`} name="endDate" value={endDate} onChange={setEndDate} />
+          <DatePicker label={`${label} 종료일`} name="endDate" value={endDate} onChange={setEndDate} short />
         </div>
       </div>
 
@@ -130,16 +135,12 @@ export function EventForm({
             }
           }}
         />
+        {/* 시작·끝을 한 줄에 둔다(예전에는 두 줄이라 하루 종일을 끄면 창이 크게 늘었다). */}
         {!allDay && (
-          <div className="flex flex-col gap-2">
-            <div className="flex items-center gap-3">
-              <span className="w-8 shrink-0 text-xs text-muted">시작</span>
-              <TimePicker label={`${label} 시작`} value={startTime} onChange={changeStart} />
-            </div>
-            <div className="flex items-center gap-3">
-              <span className="w-8 shrink-0 text-xs text-muted">끝</span>
-              <TimePicker label={`${label} 종료`} value={endTime} onChange={setEndTime} optional />
-            </div>
+          <div className="flex animate-rise items-center gap-2">
+            <TimePicker label={`${label} 시작`} value={startTime} onChange={changeStart} />
+            <span aria-hidden className="shrink-0 text-sm text-muted">~</span>
+            <TimePicker label={`${label} 종료`} value={endTime} onChange={setEndTime} optional />
           </div>
         )}
         <input type="hidden" name="startTime" value={allDay ? "" : startTime} />
@@ -149,35 +150,29 @@ export function EventForm({
       {/* 할 일 카테고리와 같은 색 팔레트. 달력 칸의 일정 이름표와 일정 카드의 띠가 이 색이 된다. */}
       <ColorSwatches name="color" legend="색" defaultValue={event?.color ?? DEFAULT_EVENT_COLOR} />
 
-      <LabeledSwitch
-        name="dday"
-        title="D-day 보이기"
-        description="끄면 D-day와 다가오는 일정 목록에서 빠져요"
-        defaultChecked={event?.dday ?? true}
-      />
+      {/* 메모 칸의 Enter는 줄바꿈이다(textarea라 폼을 보내지 않는다). 메모를 숨길지는 칸 바로 아래 한 줄이다(2026-10-20). */}
+      <div className="flex flex-col gap-0.5">
+        <textarea
+          name="memo"
+          defaultValue={event?.memo ?? ""}
+          maxLength={MAX_MEMO_LENGTH}
+          rows={3}
+          placeholder="메모"
+          aria-label={`${label} 메모`}
+          className="w-full resize-none rounded-xl bg-surface-hover px-4 py-3 text-sm outline-none placeholder:text-muted focus:ring-2 focus:ring-brand"
+        />
+        <MemoPrivateToggle forcedPrivate={isPrivate} defaultChecked={event ? !event.memoPublic : false} />
+      </div>
 
-      {/* 메모 칸의 Enter는 줄바꿈이다(textarea라 폼을 보내지 않는다). */}
-      <textarea
-        name="memo"
-        defaultValue={event?.memo ?? ""}
-        maxLength={MAX_MEMO_LENGTH}
-        rows={3}
-        placeholder="메모"
-        aria-label={`${label} 메모`}
-        className="w-full resize-none rounded-xl bg-surface-hover px-4 py-3 text-sm outline-none placeholder:text-muted focus:ring-2 focus:ring-brand"
-      />
-
-      {/* 팔로우한 친구에게 숨길지(기본은 보인다, 2026-10-18). 일정을 숨기면 메모도 숨는다. */}
-      <div className="flex flex-col gap-3 rounded-xl border border-border p-3">
-        <PrivateSwitch description="켜면 이 일정은 나만 봐요" checked={isPrivate} onChange={setIsPrivate} />
-        {!isPrivate && (
-          <PrivateSwitch
-            name="memoPrivate"
-            title="메모 비공개"
-            description="켜면 메모는 나만 봐요"
-            defaultChecked={event ? !event.memoPublic : false}
-          />
-        )}
+      {/* 켜고 끄는 것 둘을 한 상자에 줄로 나눠 둔다. 예전에는 D-day는 상자 없이, 비공개는 따로 상자에 있어 들쭉날쭉했다(2026-10-20).
+          비공개: 팔로우한 친구에게 숨길지(기본은 보인다, 2026-10-18). 일정을 숨기면 메모도 숨는다. */}
+      <div className="flex flex-col divide-y divide-border rounded-xl border border-border px-3">
+        <div className="py-3">
+          <LabeledSwitch name="dday" title="D-day 보이기" description="끄면 다가오는 일정 목록에서도 빠져요" defaultChecked={event?.dday ?? true} />
+        </div>
+        <div className="py-3">
+          <PrivateSwitch description="켜면 이 일정은 나만 봐요" checked={isPrivate} onChange={setIsPrivate} />
+        </div>
       </div>
 
       {state?.message && !state.ok && (
@@ -186,18 +181,19 @@ export function EventForm({
         </p>
       )}
 
-      <div className="grid grid-cols-2 gap-2">
+      <div className={deleteButton ? "flex items-center gap-2" : "grid grid-cols-2 gap-2"}>
+        {deleteButton && <div className="mr-auto">{deleteButton}</div>}
         <button
           type="button"
           onClick={onCancel}
-          className="h-11 rounded-xl bg-surface-hover text-sm font-semibold"
+          className={`h-11 rounded-xl bg-surface-hover text-sm font-semibold ${deleteButton ? "px-5" : ""}`}
         >
           취소
         </button>
         <SubmitButton
           pending={pending}
           pendingLabel="저장 중"
-          className="h-11 rounded-xl bg-brand text-sm font-semibold text-brand-contrast"
+          className={`h-11 rounded-xl bg-brand text-sm font-semibold text-brand-contrast ${deleteButton ? "px-7" : ""}`}
         >
           저장
         </SubmitButton>

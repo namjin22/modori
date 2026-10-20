@@ -19,7 +19,7 @@ export function RecommendSwitch({ hidden }: { hidden: boolean }) {
     <LabeledSwitch
       name="recommend"
       title="친구 추천에 나오기"
-      description="끄면 친구 찾기의 추천 목록에 내가 나오지 않아요. 이름을 검색하면 그대로 찾을 수 있어요."
+      description="끄면 추천에서 빠져요. 이름 검색으로는 찾을 수 있어요"
       checked={!optimisticHidden}
       onChange={(next) =>
         startTransition(async () => {

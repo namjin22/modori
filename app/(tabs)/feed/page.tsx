@@ -9,6 +9,7 @@ import { countUnreadNotifications, requireUser } from "@/lib/session";
 import { Dori } from "@/components/dori";
 import { FeedItem } from "@/components/feed-item";
 import { RecommendedFriends } from "@/components/recommended-friends";
+import { SocialHeader } from "@/components/social-header";
 import { SocialTabs } from "@/components/social-tabs";
 import { canSeePublicFeed } from "@/lib/public-feed";
 import { ScrollRow } from "@/components/scroll-row";
@@ -99,41 +100,18 @@ export default async function FeedPage({
 
   return (
     <div className="flex flex-col gap-6">
-      {/* 셋을 한 줄에 붙여두니 글씨도 작고 손가락으로 누르기도 어려웠다.
-          자주 쓰는 "친구 찾기"만 제목 옆에 두고, 나머지는 아래에 칩으로 편다. */}
-      <header className="flex flex-col gap-4">
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold">소셜</h1>
-          <Link prefetch={false}
-            href="/feed/search"
-            className="h-9 rounded-full bg-brand px-4 text-sm font-semibold leading-9 text-brand-contrast"
-          >
-            친구 찾기
-          </Link>
-        </div>
-
-        <div className="flex gap-2">
-          <Link prefetch={false}
-            href="/feed/reactions"
-            className="flex h-9 items-center gap-1.5 rounded-full bg-surface px-4 text-sm text-muted"
-          >
-            알림
-            {unreadCount > 0 && (
-              <span className="rounded-full bg-brand px-1.5 text-xs font-semibold text-brand-contrast">
-                {unreadCount}
-              </span>
-            )}
-          </Link>
-          <Link prefetch={false}
-            href="/feed/following"
-            className="flex h-9 items-center rounded-full bg-surface px-4 text-sm text-muted"
-          >
-            팔로우 중 {followingCount}
-          </Link>
-        </div>
-      </header>
-      {/* 공개 피드가 열렸으면 [피드 | 내 친구] 탭을 둔다. 이 화면은 "내 친구"다(2026-10-19). */}
+      <SocialHeader unread={unreadCount} />
+      {/* 공개 피드가 열렸으면 [모두 | 내 친구] 탭을 둔다. 이 화면은 "내 친구"다(2026-10-19). */}
       {publicFeed && <SocialTabs active="friends" />}
+
+      {/* 팔로우 목록은 "내 친구"에만 있는 것이라 탭 아래에 둔다(탭 막대가 두 탭에서 같은 자리에 있게). */}
+      <Link
+        prefetch={false}
+        href="/feed/following"
+        className="-mb-2 flex h-8 w-fit items-center rounded-full bg-surface px-3.5 text-sm text-muted hover:text-foreground"
+      >
+        팔로우 중 {followingCount}
+      </Link>
 
       {/* 친구 얼굴을 가로로 늘어놓고 옆으로 넘긴다. 누르면 그 친구 화면으로 간다.
           화면 가장자리까지 스크롤되게 바깥 여백만큼 넓혔다. */}

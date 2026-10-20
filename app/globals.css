@@ -142,8 +142,21 @@ body {
   }
 }
 
+/* 화면(탭)을 옮길 때. 완전히 투명한 데서 시작하면 한 박자 비어 보여 폰에서 탭 이동이 느리게 느껴졌다(2026-10-20).
+   반쯤 보이는 데서 짧게 자리 잡는다. */
+@keyframes page-in {
+  from {
+    opacity: 0.4;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
 main > * {
-  animation: rise 0.18s ease-out both;
+  animation: page-in 0.14s ease-out both;
 }
 
 button,
@@ -153,12 +166,17 @@ a {
     color 0.15s ease,
     border-color 0.15s ease,
     opacity 0.15s ease,
-    transform 0.1s ease;
+    transform 0.1s ease,
+    scale 0.1s ease;
 }
 
-button:active,
-a:active {
-  transform: scale(0.97);
+/* 누르면 살짝 작아진다. transform이 아니라 scale 속성이라, 컴포넌트가 active:scale-90처럼 따로 정한 값이 이걸 대신한다
+   (예전에는 transform과 scale이 곱해져 0.97 × 0.9로 두 번 줄었다). 레이어 안에 두어 유틸리티가 이긴다.
+   폭을 다 쓰는 줄·카드(w-full, flex-1, 양 끝 정렬 줄)는 줄이지 않는다. 0.97이면 양옆이 5px씩 들어가 화면이 덜컹거렸다(2026-10-20). */
+@layer base {
+  :is(button, a):active:not(.w-full, .flex-1, .justify-between) {
+    scale: 0.97;
+  }
 }
 
 /* 멀미나 어지럼을 느끼는 사람이 있다. 기기 설정을 존중한다. */
@@ -244,6 +262,18 @@ dialog[open]::backdrop {
   }
 }
 
+/* 눌러서 펼치는 메뉴. pop처럼 크게 튀었다 돌아오면(1.08배) 메뉴가 장난감처럼 출렁여 보였다(2026-10-20). 살짝 작은 데서 바로 자리 잡는다. */
+@keyframes menu-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
 /* 펼침(details)을 열면 안의 내용이 밀려 나오듯 나타난다. 루틴 화면 등 모든 펼침에 같이 걸린다. */
 details[open] > :not(summary) {
   animation: rise 0.18s ease-out both;
@@ -255,6 +285,7 @@ details[open] > :not(summary) {
   --animate-rise: rise 0.18s ease-out both;
   --animate-fade-in: fade-in 0.15s ease-out both;
   --animate-pop: pop 0.28s ease-out;
+  --animate-menu: menu-in 0.14s ease-out both;
 }
 
 /* 고르는 칸(select)의 ▾. 브라우저 기본 화살표는 칸 오른쪽 끝에 바짝 붙어 어색했다(2026-10-15 요청). 기본 화살표를 끄고
