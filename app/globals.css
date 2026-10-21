@@ -262,11 +262,12 @@ dialog[open]::backdrop {
   }
 }
 
-/* 눌러서 펼치는 메뉴. pop처럼 크게 튀었다 돌아오면(1.08배) 메뉴가 장난감처럼 출렁여 보였다(2026-10-20). 살짝 작은 데서 바로 자리 잡는다. */
+/* 눌러서 펼치는 메뉴. pop처럼 크게 튀었다 돌아오면(1.08배) 메뉴가 장난감처럼 출렁여 보였다(2026-10-20).
+   그다음 0.14초로 줄였더니 너무 빨라 무엇이 열렸는지 몰랐다(2026-10-21). 작은 데서 0.26초에 걸쳐 감속하며 자리 잡는다. */
 @keyframes menu-in {
   from {
     opacity: 0;
-    transform: translateY(-4px) scale(0.96);
+    transform: translateY(-8px) scale(0.9);
   }
   to {
     opacity: 1;
@@ -285,7 +286,9 @@ details[open] > :not(summary) {
   --animate-rise: rise 0.18s ease-out both;
   --animate-fade-in: fade-in 0.15s ease-out both;
   --animate-pop: pop 0.28s ease-out;
-  --animate-menu: menu-in 0.14s ease-out both;
+  --animate-menu: menu-in 0.26s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  /* 메뉴 항목. 상자를 따라 조금씩 늦게(style의 animationDelay) 떠오른다. */
+  --animate-menu-item: rise 0.24s cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 
 /* 고르는 칸(select)의 ▾. 브라우저 기본 화살표는 칸 오른쪽 끝에 바짝 붙어 어색했다(2026-10-15 요청). 기본 화살표를 끄고

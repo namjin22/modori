@@ -32,7 +32,7 @@ export function ManageMenu() {
   }, [open]);
 
   const item =
-    "flex h-12 w-full animate-rise items-center gap-3 rounded-xl px-3 text-left text-[15px] font-medium hover:bg-surface-hover focus-visible:bg-surface-hover";
+    "flex h-12 w-full animate-menu-item items-center gap-3 rounded-xl px-3 text-left text-[15px] font-medium hover:bg-surface-hover focus-visible:bg-surface-hover";
 
   return (
     <div ref={box} className="relative">
@@ -54,10 +54,11 @@ export function ManageMenu() {
         <div
           role="menu"
           aria-label="관리 메뉴"
-          // 버튼 아래에서 살짝 커지며 나온다(튀지 않게). 항목은 조금씩 늦게 떠오른다.
-          className="absolute left-0 top-10 z-30 flex w-48 origin-top-left animate-menu flex-col gap-0.5 rounded-2xl border border-border bg-surface p-1.5 shadow-xl"
+          // 버튼 아래에서 버튼 쪽(오른쪽 위)을 축으로 커지며 나온다. 0.14초는 너무 빨라 무엇이 열렸는지 몰랐다(2026-10-21 요청).
+          // 상자가 0.26초에 걸쳐 자리 잡고, 항목은 그 뒤를 따라 하나씩(60ms 간격) 떠오른다.
+          className="absolute right-0 top-10 z-30 flex w-48 origin-top-right animate-menu flex-col gap-0.5 rounded-2xl border border-border bg-surface p-1.5 shadow-xl"
         >
-          <Link prefetch={false} href="/categories" role="menuitem" className={item} onClick={() => setOpen(false)}>
+          <Link prefetch={false} href="/categories" role="menuitem" className={item} style={{ animationDelay: "60ms" }} onClick={() => setOpen(false)}>
             <Glyph>🏷️</Glyph>
             카테고리
           </Link>
@@ -65,7 +66,7 @@ export function ManageMenu() {
             type="button"
             role="menuitem"
             className={item}
-            style={{ animationDelay: "40ms" }}
+            style={{ animationDelay: "120ms" }}
             onClick={() => {
               setOpen(false);
               window.dispatchEvent(new Event(NEW_EVENT_EVENT));
@@ -79,7 +80,7 @@ export function ManageMenu() {
             href="/routines"
             role="menuitem"
             className={item}
-            style={{ animationDelay: "80ms" }}
+            style={{ animationDelay: "180ms" }}
             onClick={() => setOpen(false)}
           >
             <Glyph>🔁</Glyph>
