@@ -70,12 +70,11 @@ export function Modal({
           event.clientX >= box.left && event.clientX <= box.right && event.clientY >= box.top && event.clientY <= box.bottom;
         if (!inside) onClose();
       }}
-      // 가로는 가운데, 세로는 위쪽(화면 높이의 8%)에 붙인다. 예전에는 위아래 가운데(m-auto)였는데, 창 안에서 칸이 펼쳐지면
-      // (다른 날에 하기, 하루 종일 끄기) 창이 위아래로 같이 늘어 위쪽 끝과 제목이 튀어 올랐다(2026-10-20). 이제 아래로만 늘어난다.
-      // Tailwind 기본 설정이 모든 요소의 margin을 0으로 만들어 <dialog>의 원래 정렬이 지워지므로 여백을 직접 준다.
+      // 위아래 가운데에 뜬다(2026-10-21: 위쪽에 붙였더니 화면 한가운데가 아니라 어색하다는 제보로 되돌렸다).
       // 창 자체는 스크롤하지 않고(둥근 모서리를 스크롤바가 덮지 않게) 안쪽 칸이 스크롤한다. 그 칸은 스크롤바 자리를 늘 비워 두어
-      // 내용이 길어져 스크롤바가 생겨도 안쪽 폭이 그대로다(scroll-stable, 2026-10-21).
-      className="mx-auto mt-[max(1rem,8vh)] mb-auto max-h-[calc(100dvh-max(1rem,8vh)-1rem)] w-[min(26rem,calc(100vw-2rem))] overflow-hidden rounded-3xl bg-surface p-0 text-foreground shadow-xl open:flex open:animate-[modal-in_160ms_ease-out] open:flex-col"
+      // 내용이 길어져 스크롤바가 생겨도 안쪽 폭이 그대로다(scroll-stable). m-auto가 있어야 가운데에 뜬다:
+      // Tailwind 기본 설정이 모든 요소의 margin을 0으로 만들어 <dialog>의 원래 가운데 정렬이 지워진다.
+      className="m-auto max-h-[85dvh] w-[min(26rem,calc(100vw-2rem))] overflow-hidden rounded-3xl bg-surface p-0 text-foreground shadow-xl open:flex open:animate-[modal-in_160ms_ease-out] open:flex-col"
     >
       <div className="scroll-stable min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-5 sm:px-5">
       <div className="flex items-center justify-between gap-3">
