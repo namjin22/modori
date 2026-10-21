@@ -104,14 +104,7 @@ export default async function FeedPage({
       {/* 공개 피드가 열렸으면 [모두 | 내 친구] 탭을 둔다. 이 화면은 "내 친구"다(2026-10-19). */}
       {publicFeed && <SocialTabs active="friends" />}
 
-      {/* 팔로우 목록은 "내 친구"에만 있는 것이라 탭 아래에 둔다(탭 막대가 두 탭에서 같은 자리에 있게). */}
-      <Link
-        prefetch={false}
-        href="/feed/following"
-        className="-mb-2 flex h-8 w-fit items-center rounded-full bg-surface px-3.5 text-sm text-muted hover:text-foreground"
-      >
-        팔로우 중 {followingCount}
-      </Link>
+      {/* "팔로우 중" 칩은 없앴다(2026-10-21 운영자 요청). 목록은 마이페이지의 팔로우 숫자와 친구 줄의 "전체 보기"로 간다. */}
 
       {/* 친구 얼굴을 가로로 늘어놓고 옆으로 넘긴다. 누르면 그 친구 화면으로 간다.
           화면 가장자리까지 스크롤되게 바깥 여백만큼 넓혔다. */}

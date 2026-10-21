@@ -111,6 +111,14 @@ html {
   background: var(--background);
 }
 
+/* 안쪽에서 스크롤되는 칸(떠 있는 창, 넓은 화면의 달력 기둥, 반응 창의 이모지 목록). 내용이 길어져 스크롤바가 생기면 그 두께만큼
+   안쪽 폭이 줄어 칸 비율이 바뀌었다(2026-10-21 제보: 일정 창). 스크롤바 자리를 늘 비워 두고, 양쪽에 같이 비워 좌우 여백이 맞게 한다.
+   얇은 스크롤바를 써서 비워 두는 폭을 줄인다. 폰·Mac처럼 스크롤바가 떠 있는 기기는 비워 두는 폭이 0이라 그대로다. */
+@utility scroll-stable {
+  scrollbar-gutter: stable both-edges;
+  scrollbar-width: thin;
+}
+
 /* 앱은 화면이 상태 막대(시계·노치) 뒤까지 그려진다(iOS: capacitor.config.json contentInset: never, 안드로이드 15+: 화면 끝까지 그리기).
    내용이 가려지지 않게 그만큼 위를 띄운다. 아래는 하단 탭이 env(safe-area-inset-bottom)만큼 띄운다. data-app은 app/layout.tsx의
    머리 스크립트가 붙인다. 상태 막대 뒤까지 그리지 않는 기기에서는 이 값이 0이다. */
@@ -262,11 +270,12 @@ dialog[open]::backdrop {
   }
 }
 
-/* 눌러서 펼치는 메뉴. pop처럼 크게 튀었다 돌아오면(1.08배) 메뉴가 장난감처럼 출렁여 보였다(2026-10-20). 살짝 작은 데서 바로 자리 잡는다. */
+/* 눌러서 펼치는 메뉴. pop처럼 크게 튀었다 돌아오면(1.08배) 메뉴가 장난감처럼 출렁여 보였다(2026-10-20).
+   그다음 0.14초로 줄였더니 너무 빨라 무엇이 열렸는지 몰랐다(2026-10-21). 작은 데서 0.26초에 걸쳐 감속하며 자리 잡는다. */
 @keyframes menu-in {
   from {
     opacity: 0;
-    transform: translateY(-4px) scale(0.96);
+    transform: translateY(-8px) scale(0.9);
   }
   to {
     opacity: 1;
@@ -285,7 +294,9 @@ details[open] > :not(summary) {
   --animate-rise: rise 0.18s ease-out both;
   --animate-fade-in: fade-in 0.15s ease-out both;
   --animate-pop: pop 0.28s ease-out;
-  --animate-menu: menu-in 0.14s ease-out both;
+  --animate-menu: menu-in 0.26s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  /* 메뉴 항목. 상자를 따라 조금씩 늦게(style의 animationDelay) 떠오른다. */
+  --animate-menu-item: rise 0.24s cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 
 /* 고르는 칸(select)의 ▾. 브라우저 기본 화살표는 칸 오른쪽 끝에 바짝 붙어 어색했다(2026-10-15 요청). 기본 화살표를 끄고

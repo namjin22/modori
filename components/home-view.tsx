@@ -122,7 +122,7 @@ export function HomeView({ data }: { data: HomeData }) {
         </a>
         {/* 넓은 화면에서 달력 칸은 제자리에 둔다. 시작 위치(pt-8)와 같은 top-8이라 스크롤을 시작해도 움직이지 않고,
             창이 달력보다 낮으면(노트북) 칸 안에서만 스크롤해 페이지 끝에서 밀려 올라가지 않는다. */}
-        <div className="flex flex-col gap-4 lg:gap-6 lg:sticky lg:top-8 lg:max-h-[calc(100dvh-6rem)] lg:overflow-y-auto">
+        <div className="flex flex-col gap-4 lg:gap-6 lg:sticky lg:top-8 lg:max-h-[calc(100dvh-6rem)] lg:overflow-y-auto lg:scroll-stable">
           <Link prefetch={false} href="/settings/profile" className="flex items-center gap-3">
             <Avatar src={data.profile.avatar} size={48} />
             <span className="min-w-0">
@@ -161,16 +161,8 @@ export function HomeView({ data }: { data: HomeData }) {
           <SwapIn swapKey={selected} className="flex flex-col gap-6">
             {/* 카테고리와 루틴은 할 일을 적다가 바로 손보는 것이라 설정이 아니라 여기 둔다. */}
             {/* 가장 좁은 폰(320px)에서 달력 버튼만 다음 줄로 떨어지지 않게 여백을 줄인다. */}
-            <nav aria-label="할 일 관리" className="flex flex-wrap items-center gap-1.5 min-[360px]:gap-2">
-              {/* 카테고리·일정·루틴은 메뉴 하나로 묶는다(2026-10-19 요청). 기록은 따로 둔다. */}
-              <ManageMenu />
-              <Link
-                prefetch={false}
-                href="/stats"
-                className="flex h-8 items-center rounded-full bg-surface px-3 text-sm text-muted hover:text-foreground min-[360px]:px-3.5"
-              >
-                기록
-              </Link>
+            {/* 관리·기록은 오른쪽에 둔다(2026-10-21 요청). 다른 날을 볼 때만 생기는 "오늘로 돌아가기"는 왼쪽 끝. */}
+            <nav aria-label="할 일 관리" className="flex flex-wrap items-center justify-end gap-1.5 min-[360px]:gap-2">
               {!isToday && (
                 <Link
                   prefetch={false}
@@ -180,11 +172,20 @@ export function HomeView({ data }: { data: HomeData }) {
                     event.preventDefault();
                     select(data.today, "/");
                   }}
-                  className="flex h-8 items-center rounded-full px-3 text-sm text-brand hover:bg-surface-hover"
+                  className="mr-auto flex h-8 items-center rounded-full px-3 text-sm text-brand hover:bg-surface-hover"
                 >
                   오늘로 돌아가기
                 </Link>
               )}
+              {/* 카테고리·일정·루틴은 메뉴 하나로 묶는다(2026-10-19 요청). 기록은 따로 둔다. */}
+              <ManageMenu />
+              <Link
+                prefetch={false}
+                href="/stats"
+                className="flex h-8 items-center rounded-full bg-surface px-3 text-sm text-muted hover:text-foreground min-[360px]:px-3.5"
+              >
+                기록
+              </Link>
             </nav>
 
             <EventSection events={dayEvents} upcoming={upcoming} date={selected} today={data.today} />
