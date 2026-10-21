@@ -111,6 +111,14 @@ html {
   background: var(--background);
 }
 
+/* 안쪽에서 스크롤되는 칸(떠 있는 창, 넓은 화면의 달력 기둥, 반응 창의 이모지 목록). 내용이 길어져 스크롤바가 생기면 그 두께만큼
+   안쪽 폭이 줄어 칸 비율이 바뀌었다(2026-10-21 제보: 일정 창). 스크롤바 자리를 늘 비워 두고, 양쪽에 같이 비워 좌우 여백이 맞게 한다.
+   얇은 스크롤바를 써서 비워 두는 폭을 줄인다. 폰·Mac처럼 스크롤바가 떠 있는 기기는 비워 두는 폭이 0이라 그대로다. */
+@utility scroll-stable {
+  scrollbar-gutter: stable both-edges;
+  scrollbar-width: thin;
+}
+
 /* 앱은 화면이 상태 막대(시계·노치) 뒤까지 그려진다(iOS: capacitor.config.json contentInset: never, 안드로이드 15+: 화면 끝까지 그리기).
    내용이 가려지지 않게 그만큼 위를 띄운다. 아래는 하단 탭이 env(safe-area-inset-bottom)만큼 띄운다. data-app은 app/layout.tsx의
    머리 스크립트가 붙인다. 상태 막대 뒤까지 그리지 않는 기기에서는 이 값이 0이다. */

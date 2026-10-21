@@ -190,8 +190,10 @@ export function ReactionBar({
             칸 높이는 폭과 상관없이 정해져 있어 어느 화면 폭에서도 같다. */}
         <div className="border-t border-border pt-4">
           <div
-            className={`-mx-1 h-34 overscroll-contain px-1 ${
-              tab === EMOJI_TAB ? "overflow-y-auto [mask-image:linear-gradient(to_bottom,black_80%,transparent)]" : ""
+            // 캐릭터 탭은 스크롤이 없고 이모지 탭만 있어서, 탭을 바꿀 때마다 스크롤바 두께만큼 격자 폭이 달라졌다.
+            // 스크롤바 자리를 두 탭 모두 늘 비워 둔다(scroll-stable, 2026-10-21).
+            className={`scroll-stable -mx-1 h-34 overflow-y-auto overscroll-contain px-1 ${
+              tab === EMOJI_TAB ? "[mask-image:linear-gradient(to_bottom,black_80%,transparent)]" : ""
             }`}
           >
             {tab === EMOJI_TAB ? (

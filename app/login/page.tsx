@@ -53,7 +53,7 @@ export default async function LoginPage({
     // 태블릿·넓은 화면은 화면이 길어서, 갈라 두면 로고와 버튼이 너무 멀다. 가운데로 모은다.
     // 화면에 꽉 차게 두고 스크롤하지 않는다(폰 앱: 100vh는 주소창·상태 막대를 뺀 보이는 높이보다 커서 스크롤이 생겼다).
     // 내용이 보이는 높이를 넘을 때만(작은 폰, 오류 안내가 길 때) 안에서 스크롤한다. 앱의 상태 막대 자리(body 위 여백)를 뺀다.
-    <main className="mx-auto flex h-[calc(100dvh-env(safe-area-inset-top,0px))] w-full max-w-sm flex-col overflow-y-auto overscroll-none px-6 pb-[max(1.5rem,env(safe-area-inset-bottom,0px))] md:justify-center md:gap-12 md:pb-0">
+    <main className="mx-auto flex h-[calc(100dvh-env(safe-area-inset-top,0px))] w-full max-w-sm flex-col overflow-y-auto overscroll-none scroll-stable px-6 pb-[max(1.5rem,env(safe-area-inset-bottom,0px))] md:justify-center md:gap-12 md:pb-0">
       <div className="flex flex-1 flex-col items-center justify-center gap-4 text-center md:flex-none">
         <Logo size={64} />
         <div>
