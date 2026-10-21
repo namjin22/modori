@@ -173,3 +173,4 @@
 - **원인**: 스크롤바 폭을 고정하려고(10/21) 창 안쪽을 따로 스크롤하는 칸으로 바꾸면서 창을 flex 세로 상자(`flex-col`)로, 안쪽 칸을 `flex-1 min-h-0`으로 했다. 창은 최대 높이만 있고 높이가 정해져 있지 않아, 안쪽 칸의 높이를 엔진이 계산해야 하는데 Mac Safari 26에서 0으로 계산된 것으로 본다. 시험은 Chromium으로만 돌아 잡지 못했다. Playwright의 WebKit(Windows용)에서는 재현되지 않았다.
 - **조치**: flex 계산에 기대지 않게, 안쪽 칸이 창과 같은 최대 높이(`max-h-[85dvh]`)를 직접 갖도록 바꿨다(`components/modal.tsx`). Playwright WebKit에서 할 일 창 472px, 반응 창 309px로 정상.
 - **재발 방지**: 레이아웃 구조(특히 flex·grid로 높이를 나누는 것)를 바꾸면 실제 Safari(빌린 Mac)나 iPhone에서 한 번 열어 본다. 운영자에게 배포 뒤 Mac Safari 확인을 부탁했다.
+- 2026-10-21: INC-13 수정(Mac Safari 창 접힘)은 급한 수정이라 로컬 verify(단위 229×3, E2E 264 통과 + 1개는 로그인 대기 30초 초과 — 시험 DB가 느린 때라 다시 돌려 통과) 뒤 GitHub `verify`를 기다리지 않고 `deploy-gsmsv`를 손으로 돌렸다.
