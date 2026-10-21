@@ -38,7 +38,7 @@ export function ProfileForm({
         />
       </label>
 
-      <AvatarChoice defaultCharacter={avatarCharacter} defaultPhoto={profileImage} />
+      <AvatarChoice defaultCharacter={avatarCharacter} defaultPhoto={profileImage} fade="surface" />
 
       <label className="flex flex-col gap-1 text-xs text-muted">
         소개 (선택)

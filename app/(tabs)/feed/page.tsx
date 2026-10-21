@@ -110,7 +110,7 @@ export default async function FeedPage({
           화면 가장자리까지 스크롤되게 바깥 여백만큼 넓혔다. */}
       {friends.length > 0 && (
         <nav aria-label="친구">
-          <ScrollRow className="-mx-5 px-5">
+          <ScrollRow bleed arrowTop={28}>
             <ul className="flex gap-4">
               {friends.map((friend) => (
                 <li key={friend.id} className="shrink-0">

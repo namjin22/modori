@@ -20,13 +20,13 @@ export function DesktopDownload() {
       <a
         href={DESKTOP_DOWNLOAD_URL}
         onClick={() => setOpen(true)}
-        className="flex items-center gap-3 rounded-2xl bg-surface p-5"
+        className="flex items-center gap-3 rounded-2xl bg-surface p-6"
       >
-        <span className="flex flex-1 flex-col">
-          <span className="text-sm font-semibold">Windows 앱 받기</span>
-          <span className="text-xs text-muted">브라우저를 열지 않고 바탕화면에서 바로 써요</span>
+        <span className="flex flex-1 flex-col gap-1">
+          <span className="text-[15px] font-semibold">Windows 앱 받기</span>
+          <span className="text-[13px] leading-relaxed text-muted">브라우저를 열지 않고 바탕화면에서 바로 써요</span>
         </span>
-        <span className="shrink-0 rounded-full bg-brand px-3 py-1.5 text-xs font-semibold text-brand-contrast">
+        <span className="shrink-0 rounded-full bg-brand px-3.5 py-1.5 text-xs font-semibold text-brand-contrast">
           다운로드
         </span>
       </a>
