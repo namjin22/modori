@@ -42,6 +42,20 @@ test("넓은 화면에는 손잡이가 없고 줄 자체를 잡는다. 그냥 �
   await expect(page.getByRole("dialog", { name: "할 일" })).toBeVisible();
   await expect(page.getByText("할 일 줄을 잡고 끌면 순서를 바꾸거나 다른 카테고리로 옮길 수 있어요.")).toBeVisible();
 
+  // 창은 줄 안쪽에 있어도 손 모양 커서를 물려받지 않는다(창 안, 창 뒤 어두운 곳 모두). 2026-10-22 제보.
+  const dialog = page.getByRole("dialog", { name: "할 일" });
+  await expect(dialog).toHaveCSS("cursor", "auto");
+  expect(await dialog.evaluate((element) => getComputedStyle(element, "::backdrop").cursor)).toBe("auto");
+  // 창 안에서 마우스를 끌어도 뒤의 줄이 집히지 않는다(자리표시가 생기지 않고 창이 그대로다).
+  const form = await dialog.boundingBox();
+  if (!form) throw new Error("창 위치를 알 수 없다.");
+  await page.mouse.move(form.x + 60, form.y + 30);
+  await page.mouse.down();
+  await page.mouse.move(form.x + 260, form.y + 160, { steps: 8 });
+  await page.mouse.up();
+  await expect(dialog).toBeVisible();
+  await expect(page.locator("[data-row-id].opacity-30")).toHaveCount(0);
+
   // Tab으로 키보드용 버튼에 오면 그때 보인다.
   await page.keyboard.press("Escape");
   await keyboardHandle.focus();

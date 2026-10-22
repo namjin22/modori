@@ -70,13 +70,15 @@ export function Modal({
           event.clientX >= box.left && event.clientX <= box.right && event.clientY >= box.top && event.clientY <= box.bottom;
         if (!inside) onClose();
       }}
+      // cursor-auto: 창이 할 일 줄 안쪽에 있어서(components/todo-row.tsx) 줄의 손 모양 커서(grab)를 창 전체와 창 뒤 어두운 곳까지 물려받았다
+      // (2026-10-22 제보). 창은 늘 기본 커서로 시작한다.
       // 위아래 가운데에 뜬다(2026-10-21: 위쪽에 붙였더니 화면 한가운데가 아니라 어색하다는 제보로 되돌렸다).
       // 창 자체는 스크롤하지 않고(둥근 모서리를 스크롤바가 덮지 않게) 안쪽 칸이 스크롤한다. 그 칸은 스크롤바 자리를 늘 비워 두어
       // 내용이 길어져 스크롤바가 생겨도 안쪽 폭이 그대로다(scroll-stable). m-auto가 있어야 가운데에 뜬다:
       // Tailwind 기본 설정이 모든 요소의 margin을 0으로 만들어 <dialog>의 원래 가운데 정렬이 지워진다.
       // 안쪽 칸은 창과 같은 최대 높이를 직접 갖는다. 예전에는 flex(flex-1, min-h-0)로 창 높이에 맞췄는데, Mac Safari 26에서 높이가
       // 0으로 계산돼 창이 제목 줄만 남고 접혔다(2026-10-21 제보: 반응 보내기). 엔진마다 다른 계산에 기대지 않는다.
-      className="m-auto max-h-[85dvh] w-[min(26rem,calc(100vw-2rem))] overflow-hidden rounded-3xl bg-surface p-0 text-foreground shadow-xl open:animate-[modal-in_160ms_ease-out]"
+      className="m-auto max-h-[85dvh] w-[min(26rem,calc(100vw-2rem))] overflow-hidden cursor-auto rounded-3xl bg-surface p-0 text-foreground shadow-xl open:animate-[modal-in_160ms_ease-out]"
     >
       <div className="scroll-stable max-h-[85dvh] overflow-y-auto overscroll-contain px-4 py-5 sm:px-5">
       <div className="flex items-center justify-between gap-3">

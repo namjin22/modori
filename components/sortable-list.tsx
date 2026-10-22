@@ -70,12 +70,20 @@ export function useRowSensors() {
   );
 }
 
-/** 글 적는 칸·고르는 칸에서 누른 것은 글자 선택·입력이라 집지 않는다(카테고리 이름 고치기 칸 등). */
+/**
+ * 글 적는 칸·고르는 칸에서 누른 것은 글자 선택·입력이라 집지 않는다(카테고리 이름 고치기 칸 등).
+ * 줄 안에 든 떠 있는 창(할 일 고치기 창)에서 누른 것도 집지 않는다. 창은 DOM으로는 줄의 자식이라 눌림이 줄까지 올라와,
+ * 창 안에서 마우스를 끌면 뒤의 줄이 같이 집혔다(2026-10-22). 줄 자신이 다른 창 안에 있는 경우(줄이 창의 자식)는 해당하지 않는다.
+ */
 function unlessTyping<E extends SyntheticEvent>(handler: ((event: E) => void) | undefined) {
   if (!handler) return undefined;
   return (event: E) => {
     const target = event.target;
-    if (target instanceof Element && target.closest("input, textarea, select, [contenteditable='true'], [data-no-drag]")) return;
+    if (target instanceof Element) {
+      if (target.closest("input, textarea, select, [contenteditable='true'], [data-no-drag]")) return;
+      const dialog = target.closest("dialog");
+      if (dialog && event.currentTarget instanceof Element && event.currentTarget.contains(dialog)) return;
+    }
     handler(event);
   };
 }
