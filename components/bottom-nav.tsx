@@ -182,9 +182,11 @@ export function BottomNav({
                   {badge > 0 && (
                     <span
                       aria-label={`안 읽은 알림 ${badge}개`}
-                      className="absolute -right-2 -top-1 min-w-4 animate-pop rounded-full bg-brand px-1 text-[10px] font-bold leading-4 text-brand-contrast"
+                      // 아이콘(24px)의 오른쪽 위로 띄운다: 왼쪽 끝이 16px, 위가 -6px. 왼쪽을 기준으로 잡으면 쓸 수 있는 폭이 좁아져 두 자리 수가 두 줄로 쪼개지므로 줄바꿈을 막는다. 사람 머리에 붙어 겹치던 것을 떼었다(2026-10-26 요청).
+                      // 탭 막대 바탕색 테두리(ring-surface)를 둘러, 고른 탭에서 아이콘과 같은 파란색이 한 덩어리로 뭉치지 않게 한다.
+                      className="absolute -top-1.5 left-4 min-w-4 animate-pop whitespace-nowrap rounded-full bg-brand px-1 text-center text-[10px] font-bold leading-4 tabular-nums text-brand-contrast ring-2 ring-surface"
                     >
-                      {badge}
+                      {badge > 99 ? "99+" : badge}
                     </span>
                   )}
                 </span>
