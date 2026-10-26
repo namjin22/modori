@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 
-import { FeedIcon, SettingsIcon, TodayIcon } from "@/components/tab-icons";
+import { MyPageIcon, SocialIcon, TodayIcon } from "@/components/tab-icons";
 import { desktopNotifyState, serverDesktopNotifyState, subscribeDesktopNotify } from "@/lib/desktop-notify";
 import { safePushPath } from "@/lib/push-client";
 
@@ -21,13 +21,13 @@ const TABS = [
   {
     href: "/feed",
     label: "소셜",
-    Icon: FeedIcon,
+    Icon: SocialIcon,
     isActive: (path: string) => path.startsWith("/feed"),
   },
   {
     href: "/settings",
     label: "마이페이지",
-    Icon: SettingsIcon,
+    Icon: MyPageIcon,
     isActive: (path: string) => path.startsWith("/settings"),
   },
 ] as const;
