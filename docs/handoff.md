@@ -1747,3 +1747,11 @@ VM에 시험 DB(사용자 1000, 할 일 108만, 반응 24만, 280MB)를 만들�
 - 맥(Xcode)은 Apple 계정이 없어 못 받는다. 운영자가 맥을 반납한다. iOS 앱은 GitHub macOS 러너가 빌드한다.
 - iOS 1.0 심사는 10/22에 설명·심사 메모를 고쳐 다시 제출했다(운영자가 올림). 심사 결과를 기다리는 중.
 
+
+## 2026-10-26 — 내가 정한 알림, 알림 숫자 간격
+
+- 소셜 탭 알림 숫자를 막대 위 테두리에서 띄웠다(`components/bottom-nav.tsx`, 따로 커밋).
+- "내가 정한 알림": `Alarm` 표(마이그레이션 `alarms`, 열 추가만), `lib/alarm.ts`(시각·요일·문구 규칙), `lib/alarm-send.ts`(1분마다 때가 된 것 보내기, `lib/reminder-send.ts`의 반복에 같이 돈다), `app/(tabs)/settings/alarms/`(화면·서버 동작), `components/alarm-list.tsx`.
+- CLAUDE.md 규칙 7을 운영자 요청에 맞게 고쳤다(내가 정한 알림 허용, 타이머·일기·AI는 그대로 제외). decisions·feedback·platforms·roadmap·개인정보 목록·방침(시행일 10/27)을 같이 고쳤다.
+- 시험: `tests/unit/alarm.test.ts`, `alarm-send.test.ts`(시간대 3개), `tests/e2e/alarms.spec.ts`.
+- 운영에서 아직 못 본 것: 실제 기기로 푸시가 오는지(운영 배포 뒤 폰으로 5분 안 알림을 만들어 확인). Windows 앱에는 알림이 가지 않는다.

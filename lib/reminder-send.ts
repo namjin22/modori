@@ -1,3 +1,4 @@
+import { sendDueAlarms } from "@/lib/alarm-send";
 import { prisma } from "@/lib/prisma";
 import { sendPushToUser } from "@/lib/push";
 import { reminderDay, reminderMessage } from "@/lib/reminder";
@@ -45,5 +46,7 @@ export function startReminderLoop() {
   if (loop.modoriReminderLoop) return;
   loop.modoriReminderLoop = setInterval(() => {
     sendDueReminders().catch((error) => console.error("[reminder] 리마인드를 보내지 못했다.", error));
+    // 내가 정한 알림(lib/alarm-send.ts)도 같은 반복에서 보낸다. 하나가 실패해도 다른 하나는 간다.
+    sendDueAlarms().catch((error) => console.error("[alarm] 내가 정한 알림을 보내지 못했다.", error));
   }, LOOP_MS);
 }

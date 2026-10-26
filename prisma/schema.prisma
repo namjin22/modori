@@ -61,6 +61,7 @@ model User {
   activeDays           ActiveDay[]
   pushTokens           PushToken[]
   webPushSubscriptions WebPushSubscription[]
+  alarms               Alarm[]
   blocking             Block[]               @relation("blocker")
   blockedBy            Block[]               @relation("blocked")
   reportsMade          Report[]              @relation("reporter")
@@ -436,4 +437,25 @@ model EventRoutineSkip {
   eventRoutine EventRoutine @relation(fields: [eventRoutineId], references: [id], onDelete: Cascade)
 
   @@id([eventRoutineId, date])
+}
+
+// 내가 정한 푸시 알림(2026-10-26 운영자 요청): 정한 시각·요일에 내가 쓴 문구를 앱 푸시(켠 컴퓨터 알림 포함)로 보낸다. 사람마다 최대 10개.
+// 시각은 그 사람 시간대의 시계 기준이다. 서버가 1분마다 돌며 때가 된 것을 찾아 보낸다(lib/alarm-send.ts). 문구는 본인만 본다.
+model Alarm {
+  id         String    @id @default(cuid())
+  userId     String
+  // 자정부터 몇 분째(0~1439), 5분 단위(시각 고르기와 같다).
+  minute     Int
+  // 0=일 … 6=토. 비어 있으면 매일.
+  weekdays   Int[]     @default([])
+  message    String
+  enabled    Boolean   @default(true)
+  // 마지막으로 보낸 날(그 사람 시간대의 "오늘"). 같은 날 두 번 가지 않게 보내기 전에 조건부로 먼저 적는다.
+  lastSentOn DateTime? @db.Date
+  createdAt  DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([enabled])
 }

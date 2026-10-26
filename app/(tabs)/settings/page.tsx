@@ -31,13 +31,14 @@ export default async function SettingsPage() {
   const windows = await isWindowsBrowser();
   const timezone = timezoneOrDefault(user.timezone);
   const todayHere = dateIn(new Date(), timezone);
-  const [following, followers, blockedCount, admin, reminder, devices] = await Promise.all([
+  const [following, followers, blockedCount, admin, reminder, devices, alarmCount] = await Promise.all([
     prisma.follow.count({ where: { followerId: user.id } }),
     prisma.follow.count({ where: { followingId: user.id } }),
     prisma.block.count({ where: { blockerId: user.id } }),
     isAdmin(user.id),
     prisma.user.findUniqueOrThrow({ where: { id: user.id }, select: { reminderMinute: true, notifyFriendDone: true } }),
     prisma.pushToken.count({ where: { userId: user.id } }),
+    prisma.alarm.count({ where: { userId: user.id } }),
   ]);
   // 운영자에게만: 아직 처리하지 않은 신고 수. 신고는 빨리 확인해야 한다.
   const openReports = admin ? await prisma.report.count({ where: { handledAt: null } }) : 0;
@@ -108,6 +109,14 @@ export default async function SettingsPage() {
         {mobileApp && <ReminderSetting minute={reminder.reminderMinute} hasDevice={devices > 0} />}
         <FriendDoneSwitch on={reminder.notifyFriendDone} />
         {!mobileApp && <DesktopNotifySwitch userId={user.id} />}
+        {/* 정한 시각·문구로 오는 푸시(2026-10-26 요청). 앱·컴퓨터 모두에서 만든다. */}
+        <Link prefetch={false} href="/settings/alarms" className="-mx-2 flex items-center justify-between rounded-xl px-2 py-1 text-[15px]">
+          <span className="flex flex-col gap-0.5">
+            <span className="font-medium">내가 정한 알림</span>
+            <span className="text-[13px] text-muted">정한 시각에 내가 쓴 문구로 푸시가 와요</span>
+          </span>
+          <span className="shrink-0 text-sm text-muted">{alarmCount > 0 ? `${alarmCount}개 ›` : "만들기 ›"}</span>
+        </Link>
       </section>
 
       <section className="flex flex-col gap-5 rounded-2xl bg-surface p-6">
