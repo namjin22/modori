@@ -30,10 +30,7 @@ export function ReactionBar({
   summary,
   others = {},
   compact = false,
-  onToggle,
 }: {
-  // 할 일이 아닌 곳(피드 글)의 반응은 이 함수로 보낸다(app/(tabs)/feed/public/actions.ts). 없으면 할 일 반응이다.
-  onToggle?: (emoji: string) => Promise<void>;
   todoId: string;
   summary: ReactionSummary[];
   // 이모지별로 내가 아닌 사람들의 닉네임(lib/reactions.ts의 othersByEmoji).
@@ -80,7 +77,7 @@ export function ReactionBar({
       formData.set("todoId", todoId);
       formData.set("emoji", emoji);
       try {
-        await (onToggle ? onToggle(emoji) : toggleReaction(formData));
+        await toggleReaction(formData);
       } catch (error) {
         saveFailed(error);
       }

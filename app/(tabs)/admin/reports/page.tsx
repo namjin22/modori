@@ -8,7 +8,6 @@ import { prisma } from "@/lib/prisma";
 import { REPORT_REASONS, isReportReason } from "@/lib/report";
 import { requireUser } from "@/lib/session";
 
-import { hidePost } from "../../feed/public/actions";
 
 import { deleteReportedAccount, handleReport } from "./actions";
 
@@ -33,8 +32,6 @@ export default async function AdminReportsPage() {
       handledAt: true,
       reporter: { select: { nickname: true } },
       reported: { select: { id: true, nickname: true, email: true, bio: true } },
-      // 피드 글에서 한 신고면 그 글(2026-10-19). 지워졌으면 비어 있다.
-      post: { select: { id: true, todoContent: true, body: true, hiddenAt: true, photo: { select: { width: true, height: true } } } },
     },
   });
 
@@ -82,32 +79,6 @@ export default async function AdminReportsPage() {
                     </span>
                   </p>
                   {report.detail && <p className="mt-0.5 whitespace-pre-line text-muted">{report.detail}</p>}
-                  {report.post && (
-                    <div className="mt-2 flex flex-col gap-1.5 rounded-lg border border-border bg-surface p-2.5">
-                      <p className="text-xs text-muted">신고된 피드 글{report.post.hiddenAt ? " · 숨김" : ""}</p>
-                      <p className="font-medium">✓ {report.post.todoContent}</p>
-                      {report.post.body && <p className="whitespace-pre-line">{report.post.body}</p>}
-                      {report.post.photo && (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={`/api/post-photo/${report.post.id}`}
-                          alt="신고된 글의 사진"
-                          width={report.post.photo.width}
-                          height={report.post.photo.height}
-                          loading="lazy"
-                          className="max-h-64 w-auto max-w-full rounded-lg"
-                        />
-                      )}
-                      {!report.post.hiddenAt && (
-                        <form action={hidePost}>
-                          <input type="hidden" name="postId" value={report.post.id} />
-                          <button type="submit" className="h-8 rounded-lg bg-danger/10 px-3 text-xs font-semibold text-danger">
-                            이 글 숨기기
-                          </button>
-                        </form>
-                      )}
-                    </div>
-                  )}
                 </li>
               ))}
             </ul>

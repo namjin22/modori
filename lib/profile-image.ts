@@ -37,9 +37,9 @@ function hasPngStructure(bytes: Buffer, limit: number): boolean {
 
 /**
  * JPEG 파일의 기본 구조를 확인하고 가로·세로를 읽는다. 구조가 틀리거나 상한(limit)을 넘으면 null.
- * 피드 사진은 서버가 크기를 직접 읽어 적는다(보낸 쪽이 말한 크기는 믿지 않는다, lib/post-photo.ts).
+ * 가로·세로는 보낸 쪽이 말한 값이 아니라 파일 머리에서 읽는다.
  */
-export function jpegSize(bytes: Buffer, limit: number): { width: number; height: number } | null {
+function jpegSize(bytes: Buffer, limit: number): { width: number; height: number } | null {
   if (bytes.length < 12 || bytes[0] !== 0xff || bytes[1] !== 0xd8 ||
     bytes[bytes.length - 2] !== 0xff || bytes[bytes.length - 1] !== 0xd9) return null;
   let offset = 2;
