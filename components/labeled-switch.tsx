@@ -20,9 +20,10 @@ export function LabeledSwitch({
 }) {
   return (
     <label className="flex cursor-pointer items-center justify-between gap-3">
-      <span className="flex flex-col">
-        <span className="text-sm font-medium">{title}</span>
-        {description && <span className="text-xs text-muted">{description}</span>}
+      {/* 제목과 설명 사이를 조금 띄우고 설명 줄 간격을 넓혔다(2026-10-21: 글자가 붙어 보인다). */}
+      <span className="flex flex-col gap-0.5">
+        <span className="text-[15px] font-medium">{title}</span>
+        {description && <span className="text-[13px] leading-snug text-muted">{description}</span>}
       </span>
       <input
         type="checkbox"

@@ -17,9 +17,12 @@ import { CHARACTERS, DEFAULT_CHARACTER, type CharacterId } from "@/lib/character
 export function AvatarChoice({
   defaultCharacter = DEFAULT_CHARACTER,
   defaultPhoto = null,
+  fade = "background",
 }: {
   defaultCharacter?: CharacterId;
   defaultPhoto?: string | null;
+  // 옆으로 넘기는 줄의 가장자리 흐림 색. 놓인 바탕과 같아야 한다(가입 화면은 화면 바탕, 프로필 수정은 카드).
+  fade?: "background" | "surface";
 } = {}) {
   const [character, setCharacter] = useState<CharacterId>(defaultCharacter);
   const [choice, setChoice] = useState<"photo" | "character">(defaultPhoto ? "photo" : "character");
@@ -54,7 +57,7 @@ export function AvatarChoice({
       <legend className="mb-4 px-1 text-sm font-medium">프로필 사진</legend>
       {/* 한 줄로 늘어놓고 옆으로 넘긴다. 고른 칸의 테두리가 잘리지 않게 안쪽 여백을 두고, 화면 끝까지 넘어가 보이게 좌우로 조금 넓힌다.
           칸 맞춤(snap)도 그 여백(scroll-px-2)을 기준으로 한다. 빠지면 처음부터 8px 넘어가 첫 칸 테두리가 잘렸다. */}
-      <ScrollRow role="radiogroup" aria-label="프로필 사진" className="-mx-2 flex snap-x snap-mandatory scroll-px-2 gap-3 px-2 py-1">
+      <ScrollRow role="radiogroup" aria-label="프로필 사진" fade={fade} className="-mx-2 flex snap-x snap-mandatory scroll-px-2 gap-3 px-2 py-1">
         {CHARACTERS.map((item) => {
           const selected = choice === "character" && character === item.id;
           return (

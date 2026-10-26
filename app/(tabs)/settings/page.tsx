@@ -12,6 +12,8 @@ import { timezoneOrDefault } from "@/lib/timezones";
 import { isAdmin } from "@/lib/admin";
 import { isDesktopApp, isMobileApp, isWindowsBrowser } from "@/lib/desktop";
 import { DesktopDownload } from "@/components/desktop-download";
+import { DesktopNotifySwitch } from "@/components/desktop-notify-switch";
+import { MacAppGuide } from "@/components/mac-app-guide";
 import { prisma } from "@/lib/prisma";
 import { PRIVACY_MANAGER } from "@/lib/privacy";
 import { requireUser } from "@/lib/session";
@@ -41,16 +43,17 @@ export default async function SettingsPage() {
   const openReports = admin ? await prisma.report.count({ where: { handledAt: null } }) : 0;
 
   return (
-    <div className="flex flex-col gap-6">
+    // 칸 사이·칸 안 여백을 넓혔다(2026-10-21 요청: 글자와 여백이 너무 좁아 보인다).
+    <div className="flex flex-col gap-7">
       <h1 className="text-2xl font-bold">마이페이지</h1>
 
       <section className="flex flex-col rounded-2xl bg-surface">
         <Link
           prefetch={false}
           href="/settings/profile"
-          className="flex items-center gap-3 p-5"
+          className="flex items-center gap-4 p-6"
         >
-          <Avatar src={avatarUrl(user)} size={48} />
+          <Avatar src={avatarUrl(user)} size={52} />
           <p className="flex-1 text-base font-semibold">{user.nickname}</p>
           <span className="flex items-center gap-0.5 text-sm text-muted">
             프로필 수정
@@ -75,7 +78,7 @@ export default async function SettingsPage() {
           <Link
             prefetch={false}
             href="/feed/following"
-            className="flex flex-col items-center gap-0.5 py-3.5 hover:bg-surface-hover"
+            className="flex flex-col items-center gap-1 py-4 hover:bg-surface-hover"
           >
             <span className="text-lg font-bold">{following}</span>
             <span className="text-xs text-muted">팔로우</span>
@@ -83,7 +86,7 @@ export default async function SettingsPage() {
           <Link
             prefetch={false}
             href="/feed/followers"
-            className="flex flex-col items-center gap-0.5 border-l border-border py-3.5 hover:bg-surface-hover"
+            className="flex flex-col items-center gap-1 border-l border-border py-4 hover:bg-surface-hover"
           >
             <span className="text-lg font-bold">{followers}</span>
             <span className="text-xs text-muted">팔로워</span>
@@ -91,22 +94,23 @@ export default async function SettingsPage() {
         </div>
       </section>
 
-      <section className="flex flex-col gap-4 rounded-2xl bg-surface p-5">
+      <section className="flex flex-col gap-5 rounded-2xl bg-surface p-6">
         <h2 className="text-sm font-semibold text-muted">화면</h2>
         <ThemeToggle />
       </section>
 
 
-      {/* 리마인드는 앱 푸시로만 보낸다(웹 푸시로는 보내지 않는다, CLAUDE.md 규칙 7). 앱에서만 보인다. */}
-      {mobileApp && (
-        <section className="flex flex-col gap-4 rounded-2xl bg-surface p-5">
-          <h2 className="text-sm font-semibold text-muted">알림</h2>
-          <ReminderSetting minute={reminder.reminderMinute} hasDevice={devices > 0} />
-          <FriendDoneSwitch on={reminder.notifyFriendDone} />
-        </section>
-      )}
+      {/* 알림은 모든 화면에 둔다(2026-10-21: 웹에서는 알림 화면 안에만 있어 찾지 못했다).
+          리마인드는 앱 푸시로만 보낸다(웹 푸시로는 보내지 않는다, CLAUDE.md 규칙 7). 앱에서만 보인다.
+          컴퓨터 알림 스위치는 알림을 띄울 수 있는 컴퓨터 브라우저·데스크톱 앱에서만 보인다(그 밖에서는 스스로 숨는다). */}
+      <section className="flex flex-col gap-5 rounded-2xl bg-surface p-6">
+        <h2 className="text-sm font-semibold text-muted">알림</h2>
+        {mobileApp && <ReminderSetting minute={reminder.reminderMinute} hasDevice={devices > 0} />}
+        <FriendDoneSwitch on={reminder.notifyFriendDone} />
+        {!mobileApp && <DesktopNotifySwitch userId={user.id} />}
+      </section>
 
-      <section className="flex flex-col gap-4 rounded-2xl bg-surface p-5">
+      <section className="flex flex-col gap-5 rounded-2xl bg-surface p-6">
         <h2 className="text-sm font-semibold text-muted">친구 찾기</h2>
         <RecommendSwitch hidden={user.hideFromRecommend} />
         <Link prefetch={false} href="/settings/blocked" className="flex items-center justify-between text-[15px]">
@@ -117,9 +121,11 @@ export default async function SettingsPage() {
 
       {/* 앱 안에서는 받을 필요가 없어 숨긴다. */}
       {!desktop && windows && <DesktopDownload />}
+      {/* 맥 브라우저에서만 스스로 보인다(Dock에 추가 안내). */}
+      {!desktop && <MacAppGuide />}
 
       {/* 시간대는 자주 바꾸지 않아 로그아웃 바로 위에 둔다(2026-10-15 요청). */}
-      <section className="flex flex-col gap-4 rounded-2xl bg-surface p-5">
+      <section className="flex flex-col gap-5 rounded-2xl bg-surface p-6">
         <h2 className="text-sm font-semibold text-muted">시간대</h2>
         {/* 모바일 앱은 휴대폰의 시간대를 저절로 따른다(components/timezone-nudge.tsx). 고르는 칸 대신 지금 값만 보인다. */}
         {mobileApp ? (
