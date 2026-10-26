@@ -11,9 +11,10 @@ import { FeedItem } from "@/components/feed-item";
 import { RecommendedFriends } from "@/components/recommended-friends";
 import { SocialHeader } from "@/components/social-header";
 import { ScrollRow } from "@/components/scroll-row";
+import { SortableFriendRow } from "@/components/sortable-friend-row";
+import { FRIEND_ROW_ORDER, FRIEND_ROW_SIZE } from "@/lib/friend-row";
 import { avatarUrl } from "@/lib/avatar";
 
-const FRIEND_ROW_SIZE = 20;
 const FEED_SIZE = 50;
 
 type FeedCursor = { doneAt: Date; id: string };
@@ -70,11 +71,11 @@ export default async function FeedPage({
         },
       },
     }),
-    // 위쪽 친구 줄에 쓴다. 최근에 팔로우한 사람이 앞에 온다. 프로필 사진(한 장 약 9KB)을 같이
-    // 읽으므로 친구가 수백 명이어도 이만큼만 읽는다. 나머지는 "전체 보기"로 팔로우 목록에서 본다.
+    // 위쪽 친구 줄에 쓴다. 내가 끌어 정한 순서가 먼저, 안 바꾼 사이는 최근에 팔로우한 사람이 앞에 온다(lib/friend-row.ts).
+    // 프로필 사진(한 장 약 9KB)을 같이 읽으므로 친구가 수백 명이어도 이만큼만 읽는다. 나머지는 "전체 보기"로 팔로우 목록에서 본다.
     prisma.follow.findMany({
       where: { followerId: user.id },
-      orderBy: { createdAt: "desc" },
+      orderBy: [...FRIEND_ROW_ORDER],
       take: FRIEND_ROW_SIZE,
       select: { following: { select: { id: true, nickname: true, profileImage: true, avatarCharacter: true } } },
     }),
@@ -101,41 +102,15 @@ export default async function FeedPage({
 
       {/* "팔로우 중" 칩은 없앴다(2026-10-21 운영자 요청). 목록은 마이페이지의 팔로우 숫자와 친구 줄의 "전체 보기"로 간다. */}
 
-      {/* 친구 얼굴을 가로로 늘어놓고 옆으로 넘긴다. 누르면 그 친구 화면으로 간다.
+      {/* 친구 얼굴을 가로로 늘어놓고 옆으로 넘긴다. 누르면 그 친구 화면으로 가고, 끌면 순서가 바뀐다(components/sortable-friend-row.tsx).
           화면 가장자리까지 스크롤되게 바깥 여백만큼 넓혔다. */}
       {friends.length > 0 && (
         <nav aria-label="친구">
           <ScrollRow bleed arrowTop={28}>
-            <ul className="flex gap-4">
-              {friends.map((friend) => (
-                <li key={friend.id} className="shrink-0">
-                  <Link
-                    prefetch={false}
-                    href={`/feed/u/${friend.id}`}
-                    className="flex w-16 flex-col items-center gap-1.5"
-                  >
-                    <Avatar src={avatarUrl(friend)} size={56} />
-                    <span className="w-full truncate text-center text-xs">
-                      {friend.nickname}
-                    </span>
-                  </Link>
-                </li>
-              ))}
-              {followingCount > friends.length && (
-                <li className="shrink-0">
-                  <Link
-                    prefetch={false}
-                    href="/feed/following"
-                    className="flex w-16 flex-col items-center gap-1.5"
-                  >
-                    <span className="flex size-14 items-center justify-center rounded-full bg-surface text-sm font-semibold text-muted">
-                      +{followingCount - friends.length}
-                    </span>
-                    <span className="w-full truncate text-center text-xs text-muted">전체 보기</span>
-                  </Link>
-                </li>
-              )}
-            </ul>
+            <SortableFriendRow
+              friends={friends.map((friend) => ({ id: friend.id, nickname: friend.nickname ?? "", avatar: avatarUrl(friend) }))}
+              moreCount={Math.max(0, followingCount - friends.length)}
+            />
           </ScrollRow>
         </nav>
       )}

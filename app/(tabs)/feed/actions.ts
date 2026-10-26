@@ -6,6 +6,8 @@ import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 
 import { notBlockedWith } from "@/lib/blocks";
+import { FRIEND_ROW_SIZE, friendOrderValues } from "@/lib/friend-row";
+import { readIdList } from "@/lib/ids";
 import { prisma } from "@/lib/prisma";
 import { sendPushToUser, shouldNotify } from "@/lib/push";
 import { isReactionValue } from "@/lib/reactions";
@@ -30,8 +32,10 @@ export async function followUser(formData: FormData) {
   });
   if (!target) return;
 
+  // 새 친구는 친구 줄의 맨 앞에 둔다: 지금 가장 작은 순서보다 하나 작게(lib/friend-row.ts). 손으로 줄을 바꿔 둔 사람에게도 새 친구가 줄 뒤로 숨지 않는다.
+  const first = await prisma.follow.aggregate({ where: { followerId: user.id }, _min: { sortOrder: true } });
   const created = await prisma.follow.createMany({
-    data: [{ followerId: user.id, followingId: target.id }],
+    data: [{ followerId: user.id, followingId: target.id, sortOrder: Math.min(0, first._min.sortOrder ?? 0) - 1 }],
     skipDuplicates: true,
   });
   // 새로 팔로우했을 때만 알린다. 응답은 알림을 보내는 것을 기다리지 않는다.
@@ -175,3 +179,29 @@ export async function markNotificationsSeen(renderedAt: string) {
   });
   revalidatePath("/", "layout");
 }
+
+/**
+ * 소셜 위쪽 친구 줄에서 끌어 바꾼 순서를 저장한다(ids는 화면에 보이는 왼쪽에서 오른쪽 순서, 2026-10-26 요청).
+ * 보이는 친구들에게만 가장 작은 순서 아래의 값을 차례로 준다(lib/friend-row.ts). 내가 팔로우하지 않은 사람이나 같은 사람이
+ * 두 번 섞여 오면 통째로 무시한다.
+ */
+export async function reorderFriends(ids: string[]): Promise<void> {
+  const user = await requireUser();
+  const orderedIds = readIdList(ids, FRIEND_ROW_SIZE);
+  if (!orderedIds || orderedIds.length === 0 || new Set(orderedIds).size !== orderedIds.length) return;
+
+  const owned = await prisma.follow.count({ where: { followerId: user.id, followingId: { in: orderedIds } } });
+  if (owned !== orderedIds.length) return;
+
+  const lowest = await prisma.follow.aggregate({ where: { followerId: user.id }, _min: { sortOrder: true } });
+  const values = friendOrderValues(orderedIds.length, Math.min(0, lowest._min.sortOrder ?? 0));
+  await prisma.$transaction(
+    orderedIds.map((followingId, index) =>
+      // 도중에 언팔로우한 사람이 있어도 나머지는 저장한다.
+      prisma.follow.updateMany({ where: { followerId: user.id, followingId }, data: { sortOrder: values[index] } }),
+    ),
+  );
+
+  revalidatePath("/feed");
+}
+
