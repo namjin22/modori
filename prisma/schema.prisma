@@ -114,6 +114,10 @@ model Follow {
   followerId  String
   followingId String
   createdAt   DateTime @default(now())
+  // 소셜의 친구 줄에서 보일 순서(작을수록 앞, 2026-10-26). 손으로 바꾸지 않은 사이는 0이라 만든 때의 역순(최근 팔로우가 앞)이다.
+  // 새로 팔로우하면 지금 가장 작은 값보다 하나 작게 줘 맨 앞에 두고, 순서를 바꾸면 보이는 친구들에게 가장 작은 값 아래로 차례로 준다
+  // (일정의 sortOrder와 같은 방식, app/(tabs)/feed/actions.ts).
+  sortOrder   Int      @default(0)
 
   follower  User @relation("follower", fields: [followerId], references: [id], onDelete: Cascade)
   following User @relation("following", fields: [followingId], references: [id], onDelete: Cascade)
