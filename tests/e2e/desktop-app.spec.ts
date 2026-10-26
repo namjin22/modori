@@ -89,8 +89,28 @@ test("앱에서 브라우저 로그인을 마치면 modori:// 링크로 앱 창�
 
     // 컴퓨터 알림을 누르면 내려 둔 창을 올린다(desktop/preload.js). 웹 화면에는 이 함수 하나만 보인다.
     await win.evaluate(() => window.modoriDesktop?.focus());
-    expect(await win.evaluate(() => Object.keys(window.modoriDesktop ?? {}))).toEqual(["focus"]);
+    expect(await win.evaluate(() => Object.keys(window.modoriDesktop ?? {}))).toEqual(["focus", "setBadge"]);
     expect(await win.evaluate(() => typeof (window as unknown as { require?: unknown }).require)).toBe("undefined");
+
+    // 작업표시줄 아이콘 숫자(2026-10-26): 앱은 모양이 맞는 것만 받는다. 운영체제의 아이콘은 읽을 수 없어 앱이 남긴 값을 본다.
+    const png = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4z8AAAAMBAQDJ/pLvAAAAAElFTkSuQmCC";
+    const lastBadge = () => app.evaluate(() => (globalThis as unknown as { modoriLastBadge?: unknown }).modoriLastBadge);
+    await win.evaluate((image) => window.modoriDesktop?.setBadge(3, image), png);
+    await expect.poll(lastBadge).toEqual({ count: 3, description: "안 읽은 알림 3개", hasImage: true });
+    // 그림이 PNG가 아니면(다른 형식·글자) 그림은 버리고 숫자만 쓴다.
+    await win.evaluate(() => window.modoriDesktop?.setBadge(5, "data:text/html;base64,PGI+"));
+    await expect.poll(lastBadge).toEqual({ count: 5, description: "안 읽은 알림 5개", hasImage: false });
+    // 숫자가 이상하면(음수·너무 큼·정수 아님) 무시해서 앞의 값이 그대로다.
+    await win.evaluate((image) => {
+      window.modoriDesktop?.setBadge(-1, image);
+      window.modoriDesktop?.setBadge(1000, image);
+      window.modoriDesktop?.setBadge(1.5, image);
+    }, png);
+    await win.evaluate(() => window.modoriDesktop?.focus());
+    expect(await lastBadge()).toEqual({ count: 5, description: "안 읽은 알림 5개", hasImage: false });
+    // 0이면 지운다.
+    await win.evaluate(() => window.modoriDesktop?.setBadge(0, null));
+    await expect.poll(lastBadge).toEqual({ count: 0, description: "", hasImage: false });
 
     // 모도리 밖으로 가는 링크(의견 메일)는 앱 창이 아니라 바깥에서 연다.
     await win.goto(new URL("/settings", baseURL).toString());

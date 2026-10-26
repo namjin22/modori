@@ -19,14 +19,23 @@ self.addEventListener("push", (event) => {
     console.warn("[sw] 알림 내용을 읽지 못했다.", error && error.name);
   }
   const title = typeof data.title === "string" && data.title ? data.title : "모도리";
+  // 설치한 웹 앱(Dock·작업표시줄)의 아이콘에도 알림이 왔다는 표시를 띄운다. 창이 닫혀 있어 몇 개인지는 모르므로 숫자 없는 표시다.
+  // 앱을 열면 화면이 정확한 숫자로 바꾸거나 지운다(lib/app-badge.ts). 지원하지 않는 브라우저는 그냥 넘어간다.
+  const badge =
+    self.navigator && typeof self.navigator.setAppBadge === "function"
+      ? self.navigator.setAppBadge().catch((error) => console.warn("[sw] 아이콘 표시를 못 했다.", error && error.name))
+      : Promise.resolve();
   event.waitUntil(
-    self.registration.showNotification(title, {
-      body: typeof data.body === "string" ? data.body : "",
-      // 같은 tag는 하나로 묶인다(앱 푸시와 같은 값).
-      tag: typeof data.tag === "string" ? data.tag : undefined,
-      icon: "/icons/icon-192.png",
-      data: { url: safePath(data.url) },
-    }),
+    Promise.all([
+      self.registration.showNotification(title, {
+        body: typeof data.body === "string" ? data.body : "",
+        // 같은 tag는 하나로 묶인다(앱 푸시와 같은 값).
+        tag: typeof data.tag === "string" ? data.tag : undefined,
+        icon: "/icons/icon-192.png",
+        data: { url: safePath(data.url) },
+      }),
+      badge,
+    ]),
   );
 });
 
