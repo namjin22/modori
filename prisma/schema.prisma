@@ -54,8 +54,6 @@ model User {
   todos                Todo[]
   routines             Routine[]
   eventRoutines        EventRoutine[]
-  posts                Post[]
-  postReactions        PostReaction[]
   events               Event[]
   following            Follow[]              @relation("follower")
   followers            Follow[]              @relation("following")
@@ -391,12 +389,9 @@ model Report {
   detail     String?
   createdAt  DateTime  @default(now())
   handledAt  DateTime?
-  // 피드 글을 신고했으면 그 글(2026-10-19). 사람 화면에서 한 신고는 비어 있다. 글이 지워져도 신고 기록은 남는다.
-  postId     String?
 
-  reporter User  @relation("reporter", fields: [reporterId], references: [id], onDelete: Cascade)
-  reported User  @relation("reported", fields: [reportedId], references: [id], onDelete: Cascade)
-  post     Post? @relation(fields: [postId], references: [id], onDelete: SetNull)
+  reporter User @relation("reporter", fields: [reporterId], references: [id], onDelete: Cascade)
+  reported User @relation("reported", fields: [reportedId], references: [id], onDelete: Cascade)
 
   @@index([reportedId])
   @@index([handledAt, createdAt])
@@ -437,52 +432,4 @@ model EventRoutineSkip {
   eventRoutine EventRoutine @relation(fields: [eventRoutineId], references: [id], onDelete: Cascade)
 
   @@id([eventRoutineId, date])
-}
-
-// 공개 피드의 글(2026-10-19). 모든 가입자가 본다(차단 관계는 서로 안 보인다). 끝낸 할 일 하나와 짧은 글. 사진은 아직 없다.
-// 할 일은 올린 때의 글자·색을 그대로 적어 둔다. 할 일을 고치거나 지워도 이미 올린 글은 바뀌지 않는다.
-model Post {
-  id          String    @id @default(cuid())
-  userId      String
-  todoContent String
-  todoColor   String?
-  body        String
-  createdAt   DateTime  @default(now())
-  // 운영자가 신고를 보고 숨긴 시각. 숨긴 글은 아무에게도 보이지 않는다(쓴 사람에게도).
-  hiddenAt    DateTime?
-
-  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  reactions PostReaction[]
-  reports   Report[]
-  photo     PostPhoto?
-
-  @@index([createdAt])
-  @@index([userId, createdAt])
-}
-
-// 피드 글에 붙인 사진 한 장(2026-10-20). 글 목록을 읽을 때 사진 바이트가 딸려 오지 않게 Post와 떼어 둔 표다.
-// 브라우저에서 긴 변 1080px 이하 JPEG로 다시 그려 올린다(위치 같은 사진 속 정보는 이 과정에서 사라진다). 한 장 대개 100~250KB.
-// 글을 지우거나 계정을 지우면 같이 지워진다.
-model PostPhoto {
-  postId String @id
-  data   Bytes
-  width  Int
-  height Int
-
-  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
-}
-
-// 피드 글에 보낸 이모지 반응. 할 일 반응과 같은 값(lib/reactions.ts)을 쓴다.
-model PostReaction {
-  id        String   @id @default(cuid())
-  postId    String
-  userId    String
-  emoji     String
-  createdAt DateTime @default(now())
-
-  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, postId, emoji])
-  @@index([postId])
 }
