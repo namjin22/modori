@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 
 import { MyPageIcon, SocialIcon, TodayIcon } from "@/components/tab-icons";
+import { isInstalledApp, setAppIconBadge } from "@/lib/app-badge";
 import { desktopNotifyState, serverDesktopNotifyState, subscribeDesktopNotify } from "@/lib/desktop-notify";
 import { safePushPath } from "@/lib/push-client";
 
@@ -43,8 +44,8 @@ const SAME_NOTICE_MS = 10 * 60 * 1000;
 
 declare global {
   interface Window {
-    // 데스크톱 앱(desktop/preload.js)만 있다. 알림을 누르면 내려 둔 창을 다시 띄운다.
-    modoriDesktop?: { focus: () => void };
+    // 데스크톱 앱(desktop/preload.js)만 있다. focus: 알림을 누르면 내려 둔 창을 다시 띄운다. setBadge: 작업표시줄 아이콘에 알림 수를 띄운다.
+    modoriDesktop?: { focus: () => void; setBadge: (count: number, image: string | null) => void };
   }
 }
 
@@ -108,8 +109,12 @@ function useLiveUnread(userId: string, fromServer: number, paused: boolean): num
       }
     }
 
+    // 설치한 앱(데스크톱 앱, Dock·설치한 웹 앱)은 창을 내려 두어도 아이콘의 숫자가 맞아야 해서 보이지 않을 때도 묻는다.
+    // 탭으로 열어 둔 웹은 보이지 않을 때 묻지 않는다(서버를 덜 부른다).
+    const installed = isInstalledApp();
+
     async function ask() {
-      if (!notify && document.visibilityState !== "visible") return;
+      if (!notify && !installed && document.visibilityState !== "visible") return;
       try {
         const response = await fetch(notify ? "/api/notifications/unread?detail=1" : "/api/notifications/unread", {
           cache: "no-store",
@@ -149,6 +154,12 @@ export function BottomNav({
   const pathname = usePathname();
   // 알림 화면을 보는 중이면 이미 읽고 있다. 숫자는 묻지 않는다(컴퓨터 알림은 계속).
   const unreadNotifications = useLiveUnread(userId, fromServer, pathname === "/feed/reactions");
+
+  // 앱 아이콘(작업표시줄·Dock)의 숫자. 알림 화면을 보는 중이면 이미 읽고 있으니 0이다(탭 뱃지와 같다).
+  const iconCount = pathname === "/feed/reactions" ? 0 : unreadNotifications;
+  useEffect(() => {
+    setAppIconBadge(iconCount);
+  }, [iconCount]);
 
   return (
     // 홈 화면에 추가해서 전체 화면으로 열면 아이폰 아래 막대가 탭을 가린다.

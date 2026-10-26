@@ -4,7 +4,7 @@
 // 로그인: Google은 앱 안에 끼운 브라우저에서의 로그인을 막는다. 그래서 평소 브라우저에서 로그인하고,
 // 서버가 준 한 번 쓰는 코드를 처음에 만든 verifier와 함께 바꿔 세션을 받는다(웹의 lib/desktop-login.ts).
 
-const { app, BrowserWindow, ipcMain, Menu, shell } = require("electron");
+const { app, BrowserWindow, ipcMain, Menu, nativeImage, shell } = require("electron");
 const crypto = require("node:crypto");
 const path = require("node:path");
 
@@ -221,6 +221,22 @@ if (!app.requestSingleInstanceLock()) {
     if (win.isMinimized()) win.restore();
     win.show();
     win.focus();
+  });
+
+  // 작업표시줄 아이콘에 알림 수를 띄운다(2026-10-26 요청). 우리 창이 보낸 것만, 모양을 확인하고 받는다.
+  // Windows는 아이콘 위에 작은 그림을 겹치고(setOverlayIcon), 맥·리눅스는 Dock·런처의 숫자(setBadgeCount)를 쓴다.
+  const BADGE_PNG = /^data:image\/png;base64,[A-Za-z0-9+/]+={0,2}$/;
+  ipcMain.on("modori:badge", (event, count, image) => {
+    if (!win || event.sender !== win.webContents) return;
+    if (!Number.isInteger(count) || count < 0 || count > 999) return;
+    // 그림은 PNG data URL이고 작아야 한다(64×64 숫자 그림은 1~3KB). 아니면 그림 없이 숫자만 쓴다.
+    const valid = typeof image === "string" && image.length <= 20_000 && BADGE_PNG.test(image);
+    const overlay = count > 0 && valid ? nativeImage.createFromDataURL(image) : null;
+    const description = count > 0 ? `안 읽은 알림 ${count}개` : "";
+    if (process.platform === "win32") win.setOverlayIcon(overlay && !overlay.isEmpty() ? overlay : null, description);
+    app.setBadgeCount(count);
+    // 시험(Playwright)이 앱에 닿은 값을 볼 수 있게 남긴다. 운영체제가 보여 주는 아이콘은 읽을 방법이 없다.
+    global.modoriLastBadge = { count, description, hasImage: Boolean(overlay) };
   });
 
   app.whenReady().then(() => {
