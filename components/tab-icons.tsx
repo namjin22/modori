@@ -38,7 +38,8 @@ export function SocialIcon({ active }: IconProps) {
   return (
     <svg {...BASE}>
       <circle cx="12" cy="8.4" r="3.7" fill={active ? "currentColor" : "none"} />
-      <path d="M4.8 20c0-3.9 3.2-6.3 7.2-6.3s7.2 2.4 7.2 6.3" fill={active ? "currentColor" : "none"} />
+      {/* 속을 채울 때는 길을 닫아 밑변에도 선을 긋는다. 열어 두면 채움이 선 끝보다 위에서 잘려 양쪽 밑이 파인 것처럼 보인다. */}
+      <path d={active ? "M4.8 20c0-3.9 3.2-6.3 7.2-6.3s7.2 2.4 7.2 6.3z" : "M4.8 20c0-3.9 3.2-6.3 7.2-6.3s7.2 2.4 7.2 6.3"} fill={active ? "currentColor" : "none"} />
     </svg>
   );
 }
