@@ -95,8 +95,20 @@ test("앱에서 브라우저 로그인을 마치면 modori:// 링크로 앱 창�
     // 작업표시줄 아이콘 숫자(2026-10-26): 앱은 모양이 맞는 것만 받는다. 운영체제의 아이콘은 읽을 수 없어 앱이 남긴 값을 본다.
     const png = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4z8AAAAMBAQDJ/pLvAAAAAElFTkSuQmCC";
     const lastBadge = () => app.evaluate(() => (globalThis as unknown as { modoriLastBadge?: unknown }).modoriLastBadge);
+    // Windows에서 app.setBadgeCount를 부르면 Windows가 회색 숫자를 그려 빨간 겹침 그림을 덮어쓴다(1.0.5, 2026-10-27). 맥·리눅스만 부른다.
+    await app.evaluate(({ app: electronApp }) => {
+      const calls: number[] = [];
+      (globalThis as unknown as { modoriBadgeCountCalls: number[] }).modoriBadgeCountCalls = calls;
+      const original = electronApp.setBadgeCount.bind(electronApp);
+      electronApp.setBadgeCount = (count?: number) => {
+        calls.push(count ?? 0);
+        return original(count);
+      };
+    });
+    const badgeCountCalls = () => app.evaluate(() => (globalThis as unknown as { modoriBadgeCountCalls: number[] }).modoriBadgeCountCalls);
     await win.evaluate((image) => window.modoriDesktop?.setBadge(3, image), png);
     await expect.poll(lastBadge).toEqual({ count: 3, description: "안 읽은 알림 3개", hasImage: true });
+    expect(await badgeCountCalls()).toEqual(process.platform === "win32" ? [] : [3]);
     // 그림이 PNG가 아니면(다른 형식·글자) 그림은 버리고 숫자만 쓴다.
     await win.evaluate(() => window.modoriDesktop?.setBadge(5, "data:text/html;base64,PGI+"));
     await expect.poll(lastBadge).toEqual({ count: 5, description: "안 읽은 알림 5개", hasImage: false });
