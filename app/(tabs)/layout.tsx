@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 
 import { BottomNav } from "@/components/bottom-nav";
+import { DesktopUpdateBanner } from "@/components/desktop-update";
 import { PageFrame } from "@/components/page-frame";
 import { PushRegistrar } from "@/components/push-registrar";
 import { ResumeRefresh } from "@/components/resume-refresh";
@@ -27,6 +28,7 @@ export default async function TabsLayout({ children }: { children: ReactNode }) 
       <ResumeRefresh />
       <div className="flex min-h-screen flex-col">
         <PageFrame>
+          <DesktopUpdateBanner />
           <TimezoneNudge />
           {children}
         </PageFrame>
