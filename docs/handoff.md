@@ -1755,3 +1755,17 @@ VM에 시험 DB(사용자 1000, 할 일 108만, 반응 24만, 280MB)를 만들�
 - CLAUDE.md 규칙 7을 운영자 요청에 맞게 고쳤다(내가 정한 알림 허용, 타이머·일기·AI는 그대로 제외). decisions·feedback·platforms·roadmap·개인정보 목록·방침(시행일 10/27)을 같이 고쳤다.
 - 시험: `tests/unit/alarm.test.ts`, `alarm-send.test.ts`(시간대 3개), `tests/e2e/alarms.spec.ts`.
 - 운영에서 아직 못 본 것: 실제 기기로 푸시가 오는지(운영 배포 뒤 폰으로 5분 안 알림을 만들어 확인). Windows 앱에는 알림이 가지 않는다.
+
+## 2026-10-27 — 데스크톱 앱 안 업데이트 (1.0.7)
+
+- 운영자 요청: 웹에서 다시 깔지 않아도 앱 안의 버튼으로 업데이트. 새 의존성 electron-updater는 운영자가 승인(규칙 6). `docs/decisions.md` "데스크톱 앱 안 업데이트"에 선택지·대가·확인한 것/못 한 것.
+- 앱: `desktop/updater.js`(상태 하나, IPC, 확인·받기·설치), `desktop/preload.js`(`window.modoriUpdater`), `desktop/main.js`(등록), `desktop/package.json`(버전 1.0.7, `build.publish` = GitHub, `files`에 updater.js, `dependencies`), `desktop/dev-app-update.yml`(시험 전용).
+- 웹: `lib/desktop-update.ts`(타입·글자), `components/desktop-update.tsx`(탭 위 카드 `DesktopUpdateBanner`, 마이페이지 `DesktopUpdateRow`, 옛 앱 안내), `app/(tabs)/layout.tsx`, `app/(tabs)/settings/page.tsx`.
+- 배포: `.github/workflows/desktop.yml`이 `latest.yml`·`.blockmap`을 붙이고 태그 버전을 확인한 뒤 초안 릴리스를 공개한다.
+- 시험: `tests/unit/desktop-update.test.ts`, `tests/e2e/desktop-update.spec.ts`(가짜 `modoriUpdater`로 화면), `tests/e2e/desktop-app.spec.ts` 끝의 네 시험(가짜 업데이트 서버로 실제 앱: 찾기·받기·해시 확인·설치 시작, 해시 불일치, 같은 버전, 배경 실패는 조용). 기존 시험은 고치지 않았고 `launch()`에 환경 변수 인자만 더했다.
+- 실제 설치 파일로 이 PC에서 확인: 시험용 1.0.7 → 1.0.8 스스로 업데이트(0.8MB만 받음). 시험 앱은 지웠고 실제 앱·`modori://` 등록은 그대로다.
+- 주의: 이 PC에서 시험 앱을 띄웠을 때 처음에는 실제 앱의 `modori://` 등록을 덮어썼고(앱 이름·데이터 폴더가 같았다) 백업해 둔 값으로 되돌렸다. 설치 파일을 시험하려면 앱 이름·프로토콜·AUMID를 시험용으로 바꾼 복사본으로 빌드한다.
+- 못 한 것: 진짜 GitHub 릴리스를 거친 업데이트(1.0.7 다음 버전이 나와야 확인). 1.0.7 릴리스 뒤 `releases/latest/download/latest.yml`이 열리는지 본다.
+- 운영자가 할 일: 설치된 앱(1.0.6 이하)은 한 번 새로 설치해야 한다(마이페이지 "Windows 앱 받기" 또는 앱 안 "새 버전 받기").
+- 검토(다섯 관점 + 반박 검증)로 고친 것: 확인·받기 응답 멈춤 감시(60초), 다시 시도 때 새로 확인, 배경 확인 실패 뒤 10분 재시도, 설치별 번호(.updaterId) 끄기, 스크린리더 퍼센트, 시험의 하이드레이션 대기, decisions의 의존성 숫자. 설치 파일 실행 실패는 앱이 말없이 닫히는 한계가 남는다(decisions 대가 7).
+- 검증 메모: 전체 `npm run verify`에서 이번 변경과 무관한 시험 5개가 한 번 실패했다(시험 DB Neon에 "Can't reach database server"가 나던 때). 다시 돌리니 24개는 통과했고 `friend-recommend.spec.ts`는 단독으로 28.4초에 통과했다(제한 30초라 부하에 약한 시험이다. 이번 변경과 무관해 고치지 않았다).

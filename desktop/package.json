@@ -1,7 +1,7 @@
 {
   "name": "modori-desktop",
   "productName": "모도리",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "모도리 데스크톱 앱 — modori.site를 창 하나로 띄운다",
   "main": "main.js",
   "private": true,
@@ -26,6 +26,7 @@
     "files": [
       "main.js",
       "preload.js",
+      "updater.js",
       "offline.html",
       "build/icon.png"
     ],
@@ -60,6 +61,16 @@
       "category": "public.app-category.productivity",
       "icon": "build/icon.png",
       "artifactName": "Modori.${ext}"
-    }
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "namjin22",
+        "repo": "modori"
+      }
+    ]
+  },
+  "dependencies": {
+    "electron-updater": "^6.8.11"
   }
 }

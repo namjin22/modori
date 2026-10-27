@@ -8,6 +8,8 @@ name: desktop
 # - Windows·macOS 둘 다 만들어진 뒤에야 릴리스를 만들고 올린다. 한쪽이 실패하면 반쪽 릴리스가 생기지 않는다.
 # - 손으로 돌리면(workflow_dispatch) 설치 파일만 만들어 Actions 결과물로 남기고 릴리스는 건드리지 않는다.
 # - 같은 태그를 다시 돌리면 그 태그의 파일을 교체한다(--clobber). 이미 공개한 버전의 내용을 바꾸려면 버전을 올린다.
+# - 앱 안 업데이트(desktop/updater.js)는 릴리스의 latest.yml로 새 버전을 알아낸다. Windows 설치 파일과 함께 latest.yml·.blockmap을
+#   붙이고, latest.yml이 이 태그의 버전을 가리키는지 확인한 뒤에야 릴리스를 공개한다(초안으로 만들어 파일을 다 올린 뒤 공개).
 on:
   push:
     tags: ["desktop-v*"]
@@ -38,7 +40,10 @@ jobs:
         include:
           - os: windows-latest
             script: dist
-            files: desktop/dist/Modori-Setup.exe
+            files: |
+              desktop/dist/Modori-Setup.exe
+              desktop/dist/Modori-Setup.exe.blockmap
+              desktop/dist/latest.yml
           - os: macos-latest
             script: dist:mac
             files: desktop/dist/Modori.dmg
@@ -79,11 +84,27 @@ jobs:
           path: dist
           merge-multiple: true
 
+      # 앱 안 업데이트가 읽는 latest.yml이 이 태그의 버전과 설치 파일 이름을 가리키는지 본다. 어긋나면 앱이 새 버전을 못 찾거나 엉뚱한 파일을 받는다.
+      - name: 업데이트 정보 확인
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          test -s dist/Modori-Setup.exe.blockmap
+          version=$(grep -m1 '^version:' dist/latest.yml | awk '{print $2}')
+          file=$(grep -m1 '^path:' dist/latest.yml | awk '{print $2}')
+          if [ "desktop-v$version" != "$TAG" ] || [ "$file" != "Modori-Setup.exe" ]; then
+            echo "::error::latest.yml이 이상하다(version=$version, path=$file, 태그=$TAG)."
+            exit 1
+          fi
+
       - name: 릴리스에 붙이기
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ github.ref_name }}
         run: |
           gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 ||
-            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --title "모도리 데스크톱 ${TAG#desktop-v}" --notes "모도리 데스크톱 앱"
-          gh release upload "$TAG" dist/Modori-Setup.exe dist/Modori.dmg --repo "$GITHUB_REPOSITORY" --clobber
+            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --draft --title "모도리 데스크톱 ${TAG#desktop-v}" --notes "모도리 데스크톱 앱"
+          # latest.yml은 맨 마지막에 올린다. 앱이 새 버전을 알아낸 뒤 설치 파일을 못 받는 틈이 없게 한다.
+          gh release upload "$TAG" dist/Modori-Setup.exe dist/Modori-Setup.exe.blockmap dist/Modori.dmg --repo "$GITHUB_REPOSITORY" --clobber
+          gh release upload "$TAG" dist/latest.yml --repo "$GITHUB_REPOSITORY" --clobber
+          gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft=false

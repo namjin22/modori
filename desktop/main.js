@@ -8,6 +8,8 @@ const { app, BrowserWindow, ipcMain, Menu, nativeImage, shell } = require("elect
 const crypto = require("node:crypto");
 const path = require("node:path");
 
+const { registerUpdater, scheduleUpdateChecks } = require("./updater");
+
 // 일부 공유기·학교 망은 UDP 443(QUIC, HTTP/3)을 막아 연결이 늦거나 끊긴다. 모도리는 TCP(HTTPS)로 충분해서 앱에서는 쓰지 않는다.
 app.commandLine.appendSwitch("disable-quic");
 
@@ -240,11 +242,15 @@ if (!app.requestSingleInstanceLock()) {
     global.modoriLastBadge = { count, description, hasImage: Boolean(overlay) };
   });
 
+  // 앱 안 업데이트(desktop/updater.js). IPC는 여기서 등록하고, 새 버전 확인은 창이 뜬 뒤에 시작한다.
+  registerUpdater(() => win);
+
   app.whenReady().then(() => {
     // Windows 알림 센터는 이 이름으로 앱을 찾는다. 설치 파일(electron-builder의 appId)과 같아야 알림이 뜬다(2026-10-19).
     if (process.platform === "win32") app.setAppUserModelId("site.modori.desktop");
     setupMenu();
     createWindow();
+    scheduleUpdateChecks();
     app.on("activate", () => {
       if (BrowserWindow.getAllWindows().length === 0) createWindow();
     });
