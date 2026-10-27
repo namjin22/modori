@@ -225,6 +225,7 @@ if (!app.requestSingleInstanceLock()) {
 
   // 작업표시줄 아이콘에 알림 수를 띄운다(2026-10-26 요청). 우리 창이 보낸 것만, 모양을 확인하고 받는다.
   // Windows는 아이콘 위에 작은 그림을 겹치고(setOverlayIcon), 맥·리눅스는 Dock·런처의 숫자(setBadgeCount)를 쓴다.
+  // Windows에서 setBadgeCount까지 부르면 Windows가 회색 숫자를 따로 그려 빨간 그림을 덮어쓴다(1.0.5에서 그랬다, 2026-10-27 확인).
   const BADGE_PNG = /^data:image\/png;base64,[A-Za-z0-9+/]+={0,2}$/;
   ipcMain.on("modori:badge", (event, count, image) => {
     if (!win || event.sender !== win.webContents) return;
@@ -234,7 +235,7 @@ if (!app.requestSingleInstanceLock()) {
     const overlay = count > 0 && valid ? nativeImage.createFromDataURL(image) : null;
     const description = count > 0 ? `안 읽은 알림 ${count}개` : "";
     if (process.platform === "win32") win.setOverlayIcon(overlay && !overlay.isEmpty() ? overlay : null, description);
-    app.setBadgeCount(count);
+    else app.setBadgeCount(count);
     // 시험(Playwright)이 앱에 닿은 값을 볼 수 있게 남긴다. 운영체제가 보여 주는 아이콘은 읽을 방법이 없다.
     global.modoriLastBadge = { count, description, hasImage: Boolean(overlay) };
   });
