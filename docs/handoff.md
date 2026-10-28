@@ -1777,3 +1777,4 @@ VM에 시험 DB(사용자 1000, 할 일 108만, 반응 24만, 280MB)를 만들�
 - 앱(`desktop/`)은 바뀌지 않았다 → **앱 릴리스(태그)는 필요 없고 웹 배포만 하면 이미 깔린 옛 앱에도 닿는다.**
 - 시험: `tests/unit/desktop-update.test.ts`(판별), `tests/e2e/desktop-update.spec.ts`(옛 앱 카드·나중에·마이페이지 줄, 새 앱·맥 앱·보통 브라우저에는 서버가 그린 화면에 없음). 조건 세 곳(맥 제외, 버전 비교, 레이아웃 연결)을 일부러 깨서 시험이 실패하는 것도 확인했다.
 - 못 한 것: 모바일 앱(사용자 에이전트가 `ModoriMobile/1.0.0` 고정이라 버전을 모른다). 진짜 옛 앱(1.0.6)을 띄워 본 것은 아니고 사용자 에이전트를 바꾼 브라우저로 확인했다.
+- 열 삭제(브랜치 `chore/drop-reminder-columns`): 마이그레이션 `20261028120000_drop_daily_reminder`. `prisma migrate diff`로 옛 schema와 새 schema를 견줘 만든 SQL이고 두 열(`reminderMinute`, `reminderSentOn`) 삭제뿐이다. 시험 DB(Neon `neondb`)에는 `prisma migrate deploy`로 적용했다. 운영 DB에는 이 PR이 main에 합쳐져 배포될 때 `deploy/deploy.sh`가 적용한다. #228(코드)을 먼저 배포한 뒤에 낸 것은 배포가 마이그레이션을 먼저 돌려서다.
