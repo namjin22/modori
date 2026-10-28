@@ -4,7 +4,7 @@ import { useState } from "react";
 
 import { Chevron } from "@/components/choice-picker";
 import { Modal } from "@/components/modal";
-import { formatReminderMinute } from "@/lib/reminder";
+import { formatMinuteOfDay } from "@/lib/date";
 
 const HOURS = Array.from({ length: 12 }, (_, index) => index + 1);
 const MINUTES = Array.from({ length: 12 }, (_, index) => index * 5);
@@ -54,7 +54,7 @@ export function TimeSheet({
     <>
       <button
         type="button"
-        aria-label={`${label} ${value === null ? "없음" : formatReminderMinute(value)}, 바꾸기`}
+        aria-label={`${label} ${value === null ? "없음" : formatMinuteOfDay(value)}, 바꾸기`}
         aria-haspopup="dialog"
         onClick={() => {
           setDraft(value ?? fallback);
@@ -62,13 +62,13 @@ export function TimeSheet({
         }}
         className="flex h-11 w-full min-w-0 items-center justify-between gap-2 rounded-xl bg-surface-hover px-4 text-[15px] font-medium tabular-nums"
       >
-        <span className={value === null ? "text-muted" : ""}>{value === null ? "없음" : formatReminderMinute(value)}</span>
+        <span className={value === null ? "text-muted" : ""}>{value === null ? "없음" : formatMinuteOfDay(value)}</span>
         <Chevron />
       </button>
 
       <Modal open={open} onClose={() => setOpen(false)} title={label}>
         <p aria-live="polite" className="text-center text-3xl font-bold tabular-nums">
-          {formatReminderMinute(draft)}
+          {formatMinuteOfDay(draft)}
         </p>
 
         <div role="radiogroup" aria-label="오전·오후" className="flex gap-1 rounded-xl bg-surface-hover p-1">

@@ -2,7 +2,7 @@
 
 Play Console → 꾸미기 → 기본 스토어 등록정보에 그대로 붙여 넣는다. 그림은 `docs/screenshots/store-listing/`
 (`STORE_ASSETS=1 SCREENSHOT_DIR=store-listing npm run screenshots`로 다시 찍는다. 그래픽 이미지는 `public/og.png`를 1024×500으로 잘랐다).
-제외 기능(타이머·일기·AI, CLAUDE.md 규칙 7)은 쓰지 않는다. 푸시 알림은 받은 반응·새 팔로워(2026-09-30부터)와, 켠 사람에게 하루 한 번 보내는 할 일 리마인드(2026-10-14부터)에 쓴다.
+제외 기능(타이머·일기·AI, CLAUDE.md 규칙 7)은 쓰지 않는다. 푸시 알림은 받은 반응·새 팔로워(2026-09-30부터)와, 내가 정한 시각·요일·문구의 알림(2026-10-26부터)에 쓴다.
 
 ## 앱 이름
 모도리

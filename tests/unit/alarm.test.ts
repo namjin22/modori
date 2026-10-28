@@ -6,6 +6,7 @@ import {
   alarmPush,
   alarmSentOnWhenSet,
   describeWeekdays,
+  isAlarmMinute,
   MAX_ALARM_MESSAGE,
   readAlarmMessage,
   readWeekdays,
@@ -123,5 +124,16 @@ describe("describeWeekdays / alarmPush", () => {
 
   it("푸시는 내가 쓴 문구 그대로, 같은 알림은 기기에서 하나로 묶인다", () => {
     expect(alarmPush({ id: "a1", message: "물 마시기" })).toEqual({ title: "모도리", body: "물 마시기", url: "/", tag: "alarm:a1" });
+  });
+});
+
+describe("isAlarmMinute", () => {
+  it("5분 단위의 하루 안 값만 받는다", () => {
+    expect(isAlarmMinute(21 * 60)).toBe(true);
+    expect(isAlarmMinute(0)).toBe(true);
+    expect(isAlarmMinute(1437)).toBe(false);
+    expect(isAlarmMinute(24 * 60)).toBe(false);
+    expect(isAlarmMinute(-5)).toBe(false);
+    expect(isAlarmMinute("1260")).toBe(false);
   });
 });

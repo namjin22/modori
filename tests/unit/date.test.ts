@@ -4,7 +4,9 @@ import {
   addDays,
   daysBetween,
   formatKST,
+  formatMinuteOfDay,
   isSameKSTDate,
+  minuteOfDayIn,
   parseKSTDate,
   startOfKSTDayInstant,
   todayKST,
@@ -158,5 +160,24 @@ describe("startOfKSTDayInstant", () => {
     // 2026-09-28 23:30 KST = 14:30Z, 2026-09-28 00:10 KST = 전날 15:10Z
     expect(startOfKSTDayInstant(new Date("2026-09-28T14:30:00Z")).toISOString()).toBe("2026-09-27T15:00:00.000Z");
     expect(startOfKSTDayInstant(new Date("2026-09-27T15:10:00Z")).toISOString()).toBe("2026-09-27T15:00:00.000Z");
+  });
+});
+
+// 2026-10-14 12:00 UTC = 서울 21:00, 토론토 08:00.
+const NOON_UTC = new Date("2026-10-14T12:00:00Z");
+
+describe("minuteOfDayIn", () => {
+  it("그 시간대의 시계로 자정부터 몇 분째인지 센다(서머타임 포함)", () => {
+    expect(minuteOfDayIn(NOON_UTC, "Asia/Seoul")).toBe(21 * 60);
+    expect(minuteOfDayIn(NOON_UTC, "America/Toronto")).toBe(8 * 60);
+    expect(minuteOfDayIn(new Date("2026-10-14T15:00:00Z"), "Asia/Seoul")).toBe(0);
+  });
+});
+
+describe("formatMinuteOfDay", () => {
+  it("시각을 오전·오후로 보인다", () => {
+    expect(formatMinuteOfDay(21 * 60)).toBe("오후 9:00");
+    expect(formatMinuteOfDay(0)).toBe("오전 12:00");
+    expect(formatMinuteOfDay(12 * 60 + 5)).toBe("오후 12:05");
   });
 });

@@ -105,7 +105,7 @@ iPad는 지원하지 않는다(iPhone 전용).
 - 심사자는 자기 Apple ID로 "Apple로 계속하기"를 눌러 들어올 수 있다. 그래도 심사용 Google 계정(2단계 인증을 끈 새 계정)을 하나 만들어 아이디·비밀번호를 적어 두면 막히지 않는다.
 - 친구 기능을 보여 주려고, 심사용 계정이 팔로우한 시연용 계정과 공개 할 일을 미리 만들어 둔다.
 
-메모(영문, 아래를 그대로 붙여 넣는다). 2026-10-20에 다시 썼다: 심사자가 3분 안에 기능을 다 볼 수 있게 순서를 주고, 아이폰에서만 되는 기능(푸시·리마인드·Apple 로그인)을 앞에 둔다.
+메모(영문, 아래를 그대로 붙여 넣는다). 2026-10-20에 다시 썼다: 심사자가 3분 안에 기능을 다 볼 수 있게 순서를 주고, 아이폰에서만 되는 기능(푸시·Apple 로그인)을 앞에 둔다. 2026-10-28에 하루 한 번 리마인드를 없애 아래 메모의 4번과 마지막 문단에서 뺐다(이미 App Store Connect에 붙여 넣은 메모는 직접 고쳐야 한다).
 "웹을 감싼 앱"이라고 먼저 소개하던 문장은 뺐다(4.2 최소 기능 심사에서 그 말부터 보게 된다). 서버에서 화면을 받아 네트워크가 필요하다는 사실은 그대로 적는다.
 
 ```
@@ -116,9 +116,9 @@ What to try (about 3 minutes)
 1. Home (피드 tab): add a task, tap its checkbox to complete it, long-press and drag to reorder. The "관리" (Manage) menu opens Categories, a new Event, and Routines (repeating tasks and events).
 2. Social (소셜 tab): tap 모도리친구 to see their tasks and events, then tap an emoji under a completed task to react.
 3. Social > 알림 (Notifications): reactions, new followers and friends' completed tasks.
-4. My Page (마이페이지) > 알림: allow notifications to receive push notifications for reactions, new followers and friends' completed tasks (can be turned off), and turn on the optional daily reminder at a chosen time, which tells you how many tasks are left today.
+4. My Page (마이페이지) > 알림: allow notifications to receive push notifications for reactions, new followers and friends' completed tasks (can be turned off), and create your own alarms ("내가 정한 알림") that send a push notification with your own text at the time and weekdays you choose.
 
-On iPhone, Modori uses native push notifications (APNs), the daily reminder, Sign in with Apple, and the device time zone automatically. Screens are loaded from our server (https://modori.site), so a network connection is required.
+On iPhone, Modori uses native push notifications (APNs), Sign in with Apple, and the device time zone automatically. Screens are loaded from our server (https://modori.site), so a network connection is required.
 
 Account deletion: My Page > "계정 지우기" (Delete account) at the bottom. Type your nickname to confirm. All data is deleted and the Sign in with Apple token is revoked.
 
