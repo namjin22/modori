@@ -1,5 +1,7 @@
 import { headers } from "next/headers";
 
+import { outdatedDesktopVersion } from "@/lib/desktop-update";
+
 /** 데스크톱 앱(desktop/main.js)이 사용자 에이전트 끝에 붙이는 표시. 두 곳이 같아야 한다. */
 export const DESKTOP_UA_MARK = "ModoriDesktop";
 /** 모바일 앱(mobile/capacitor.config.json의 android.appendUserAgent)이 붙이는 표시. 두 곳이 같아야 한다. */
@@ -15,6 +17,11 @@ async function userAgent(): Promise<string> {
  */
 export async function isDesktopApp(): Promise<boolean> {
   return (await userAgent()).includes(DESKTOP_UA_MARK);
+}
+
+/** 앱 안 업데이트가 없는 옛 Windows 앱이면 그 버전("1.0.6"), 아니면 null. 새로 설치하라는 알림을 띄우는 데만 쓴다. */
+export async function outdatedDesktopApp(): Promise<string | null> {
+  return outdatedDesktopVersion(await userAgent());
 }
 
 /** 윈도 PC의 브라우저인지. Windows 설치 파일 안내를 폰·Mac 접속자에게 보이지 않게 하는 데만 쓴다. */
