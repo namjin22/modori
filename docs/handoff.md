@@ -1770,3 +1770,10 @@ VM에 시험 DB(사용자 1000, 할 일 108만, 반응 24만, 280MB)를 만들�
 - 운영자가 할 일: 설치된 앱(1.0.6 이하)은 한 번 새로 설치해야 한다(마이페이지 "Windows 앱 받기" 또는 앱 안 "새 버전 받기").
 - 검토(다섯 관점 + 반박 검증)로 고친 것: 확인·받기 응답 멈춤 감시(60초), 다시 시도 때 새로 확인, 배경 확인 실패 뒤 10분 재시도, 설치별 번호(.updaterId) 끄기, 스크린리더 퍼센트, 시험의 하이드레이션 대기, decisions의 의존성 숫자. 설치 파일 실행 실패는 앱이 말없이 닫히는 한계가 남는다(decisions 대가 7).
 - 검증 메모: 전체 `npm run verify`에서 이번 변경과 무관한 시험 5개가 한 번 실패했다(시험 DB Neon에 "Can't reach database server"가 나던 때). 다시 돌리니 24개는 통과했고 `friend-recommend.spec.ts`는 단독으로 28.4초에 통과했다(제한 30초라 부하에 약한 시험이다. 이번 변경과 무관해 고치지 않았다).
+
+## 2026-10-28 — 옛 앱에 "최신 버전으로 업데이트" 알림
+
+- 운영자 요청. 서버가 사용자 에이전트의 `ModoriDesktop/x.y.z`를 읽어 Windows 앱 1.0.7 미만이면 탭 화면 위에 카드(`OutdatedAppBanner`)와 마이페이지 줄(`OutdatedAppNotice`)을 그린다. 판별은 `lib/desktop-update.ts`의 `outdatedDesktopVersion`(기준 `SELF_UPDATE_SINCE` = 1.0.7, 앱 버전을 올려도 고치지 않는다), 서버 쪽 연결은 `lib/desktop.ts`의 `outdatedDesktopApp`, `app/(tabs)/layout.tsx`, `app/(tabs)/settings/page.tsx`.
+- 앱(`desktop/`)은 바뀌지 않았다 → **앱 릴리스(태그)는 필요 없고 웹 배포만 하면 이미 깔린 옛 앱에도 닿는다.**
+- 시험: `tests/unit/desktop-update.test.ts`(판별), `tests/e2e/desktop-update.spec.ts`(옛 앱 카드·나중에·마이페이지 줄, 새 앱·맥 앱·보통 브라우저에는 서버가 그린 화면에 없음). 조건 세 곳(맥 제외, 버전 비교, 레이아웃 연결)을 일부러 깨서 시험이 실패하는 것도 확인했다.
+- 못 한 것: 모바일 앱(사용자 에이전트가 `ModoriMobile/1.0.0` 고정이라 버전을 모른다). 진짜 옛 앱(1.0.6)을 띄워 본 것은 아니고 사용자 에이전트를 바꾼 브라우저로 확인했다.

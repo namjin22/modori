@@ -143,28 +143,73 @@ test("앱 안 업데이트를 못 하는 앱(맥)에는 아무것도 보이지 �
   await context.close();
 });
 
-test("업데이트 기능이 없는 옛 앱에는 새로 설치하라고 안내하고, 보통 브라우저에는 아무것도 없다", async ({ browser, email }, testInfo) => {
+const DOWNLOAD_URL = "https://github.com/namjin22/modori/releases/latest/download/Modori-Setup.exe";
+const OUTDATED_NOTICE = "앱이 오래된 버전";
+
+// 옛 앱 알림(2026-10-28 요청): 앱 안 업데이트가 없는 앱(1.0.6 이하)이 탭 화면 위에서 최신 버전으로 업데이트하라고 알린다.
+test("앱 안 업데이트가 없는 옛 앱은 탭 화면 위에서 최신 버전으로 업데이트하라고 알린다", async ({ browser, email }, testInfo) => {
+  const context = await browser.newContext({ userAgent: WINDOWS_APP_UA.replace("1.0.7", "1.0.6") });
+  const page = await context.newPage();
+  await signUp(page, email, `옛앱${testInfo.testId.slice(-6)}${RUN_TAG}`);
+
+  const banner = page.getByRole("region", { name: "앱 업데이트" });
+  await expect(banner).toContainText(OUTDATED_NOTICE);
+  await expect(banner).toContainText("1.0.6");
+  await expect(banner.getByRole("link", { name: "최신 버전 받기" })).toHaveAttribute("href", DOWNLOAD_URL);
+
+  // 다른 탭으로 옮겨도 따라온다. "나중에"를 누르면 이 앱을 다시 켤 때까지 숨는다(탭을 옮겨도 다시 뜨지 않는다).
+  await page.getByRole("link", { name: /소셜/ }).first().click();
+  await expect(page).toHaveURL(/\/feed/);
+  await expect(banner).toContainText(OUTDATED_NOTICE);
+  await banner.getByRole("button", { name: "나중에" }).click();
+  await expect(banner).toHaveCount(0);
+  await page.getByRole("link", { name: /마이페이지/ }).first().click();
+  await expect(page.getByRole("heading", { name: "마이페이지" })).toBeVisible();
+  await expect(banner).toHaveCount(0);
+
+  // 마이페이지에는 같은 안내가 줄로 남아 있다.
+  await expect(page.getByRole("heading", { name: "앱 업데이트" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "최신 버전 받기" })).toHaveAttribute("href", DOWNLOAD_URL);
+
+  // 앱을 다시 켜는 것과 같다(화면을 통째로 다시 연다). 기기에 저장한 것이 없어 알림이 다시 뜬다.
+  await page.reload();
+  await expect(page.getByRole("region", { name: "앱 업데이트" })).toContainText(OUTDATED_NOTICE);
+  await context.close();
+});
+
+test("옛 앱 알림은 서버가 사용자 에이전트로 정한다: 새 앱·맥 앱·보통 브라우저에는 없다", async ({ browser, email }, testInfo) => {
+  // 서버가 그린 화면을 그대로 본다. 화면이 다 그려지기 전에 "없다"를 확인하면 틀려도 통과하기 때문이다.
+  const serverHtml = async (page: Page, path: string) => (await page.request.get(path)).text();
+
   const legacy = await browser.newContext({ userAgent: WINDOWS_APP_UA.replace("1.0.7", "1.0.6") });
   const legacyPage = await legacy.newPage();
-  await signUp(legacyPage, email, `옛앱${testInfo.testId.slice(-6)}${RUN_TAG}`);
-  await legacyPage.goto("/settings");
-  await expect(legacyPage.getByRole("heading", { name: "앱 업데이트" })).toBeVisible();
-  await expect(legacyPage.getByRole("link", { name: "새 버전 받기" })).toHaveAttribute(
-    "href",
-    "https://github.com/namjin22/modori/releases/latest/download/Modori-Setup.exe",
-  );
+  await signUp(legacyPage, email, `분기${testInfo.testId.slice(-6)}${RUN_TAG}`);
+  // 기준: 같은 계정이라도 옛 앱에서는 서버가 알림을 그려 보낸다.
+  expect(await serverHtml(legacyPage, "/")).toContain(OUTDATED_NOTICE);
+  expect(await serverHtml(legacyPage, "/settings")).toContain("옛 버전이에요");
   await legacy.close();
 
-  // 같은 계정으로 보통 브라우저에서 본다.
-  const web = await browser.newContext();
-  const webPage = await web.newPage();
-  await webPage.goto("/login");
-  await webPage.getByLabel("테스트 이메일").fill(email);
-  await webPage.getByRole("button", { name: "테스트 로그인" }).click();
-  await expect(homeReady(webPage)).toBeVisible();
-  await webPage.goto("/settings");
-  await expect(webPage.getByRole("heading", { name: "마이페이지" })).toBeVisible();
-  await expect(webPage.getByRole("heading", { name: "앱 업데이트" })).toHaveCount(0);
-  await expect(webPage.getByRole("link", { name: "새 버전 받기" })).toHaveCount(0);
-  await web.close();
+  const signIn = async (page: Page) => {
+    await page.goto("/login");
+    await page.getByLabel("테스트 이메일").fill(email);
+    await page.getByRole("button", { name: "테스트 로그인" }).click();
+    await expect(homeReady(page)).toBeVisible();
+  };
+  const cases = [
+    // 앱 안 업데이트가 있는 앱은 스스로 새 버전을 알린다.
+    ["앱 안 업데이트가 있는 1.0.7", WINDOWS_APP_UA],
+    ["더 새로운 1.0.10", WINDOWS_APP_UA.replace("1.0.7", "1.0.10")],
+    // 받기 링크가 Windows 설치 파일이라 맥 앱에는 보이지 않는다.
+    ["맥 앱 1.0.6", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/150 Safari/537.36 ModoriDesktop/1.0.6"],
+    // 앱이 아닌 보통 브라우저.
+    ["보통 브라우저", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/150 Safari/537.36"],
+  ] as const;
+  for (const [name, userAgent] of cases) {
+    const context = await browser.newContext({ userAgent });
+    const page = await context.newPage();
+    await signIn(page);
+    expect(await serverHtml(page, "/"), `${name}: 홈`).not.toContain(OUTDATED_NOTICE);
+    expect(await serverHtml(page, "/settings"), `${name}: 마이페이지`).not.toContain("옛 버전이에요");
+    await context.close();
+  }
 });

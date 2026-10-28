@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { hasPendingUpdate, updateButtonLabel, updateMessage, type UpdateState } from "@/lib/desktop-update";
+import { hasPendingUpdate, outdatedDesktopVersion, updateButtonLabel, updateMessage, type UpdateState } from "@/lib/desktop-update";
 
 const base: UpdateState = { supported: true, current: "1.0.7", status: "idle", version: null, percent: 0, error: null };
 const state = (patch: Partial<UpdateState>): UpdateState => ({ ...base, ...patch });
@@ -59,5 +59,39 @@ describe("updateMessage", () => {
       "업데이트하지 못했어요: sha512 checksum mismatch",
     );
     expect(updateMessage(state({ status: "error" }))).toBe("업데이트하지 못했어요");
+  });
+});
+
+describe("outdatedDesktopVersion", () => {
+  const windows = (version: string) => `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/150 Safari/537.36 ModoriDesktop/${version}`;
+
+  it("앱 안 업데이트가 없는 옛 Windows 앱이면 그 버전을 돌려준다", () => {
+    expect(outdatedDesktopVersion(windows("1.0.6"))).toBe("1.0.6");
+    expect(outdatedDesktopVersion(windows("1.0.0"))).toBe("1.0.0");
+    expect(outdatedDesktopVersion(windows("0.9.9"))).toBe("0.9.9");
+  });
+
+  it("앱 안 업데이트가 들어간 버전부터는 null(그 앱은 스스로 새 버전을 알린다)", () => {
+    expect(outdatedDesktopVersion(windows("1.0.7"))).toBeNull();
+    expect(outdatedDesktopVersion(windows("1.0.8"))).toBeNull();
+    expect(outdatedDesktopVersion(windows("1.1.0"))).toBeNull();
+    expect(outdatedDesktopVersion(windows("2.0.0"))).toBeNull();
+  });
+
+  it("버전 숫자는 글자가 아니라 숫자로 비교한다(1.0.10은 1.0.7보다 새 것)", () => {
+    expect(outdatedDesktopVersion(windows("1.0.10"))).toBeNull();
+    expect(outdatedDesktopVersion(windows("1.10.0"))).toBeNull();
+  });
+
+  it("맥 앱은 받기 링크가 Windows 설치 파일이라 null", () => {
+    expect(outdatedDesktopVersion("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/150 Safari/537.36 ModoriDesktop/1.0.6")).toBeNull();
+  });
+
+  it("데스크톱 앱이 아니거나 버전을 읽을 수 없으면 null", () => {
+    expect(outdatedDesktopVersion("")).toBeNull();
+    expect(outdatedDesktopVersion("Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/150 Safari/537.36")).toBeNull();
+    expect(outdatedDesktopVersion("Mozilla/5.0 (Linux; Android 14) ModoriMobile/1.0.0")).toBeNull();
+    expect(outdatedDesktopVersion(windows("abc"))).toBeNull();
+    expect(outdatedDesktopVersion(windows("1.0"))).toBeNull();
   });
 });

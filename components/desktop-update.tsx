@@ -75,16 +75,13 @@ export function DesktopUpdateBanner() {
 
 /**
  * 마이페이지의 "앱 업데이트". 지금 버전을 보이고, 새 버전을 직접 확인하거나 받을 수 있다.
- * 앱 안 업데이트가 없던 옛 앱(1.0.6 이하)은 연결이 없어서, 한 번만 새로 설치하라고 안내한다. 그다음부터는 앱 안에서 된다.
+ * 앱 안 업데이트가 없는 옛 앱(1.0.6 이하)은 이 줄 대신 OutdatedAppNotice를 쓴다(app/(tabs)/settings/page.tsx).
  */
 export function DesktopUpdateRow() {
-  const bridge = useSyncExternalStore(subscribeNothing, () => Boolean(window.modoriUpdater), () => null);
+  const bridge = useSyncExternalStore(subscribeNothing, () => Boolean(window.modoriUpdater), () => false);
   const state = useUpdateState();
-  const windows = useSyncExternalStore(subscribeNothing, () => navigator.userAgent.includes("Windows"), () => false);
 
-  if (bridge === null) return null;
-  if (!bridge) return windows ? <LegacyApp /> : null;
-  if (!state || !state.supported) return null;
+  if (!bridge || !state || !state.supported) return null;
 
   const pending = hasPendingUpdate(state);
   const busy = state.status === "checking" || state.status === "downloading" || state.status === "installing";
@@ -114,17 +111,54 @@ export function DesktopUpdateRow() {
   );
 }
 
-function LegacyApp() {
+/**
+ * 앱 안 업데이트가 없는 옛 앱의 마이페이지 줄. 한 번만 새로 설치하면 그다음부터는 앱 안에서 업데이트된다.
+ * 설치 파일 링크는 앱이 평소 브라우저로 열어 준다(desktop/main.js의 guardNavigation, 1.0.0부터).
+ */
+export function OutdatedAppNotice({ version }: { version: string }) {
   return (
     <section className="flex flex-col gap-3 rounded-2xl bg-surface p-6">
       <h2 className="text-sm font-semibold text-muted">앱 업데이트</h2>
       <p className="text-[13px] leading-relaxed text-muted">
-        이 앱은 앱 안에서 업데이트하는 기능이 없는 옛 버전이에요. 한 번만 새로 설치하면 그다음부터는 여기서 누르는 것만으로 업데이트돼요.
-        로그인과 설정은 그대로예요.
+        이 앱(모도리 {version})은 앱 안에서 업데이트하는 기능이 없는 옛 버전이에요. 한 번만 새로 설치하면 그다음부터는 여기서 누르는 것만으로
+        업데이트돼요. 로그인과 설정은 그대로예요.
       </p>
       <a href={DESKTOP_DOWNLOAD_URL} className="flex h-11 items-center justify-center rounded-xl bg-brand text-sm font-semibold text-brand-contrast">
-        새 버전 받기
+        최신 버전 받기
       </a>
     </section>
+  );
+}
+
+/**
+ * 옛 앱이 탭 화면 위에서 최신 버전으로 업데이트해 달라고 알리는 카드(2026-10-28 요청). 서버가 사용자 에이전트의 앱 버전을 읽어
+ * 옛 앱일 때만 그린다(app/(tabs)/layout.tsx). "나중에"는 이 앱을 다시 켤 때까지만 숨긴다: 저장하지 않으므로 기기에 남는 것이 없다.
+ * 앱 안 업데이트가 있는 앱(1.0.7부터)은 새 버전이 나왔을 때 DesktopUpdateBanner가 알린다.
+ */
+export function OutdatedAppBanner({ version }: { version: string }) {
+  const [hidden, setHidden] = useState(false);
+  if (hidden) return null;
+
+  return (
+    <div role="region" aria-label="앱 업데이트" className="mb-4 flex flex-col gap-3 rounded-2xl bg-brand-subtle p-4">
+      <p className="text-sm">
+        모도리 앱이 오래된 버전(<b className="font-semibold">{version}</b>)이에요. 최신 버전으로 업데이트해 주세요.
+      </p>
+      <p className="text-xs leading-relaxed text-muted">
+        한 번만 새로 설치하면 그다음부터는 앱 안에서 버튼만 눌러 업데이트돼요. 로그인과 설정은 그대로예요. 설치할 때 &ldquo;Windows의 PC
+        보호&rdquo; 창이 뜨면 <b>추가 정보</b>를 누르고 <b>실행</b>을 눌러요.
+      </p>
+      <div className="flex gap-2">
+        <a
+          href={DESKTOP_DOWNLOAD_URL}
+          className="flex h-10 flex-1 items-center justify-center rounded-xl bg-brand text-sm font-semibold text-brand-contrast"
+        >
+          최신 버전 받기
+        </a>
+        <button type="button" onClick={() => setHidden(true)} className="h-10 flex-1 rounded-xl bg-surface text-sm font-medium text-muted">
+          나중에
+        </button>
+      </div>
+    </div>
   );
 }

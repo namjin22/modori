@@ -10,9 +10,9 @@ import { TIMEZONES } from "@/lib/timezones";
 import { dateIn, formatMonthDayKST, weekdayKST } from "@/lib/date";
 import { timezoneOrDefault } from "@/lib/timezones";
 import { isAdmin } from "@/lib/admin";
-import { isDesktopApp, isMobileApp, isWindowsBrowser } from "@/lib/desktop";
+import { isDesktopApp, isMobileApp, isWindowsBrowser, outdatedDesktopApp } from "@/lib/desktop";
 import { DesktopDownload } from "@/components/desktop-download";
-import { DesktopUpdateRow } from "@/components/desktop-update";
+import { DesktopUpdateRow, OutdatedAppNotice } from "@/components/desktop-update";
 import { DesktopNotifySwitch } from "@/components/desktop-notify-switch";
 import { MacAppGuide } from "@/components/mac-app-guide";
 import { prisma } from "@/lib/prisma";
@@ -28,6 +28,7 @@ export default async function SettingsPage() {
   const user = await requireUser();
   const mobileApp = await isMobileApp();
   const desktopApp = await isDesktopApp();
+  const outdatedApp = await outdatedDesktopApp();
   const desktop = desktopApp || mobileApp;
   // 설치 파일은 Windows용이라 폰·Mac 접속자에게는 보이지 않는다.
   const windows = await isWindowsBrowser();
@@ -134,8 +135,8 @@ export default async function SettingsPage() {
       {!desktop && windows && <DesktopDownload />}
       {/* 맥 브라우저에서만 스스로 보인다(Dock에 추가 안내). */}
       {!desktop && <MacAppGuide />}
-      {/* 데스크톱 앱 안에서만. 앱 안 업데이트가 있는 앱이면 버튼을, 옛 앱이면 새로 설치하라는 안내를 스스로 고른다. */}
-      {desktopApp && <DesktopUpdateRow />}
+      {/* 데스크톱 앱 안에서만. 앱 안 업데이트가 있는 앱이면 버튼을, 옛 앱이면 새로 설치하라는 안내를 보인다. */}
+      {desktopApp && (outdatedApp ? <OutdatedAppNotice version={outdatedApp} /> : <DesktopUpdateRow />)}
 
       {/* 시간대는 자주 바꾸지 않아 로그아웃 바로 위에 둔다(2026-10-15 요청). */}
       <section className="flex flex-col gap-5 rounded-2xl bg-surface p-6">

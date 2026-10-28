@@ -34,6 +34,27 @@ declare global {
 }
 
 /**
+ * 앱 안 업데이트가 들어간 첫 앱 버전(desktop/package.json). 이보다 앞선 앱은 스스로 업데이트하지 못해서
+ * 한 번은 새로 설치해야 한다. 앱 버전을 올릴 때마다 고칠 값이 아니다.
+ */
+export const SELF_UPDATE_SINCE = [1, 0, 7] as const;
+
+/**
+ * 사용자 에이전트가 앱 안 업데이트 없는 옛 Windows 앱을 가리키면 그 버전("1.0.6"), 아니면 null.
+ * 앱이 붙이는 `ModoriDesktop/x.y.z`(desktop/main.js)를 읽는다. 맥 앱은 받기 링크가 Windows 설치 파일이라 제외한다.
+ * 사용자가 꾸밀 수 있는 값이라 알림을 띄우는 데만 쓴다.
+ */
+export function outdatedDesktopVersion(userAgent: string): string | null {
+  const match = /ModoriDesktop\/(\d+)\.(\d+)\.(\d+)/.exec(userAgent);
+  if (!match || !userAgent.includes("Windows NT")) return null;
+  const version = match.slice(1).map(Number);
+  for (let i = 0; i < 3; i += 1) {
+    if (version[i] !== SELF_UPDATE_SINCE[i]) return version[i] < SELF_UPDATE_SINCE[i] ? version.join(".") : null;
+  }
+  return null;
+}
+
+/**
  * 새 버전을 알고 있고 아직 설치하지 않았는지(배너를 띄울 때). 확인만 실패한 것(버전을 모른다)은 마이페이지에서만 알린다.
  */
 export function hasPendingUpdate(state: UpdateState | null): boolean {
