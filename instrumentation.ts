@@ -1,10 +1,10 @@
 import type { Instrumentation } from "next";
 
-/** 서버가 켜질 때 한 번. 할 일 리마인드를 1분마다 확인하는 반복을 건다(lib/reminder-send.ts). */
+/** 서버가 켜질 때 한 번. 내가 정한 알림을 1분마다 확인하는 반복을 건다(lib/alarm-send.ts). */
 export async function register() {
   if (process.env.NEXT_RUNTIME !== "nodejs") return;
-  const { startReminderLoop } = await import("@/lib/reminder-send");
-  startReminderLoop();
+  const { startAlarmLoop } = await import("@/lib/alarm-send");
+  startAlarmLoop();
 }
 
 /**

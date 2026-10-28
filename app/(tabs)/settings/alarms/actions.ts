@@ -2,10 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 
-import { MAX_ALARMS, alarmSentOnWhenSet, readAlarmMessage, readWeekdays } from "@/lib/alarm";
+import { MAX_ALARMS, alarmSentOnWhenSet, isAlarmMinute, readAlarmMessage, readWeekdays } from "@/lib/alarm";
 import { isId } from "@/lib/ids";
 import { prisma } from "@/lib/prisma";
-import { isReminderMinute } from "@/lib/reminder";
 import { requireUser } from "@/lib/session";
 
 export type AlarmFormState = { message: string; ok?: boolean } | null;
@@ -15,7 +14,7 @@ export async function saveAlarm(_previous: AlarmFormState, formData: FormData): 
   const user = await requireUser();
 
   const minute = Number(formData.get("minute"));
-  if (!isReminderMinute(minute)) return { message: "시각을 다시 골라 주세요." };
+  if (!isAlarmMinute(minute)) return { message: "시각을 다시 골라 주세요." };
   const weekdays = readWeekdays(formData.getAll("weekday"));
   if (!weekdays) return { message: "요일을 다시 골라 주세요." };
   const message = readAlarmMessage(formData.get("message"));

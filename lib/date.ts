@@ -49,7 +49,7 @@ export function dateIn(instant: Date, timezone: string): Date {
 
 const clockFormatters = new Map<string, Intl.DateTimeFormat>();
 
-/** 그 시각이 그 시간대의 시계로 자정부터 몇 분째인가(0~1439). 할 일 리마인드를 보낼 때를 잰다(lib/reminder.ts). */
+/** 그 시각이 그 시간대의 시계로 자정부터 몇 분째인가(0~1439). 내가 정한 알림을 보낼 때를 잰다(lib/alarm.ts). */
 export function minuteOfDayIn(instant: Date, timezone: string): number {
   let formatter = clockFormatters.get(timezone);
   if (!formatter) {
@@ -59,6 +59,15 @@ export function minuteOfDayIn(instant: Date, timezone: string): number {
   const parts = formatter.formatToParts(instant);
   const read = (type: string) => Number(parts.find((part) => part.type === type)?.value);
   return read("hour") * 60 + read("minute");
+}
+
+/** 화면에 보이는 시각. 자정부터 몇 분째인지 받아 1260 → "오후 9:00". */
+export function formatMinuteOfDay(minute: number): string {
+  const hour = Math.floor(minute / 60);
+  const rest = String(minute % 60).padStart(2, "0");
+  const half = hour < 12 ? "오전" : "오후";
+  const shown = hour % 12 === 0 ? 12 : hour % 12;
+  return `${half} ${shown}:${rest}`;
 }
 
 /** 그 시간대에서 지금의 "오늘". 사용자 화면은 이것을, 운영자 지표는 todayKST를 쓴다. */

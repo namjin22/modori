@@ -1,14 +1,12 @@
 import { dateIn, formatKST, minuteOfDayIn } from "@/lib/date";
 import type { PushMessage } from "@/lib/push";
-import { isReminderMinute } from "@/lib/reminder";
 import { timezoneOrDefault } from "@/lib/timezones";
 
 /**
  * 내가 정한 알림(2026-10-26 운영자 요청): 정한 시각·요일에 내가 쓴 문구를 푸시로 받는다. 사람마다 최대 MAX_ALARMS개.
- * 시각은 그 사람 시간대의 시계, 5분 단위(할 일 리마인드의 시각 고르기와 같다). 요일을 안 고르면 매일.
- * 할 일 리마인드(lib/reminder.ts, 남은 할 일 수, 하루 한 번)와는 따로다.
+ * 시각은 그 사람 시간대의 시계, 5분 단위(화면의 시각 고르기와 같다). 요일을 안 고르면 매일.
  *
- * 서버가 1분마다 돌며(lib/reminder-send.ts의 반복) 때가 된 알림을 찾는다. 고른 시각부터 ALARM_WINDOW_MINUTES 안에 못 보내면 그날은 건너뛴다.
+ * 서버가 1분마다 돌며(lib/alarm-send.ts의 startAlarmLoop) 때가 된 알림을 찾는다. 고른 시각부터 ALARM_WINDOW_MINUTES 안에 못 보내면 그날은 건너뛴다.
  * "아침 7시 약 먹기"가 서버가 늦어 7시 반에 오는 것보다 안 오는 것이 낫다.
  */
 export const MAX_ALARMS = 10;
@@ -16,6 +14,11 @@ export const MAX_ALARM_MESSAGE = 60;
 export const ALARM_WINDOW_MINUTES = 5;
 
 const WEEKDAY_NAMES = ["일", "월", "화", "수", "목", "금", "토"];
+
+/** 자정부터 몇 분째(0~1439)인 5분 단위 값인가. 화면의 시각 고르기(5분 단위)와 맞춘다. */
+export function isAlarmMinute(value: unknown): value is number {
+  return typeof value === "number" && Number.isInteger(value) && value >= 0 && value < 24 * 60 && value % 5 === 0;
+}
 
 /** 문구: 앞뒤 공백을 걷고, 줄바꿈·연속 공백은 한 칸으로. 비었거나 MAX_ALARM_MESSAGE자를 넘으면 null. 제어 문자가 섞이면 null. */
 export function readAlarmMessage(value: unknown): string | null {
@@ -54,7 +57,7 @@ export type AlarmTiming = { minute: number; weekdays: number[]; lastSentOn: Date
  * 시각 창이 자정을 넘기지 않게 그날 안에서만 센다(23:55의 창은 23:59까지).
  */
 export function alarmDay(alarm: AlarmTiming, timezone: string, now: Date): Date | null {
-  if (!isReminderMinute(alarm.minute)) return null;
+  if (!isAlarmMinute(alarm.minute)) return null;
   const zone = timezoneOrDefault(timezone);
   const minute = minuteOfDayIn(now, zone);
   if (minute < alarm.minute || minute >= alarm.minute + ALARM_WINDOW_MINUTES) return null;

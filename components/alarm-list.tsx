@@ -7,7 +7,7 @@ import { Modal } from "@/components/modal";
 import { TimeSheet } from "@/components/time-sheet";
 import { useSaveFailure } from "@/components/use-save-failure";
 import { MAX_ALARMS, MAX_ALARM_MESSAGE, describeWeekdays } from "@/lib/alarm";
-import { formatReminderMinute } from "@/lib/reminder";
+import { formatMinuteOfDay } from "@/lib/date";
 
 export type AlarmItem = { id: string; minute: number; weekdays: number[]; message: string; enabled: boolean };
 
@@ -89,7 +89,7 @@ function AlarmRow({ alarm, onOpen }: { alarm: AlarmItem; onOpen: () => void }) {
         aria-label={`${alarm.message} 고치기`}
         className={`flex min-w-0 flex-1 flex-col gap-1 text-left ${enabled ? "" : "opacity-50"}`}
       >
-        <span className="text-xl font-bold tabular-nums">{formatReminderMinute(alarm.minute)}</span>
+        <span className="text-xl font-bold tabular-nums">{formatMinuteOfDay(alarm.minute)}</span>
         <span className="truncate text-[15px]">{alarm.message}</span>
         <span className="text-xs text-muted">{describeWeekdays(alarm.weekdays)}</span>
       </button>

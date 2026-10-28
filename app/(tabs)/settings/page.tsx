@@ -3,7 +3,6 @@ import Link from "next/link";
 import { LogoutButton } from "@/components/logout-button";
 import { FriendDoneSwitch } from "@/components/friend-done-switch";
 import { RecommendSwitch } from "@/components/recommend-switch";
-import { ReminderSetting } from "@/components/reminder-setting";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { TimezoneSelect } from "@/components/timezone-select";
 import { TIMEZONES } from "@/lib/timezones";
@@ -34,13 +33,12 @@ export default async function SettingsPage() {
   const windows = await isWindowsBrowser();
   const timezone = timezoneOrDefault(user.timezone);
   const todayHere = dateIn(new Date(), timezone);
-  const [following, followers, blockedCount, admin, reminder, devices, alarmCount] = await Promise.all([
+  const [following, followers, blockedCount, admin, notify, alarmCount] = await Promise.all([
     prisma.follow.count({ where: { followerId: user.id } }),
     prisma.follow.count({ where: { followingId: user.id } }),
     prisma.block.count({ where: { blockerId: user.id } }),
     isAdmin(user.id),
-    prisma.user.findUniqueOrThrow({ where: { id: user.id }, select: { reminderMinute: true, notifyFriendDone: true } }),
-    prisma.pushToken.count({ where: { userId: user.id } }),
+    prisma.user.findUniqueOrThrow({ where: { id: user.id }, select: { notifyFriendDone: true } }),
     prisma.alarm.count({ where: { userId: user.id } }),
   ]);
   // 운영자에게만: 아직 처리하지 않은 신고 수. 신고는 빨리 확인해야 한다.
@@ -105,12 +103,10 @@ export default async function SettingsPage() {
 
 
       {/* 알림은 모든 화면에 둔다(2026-10-21: 웹에서는 알림 화면 안에만 있어 찾지 못했다).
-          리마인드는 앱 푸시로만 보낸다(웹 푸시로는 보내지 않는다, CLAUDE.md 규칙 7). 앱에서만 보인다.
           컴퓨터 알림 스위치는 알림을 띄울 수 있는 컴퓨터 브라우저·데스크톱 앱에서만 보인다(그 밖에서는 스스로 숨는다). */}
       <section className="flex flex-col gap-5 rounded-2xl bg-surface p-6">
         <h2 className="text-sm font-semibold text-muted">알림</h2>
-        {mobileApp && <ReminderSetting minute={reminder.reminderMinute} hasDevice={devices > 0} />}
-        <FriendDoneSwitch on={reminder.notifyFriendDone} />
+        <FriendDoneSwitch on={notify.notifyFriendDone} />
         {!mobileApp && <DesktopNotifySwitch userId={user.id} />}
         {/* 정한 시각·문구로 오는 푸시(2026-10-26 요청). 앱·컴퓨터 모두에서 만든다. */}
         <Link prefetch={false} href="/settings/alarms" className="-mx-2 flex items-center justify-between rounded-xl px-2 py-1 text-[15px]">

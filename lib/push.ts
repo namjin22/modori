@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { sendToWebSubscriptions, vapidFromEnv } from "@/lib/web-push";
 
 /**
- * 푸시 알림(받은 반응, 새 팔로워, 친구가 끝낸 일, 리마인드). Android 앱은 Google FCM(HTTP v1)으로, iOS 앱은 lib/apns.ts가 APNs로,
+ * 푸시 알림(받은 반응, 새 팔로워, 친구가 끝낸 일, 내가 정한 알림). Android 앱은 Google FCM(HTTP v1)으로, iOS 앱은 lib/apns.ts가 APNs로,
  * 컴퓨터 브라우저는 lib/web-push.ts가 웹 푸시로 보낸다.
  *
  * 새 의존성 없이 Node의 crypto로 서비스 계정 서명(JWT)을 만들어 액세스 토큰을 받는다. 서비스 계정 키는 서버 환경 변수
@@ -148,16 +148,11 @@ export async function sendToTokens(
 /**
  * 사람 한 명의 모든 기기에 알림을 보낸다. Android는 FCM(서비스 계정 키), iOS는 APNs(Apple 키), 컴퓨터 브라우저는 웹 푸시(VAPID 키)로
  * 나눠 보내고, 해당 키가 서버에 없으면 그쪽은 조용히 넘어간다. 한쪽이 실패해도 다른 쪽은 보낸다.
- * 리마인드는 `web: false`로 부른다. 하루 한 번 리마인드는 앱 푸시로만 허용한 것이다(CLAUDE.md 규칙 7).
  */
-export async function sendPushToUser(
-  userId: string,
-  message: PushMessage,
-  { web = true }: { web?: boolean } = {},
-): Promise<void> {
+export async function sendPushToUser(userId: string, message: PushMessage): Promise<void> {
   const account = parseServiceAccount(process.env.FIREBASE_SERVICE_ACCOUNT);
   const apns = apnsConfigFromEnv();
-  const vapid = web ? vapidFromEnv() : null;
+  const vapid = vapidFromEnv();
   if (!account && !apns && !vapid) return;
   try {
     const [rows, subscriptions] = await Promise.all([
