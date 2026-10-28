@@ -6,7 +6,14 @@ import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 
 import { MyPageIcon, SocialIcon, TodayIcon } from "@/components/tab-icons";
 import { isInstalledApp, setAppIconBadge } from "@/lib/app-badge";
-import { desktopNotifyState, serverDesktopNotifyState, subscribeDesktopNotify } from "@/lib/desktop-notify";
+import { subscribeNothing } from "@/lib/device-timezone";
+import {
+  desktopNotifyState,
+  serverDesktopNotifyState,
+  showsIconBadge,
+  subscribeDesktopNotify,
+  type DesktopNotifyState,
+} from "@/lib/desktop-notify";
 import { safePushPath } from "@/lib/push-client";
 
 // 카테고리와 루틴은 할 일을 적다 손보는 화면이라 피드 탭에 속한다.
@@ -78,12 +85,13 @@ function showNotice(notice: Preview, open: (path: string) => void) {
  * 숫자가 늘었는지로 정하면 안 된다. 친구가 일을 더 끝내도 숫자는 친구 수라 그대로고, 막 팔로우한 친구의 아침 일도 숫자를 올린다.
  * 알림 화면에서는 숫자를 묻지 않지만(paused), 알림을 켰으면 그 화면에 창을 둔 채 다른 일을 해도 띄워야 해서 계속 묻는다.
  */
-function useLiveUnread(userId: string, fromServer: number, paused: boolean): number {
+function useLiveUnread(notifyState: DesktopNotifyState, fromServer: number, paused: boolean): number {
   const [live, setLive] = useState<{ base: number; count: number }>({ base: fromServer, count: fromServer });
   // 서버가 새로 그린 값이 오면 그것을 따른다(렌더 중에 맞춘다).
   if (live.base !== fromServer) setLive({ base: fromServer, count: fromServer });
-  const notify =
-    useSyncExternalStore(subscribeDesktopNotify, () => desktopNotifyState(userId), serverDesktopNotifyState) === "on";
+  const notify = notifyState === "on";
+  // 아이콘 숫자를 지운 기기는 창을 내려 두었을 때 묻지 않는다(숫자를 갱신할 곳이 없다).
+  const iconBadge = showsIconBadge(notifyState);
   const router = useRouter();
   // 지난번에 물은 서버 시각. 이보다 뒤에 생긴 일만 띄운다. 처음 물을 때는 띄우지 않고 잡기만 한다.
   const since = useRef<number | null>(null);
@@ -111,7 +119,7 @@ function useLiveUnread(userId: string, fromServer: number, paused: boolean): num
 
     // 설치한 앱(데스크톱 앱, Dock·설치한 웹 앱)은 창을 내려 두어도 아이콘의 숫자가 맞아야 해서 보이지 않을 때도 묻는다.
     // 탭으로 열어 둔 웹은 보이지 않을 때 묻지 않는다(서버를 덜 부른다).
-    const installed = isInstalledApp();
+    const installed = isInstalledApp() && iconBadge;
 
     async function ask() {
       if (!notify && !installed && document.visibilityState !== "visible") return;
@@ -138,7 +146,7 @@ function useLiveUnread(userId: string, fromServer: number, paused: boolean): num
       clearInterval(timer);
       document.removeEventListener("visibilitychange", ask);
     };
-  }, [paused, notify, router]);
+  }, [paused, notify, iconBadge, router]);
 
   return live.count;
 }
@@ -152,14 +160,17 @@ export function BottomNav({
   unreadNotifications: number;
 }) {
   const pathname = usePathname();
+  const notifyState = useSyncExternalStore(subscribeDesktopNotify, () => desktopNotifyState(userId), serverDesktopNotifyState);
   // 알림 화면을 보는 중이면 이미 읽고 있다. 숫자는 묻지 않는다(컴퓨터 알림은 계속).
-  const unreadNotifications = useLiveUnread(userId, fromServer, pathname === "/feed/reactions");
+  const unreadNotifications = useLiveUnread(notifyState, fromServer, pathname === "/feed/reactions");
 
-  // 앱 아이콘(작업표시줄·Dock)의 숫자. 알림 화면을 보는 중이면 이미 읽고 있으니 0이다(탭 뱃지와 같다).
-  const iconCount = pathname === "/feed/reactions" ? 0 : unreadNotifications;
+  // 앱 아이콘(작업표시줄·Dock)의 숫자. 알림 화면을 보는 중이면 이미 읽고 있으니 0이고, 이 기기에서 알림을 껐으면 숫자를 지운다.
+  const iconCount = pathname === "/feed/reactions" || !showsIconBadge(notifyState) ? 0 : unreadNotifications;
+  // 서버가 그린 화면을 이어받는 첫 그림에서는 이 기기의 설정을 아직 모른다. 그때 숫자를 띄웠다 지우면 아이콘이 깜빡이므로 기다린다.
+  const clientReady = useSyncExternalStore(subscribeNothing, () => true, () => false);
   useEffect(() => {
-    setAppIconBadge(iconCount);
-  }, [iconCount]);
+    if (clientReady) setAppIconBadge(iconCount);
+  }, [clientReady, iconCount]);
 
   return (
     // 홈 화면에 추가해서 전체 화면으로 열면 아이폰 아래 막대가 탭을 가린다.

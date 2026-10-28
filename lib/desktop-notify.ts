@@ -83,6 +83,14 @@ export function desktopNotifyState(userId: string): DesktopNotifyState {
   return Notification.permission === "denied" ? "denied" : "off";
 }
 
+/**
+ * 작업표시줄·Dock 아이콘에 안 읽은 알림 수를 띄울지(lib/app-badge.ts). 이 기기에서 알림을 껐거나 브라우저가 막았으면 숫자도 지운다
+ * (2026-10-28 제보: 알림을 껐는데 아이콘 숫자가 그대로였다). 끄는 스위치가 없는 기기(unsupported)와 옛 앱(outdated)은 예전대로 둔다.
+ */
+export function showsIconBadge(state: DesktopNotifyState): boolean {
+  return state !== "off" && state !== "denied";
+}
+
 // 서버에는 window가 없다. 처음엔 숨겼다가 브라우저에서 실제 값으로 맞춘다.
 export function serverDesktopNotifyState(): DesktopNotifyState {
   return "unsupported";

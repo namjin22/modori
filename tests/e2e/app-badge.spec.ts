@@ -63,7 +63,21 @@ async function newFollower(meId: string) {
 
 test("설치한 앱에서는 창을 내려 두어도 알림이 오면 아이콘 숫자가 바뀌고, 알림 화면을 열면 지워진다", async ({ page }) => {
   await fakeBadgeApi(page, true);
+  // 아이콘 숫자는 이 기기에서 알림 띄우기를 켠 때만 뜬다(2026-10-28). 켠 기기로 둔다: 브라우저가 허락했고 이 계정이 켜 두었다.
+  // 시험 브라우저는 알림 허용이 "거부됨"이라 허락한 것으로 보이는 가짜 Notification을 둔다.
+  await page.addInitScript(() => {
+    class FakeNotification {
+      static permission: NotificationPermission = "granted";
+      onclick: (() => void) | null = null;
+      close() {}
+    }
+    Object.defineProperty(window, "Notification", { value: FakeNotification, configurable: true });
+  });
   const me = await signUp(page);
+  await page.evaluate((id) => {
+    localStorage.setItem("modori-desktop-notify", `on:${id}`);
+    window.dispatchEvent(new Event("modori:desktop-notify"));
+  }, me.id);
   await expect.poll(() => page.evaluate(() => window.badgeCalls.at(-1))).toBe("clear");
 
   // 창을 내려 둔 상태(보이지 않음)에서 알림이 온다. 설치한 앱은 그래도 서버에 묻는다.
