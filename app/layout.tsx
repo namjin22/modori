@@ -70,8 +70,9 @@ try {
 `;
 
 // 모바일 앱 안이면 <html data-app="ios|android">를 붙이고(app/globals.css가 iOS의 상태 막대 자리를 띄운다),
-// iOS 앱에는 화면이 그려졌다고 알려 시작 그림을 걷게 한다(mobile/ios/App/App/MainViewController.swift).
+// 앱에는 화면이 그려졌다고 알려 시작 그림을 걷게 한다(mobile/ios/App/App/MainViewController.swift, android의 MainActivity.java).
 // 화면이 준비(hydration)되기를 기다리면 그동안 시작 그림이 남아 느려 보여서 head에서 바로 돈다.
+// 알리는 일은 modoriAppReady 하나로 모아 한 번만 한다. 아래 PAINTED_SCRIPT가 먼저, 못 하면 DOMContentLoaded가 부른다.
 const APP_SCRIPT = `
 (function () {
   try {
@@ -79,21 +80,34 @@ const APP_SCRIPT = `
     if (ua.indexOf("ModoriMobile") > -1) {
       document.documentElement.dataset.app = /iPhone|iPad|iPod/.test(ua) ? "ios" : "android";
     }
-    var ready = function () {
+    var announced = false;
+    window.modoriAppReady = function () {
+      if (announced) return;
       var plugins = window.Capacitor && window.Capacitor.Plugins;
       var modori = plugins && plugins.Modori;
       if (modori && modori.pageReady) {
+        announced = true;
         modori.pageReady().catch(function (e) {
           console.warn("[app] 시작 그림을 걷지 못했다", e);
         });
       }
     };
-    if (document.readyState !== "loading") ready();
-    else document.addEventListener("DOMContentLoaded", ready);
+    if (document.readyState !== "loading") window.modoriAppReady();
+    else document.addEventListener("DOMContentLoaded", window.modoriAppReady);
   } catch (e) {
     // 앱 밖(일반 브라우저)이거나 다리가 없으면 할 일이 없다. 화면에는 영향이 없다.
   }
 })();
+`;
+
+// body 끝에 둔다. 서버가 보내는 첫 덩어리(탭 화면의 뼈대 loading.tsx까지)가 파싱되고 한 번 그려진 뒤 시작 그림을 걷는다.
+// DOMContentLoaded는 응답이 끝나야 오는데, 탭 화면은 페이지의 데이터가 다 준비될 때까지 응답이 이어져 그만큼 시작 그림이 더 남았다.
+const PAINTED_SCRIPT = `
+requestAnimationFrame(function () {
+  requestAnimationFrame(function () {
+    if (window.modoriAppReady) window.modoriAppReady();
+  });
+});
 `;
 
 // LayoutProps는 next build가 만들어주는 전역 타입이라 빌드 전에는 없다.
@@ -124,6 +138,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <ValidationBubble />
         {/* 화면이 오래돼 저장하지 못했을 때 새로고침 버튼을 띄운다(모바일 앱에는 새로고침 수단이 없다). */}
         <StaleBanner />
+        <script dangerouslySetInnerHTML={{ __html: PAINTED_SCRIPT }} />
       </body>
     </html>
   );
