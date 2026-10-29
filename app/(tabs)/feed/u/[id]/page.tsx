@@ -63,7 +63,7 @@ export default async function FriendDayPage({
 }) {
   const viewer = await requireUser();
   const { id } = await params;
-  const params_ = await searchParams;
+  const query = await searchParams;
 
   // 차단 관계. 나를 차단한 사람은 없는 주소처럼, 내가 차단한 사람은 "차단한 사람" 화면(풀기만 가능)을 보인다.
   const [iBlocked, blockedMe] = await Promise.all([
@@ -122,8 +122,8 @@ export default async function FriendDayPage({
   }
 
   const today = todayIn(viewer.timezone);
-  const date = readDate(params_.date, today);
-  const monthStart = readMonth(params_.month, date);
+  const date = readDate(query.date, today);
+  const monthStart = readMonth(query.month, date);
   const monthEnd = endOfMonthKST(monthStart);
   // 받아 둘 기간: 보이는 달, 그리고 달 밖의 날을 골라 둔 경우 그 날까지(홈과 같다).
   const from = daysBetween(date, monthStart) > 0 ? date : monthStart;

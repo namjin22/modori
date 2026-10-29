@@ -21,6 +21,19 @@ const eslintConfig = defineConfig([
     files: ["desktop/**/*.js"],
     rules: { "@typescript-eslint/no-require-imports": "off" },
   },
+  // 이름 규칙(TypeScript·React 관례). 객체 속성은 외부 API·DB·HTTP 헤더가 정한 이름을 그대로 쓰므로 검사하지 않는다.
+  {
+    files: ["**/*.{ts,tsx}"],
+    rules: {
+      "@typescript-eslint/naming-convention": [
+        "error",
+        { selector: "variableLike", format: ["camelCase", "PascalCase", "UPPER_CASE"], leadingUnderscore: "allow" },
+        { selector: "function", format: ["camelCase", "PascalCase"] },
+        { selector: "parameter", format: ["camelCase", "PascalCase"], leadingUnderscore: "allow" },
+        { selector: "typeLike", format: ["PascalCase"] },
+      ],
+    },
+  },
 ]);
 
 export default eslintConfig;
