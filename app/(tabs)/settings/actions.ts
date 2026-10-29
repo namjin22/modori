@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { alarmSentOnWhenSet, isAlarmMinute } from "@/lib/alarm";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 import { isAllowedTimezone } from "@/lib/timezones";
@@ -23,6 +24,24 @@ export async function setTimezone(timezone: string): Promise<{ ok: boolean }> {
   if (!isAllowedTimezone(timezone)) return { ok: false };
   await prisma.user.update({ where: { id: user.id }, data: { timezone } });
   revalidatePath("/", "layout");
+  return { ok: true };
+}
+
+/**
+ * 오늘 일정 알림(앱 푸시, 하루 한 번)의 시각을 정하거나(자정부터 몇 분째, 5분 단위) 끈다(null).
+ * 오늘의 그 시각이 이미 지났으면 오늘 몫은 보낸 것으로 쳐서, 고르자마자 알림이 울리지 않게 한다(lib/event-digest.ts).
+ */
+export async function setEventDigest(minute: number | null): Promise<{ ok: boolean }> {
+  const user = await requireUser();
+  if (minute !== null && !isAlarmMinute(minute)) return { ok: false };
+  await prisma.user.update({
+    where: { id: user.id },
+    data: {
+      eventDigestMinute: minute,
+      eventDigestSentOn: minute === null ? null : alarmSentOnWhenSet(minute, user.timezone, new Date()),
+    },
+  });
+  revalidatePath("/settings");
   return { ok: true };
 }
 
