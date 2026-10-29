@@ -1,10 +1,10 @@
 import type { Instrumentation } from "next";
 
-/** 서버가 켜질 때 한 번. 내가 정한 알림을 1분마다 확인하는 반복을 건다(lib/alarm-send.ts). */
+/** 서버가 켜질 때 한 번. 내가 정한 알림과 오늘 일정 알림을 1분마다 확인하는 반복을 건다(lib/push-loop.ts). */
 export async function register() {
   if (process.env.NEXT_RUNTIME !== "nodejs") return;
-  const { startAlarmLoop } = await import("@/lib/alarm-send");
-  startAlarmLoop();
+  const { startPushLoop } = await import("@/lib/push-loop");
+  startPushLoop();
 }
 
 /**

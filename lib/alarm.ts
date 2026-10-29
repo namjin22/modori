@@ -6,7 +6,7 @@ import { timezoneOrDefault } from "@/lib/timezones";
  * 내가 정한 알림(2026-10-26 운영자 요청): 정한 시각·요일에 내가 쓴 문구를 푸시로 받는다. 사람마다 최대 MAX_ALARMS개.
  * 시각은 그 사람 시간대의 시계, 5분 단위(화면의 시각 고르기와 같다). 요일을 안 고르면 매일.
  *
- * 서버가 1분마다 돌며(lib/alarm-send.ts의 startAlarmLoop) 때가 된 알림을 찾는다. 고른 시각부터 ALARM_WINDOW_MINUTES 안에 못 보내면 그날은 건너뛴다.
+ * 서버가 1분마다 돌며(lib/push-loop.ts의 startPushLoop) 때가 된 알림을 찾는다. 고른 시각부터 ALARM_WINDOW_MINUTES 안에 못 보내면 그날은 건너뛴다.
  * "아침 7시 약 먹기"가 서버가 늦어 7시 반에 오는 것보다 안 오는 것이 낫다.
  */
 export const MAX_ALARMS = 10;

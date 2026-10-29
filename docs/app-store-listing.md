@@ -50,6 +50,7 @@ Google Play 등록정보는 `docs/store-listing.md`, 서명·업로드 방법은
 
 ■ 알림
 - 친구가 보낸 반응, 새 팔로워, 친구가 끝낸 할 일을 알려 줘요. 친구가 끝낸 일 알림은 끌 수 있어요.
+- 일정이 있는 날 아침에 오늘 일정을 알려 줘요(기본 오전 6시, 시각을 바꾸거나 끌 수 있어요).
 - 원하면 내가 정한 시각·요일에 내가 쓴 문구로 알림을 받아요(최대 10개).
 
 ■ 기록
@@ -118,7 +119,7 @@ What to try (about 3 minutes)
 1. Home (피드 tab): add a task, tap its checkbox to complete it, long-press and drag to reorder. The "관리" (Manage) menu opens Categories, a new Event, and Routines (repeating tasks and events).
 2. Social (소셜 tab): tap 모도리친구 to see their tasks and events, then tap an emoji under a completed task to react.
 3. Social > 알림 (Notifications): reactions, new followers and friends' completed tasks.
-4. My Page (마이페이지) > 알림: allow notifications to receive push notifications for reactions, new followers and friends' completed tasks (can be turned off), and create your own alarms ("내가 정한 알림") that send a push notification with your own text at the time and weekdays you choose.
+4. My Page (마이페이지) > 알림: allow notifications to receive push notifications for reactions, new followers and friends' completed tasks (can be turned off), a morning push with today's schedule (On by default at 6:00 AM, only on days with events; the time can be changed or turned off under "오늘 일정 알림"), and create your own alarms ("내가 정한 알림") that send a push notification with your own text at the time and weekdays you choose.
 
 On iPhone, Modori uses native push notifications (APNs), Sign in with Apple, and the device time zone automatically. Screens are loaded from our server (https://modori.site), so a network connection is required.
 
