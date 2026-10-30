@@ -272,7 +272,7 @@ test("누가 나를 팔로우하면 알림으로 오고, 거기서 맞팔로우�
   await expect(page.getByLabel(/안 읽은 알림/)).toHaveCount(0);
 });
 
-test("친구가 보낸 반응은 내 홈 화면의 그 할 일 밑에 보인다", async ({ page, accounts }) => {
+test("친구가 보낸 반응은 내 홈 화면의 그 할 일 줄 오른쪽에 보인다", async ({ page, accounts }) => {
   await signIn(page, accounts.me);
   await addDoneTodo(page, "칭찬 받을 운동");
   // 반응을 받지 않은 할 일도 하나 둔다(도우미는 한 화면에 할 일이 하나라고 보고 체크해서 DB로 만든다).
@@ -296,7 +296,7 @@ test("친구가 보낸 반응은 내 홈 화면의 그 할 일 밑에 보인다"
   await signIn(page, accounts.me);
   await page.goto("/");
   const row = page.getByRole("listitem").filter({ hasText: "칭찬 받을 운동" });
-  // 칩을 누르면 누가 보냈는지 창으로 보인다.
+  // 줄 오른쪽의 반응 단추를 누르면 누가 보냈는지 창으로 보인다.
   await row.getByRole("button", { name: "불타요 1개, 누가 보냈는지 보기" }).click();
   const dialog = page.getByRole("dialog", { name: "받은 반응" });
   await expect(dialog).toContainText("🔥");

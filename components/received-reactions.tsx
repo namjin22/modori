@@ -6,43 +6,52 @@ import { Modal } from "@/components/modal";
 import { ReactionGlyph } from "@/components/reaction-glyph";
 import { labelOfReaction, type ReceivedReaction } from "@/lib/reactions";
 
+// 줄 오른쪽에 겹쳐 보이는 그림 수. 이보다 종류가 많아도 줄 폭이 늘지 않는다(전체는 창에서 본다).
+const MAX_SHOWN = 2;
+
 /**
- * 내 할 일에 친구들이 보낸 반응(투두메이트처럼 할 일 밑에). 칩을 누르면 누가 보냈는지 창으로 보여준다.
- * 내 일에는 내가 반응할 수 없어서 누르면 반응이 바뀌는 게 아니라 보낸 사람을 보여준다.
- * 누른 반응을 맨 위에 두고, 이 할 일에 온 다른 반응도 아래에 같이 둔다.
+ * 내 할 일에 친구들이 보낸 반응. 할 일 줄 오른쪽 끝에 작은 그림 몇 개를 겹쳐 놓고 받은 개수 합을 붙인다.
+ * 할 일 밑에 칩으로 늘어놓았을 때(2026-10 이전)는 반응이 많을수록 줄이 길어져 목록이 어수선했다.
+ * 누르면 종류별 개수와 보낸 사람을 창으로 보여준다. 내 일에는 내가 반응할 수 없어서 누르면 반응이 바뀌는 게 아니라 보낸 사람을 보여준다.
  */
 export function ReceivedReactions({ received }: { received: ReceivedReaction[] }) {
-  const [opened, setOpened] = useState<string | null>(null);
+  const [open, setOpen] = useState(false);
   if (received.length === 0) return null;
 
-  const ordered = opened
-    ? [...received].sort((a, b) => Number(b.emoji === opened) - Number(a.emoji === opened))
-    : received;
+  const total = received.reduce((sum, { count }) => sum + count, 0);
+  const summary = received.map(({ emoji, count }) => `${labelOfReaction(emoji)} ${count}개`).join(", ");
 
   return (
     <>
-      {/* 글자와 줄을 맞추려고 체크 칸만큼 들인다. */}
-      <ul aria-label="받은 반응" className="mt-1.5 flex flex-wrap gap-1 pl-[34px]">
-        {received.map(({ emoji, count }) => (
-          <li key={emoji}>
-            <button
-              type="button"
-              onClick={() => setOpened(emoji)}
-              aria-label={`${labelOfReaction(emoji)} ${count}개, 누가 보냈는지 보기`}
-              className="flex h-7 items-center gap-1 rounded-full bg-surface-hover px-2 text-xs text-muted transition-colors hover:text-foreground active:scale-95"
-            >
-              <ReactionGlyph value={emoji} size={20} />
-              <span aria-hidden className="font-semibold">
-                {count}
-              </span>
-            </button>
-          </li>
-        ))}
+      <ul aria-label="받은 반응" className="shrink-0">
+        <li>
+          <button
+            type="button"
+            onClick={() => setOpen(true)}
+            aria-label={`${summary}, 누가 보냈는지 보기`}
+            className="-my-0.5 flex h-7 items-center gap-1.5 rounded-full pr-1 text-xs text-muted transition-colors hover:text-foreground active:scale-95"
+          >
+            <span aria-hidden className="flex">
+              {received.slice(0, MAX_SHOWN).map(({ emoji }, index) => (
+                // 겹친 가장자리가 깔끔히 보이게 바탕색 테두리를 두른다.
+                <span
+                  key={emoji}
+                  className={`flex size-6 items-center justify-center rounded-full bg-surface-hover ring-2 ring-background ${index > 0 ? "-ml-1.5" : ""}`}
+                >
+                  <ReactionGlyph value={emoji} size={20} />
+                </span>
+              ))}
+            </span>
+            <span aria-hidden className="font-semibold tabular-nums">
+              {total}
+            </span>
+          </button>
+        </li>
       </ul>
 
-      <Modal open={opened !== null} onClose={() => setOpened(null)} title="받은 반응">
+      <Modal open={open} onClose={() => setOpen(false)} title="받은 반응">
         <ul className="flex flex-col gap-3">
-          {ordered.map(({ emoji, count, names }) => (
+          {received.map(({ emoji, count, names }) => (
             <li key={emoji} className="flex items-start gap-3">
               <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-surface-hover">
                 <ReactionGlyph value={emoji} size={28} />
