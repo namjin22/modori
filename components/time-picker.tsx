@@ -1,6 +1,8 @@
 "use client";
 
+import { useT } from "@/components/locale-provider";
 import { TimeSheet } from "@/components/time-sheet";
+import { datetime } from "@/lib/i18n/messages/datetime";
 
 /**
  * 일정의 시작·끝 시간. 값은 "HH:MM"(24시간) 또는 ""(없음)으로 주고받아 서버(lib/event-time.ts)는 그대로다.
@@ -22,11 +24,12 @@ export function TimePicker({
   // 끝나는 시간처럼 안 정해도 되는 칸이면 "없음"을 둔다.
   optional?: boolean;
 }) {
+  const t = useT(datetime);
   const minute = value ? Number(value.slice(0, 2)) * 60 + Number(value.slice(3, 5)) : null;
   return (
     <div className="min-w-0 flex-1">
       <TimeSheet
-        label={`${label} 시간`}
+        label={t("timeSuffix", { label })}
         value={minute}
         optional={optional}
         onChange={(next) => onChange(next === null ? "" : `${pad(Math.floor(next / 60))}:${pad(next % 60)}`)}

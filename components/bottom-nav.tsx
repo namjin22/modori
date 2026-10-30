@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 
+import { useT } from "@/components/locale-provider";
 import { MyPageIcon, SocialIcon, TodayIcon } from "@/components/tab-icons";
 import { isInstalledApp, setAppIconBadge } from "@/lib/app-badge";
 import { subscribeNothing } from "@/lib/device-timezone";
@@ -14,6 +15,7 @@ import {
   subscribeDesktopNotify,
   type DesktopNotifyState,
 } from "@/lib/desktop-notify";
+import { nav } from "@/lib/i18n/messages/nav";
 import { safePushPath } from "@/lib/push-client";
 
 // 카테고리와 루틴은 할 일을 적다 손보는 화면이라 피드 탭에 속한다.
@@ -22,19 +24,19 @@ const FEED_PATHS = ["/", "/categories", "/routines", "/stats"];
 const TABS = [
   {
     href: "/",
-    label: "피드",
+    label: "feed",
     Icon: TodayIcon,
     isActive: (path: string) => FEED_PATHS.includes(path),
   },
   {
     href: "/feed",
-    label: "소셜",
+    label: "social",
     Icon: SocialIcon,
     isActive: (path: string) => path.startsWith("/feed"),
   },
   {
     href: "/settings",
-    label: "마이페이지",
+    label: "myPage",
     Icon: MyPageIcon,
     isActive: (path: string) => path.startsWith("/settings"),
   },
@@ -160,6 +162,7 @@ export function BottomNav({
   unreadNotifications: number;
 }) {
   const pathname = usePathname();
+  const t = useT(nav);
   const notifyState = useSyncExternalStore(subscribeDesktopNotify, () => desktopNotifyState(userId), serverDesktopNotifyState);
   // 알림 화면을 보는 중이면 이미 읽고 있다. 숫자는 묻지 않는다(컴퓨터 알림은 계속).
   const unreadNotifications = useLiveUnread(notifyState, fromServer, pathname === "/feed/reactions");
@@ -203,7 +206,7 @@ export function BottomNav({
                   <Icon active={isActive} />
                   {badge > 0 && (
                     <span
-                      aria-label={`안 읽은 알림 ${badge}개`}
+                      aria-label={t("unread", { count: badge })}
                       // 아이콘(24px)의 오른쪽 위로 띄운다: 왼쪽 끝이 16px, 위가 -2px(탭 막대 위 테두리에서 6px 떨어짐, 예전 -6px은 1px이라 붙어 보였다, 2026-10-26). 왼쪽을 기준으로 잡으면 쓸 수 있는 폭이 좁아져 두 자리 수가 두 줄로 쪼개지므로 줄바꿈을 막는다. 사람 머리에 붙어 겹치던 것을 떼었다(2026-10-26 요청).
                       // 탭 막대 바탕색 테두리(ring-surface)를 둘러, 고른 탭에서 아이콘과 같은 파란색이 한 덩어리로 뭉치지 않게 한다.
                       className="absolute -top-0.5 left-4 min-w-4 animate-pop whitespace-nowrap rounded-full bg-brand px-1 text-center text-[10px] font-bold leading-4 tabular-nums text-brand-contrast ring-2 ring-surface"
@@ -215,7 +218,7 @@ export function BottomNav({
                 <span
                   className={`text-[11px] ${isActive ? "font-semibold" : ""}`}
                 >
-                  {label}
+                  {t(label)}
                 </span>
               </Link>
             </li>

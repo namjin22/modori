@@ -1,6 +1,8 @@
 import { ColorSwatches } from "@/components/color-swatches";
 import { PALETTE } from "@/lib/colors";
 import { SubmitButton } from "@/components/submit-button";
+import { categories as categoryMessages } from "@/lib/i18n/messages/categories";
+import { getT } from "@/lib/i18n/server";
 import { prisma } from "@/lib/prisma";
 import { LIMITS } from "@/lib/limits";
 import { requireUser } from "@/lib/session";
@@ -17,6 +19,7 @@ const DEFAULT_NEW_COLOR = PALETTE[0].value;
 
 export default async function CategoriesPage() {
   const user = await requireUser();
+  const t = await getT(categoryMessages);
 
   const categories = await prisma.category.findMany({
     where: { userId: user.id },
@@ -29,14 +32,14 @@ export default async function CategoriesPage() {
   return (
     <div className="flex flex-col gap-6">
       <header className="flex items-center gap-1">
-        <BackLink href="/" label="피드로" />
-        <h1 className="text-2xl font-bold">카테고리</h1>
+        <BackLink href="/" label={t("toFeed")} />
+        <h1 className="text-2xl font-bold">{t("title")}</h1>
       </header>
 
       {/* 상한에 닿으면 폼 대신 이유를 보여준다. 눌렀는데 아무 일도 없으면 고장 난 줄 안다. */}
       {active.length >= LIMITS.categories ? (
         <p className="rounded-2xl bg-surface p-4 text-sm text-muted">
-          카테고리는 {LIMITS.categories}개까지 만들 수 있어요. 안 쓰는 카테고리를 지우면 새로 만들 수 있어요.
+          {t("limitReached", { max: LIMITS.categories })}
         </p>
       ) : (
         <form
@@ -48,35 +51,35 @@ export default async function CategoriesPage() {
               name="name"
               required
               maxLength={20}
-              placeholder="새 카테고리"
-              aria-label="새 카테고리 이름"
+              placeholder={t("newPlaceholder")}
+              aria-label={t("newLabel")}
               className="h-11 min-w-0 flex-1 rounded-xl bg-surface-hover px-3"
             />
             <SubmitButton
-              pendingLabel="추가 중"
+              pendingLabel={t("adding")}
               className="h-11 rounded-xl bg-brand px-4 text-sm font-semibold text-brand-contrast"
             >
-              추가
+              {t("add")}
             </SubmitButton>
           </div>
           <ColorSwatches
             name="color"
-            legend="색"
+            legend={t("color")}
             defaultValue={DEFAULT_NEW_COLOR}
           />
-          <PrivateSwitch description="켜면 이 카테고리의 할 일은 나만 봐요" />
+          <PrivateSwitch title={t("privateTitle")} description={t("privateHint")} />
         </form>
       )}
 
       {active.length === 0 ? (
         <DoriMessage mood="happy">
-          <p>아직 카테고리가 없어요</p>
+          <p>{t("noCategories")}</p>
         </DoriMessage>
       ) : (
         // 카드를 잡고 끌어 순서를 바꾼다. 피드의 카테고리 묶음도 이 순서를 따른다.
         <SortableList
           variant="card"
-          noun="카테고리"
+          noun={t("title")}
           save={reorderCategories}
           items={active.map((category) => ({
             id: category.id,
@@ -88,10 +91,8 @@ export default async function CategoriesPage() {
 
       {archived.length > 0 && (
         <section className="flex flex-col gap-3">
-          <h2 className="text-sm font-semibold text-muted">보관함</h2>
-          <p className="text-xs text-muted">
-            예전에 보관해 둔 카테고리예요. 되돌리면 다시 쓸 수 있어요.
-          </p>
+          <h2 className="text-sm font-semibold text-muted">{t("archiveTitle")}</h2>
+          <p className="text-xs text-muted">{t("archiveHint")}</p>
           <ul className="flex flex-col gap-3">
             {archived.map((category) => (
               <li
@@ -107,7 +108,7 @@ export default async function CategoriesPage() {
                 <form action={restoreCategory}>
                   <input type="hidden" name="id" value={category.id} />
                   <button type="submit" className="h-8 rounded-lg px-2 text-xs font-medium text-brand hover:bg-surface-hover">
-                    되돌리기
+                    {t("restore")}
                   </button>
                 </form>
               </li>

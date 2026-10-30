@@ -4,8 +4,11 @@ import { useOptimistic, useSyncExternalStore, useTransition } from "react";
 
 import { setTimezone } from "@/app/(tabs)/settings/actions";
 import { ChoicePicker } from "@/components/choice-picker";
+import { useT } from "@/components/locale-provider";
 import { useSaveFailure } from "@/components/use-save-failure";
 import { deviceTimezone, subscribeNothing } from "@/lib/device-timezone";
+import { timezoneNames } from "@/lib/i18n/messages/timezones";
+import { settings } from "@/lib/i18n/messages/settings";
 import { isAllowedTimezone, TIMEZONES } from "@/lib/timezones";
 
 /**
@@ -13,6 +16,8 @@ import { isAllowedTimezone, TIMEZONES } from "@/lib/timezones";
  * 기기의 시간대가 다르면(여행 중이거나 해외에 사는 사람) 한 번에 맞추는 버튼을 보여 준다.
  */
 export function TimezoneSelect({ current, todayLabel }: { current: string; todayLabel: string }) {
+  const t = useT(settings);
+  const tz = useT(timezoneNames);
   const [optimistic, setOptimistic] = useOptimistic(current);
   const [pending, startTransition] = useTransition();
   const saveFailed = useSaveFailure();
@@ -34,16 +39,16 @@ export function TimezoneSelect({ current, todayLabel }: { current: string; today
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-col gap-1.5">
-        <span className="text-sm font-medium">내 시간대</span>
+        <span className="text-sm font-medium">{t("myZone")}</span>
         <ChoicePicker
-          label="시간대"
+          label={t("zonePicker")}
           value={optimistic}
           disabled={pending}
           onChange={choose}
-          options={TIMEZONES.map((zone) => ({ value: zone.value, label: zone.label }))}
+          options={TIMEZONES.map((zone) => ({ value: zone.value, label: tz(zone.value as Parameters<typeof tz>[0]) }))}
         />
         <span className="text-xs text-muted">
-          오늘, 루틴, 달력이 이 시간대 기준으로 움직여요. 지금 이 시간대의 오늘은 <b className="font-semibold text-foreground">{todayLabel}</b>이에요.
+          {t("zoneHint")} <b className="font-semibold text-foreground">{todayLabel}</b>{t("zoneHintEnd")}
         </span>
       </div>
 
@@ -53,7 +58,7 @@ export function TimezoneSelect({ current, todayLabel }: { current: string; today
           onClick={() => choose(device)}
           className="h-10 self-start rounded-xl bg-brand-subtle px-3 text-sm font-semibold text-brand"
         >
-          이 기기 시간대({TIMEZONES.find((zone) => zone.value === device)?.label})로 맞추기
+          {t("useDeviceZone", { zone: tz(device as Parameters<typeof tz>[0]) })}
         </button>
       )}
     </div>

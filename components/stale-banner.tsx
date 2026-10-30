@@ -2,7 +2,9 @@
 
 import { useEffect, useState } from "react";
 
-import { STALE_EVENT, STALE_MESSAGE } from "@/components/use-save-failure";
+import { useT } from "@/components/locale-provider";
+import { STALE_EVENT } from "@/components/use-save-failure";
+import { common } from "@/lib/i18n/messages/common";
 
 /**
  * 화면을 오래 열어 두는 사이 앱이 새 버전이 되었거나 서버가 응답하지 못해 저장이 실패하면 뜨는 안내.
@@ -11,6 +13,7 @@ import { STALE_EVENT, STALE_MESSAGE } from "@/components/use-save-failure";
  */
 export function StaleBanner() {
   const [stale, setStale] = useState(false);
+  const t = useT(common);
 
   useEffect(() => {
     const show = () => setStale(true);
@@ -22,17 +25,17 @@ export function StaleBanner() {
   return (
     <div
       role="alert"
-      aria-label="새로고침 안내"
+      aria-label={t("reloadNotice")}
       className="fixed inset-x-0 bottom-[calc(4.25rem+env(safe-area-inset-bottom,0px))] z-[60] flex justify-center px-5"
     >
       <div className="flex w-full max-w-md items-center gap-3 rounded-2xl bg-foreground py-3 pl-4 pr-2 text-sm text-background shadow-lg">
-        <span className="flex-1">{STALE_MESSAGE}</span>
+        <span className="flex-1">{t("stale")}</span>
         <button
           type="button"
           onClick={() => window.location.reload()}
           className="h-9 shrink-0 rounded-xl bg-background px-4 font-semibold text-foreground"
         >
-          새로고침
+          {t("reload")}
         </button>
       </div>
     </div>

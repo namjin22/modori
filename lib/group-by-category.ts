@@ -33,7 +33,7 @@ export type CategoryGroup<T> = {
 export function groupByCategory<T extends WithCategory>(
   items: T[],
   categories: CategoryInfo[],
-  { includeEmpty = false }: { includeEmpty?: boolean } = {},
+  { includeEmpty = false, noCategoryLabel = "카테고리 없음" }: { includeEmpty?: boolean; noCategoryLabel?: string } = {},
 ): CategoryGroup<T>[] {
   const rankById = new Map(categories.map((c, index) => [c.id, index]));
   const ARCHIVED_RANK = categories.length;
@@ -66,7 +66,7 @@ export function groupByCategory<T extends WithCategory>(
       group = {
         key,
         categoryId: item.category?.id ?? null,
-        name: item.category?.name ?? "카테고리 없음",
+        name: item.category?.name ?? noCategoryLabel,
         color: item.category?.color ?? null,
         isPublic: known?.isPublic ?? true,
         archived: Boolean(item.category) && !known,

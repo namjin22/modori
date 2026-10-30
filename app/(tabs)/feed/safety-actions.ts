@@ -2,6 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 
+import { social } from "@/lib/i18n/messages/social";
+import { getT } from "@/lib/i18n/server";
 import { prisma } from "@/lib/prisma";
 import { isReportReason, MAX_REPORT_DETAIL, REPORTS_PER_DAY } from "@/lib/report";
 import { requireUser } from "@/lib/session";
@@ -22,9 +24,10 @@ function refreshPeople() {
  */
 export async function blockUser(targetId: string): Promise<SafetyResult> {
   const user = await requireUser();
-  if (!targetId || targetId === user.id) return { ok: false, message: "차단할 수 없는 사람이에요." };
+  const t = await getT(social);
+  if (!targetId || targetId === user.id) return { ok: false, message: t("blockCannot") };
   const target = await prisma.user.findFirst({ where: { id: targetId, nickname: { not: null } }, select: { id: true } });
-  if (!target) return { ok: false, message: "이미 없는 사람이에요." };
+  if (!target) return { ok: false, message: t("gone") };
 
   await prisma.$transaction([
     prisma.block.createMany({ data: [{ blockerId: user.id, blockedId: target.id }], skipDuplicates: true }),
@@ -46,14 +49,15 @@ export async function blockUser(targetId: string): Promise<SafetyResult> {
     }),
   ]);
   refreshPeople();
-  return { ok: true, message: "차단했어요." };
+  return { ok: true, message: t("blocked") };
 }
 
 export async function unblockUser(targetId: string): Promise<SafetyResult> {
   const user = await requireUser();
+  const t = await getT(social);
   await prisma.block.deleteMany({ where: { blockerId: user.id, blockedId: targetId } });
   refreshPeople();
-  return { ok: true, message: "차단을 풀었어요." };
+  return { ok: true, message: t("unblocked") };
 }
 
 /**
@@ -62,23 +66,24 @@ export async function unblockUser(targetId: string): Promise<SafetyResult> {
  */
 export async function reportUser(targetId: string, reason: string, detail: string): Promise<SafetyResult> {
   const user = await requireUser();
-  if (!isReportReason(reason)) return { ok: false, message: "신고 이유를 골라 주세요." };
-  if (!targetId || targetId === user.id) return { ok: false, message: "신고할 수 없는 사람이에요." };
+  const t = await getT(social);
+  if (!isReportReason(reason)) return { ok: false, message: t("pickReason") };
+  if (!targetId || targetId === user.id) return { ok: false, message: t("reportCannot") };
   const target = await prisma.user.findFirst({ where: { id: targetId, nickname: { not: null } }, select: { id: true } });
-  if (!target) return { ok: false, message: "이미 없는 사람이에요." };
+  if (!target) return { ok: false, message: t("gone") };
 
   const since = new Date(Date.now() - DAY_MS);
   const [already, today] = await Promise.all([
     prisma.report.findFirst({ where: { reporterId: user.id, reportedId: target.id, createdAt: { gte: since } }, select: { id: true } }),
     prisma.report.count({ where: { reporterId: user.id, createdAt: { gte: since } } }),
   ]);
-  if (already) return { ok: true, message: "이미 신고했어요. 운영자가 확인할게요." };
-  if (today >= REPORTS_PER_DAY) return { ok: false, message: "오늘은 더 신고할 수 없어요. 내일 다시 해 주세요." };
+  if (already) return { ok: true, message: t("alreadyReported") };
+  if (today >= REPORTS_PER_DAY) return { ok: false, message: t("reportLimit") };
 
   await prisma.report.create({
     data: { reporterId: user.id, reportedId: target.id, reason, detail: detail.trim().slice(0, MAX_REPORT_DETAIL) || null },
   });
-  return { ok: true, message: "신고했어요. 운영자가 확인할게요." };
+  return { ok: true, message: t("reported") };
 }
 
 /** 내가 차단한 사람 목록(마이페이지 > 차단한 사용자). */

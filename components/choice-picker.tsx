@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 
+import { useT } from "@/components/locale-provider";
 import { Modal } from "@/components/modal";
+import { settings } from "@/lib/i18n/messages/settings";
 
 export type Choice = { value: string; label: string; color?: string };
 
@@ -30,6 +32,7 @@ export function ChoicePicker({
   onChange?: (value: string) => void;
   disabled?: boolean;
 }) {
+  const t = useT(settings);
   const [own, setOwn] = useState(defaultValue ?? options[0]?.value ?? "");
   const [open, setOpen] = useState(false);
   const current = value ?? own;
@@ -56,7 +59,7 @@ export function ChoicePicker({
         {selected?.color && (
           <span aria-hidden className="color-edge size-3 shrink-0 rounded-full" style={{ backgroundColor: selected.color }} />
         )}
-        <span className="min-w-0 flex-1 truncate">{selected?.label ?? "고르기"}</span>
+        <span className="min-w-0 flex-1 truncate">{selected?.label ?? t("choose")}</span>
         <Chevron />
       </button>
 

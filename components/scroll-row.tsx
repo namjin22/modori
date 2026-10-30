@@ -2,6 +2,9 @@
 
 import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 
+import { useT } from "@/components/locale-provider";
+import { settings } from "@/lib/i18n/messages/settings";
+
 /**
  * 옆으로 넘기는 한 줄(프로필 사진 칸, 소셜의 친구 얼굴). 손가락은 쓸어 넘기면 되지만, 마우스는 Shift를 누른 채 휠을 굴려야만
  * 넘어가서 넘길 수 있다는 것조차 몰랐다(2026-10-14 요청). 마우스 화면(pointer-fine)에서만 양 끝에 작은 ‹ › 버튼을 띄운다.
@@ -33,6 +36,7 @@ export function ScrollRow({
   // 화면 가장자리까지 넘어가게 바깥 여백(px-5)만큼 넓힌다. 흐림과 버튼도 화면 끝에 붙는다.
   bleed?: boolean;
 }) {
+  const t = useT(settings);
   const ref = useRef<HTMLDivElement>(null);
   const [edges, setEdges] = useState({ left: false, right: false });
 
@@ -83,14 +87,14 @@ export function ScrollRow({
       </div>
       {edges.left && (
         <div className={`${band} left-0 bg-linear-to-r`}>
-          <button type="button" tabIndex={-1} aria-label="왼쪽으로 넘기기" onClick={() => page(-1)} className={`${arrow} left-1.5`} style={{ top }}>
+          <button type="button" tabIndex={-1} aria-label={t("scrollLeft")} onClick={() => page(-1)} className={`${arrow} left-1.5`} style={{ top }}>
             ‹
           </button>
         </div>
       )}
       {edges.right && (
         <div className={`${band} right-0 bg-linear-to-l`}>
-          <button type="button" tabIndex={-1} aria-label="오른쪽으로 넘기기" onClick={() => page(1)} className={`${arrow} right-1.5`} style={{ top }}>
+          <button type="button" tabIndex={-1} aria-label={t("scrollRight")} onClick={() => page(1)} className={`${arrow} right-1.5`} style={{ top }}>
             ›
           </button>
         </div>

@@ -1,4 +1,8 @@
 import { dateIn, formatKST, minuteOfDayIn } from "@/lib/date";
+import { translator, type Locale } from "@/lib/i18n";
+import { weekdayName } from "@/lib/i18n/format";
+import { alarms as alarmMessages } from "@/lib/i18n/messages/alarms";
+import { notices } from "@/lib/i18n/messages/notices";
 import type { PushMessage } from "@/lib/push";
 import { timezoneOrDefault } from "@/lib/timezones";
 
@@ -12,8 +16,6 @@ import { timezoneOrDefault } from "@/lib/timezones";
 export const MAX_ALARMS = 10;
 export const MAX_ALARM_MESSAGE = 60;
 export const ALARM_WINDOW_MINUTES = 5;
-
-const WEEKDAY_NAMES = ["일", "월", "화", "수", "목", "금", "토"];
 
 /** 자정부터 몇 분째(0~1439)인 5분 단위 값인가. 화면의 시각 고르기(5분 단위)와 맞춘다. */
 export function isAlarmMinute(value: unknown): value is number {
@@ -42,12 +44,13 @@ export function readWeekdays(values: unknown): number[] | null {
 }
 
 /** 화면에 보이는 요일 말. [] → "매일", [1..5] → "평일", [0, 6] → "주말", 그 밖에는 "월·수·금". */
-export function describeWeekdays(weekdays: number[]): string {
-  if (weekdays.length === 0) return "매일";
+export function describeWeekdays(weekdays: number[], locale: Locale = "ko"): string {
+  const t = translator(alarmMessages, locale);
+  if (weekdays.length === 0) return t("everyDay");
   const key = weekdays.join(",");
-  if (key === "1,2,3,4,5") return "평일";
-  if (key === "0,6") return "주말";
-  return weekdays.map((day) => WEEKDAY_NAMES[day]).join("·");
+  if (key === "1,2,3,4,5") return t("weekdays");
+  if (key === "0,6") return t("weekend");
+  return weekdays.map((day) => weekdayName(locale, day)).join(locale === "en" ? ", " : locale === "ja" ? "・" : "·");
 }
 
 export type AlarmTiming = { minute: number; weekdays: number[]; lastSentOn: Date | null };
@@ -77,6 +80,7 @@ export function alarmSentOnWhenSet(minute: number, timezone: string, now: Date):
   return minuteOfDayIn(now, zone) >= minute ? dateIn(now, zone) : null;
 }
 
-export function alarmPush(alarm: { id: string; message: string }): PushMessage {
-  return { title: "모도리", body: alarm.message, url: "/", tag: `alarm:${alarm.id}` };
+/** 알림 문구는 사용자가 쓴 것이라 그대로 두고, 제목(앱 이름)만 받는 사람의 언어로 쓴다. */
+export function alarmPush(alarm: { id: string; message: string }, locale: Locale = "ko"): PushMessage {
+  return { title: translator(notices, locale)("brand"), body: alarm.message, url: "/", tag: `alarm:${alarm.id}` };
 }

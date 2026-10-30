@@ -3,11 +3,14 @@
 import { useRef, useState, useTransition } from "react";
 
 import { addTodo } from "@/app/(tabs)/actions";
+import { useT } from "@/components/locale-provider";
 import { PENDING_PREFIX, useTodoStore } from "@/components/todo-store";
 import { useToast } from "@/components/toast";
 import { useBlurOutside } from "@/components/use-blur-outside";
 import { useSaveFailure } from "@/components/use-save-failure";
 import { NO_CATEGORY_COLOR, onColorText } from "@/lib/colors";
+import { common } from "@/lib/i18n/messages/common";
+import { todos as todoMessages } from "@/lib/i18n/messages/todos";
 
 /**
  * 카테고리 칩. 이름을 누르면 칩 바로 아래에 입력칸이 열린다.
@@ -31,6 +34,8 @@ export function CategoryAdder({
   count: string | null;
   archived?: boolean;
 }) {
+  const t = useT(todoMessages);
+  const tc = useT(common);
   const [open, setOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   // 빈 칸인 채로 다른 곳을 누르면 닫는다(Safari에서는 칸 안의 버튼을 눌러도 포커스가 안 와서 use-blur-outside가 따로 본다).
@@ -45,7 +50,7 @@ export function CategoryAdder({
   const chip = (
     <>
       {!isPublic && (
-        <span aria-label="비공개" title="친구 피드에 보이지 않아요" className="text-xs">
+        <span aria-label={t("chipPrivate")} title={t("chipPrivateTitle")} className="text-xs">
           🔒
         </span>
       )}
@@ -69,7 +74,8 @@ export function CategoryAdder({
         ) : (
           <button
             type="button"
-            aria-label={`${name}에 할 일 쓰기`}
+            aria-label={t("writeIn", { name })}
+            data-add-todo-chip
             aria-expanded={open}
             onClick={() => setOpen((value) => !value)}
             // 열린 채로 칩을 다시 누르면 입력칸이 먼저 포커스를 잃어 닫혔다가 클릭으로 다시 열린다.
@@ -150,8 +156,9 @@ export function CategoryAdder({
             required
             maxLength={200}
             autoFocus
-            placeholder="할 일을 적고 Enter"
-            aria-label={`${name} 할 일`}
+            placeholder={t("writePlaceholder")}
+            aria-label={t("writeLabel", { name })}
+            data-add-todo-input
             onKeyDown={(event) => {
               if (event.key === "Escape") setOpen(false);
             }}
@@ -161,7 +168,7 @@ export function CategoryAdder({
           <button
             type="button"
             onClick={() => setOpen(false)}
-            aria-label="닫기"
+            aria-label={tc("close")}
             className="flex size-8 shrink-0 items-center justify-center rounded-full text-sm text-muted hover:bg-surface-hover"
           >
             ✕

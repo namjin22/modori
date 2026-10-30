@@ -3,6 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
+import { pageT } from "@/lib/i18n/client";
+import { common } from "@/lib/i18n/messages/common";
+
 type Bubble = {
   key: number;
   text: string;
@@ -18,14 +21,14 @@ function messageOf(field: HTMLInputElement | HTMLTextAreaElement | HTMLSelectEle
   const custom = field.dataset.invalidMessage;
   if (custom) return custom;
 
+  // 이벤트 처리기에서 부르므로 훅 대신 <html lang>에서 언어를 읽는다(lib/i18n/client.ts).
+  const t = pageT(common);
   const { validity } = field;
   if (validity.valueMissing) {
-    return field instanceof HTMLInputElement && field.type === "date"
-      ? "날짜를 골라주세요"
-      : "내용을 적어주세요";
+    return field instanceof HTMLInputElement && field.type === "date" ? t("pickDate") : t("fillIn");
   }
-  if (validity.tooLong || validity.tooShort) return "글자 수를 확인해주세요";
-  return "입력한 내용을 확인해주세요";
+  if (validity.tooLong || validity.tooShort) return t("checkLength");
+  return t("checkInput");
 }
 
 /**

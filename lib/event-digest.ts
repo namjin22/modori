@@ -1,5 +1,7 @@
 import { dateIn, formatKST, minuteOfDayIn } from "@/lib/date";
 import { formatTime } from "@/lib/event-time";
+import { translator, type Locale } from "@/lib/i18n";
+import { notices } from "@/lib/i18n/messages/notices";
 import type { PushMessage } from "@/lib/push";
 import { timezoneOrDefault } from "@/lib/timezones";
 
@@ -45,15 +47,16 @@ function shortTitle(title: string): string {
  * 시각은 일정이 오늘 시작할 때만 적는다(어제 시작한 여러 날 일정의 시작 시각은 오늘 일이 아니다). 메모는 넣지 않는다.
  * 문구는 푸시 회사(FCM·APNs)를 평문으로 거치므로 개인정보 방침 5번에 적어 두었다.
  */
-export function eventDigestPush(events: EventDigestItem[], today: Date): PushMessage | null {
+export function eventDigestPush(events: EventDigestItem[], today: Date, locale: Locale = "ko"): PushMessage | null {
   const [first] = events;
   if (!first) return null;
   const startsToday = formatKST(first.startDate) === formatKST(today);
   const when = startsToday && first.startTime !== null ? ` ${formatTime(first.startTime)}` : "";
-  const more = events.length > 1 ? " 외" : "";
+  const t = translator(notices, locale);
+  const text = `${shortTitle(first.title)}${when}`;
   return {
-    title: "모도리",
-    body: `오늘 일정 ${events.length}개 · ${shortTitle(first.title)}${when}${more}`,
+    title: t("brand"),
+    body: events.length > 1 ? t("digestMany", { count: events.length, first: text }) : t("digestOne", { first: text }),
     url: "/",
     tag: "event-digest",
   };

@@ -2,7 +2,11 @@ import Link from "next/link";
 
 import { Avatar } from "@/components/avatar";
 
-import { formatKST, formatMonthDayKST } from "@/lib/date";
+import { formatKST } from "@/lib/date";
+import { formatMonthDay } from "@/lib/i18n/format";
+import { social } from "@/lib/i18n/messages/social";
+import { getLocale, getT } from "@/lib/i18n/server";
+import type { Locale } from "@/lib/i18n";
 import { prisma } from "@/lib/prisma";
 import { countUnreadNotifications, requireUser } from "@/lib/session";
 
@@ -38,6 +42,8 @@ export default async function FeedPage({
   searchParams: Promise<{ after?: string; r?: string }>;
 }) {
   const user = await requireUser();
+  const t = await getT(social);
+  const locale = await getLocale();
   const { after, r } = await searchParams;
   const cursor = readCursor(after);
 
@@ -105,7 +111,7 @@ export default async function FeedPage({
       {/* 친구 얼굴을 가로로 늘어놓고 옆으로 넘긴다. 누르면 그 친구 화면으로 가고, 끌면 순서가 바뀐다(components/sortable-friend-row.tsx).
           화면 가장자리까지 스크롤되게 바깥 여백만큼 넓혔다. */}
       {friends.length > 0 && (
-        <nav aria-label="친구">
+        <nav aria-label={t("friendsNav")}>
           <ScrollRow bleed arrowTop={28}>
             <SortableFriendRow
               friends={friends.map((friend) => ({ id: friend.id, nickname: friend.nickname ?? "", avatar: avatarUrl(friend) }))}
@@ -121,17 +127,17 @@ export default async function FeedPage({
           <Dori mood={followingCount === 0 ? "hello" : "calm"} size={88} className="mb-2" />
           <p className="text-sm text-muted">
             {after
-              ? "더 이전 기록은 없어요"
+              ? t("noOlder")
               : followingCount === 0
-                ? "아직 팔로우한 친구가 없어요"
-                : "친구들이 아직 끝낸 할 일이 없어요"}
+                ? t("noFollowing")
+                : t("noDoneYet")}
           </p>
           {followingCount === 0 && (
             <Link prefetch={false}
               href="/feed/search"
               className="mt-3 inline-block text-sm text-brand"
             >
-              닉네임으로 찾아보기
+              {t("searchByNickname")}
             </Link>
           )}
         </div>
@@ -142,7 +148,7 @@ export default async function FeedPage({
         // 같은 사람이 같은 날 끝낸 일은 카드 한 장에 한 줄씩 묶는다. 할 일마다
         // 카드를 따로 쓰면 이름과 날짜가 줄마다 반복되고 한 화면에 서너 개밖에 안 보인다.
         <ul className="flex flex-col gap-3">
-          {groupByAuthorAndDay(todos).map((group) => (
+          {groupByAuthorAndDay(todos, locale).map((group) => (
             <li key={group.key} className="rounded-2xl bg-surface px-4 pb-1 pt-3.5">
               <div className="flex items-center gap-2">
                 <Link prefetch={false}
@@ -183,7 +189,7 @@ export default async function FeedPage({
         <div className="flex items-center justify-between">
           {after ? (
             <Link prefetch={false} href="/feed" className="text-sm text-muted">
-              ↑ 최근으로
+              {t("toLatest")}
             </Link>
           ) : (
             <span />
@@ -193,7 +199,7 @@ export default async function FeedPage({
               href={`/feed?after=${nextCursor}`}
               className="text-sm font-medium text-brand"
             >
-              더 보기 →
+              {t("more")}
             </Link>
           )}
         </div>
@@ -205,11 +211,12 @@ export default async function FeedPage({
 /** 피드는 끝낸 시각 순서다. 그 순서를 지키면서, 붙어 있는 같은 사람·같은 날끼리만 묶는다. */
 function groupByAuthorAndDay<T extends { date: Date; user: { id: string } }>(
   todos: T[],
+  locale: Locale,
 ): { key: string; date: string; user: T["user"]; items: T[] }[] {
   const groups: { key: string; date: string; user: T["user"]; items: T[] }[] = [];
 
   for (const todo of todos) {
-    const date = formatMonthDayKST(todo.date);
+    const date = formatMonthDay(locale, todo.date);
     const last = groups.at(-1);
     if (last && last.user.id === todo.user.id && formatKST(last.items[0].date) === formatKST(todo.date)) {
       last.items.push(todo);

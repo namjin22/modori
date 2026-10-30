@@ -9,23 +9,26 @@ import {
 import { ChoicePicker } from "@/components/choice-picker";
 import { ColorSwatches } from "@/components/color-swatches";
 import { DatePicker } from "@/components/date-picker";
+import { useLocale, useT } from "@/components/locale-provider";
 import { LabeledSwitch } from "@/components/labeled-switch";
 import { PrivateSwitch } from "@/components/private-switch";
 import { SubmitButton } from "@/components/submit-button";
 import { TimePicker } from "@/components/time-picker";
 import { useFormAction } from "@/components/use-form-action";
 import { DEFAULT_EVENT_COLOR } from "@/lib/colors";
+import { weekdayNames } from "@/lib/i18n/format";
+import { events } from "@/lib/i18n/messages/events";
+import { routines } from "@/lib/i18n/messages/routines";
 
-const WEEKDAY_NAMES = ["일", "월", "화", "수", "목", "금", "토"];
 const MONTH_DAYS = Array.from({ length: 31 }, (_, index) => index + 1);
 
 type Freq = "DAILY" | "WEEKLY" | "MONTHLY";
 
-const FREQ_OPTIONS: { value: Freq; label: string }[] = [
-  { value: "DAILY", label: "매일" },
-  { value: "WEEKLY", label: "매주" },
-  { value: "MONTHLY", label: "매월" },
-];
+const FREQ_OPTIONS = [
+  { value: "DAILY", label: "daily" },
+  { value: "WEEKLY", label: "weekly" },
+  { value: "MONTHLY", label: "monthly" },
+] as const;
 
 export function RoutineForm({
   categories,
@@ -34,6 +37,8 @@ export function RoutineForm({
   categories: { id: string; name: string; color?: string }[];
   today: string;
 }) {
+  const t = useT(routines);
+  const locale = useLocale();
   // 주기를 고르기 전에는 요일·날짜를 다 보여줄 이유가 없다. 폼이 화면을 넘어간다.
   const [freq, setFreq] = useState<Freq>("DAILY");
   // 할 일 루틴은 그날 할 일로 들어오고, 일정 루틴(반복 일정)은 달력과 일정 목록에 뜬다(2026-10-14 요청).
@@ -47,11 +52,11 @@ export function RoutineForm({
 
   return (
     <form onSubmit={formAction} className="flex flex-col gap-5">
-      <div role="radiogroup" aria-label="루틴 종류" className="flex gap-1 rounded-xl bg-surface-hover p-1">
+      <div role="radiogroup" aria-label={t("kindLabel")} className="flex gap-1 rounded-xl bg-surface-hover p-1">
         {(
           [
-            ["TODO", "할 일"],
-            ["EVENT", "일정"],
+            ["TODO", t("kindTodo")],
+            ["EVENT", t("kindEvent")],
           ] as const
         ).map(([value, label]) => (
           <button
@@ -76,13 +81,13 @@ export function RoutineForm({
             name="content"
             required
             maxLength={200}
-            placeholder="반복할 할 일"
-            aria-label="루틴 내용"
+            placeholder={t("contentPlaceholder")}
+            aria-label={t("contentLabel")}
             className="h-12 rounded-xl bg-surface-hover px-3 outline-none focus:ring-2 focus:ring-brand"
           />
 
           <ChoicePicker
-            label="루틴 카테고리"
+            label={t("categoryLabel")}
             name="categoryId"
             options={categories.map((category) => ({ value: category.id, label: category.name, color: category.color }))}
           />
@@ -91,7 +96,7 @@ export function RoutineForm({
         <EventRoutineFields />
       )}
 
-      <div role="radiogroup" aria-label="반복 주기" className="flex gap-1 rounded-xl bg-surface-hover p-1">
+      <div role="radiogroup" aria-label={t("freqLabel")} className="flex gap-1 rounded-xl bg-surface-hover p-1">
         {FREQ_OPTIONS.map((option) => (
           <button
             key={option.value}
@@ -105,7 +110,7 @@ export function RoutineForm({
                 : "text-muted"
             }`}
           >
-            {option.label}
+            {t(option.label)}
           </button>
         ))}
       </div>
@@ -113,8 +118,8 @@ export function RoutineForm({
 
       {freq === "WEEKLY" && (
         <fieldset className="flex justify-between gap-1">
-          <legend className="sr-only">반복할 요일</legend>
-          {WEEKDAY_NAMES.map((name, index) => (
+          <legend className="sr-only">{t("weekdayLegend")}</legend>
+          {weekdayNames(locale).map((name, index) => (
             <label
               key={name}
               className="flex-1 cursor-pointer text-center text-sm"
@@ -135,7 +140,7 @@ export function RoutineForm({
 
       {freq === "MONTHLY" && (
         <fieldset className="grid grid-cols-7 gap-1">
-          <legend className="sr-only">반복할 날짜</legend>
+          <legend className="sr-only">{t("monthdayLegend")}</legend>
           {MONTH_DAYS.map((day) => (
             <label key={day} className="cursor-pointer text-center text-sm">
               <input
@@ -156,13 +161,13 @@ export function RoutineForm({
       {/* 짧은 날짜라 폰에서도 한 줄에 둘이 들어간다(일정 창과 같다, 2026-10-20). */}
       <div className="grid grid-cols-2 gap-3">
         <div className="flex min-w-0 flex-col gap-1 text-xs text-muted">
-          시작일
-          <DatePicker label="루틴 시작일" name="startDate" defaultValue={today} short />
+          {t("startDate")}
+          <DatePicker label={t("startLabel")} name="startDate" defaultValue={today} short />
         </div>
 
         <div className="flex min-w-0 flex-col gap-1 text-xs text-muted">
-          종료일
-          <DatePicker label="루틴 종료일" name="endDate" clearable emptyText="계속 (종료일 없음)" shortEmptyText="계속 반복" short />
+          {t("endDate")}
+          <DatePicker label={t("endLabel")} name="endDate" clearable emptyText={t("noEnd")} shortEmptyText={t("noEndShort")} short />
         </div>
       </div>
 
@@ -181,10 +186,10 @@ export function RoutineForm({
 
       <SubmitButton
         pending={pending}
-        pendingLabel="추가 중"
+        pendingLabel={t("adding")}
         className="h-12 rounded-xl bg-brand text-sm font-semibold text-brand-contrast"
       >
-        루틴 추가
+        {t("add")}
       </SubmitButton>
     </form>
   );
@@ -196,6 +201,8 @@ export function EventRoutineFields({
 }: {
   initial?: { title: string; color: string; startTime: string; endTime: string; isPublic?: boolean };
 }) {
+  const t = useT(routines);
+  const te = useT(events);
   const [allDay, setAllDay] = useState(!initial?.startTime);
   const [startTime, setStartTime] = useState(initial?.startTime ?? "");
   const [endTime, setEndTime] = useState(initial?.endTime ?? "");
@@ -207,14 +214,14 @@ export function EventRoutineFields({
         required
         maxLength={100}
         defaultValue={initial?.title}
-        placeholder="예: 학원, 동아리, 운동"
-        aria-label="반복 일정 이름"
+        placeholder={t("eventNamePlaceholder")}
+        aria-label={t("eventNameLabel")}
         className="h-12 rounded-xl bg-surface-hover px-3 outline-none focus:ring-2 focus:ring-brand"
       />
       <div className="flex flex-col gap-3 rounded-xl border border-border p-3">
         <LabeledSwitch
           name="allDay"
-          title="하루 종일"
+          title={te("allDay")}
           checked={allDay}
           onChange={(checked) => {
             setAllDay(checked);
@@ -227,17 +234,17 @@ export function EventRoutineFields({
         {/* 일정 창과 같이 시작·끝을 한 줄에 둔다(2026-10-20). */}
         {!allDay && (
           <div className="flex animate-rise items-center gap-2">
-            <TimePicker label="반복 일정 시작" value={startTime} onChange={setStartTime} />
+            <TimePicker label={t("repeatStart")} value={startTime} onChange={setStartTime} />
             <span aria-hidden className="shrink-0 text-sm text-muted">~</span>
-            <TimePicker label="반복 일정 종료" value={endTime} onChange={setEndTime} optional />
+            <TimePicker label={t("repeatEnd")} value={endTime} onChange={setEndTime} optional />
           </div>
         )}
         <input type="hidden" name="startTime" value={allDay ? "" : startTime} />
         <input type="hidden" name="endTime" value={allDay ? "" : endTime} />
       </div>
-      <ColorSwatches name="color" legend="색" defaultValue={initial?.color ?? DEFAULT_EVENT_COLOR} />
+      <ColorSwatches name="color" legend={te("color")} defaultValue={initial?.color ?? DEFAULT_EVENT_COLOR} />
       {/* 팔로우한 친구에게 숨길지(일정과 같다, 기본은 보인다, 2026-10-18). */}
-      <PrivateSwitch description="켜면 이 반복 일정은 나만 봐요" defaultChecked={initial ? initial.isPublic === false : false} />
+      <PrivateSwitch title={te("privateTitle")} description={t("privateHint")} defaultChecked={initial ? initial.isPublic === false : false} />
     </>
   );
 }

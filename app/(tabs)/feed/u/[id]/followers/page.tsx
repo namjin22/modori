@@ -1,8 +1,13 @@
 import type { Metadata } from "next";
 
+import { settings } from "@/lib/i18n/messages/settings";
+import { getT } from "@/lib/i18n/server";
+
 import { FriendFollowList } from "../follow-list";
 
-export const metadata: Metadata = { title: "팔로워 · 모도리" };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getT(settings))("followersPageTitle") };
+}
 
 export default async function FriendFollowersPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;

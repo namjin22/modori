@@ -3,10 +3,13 @@
 import { useTransition } from "react";
 
 import { moveUndoneToToday, moveUndoneToTomorrow, restoreUndone } from "@/app/(tabs)/actions";
+import { useT } from "@/components/locale-provider";
 import { useTodoStore } from "@/components/todo-store";
 import { useToast } from "@/components/toast";
 import { useSaveFailure } from "@/components/use-save-failure";
 import { addDays, formatKST, parseKSTDate } from "@/lib/date";
+import { common } from "@/lib/i18n/messages/common";
+import { todos as todoMessages } from "@/lib/i18n/messages/todos";
 
 /**
  * 안 끝낸 할 일을 한꺼번에 옮기는 버튼. 목록의 맨 아래(가장 밑의 할 일 아래)에 둔다.
@@ -19,6 +22,8 @@ import { addDays, formatKST, parseKSTDate } from "@/lib/date";
  * 누르면 그 날 목록에서 먼저 사라지고(서버 응답 전) 알림이 뜬다. 하루 상한에 걸리면 들어가는 만큼만 옮기고 남은 수를 알린다.
  */
 export function BulkMove({ date, today, count }: { date: string; today: string; count: number }) {
+  const t = useT(todoMessages);
+  const tc = useT(common);
   const [pending, startTransition] = useTransition();
   const toast = useToast();
   const saveFailed = useSaveFailure();
@@ -26,7 +31,6 @@ export function BulkMove({ date, today, count }: { date: string; today: string; 
 
   const toTomorrow = date === today;
   const target = toTomorrow ? formatKST(addDays(parseKSTDate(today), 1)) : today;
-  const word = toTomorrow ? "내일" : "오늘";
 
   function run() {
     startTransition(async () => {
@@ -36,7 +40,7 @@ export function BulkMove({ date, today, count }: { date: string; today: string; 
         const undo = result.undo;
         toast({
           message: result.message,
-          ...(undo && { action: { label: "되돌리기", run: () => restoreUndone(undo) } }),
+          ...(undo && { action: { label: tc("undo"), run: () => restoreUndone(undo) } }),
         });
       } catch (error) {
         saveFailed(error);
@@ -52,7 +56,7 @@ export function BulkMove({ date, today, count }: { date: string; today: string; 
       onClick={run}
       className="mt-2 h-11 w-full rounded-2xl border border-dashed border-border text-sm text-muted transition-colors hover:bg-surface hover:text-foreground disabled:opacity-50"
     >
-      {pending ? "옮기는 중" : `안 끝낸 일 ${count}개 모두 ${word} 하기`}
+      {pending ? t("moving") : t(toTomorrow ? "moveAllTomorrow" : "moveAllToday", { count })}
     </button>
   );
 }

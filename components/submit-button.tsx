@@ -2,11 +2,14 @@
 
 import { useFormStatus } from "react-dom";
 
+import { useT } from "@/components/locale-provider";
+import { common } from "@/lib/i18n/messages/common";
+
 // 제출 중에 버튼이 계속 눌리면 같은 것이 여러 개 만들어진다.
 // 실제로 루틴이 17개 쌓인 적이 있다.
 export function SubmitButton({
   children,
-  pendingLabel = "저장 중",
+  pendingLabel,
   className,
   pending: pendingFromForm,
 }: {
@@ -16,6 +19,7 @@ export function SubmitButton({
   // onSubmit으로 보내는 폼은 useFormStatus가 모른다. 폼이 직접 알려준다.
   pending?: boolean;
 }) {
+  const t = useT(common);
   const status = useFormStatus();
   const pending = pendingFromForm ?? status.pending;
 
@@ -25,7 +29,7 @@ export function SubmitButton({
       disabled={pending}
       className={`${className ?? ""} disabled:opacity-50`}
     >
-      {pending ? pendingLabel : children}
+      {pending ? (pendingLabel ?? t("saving")) : children}
     </button>
   );
 }

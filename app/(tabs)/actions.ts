@@ -6,7 +6,10 @@ import { isHexColor } from "@/lib/colors";
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 
-import { addDays, daysBetween, formatKST, formatMonthDayKST, isSameKSTDate, parseKSTDate, todayIn } from "@/lib/date";
+import { addDays, daysBetween, formatKST, isSameKSTDate, parseKSTDate, todayIn } from "@/lib/date";
+import { formatMonthDay } from "@/lib/i18n/format";
+import { todos as todoMessages } from "@/lib/i18n/messages/todos";
+import { getLocale, getT } from "@/lib/i18n/server";
 import { isId, readIdList } from "@/lib/ids";
 import { LIMITS } from "@/lib/limits";
 import { readMemo } from "@/lib/memo";
@@ -58,14 +61,15 @@ export type TodoAdd = { ok: true } | { ok: false; message: string };
 
 export async function addTodo(formData: FormData): Promise<TodoAdd> {
   const user = await requireUser();
+  const t = await getT(todoMessages);
   const content = readContent(formData);
-  if (!content) return { ok: false, message: "할 일을 적어주세요." };
+  if (!content) return { ok: false, message: t("writeTodo") };
 
   const date = readDay(readId(formData, "date"));
-  if (!date) return { ok: false, message: "날짜를 읽지 못했어요. 새로 고쳐 주세요." };
+  if (!date) return { ok: false, message: t("dateUnreadable") };
   // 옮기기(moveTodo)와 같은 범위만 받는다. 날짜를 마음대로 바꿔 가며 하루 상한을 피해 무한히 쌓지 못하게 한다.
   if (Math.abs(daysBetween(todayIn(user.timezone), date)) > MAX_SCHEDULED_DAYS) {
-    return { ok: false, message: "너무 먼 날짜예요." };
+    return { ok: false, message: t("tooFar") };
   }
   const categoryId = readId(formData, "categoryId") || null;
 
@@ -76,12 +80,12 @@ export async function addTodo(formData: FormData): Promise<TodoAdd> {
       where: { id: categoryId, userId: user.id, archivedAt: null },
       select: { id: true },
     });
-    if (!owned) return { ok: false, message: "이 카테고리에는 적을 수 없어요." };
+    if (!owned) return { ok: false, message: t("noCategory") };
   }
 
   const count = await prisma.todo.count({ where: { userId: user.id, date } });
   if (count >= LIMITS.todosPerDay) {
-    return { ok: false, message: `하루에 ${LIMITS.todosPerDay}개까지 적을 수 있어요.` };
+    return { ok: false, message: t("perDay", { max: LIMITS.todosPerDay }) };
   }
 
   const last = await prisma.todo.findFirst({
@@ -253,7 +257,7 @@ export async function restoreTodo(snapshot: DeletedTodo): Promise<string | void>
   // 되돌리기도 새로 만드는 것과 같은 상한을 지킨다. 지우고 그 사이 다른 걸 적어 꽉 찼을 수 있다.
   const count = await prisma.todo.count({ where: { userId: user.id, date } });
   if (count >= LIMITS.todosPerDay) {
-    return `하루에 ${LIMITS.todosPerDay}개까지 적을 수 있어요.`;
+    return (await getT(todoMessages))("perDay", { max: LIMITS.todosPerDay });
   }
 
   const [category, routine] = await Promise.all([
@@ -329,22 +333,23 @@ export type TodoMove = { ok: true; message: string } | { ok: false; message: str
  */
 export async function moveTodo(id: string, day: string): Promise<TodoMove> {
   const user = await requireUser();
+  const t = await getT(todoMessages);
   const date = readDay(day);
-  if (!date) return { ok: false, message: "옮길 날짜를 골라주세요." };
+  if (!date) return { ok: false, message: t("pickMoveDate") };
   if (Math.abs(daysBetween(todayIn(user.timezone), date)) > MAX_MOVE_DAYS) {
-    return { ok: false, message: "1년 안의 날짜로만 옮길 수 있어요." };
+    return { ok: false, message: t("withinYearMove") };
   }
 
   const todo = await prisma.todo.findFirst({
     where: { id, userId: user.id },
     select: { date: true, routineId: true },
   });
-  if (!todo) return { ok: false, message: "할 일을 찾을 수 없어요." };
-  if (isSameKSTDate(todo.date, date)) return { ok: false, message: "이미 그날의 할 일이에요." };
+  if (!todo) return { ok: false, message: t("todoNotFound") };
+  if (isSameKSTDate(todo.date, date)) return { ok: false, message: t("sameDayMove") };
 
   const count = await prisma.todo.count({ where: { userId: user.id, date } });
   if (count >= LIMITS.todosPerDay) {
-    return { ok: false, message: `그날은 벌써 ${LIMITS.todosPerDay}개예요. 하루에 ${LIMITS.todosPerDay}개까지 적을 수 있어요.` };
+    return { ok: false, message: t("dayFull", { max: LIMITS.todosPerDay }) };
   }
   const last = await prisma.todo.findFirst({
     where: { userId: user.id, date },
@@ -368,7 +373,7 @@ export async function moveTodo(id: string, day: string): Promise<TodoMove> {
   ]);
 
   revalidatePath("/");
-  return { ok: true, message: `${formatMonthDayKST(date)}로 옮겼어요` };
+  return { ok: true, message: t("movedTo", { date: formatMonthDay(await getLocale(), date) }) };
 }
 
 /**
@@ -378,23 +383,24 @@ export async function moveTodo(id: string, day: string): Promise<TodoMove> {
  */
 export async function repeatTodo(id: string, day: string): Promise<TodoMove> {
   const user = await requireUser();
+  const t = await getT(todoMessages);
   const date = readDay(day);
-  if (!date) return { ok: false, message: "날짜를 골라주세요." };
+  if (!date) return { ok: false, message: t("pickDate") };
   if (Math.abs(daysBetween(todayIn(user.timezone), date)) > MAX_MOVE_DAYS) {
-    return { ok: false, message: "1년 안의 날짜에만 할 수 있어요." };
+    return { ok: false, message: t("withinYearAgain") };
   }
 
   const todo = await prisma.todo.findFirst({
     where: { id, userId: user.id },
     select: { date: true, done: true, content: true, memo: true, memoPublic: true, color: true, category: { select: { id: true, archivedAt: true } } },
   });
-  if (!todo) return { ok: false, message: "할 일을 찾을 수 없어요." };
-  if (!todo.done) return { ok: false, message: "끝낸 할 일만 또 할 수 있어요." };
-  if (isSameKSTDate(todo.date, date)) return { ok: false, message: "이미 그날이에요. 다른 날을 골라 주세요." };
+  if (!todo) return { ok: false, message: t("todoNotFound") };
+  if (!todo.done) return { ok: false, message: t("onlyDone") };
+  if (isSameKSTDate(todo.date, date)) return { ok: false, message: t("sameDayAgain") };
 
   const count = await prisma.todo.count({ where: { userId: user.id, date } });
   if (count >= LIMITS.todosPerDay) {
-    return { ok: false, message: `그날은 벌써 ${LIMITS.todosPerDay}개예요. 하루에 ${LIMITS.todosPerDay}개까지 적을 수 있어요.` };
+    return { ok: false, message: t("dayFull", { max: LIMITS.todosPerDay }) };
   }
   const last = await prisma.todo.findFirst({
     where: { userId: user.id, date },
@@ -417,7 +423,7 @@ export async function repeatTodo(id: string, day: string): Promise<TodoMove> {
   });
 
   revalidatePath("/");
-  return { ok: true, message: `${formatMonthDayKST(date)}에 또 하기로 적었어요` };
+  return { ok: true, message: t("addedAgain", { date: formatMonthDay(await getLocale(), date) }) };
 }
 
 /** 한꺼번에 옮긴 할 일을 되돌릴 때 필요한 값. 옮기기 전의 날·순서·루틴 연결. */
@@ -431,21 +437,19 @@ export type UndoneMove = { ok: boolean; message: string; undo?: UndoneSnapshot }
  */
 async function moveUndone(fromDay: string, to: "today" | "tomorrow"): Promise<UndoneMove> {
   const user = await requireUser();
+  const t = await getT(todoMessages);
   const from = readDay(fromDay);
-  if (!from) return { ok: false, message: "날짜를 읽지 못했어요. 새로 고쳐 주세요." };
+  if (!from) return { ok: false, message: t("dateUnreadable") };
   const now = todayIn(user.timezone);
   let today: Date; // 옮겨 갈 날(이름은 아래 코드가 그대로 쓴다)
-  let label: string;
   if (to === "today") {
     // 지난 날의 못 한 일도, 미리 계획해 둔 앞날의 일도 오늘로 당겨 올 수 있다(앞날은 2026-10-14 요청). 오늘 자신은 옮길 것이 없다.
-    if (daysBetween(from, now) === 0) return { ok: false, message: "오늘의 할 일은 이미 오늘이에요." };
+    if (daysBetween(from, now) === 0) return { ok: false, message: t("alreadyToday") };
     today = now;
-    label = "오늘";
   } else {
     // 오늘 못 끝낸 일을 모두 내일로 넘긴다(2026-10-14 요청). 오늘 화면에서만 쓴다.
-    if (daysBetween(from, now) !== 0) return { ok: false, message: "오늘의 할 일만 내일로 넘길 수 있어요." };
+    if (daysBetween(from, now) !== 0) return { ok: false, message: t("onlyTodayToTomorrow") };
     today = addDays(now, 1);
-    label = "내일";
   }
 
   const [undone, todayCount, last] = await Promise.all([
@@ -457,10 +461,10 @@ async function moveUndone(fromDay: string, to: "today" | "tomorrow"): Promise<Un
     prisma.todo.count({ where: { userId: user.id, date: today } }),
     prisma.todo.findFirst({ where: { userId: user.id, date: today }, orderBy: { order: "desc" }, select: { order: true } }),
   ]);
-  if (undone.length === 0) return { ok: false, message: "옮길 할 일이 없어요." };
+  if (undone.length === 0) return { ok: false, message: t("nothingToMove") };
 
   const room = Math.max(0, LIMITS.todosPerDay - todayCount);
-  if (room === 0) return { ok: false, message: `${label}은 벌써 ${LIMITS.todosPerDay}개예요. 하루에 ${LIMITS.todosPerDay}개까지 적을 수 있어요.` };
+  if (room === 0) return { ok: false, message: t(to === "today" ? "todayFull" : "tomorrowFull", { max: LIMITS.todosPerDay }) };
   const moving = undone.slice(0, room);
   const start = (last?.order ?? -1) + 1;
 
@@ -486,8 +490,8 @@ async function moveUndone(fromDay: string, to: "today" | "tomorrow"): Promise<Un
     undo: { from: formatKST(from), to: formatKST(today), todos: moving },
     message:
       left > 0
-        ? `${label} 넣을 수 있는 ${moving.length}개만 옮겼어요. ${left}개가 남았어요`
-        : `안 끝낸 일 ${moving.length}개를 ${label === "오늘" ? "오늘로" : "내일로"} 옮겼어요`,
+        ? t(to === "today" ? "movedSomeToday" : "movedSomeTomorrow", { moved: moving.length, left })
+        : t(to === "today" ? "movedAllToday" : "movedAllTomorrow", { count: moving.length }),
   };
 }
 

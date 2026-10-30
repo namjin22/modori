@@ -1,3 +1,4 @@
+import { KoreanOriginalNotice } from "@/components/korean-original-notice";
 import { PRIVACY_MANAGER } from "@/lib/privacy";
 import { TERMS_EFFECTIVE, TERMS_SECTIONS } from "@/lib/terms";
 
@@ -5,6 +6,7 @@ import { TERMS_EFFECTIVE, TERMS_SECTIONS } from "@/lib/terms";
 export function TermsOfService() {
   return (
     <div className="flex flex-col gap-5 text-sm leading-relaxed">
+      <KoreanOriginalNotice />
       {TERMS_SECTIONS.map((section) => (
         <section key={section.title} className="flex flex-col gap-2">
           <h2 className="font-semibold">{section.title}</h2>

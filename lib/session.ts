@@ -37,6 +37,8 @@ export const getCurrentUser = cache(async () => {
       lastSeenAt: true,
       // 친구가 끝낸 일을 알림(목록·숫자·푸시)으로 받을지. 알림 화면 위 스위치로 끈다.
       notifyFriendDone: true,
+      // 화면·푸시 언어(lib/i18n/index.ts). 기기의 쿠키와 다르면 (tabs)/layout.tsx가 맞춘다.
+      locale: true,
     },
   });
 });

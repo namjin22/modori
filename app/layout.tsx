@@ -2,12 +2,14 @@ import type { ReactNode } from "react";
 
 import type { Metadata, Viewport } from "next";
 
+import { LocaleProvider } from "@/components/locale-provider";
 import { NativeBridge } from "@/components/native-bridge";
 import { PullToRefresh } from "@/components/pull-to-refresh";
 import { TouchMenuGuard } from "@/components/touch-menu-guard";
 import { StaleBanner } from "@/components/stale-banner";
 import { ValidationBubble } from "@/components/validation-bubble";
 
+import { getLocale } from "@/lib/i18n/server";
 import { SOURCE_SCRIPT } from "@/lib/signup-source";
 
 import "./globals.css";
@@ -112,9 +114,11 @@ requestAnimationFrame(function () {
 
 // LayoutProps는 next build가 만들어주는 전역 타입이라 빌드 전에는 없다.
 // CI는 빌드 없이 tsc부터 돌리므로 직접 적는다.
-export default function RootLayout({ children }: { children: ReactNode }) {
+export default async function RootLayout({ children }: { children: ReactNode }) {
+  // 고른 언어(쿠키). 이 줄 때문에 모든 화면이 요청마다 그려진다.
+  const locale = await getLocale();
   return (
-    <html lang="ko" className="h-full antialiased">
+    <html lang={locale} className="h-full antialiased">
       <head>
         {/* 글꼴을 CDN에서 받으므로 연결을 미리 열어둔다. 첫 화면에서 글자가 늦게 뜨는 시간이 줄어든다. */}
         <link rel="preconnect" href="https://cdn.jsdelivr.net" crossOrigin="" />
@@ -130,14 +134,16 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <script dangerouslySetInnerHTML={{ __html: SOURCE_SCRIPT }} />
       </head>
       <body className="flex min-h-full flex-col bg-background text-foreground">
-        <NativeBridge />
-        <TouchMenuGuard />
-        <PullToRefresh />
-        {children}
-        {/* 브라우저 기본 입력 말풍선 대신 앱 모양의 말풍선을 띄운다. */}
-        <ValidationBubble />
-        {/* 화면이 오래돼 저장하지 못했을 때 새로고침 버튼을 띄운다(모바일 앱에는 새로고침 수단이 없다). */}
-        <StaleBanner />
+        <LocaleProvider locale={locale}>
+          <NativeBridge />
+          <TouchMenuGuard />
+          <PullToRefresh />
+          {children}
+          {/* 브라우저 기본 입력 말풍선 대신 앱 모양의 말풍선을 띄운다. */}
+          <ValidationBubble />
+          {/* 화면이 오래돼 저장하지 못했을 때 새로고침 버튼을 띄운다(모바일 앱에는 새로고침 수단이 없다). */}
+          <StaleBanner />
+        </LocaleProvider>
         <script dangerouslySetInnerHTML={{ __html: PAINTED_SCRIPT }} />
       </body>
     </html>

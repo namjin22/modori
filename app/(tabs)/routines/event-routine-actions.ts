@@ -6,6 +6,9 @@ import { revalidatePath } from "next/cache";
 import { DEFAULT_EVENT_COLOR, isHexColor } from "@/lib/colors";
 import { formatKST, parseKSTDate, todayIn } from "@/lib/date";
 import { parseTime } from "@/lib/event-time";
+import type { Translate } from "@/lib/i18n";
+import { events as eventMessages } from "@/lib/i18n/messages/events";
+import { getT } from "@/lib/i18n/server";
 import { isId } from "@/lib/ids";
 import { LIMITS } from "@/lib/limits";
 import { prisma } from "@/lib/prisma";
@@ -15,6 +18,8 @@ import { requireUser } from "@/lib/session";
  * 반복 일정(일정 루틴). 할 일 루틴과 같은 루틴 화면에서 만들고, 상한(LIMITS.routines)도 둘을 합쳐 센다.
  * 규칙만 저장하고 화면이 날짜로 펼친다(lib/event-routine.ts).
  */
+type EventT = Translate<keyof (typeof eventMessages)["ko"] & string>;
+
 const MAX_TITLE_LENGTH = 100;
 const FREQS: RoutineFreq[] = ["DAILY", "WEEKLY", "MONTHLY"];
 
@@ -45,18 +50,19 @@ function readNumbers(formData: FormData, key: string, min: number, max: number):
 /** 이름·색·시각. 만들 때와 고칠 때 같이 쓴다. 문제가 있으면 보여 줄 문장을 돌려준다. */
 function readLook(
   formData: FormData,
+  t: EventT,
 ): { title: string; color: string; startTime: number | null; endTime: number | null; isPublic: boolean } | string {
   const title = readText(formData, "title").slice(0, MAX_TITLE_LENGTH);
-  if (!title) return "일정 이름을 적어주세요.";
+  if (!title) return t("titleRequired");
   const rawColor = readText(formData, "color");
   // "#rrggbb" 꼴만 받는다(2026-10-19). 색이 아닌 글이 style로 들어가지 않게 모양을 엄격히 본다.
   const color = rawColor ? (isHexColor(rawColor) ? rawColor.toLowerCase() : null) : DEFAULT_EVENT_COLOR;
-  if (!color) return "색을 다시 골라주세요.";
+  if (!color) return t("pickColor");
   const startTime = parseTime(readText(formData, "startTime"));
   const endTime = parseTime(readText(formData, "endTime"));
-  if (startTime === undefined || endTime === undefined) return "시간을 다시 골라주세요.";
-  if (startTime === null && endTime !== null) return "시작 시간을 먼저 정해주세요.";
-  if (startTime !== null && endTime !== null && endTime < startTime) return "끝나는 시간이 시작 시간보다 앞설 수 없어요.";
+  if (startTime === undefined || endTime === undefined) return t("timeAgain");
+  if (startTime === null && endTime !== null) return t("startTimeFirst");
+  if (startTime !== null && endTime !== null && endTime < startTime) return t("endBeforeStartTime");
   // 화면은 "비공개" 스위치다(켜면 나만 본다, 기본은 공개, 2026-10-18). 꺼져 있으면 값이 오지 않는다.
   return { title, color, startTime, endTime, isPublic: formData.get("isPrivate") !== "on" };
 }
@@ -79,30 +85,31 @@ export async function createEventRoutine(
   formData: FormData,
 ): Promise<EventRoutineFormState> {
   const user = await requireUser();
-  const look = readLook(formData);
+  const t = await getT(eventMessages);
+  const look = readLook(formData, t);
   if (typeof look === "string") return { message: look };
 
   const freq = FREQS.find((value) => value === readText(formData, "freq"));
-  if (!freq) return { message: "반복 주기를 골라주세요." };
+  if (!freq) return { message: t("pickFreq") };
   const byWeekday = freq === "WEEKLY" ? readNumbers(formData, "byWeekday", 0, 6) : [];
   const byMonthday = freq === "MONTHLY" ? readNumbers(formData, "byMonthday", 1, 31) : [];
   // 요일이나 날짜를 하나도 고르지 않으면 한 번도 뜨지 않는다. 만들지 않는다.
-  if (freq === "WEEKLY" && byWeekday.length === 0) return { message: "반복할 요일을 하나 이상 골라주세요." };
-  if (freq === "MONTHLY" && byMonthday.length === 0) return { message: "반복할 날짜를 하나 이상 골라주세요." };
+  if (freq === "WEEKLY" && byWeekday.length === 0) return { message: t("pickWeekday") };
+  if (freq === "MONTHLY" && byMonthday.length === 0) return { message: t("pickMonthday") };
 
   const startDate = readDate(readText(formData, "startDate")) ?? todayIn(user.timezone);
   const endDate = readDate(readText(formData, "endDate"));
-  if (endDate && endDate < startDate) return { message: "종료일이 시작일보다 앞설 수 없어요." };
+  if (endDate && endDate < startDate) return { message: t("endBeforeStart") };
 
   if ((await routineCount(user.id)) >= LIMITS.routines) {
-    return { message: `루틴은 ${LIMITS.routines}개까지 만들 수 있어요. 안 쓰는 루틴을 지워주세요.` };
+    return { message: t("routinesTooMany", { max: LIMITS.routines }) };
   }
 
   await prisma.eventRoutine.create({
     data: { userId: user.id, ...look, freq, byWeekday, byMonthday, startDate, endDate },
   });
   refresh();
-  return { message: "반복 일정을 만들었어요.", ok: true };
+  return { message: t("repeatCreated"), ok: true };
 }
 
 export type EventRoutineEdit = { ok: true } | { ok: false; message: string };
@@ -110,10 +117,11 @@ export type EventRoutineEdit = { ok: true } | { ok: false; message: string };
 /** 이름·색·시각을 고친다. 반복 규칙(요일·날짜·기간)은 그대로 둔다(할 일 루틴 고치기와 같다). 지난 날에도 바뀐 이름으로 보인다. */
 export async function updateEventRoutine(formData: FormData): Promise<EventRoutineEdit> {
   const user = await requireUser();
-  const look = readLook(formData);
+  const t = await getT(eventMessages);
+  const look = readLook(formData, t);
   if (typeof look === "string") return { ok: false, message: look };
   const { count } = await prisma.eventRoutine.updateMany({ where: { id: readText(formData, "id"), userId: user.id }, data: look });
-  if (count === 0) return { ok: false, message: "반복 일정을 찾지 못했어요. 새로 고쳐 주세요." };
+  if (count === 0) return { ok: false, message: t("repeatNotFound") };
   refresh();
   return { ok: true };
 }
@@ -208,7 +216,7 @@ export async function restoreEventRoutine(snapshot: DeletedEventRoutine): Promis
   if (!title || !freq || !startDate || !isHexColor(snapshot.color)) return;
   if (!Array.isArray(snapshot.byWeekday) || !Array.isArray(snapshot.byMonthday) || !Array.isArray(snapshot.skipDates)) return;
   const time = (value: unknown) => (Number.isInteger(value) && (value as number) >= 0 && (value as number) < 24 * 60 ? (value as number) : null);
-  if ((await routineCount(user.id)) >= LIMITS.routines) return `루틴은 ${LIMITS.routines}개까지 만들 수 있어요.`;
+  if ((await routineCount(user.id)) >= LIMITS.routines) return (await getT(eventMessages))("routinesTooManyShort", { max: LIMITS.routines });
 
   try {
     await prisma.eventRoutine.create({

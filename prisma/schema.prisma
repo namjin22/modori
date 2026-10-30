@@ -41,6 +41,8 @@ model User {
   timezone          String    @default("Asia/Seoul")
   // 팔로우한 친구가 (공개 카테고리의) 할 일을 끝내면 앱 푸시로 받을지(2026-10-17). 기본은 받는다. 소셜 알림 목록에는 늘 보인다.
   notifyFriendDone  Boolean   @default(true)
+  // 화면 언어와 푸시 알림 언어(ko·en·ja, lib/i18n/index.ts). 마이페이지와 로그인 화면에서 고른다. 로그인 전 화면은 기기의 쿠키(locale)를 따른다.
+  locale            String    @default("ko")
   // 오늘 일정 알림(앱 푸시, 하루 한 번, 2026-10-29). 이 사람 시간대로 자정부터 몇 분째에 보낼지(기본 360 = 아침 6시). 비어 있으면 끔. lib/event-digest.ts.
   eventDigestMinute Int?      @default(360)
   // 오늘 일정 알림을 마지막으로 보낸(또는 보낼 차례를 넘긴) 그 사람의 날. 하루에 두 번 보내지 않게 한다.

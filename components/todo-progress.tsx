@@ -3,7 +3,9 @@
 import { createContext, useContext, useOptimistic, type ReactNode } from "react";
 
 import { Dori } from "@/components/dori";
+import { useT } from "@/components/locale-provider";
 import { progressMood } from "@/lib/dori-mood";
+import { todos as todoMessages } from "@/lib/i18n/messages/todos";
 
 /** 할 일 하나를 끝냈거나 되돌렸다. */
 type ChangeDone = (id: string, done: boolean) => void;
@@ -45,6 +47,7 @@ export function TodoProgress({
   canCelebrate: boolean;
   children: ReactNode;
 }) {
+  const t = useT(todoMessages);
   const [optimisticItems, changeDone] = useOptimistic(
     items,
     (current: ProgressItem[], change: { id: string; done: boolean }) =>
@@ -67,8 +70,8 @@ export function TodoProgress({
         <div className="flex animate-pop items-center gap-3 rounded-2xl bg-brand-subtle px-4 py-3">
           <Dori mood="party" size={56} />
           <div>
-            <p className="font-semibold text-brand">할 일을 다 끝냈어요</p>
-            <p className="text-xs text-muted">도리가 대신 박수 쳐줄게요</p>
+            <p className="font-semibold text-brand">{t("allDone")}</p>
+            <p className="text-xs text-muted">{t("cheer")}</p>
           </div>
         </div>
       )}
@@ -79,12 +82,12 @@ export function TodoProgress({
             {/* 체크할 때마다 표정이 따라 바뀐다. 숫자만 오르는 것보다 한 번 더 누르고 싶어진다. */}
             {mood && <Dori mood={mood} size={28} className="-my-1" />}
             <p aria-live="polite" className="text-sm text-muted">
-              {total}개 중 {optimisticDone}개 완료
+              {t("progress", { total, done: optimisticDone })}
             </p>
           </div>
           <div
             role="progressbar"
-            aria-label="오늘 완료율"
+            aria-label={t("todayRate")}
             aria-valuemin={0}
             aria-valuemax={Math.max(total, 1)}
             aria-valuenow={optimisticDone}

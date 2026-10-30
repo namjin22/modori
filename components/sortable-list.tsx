@@ -24,7 +24,9 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
+import { useT } from "@/components/locale-provider";
 import { useSaveFailure } from "@/components/use-save-failure";
+import { todos as todoMessages } from "@/lib/i18n/messages/todos";
 
 export type SortableItem = {
   id: string;
@@ -98,6 +100,7 @@ export function SortableRow({
   variant,
   dragPlaceholder = false,
 }: Omit<SortableItem, "label"> & { variant: Variant; dragPlaceholder?: boolean }) {
+  const t = useT(todoMessages);
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id });
 
@@ -131,13 +134,13 @@ export function SortableRow({
             나타나고, 스페이스·방향키로 옮긴다(화면 읽기 안내도 이 버튼에 붙는다). 손가락 화면에는 키보드가 없어 두지 않는다. */}
         <button
           type="button"
-          aria-label="순서 바꾸기 손잡이"
+          aria-label={t("handleLabel")}
           // 여백·바탕은 보일 때만 준다. 평소에 여백이 있으면 화면 읽기 전용 크기(1px)보다 커져 화면에 조각이 남는다.
           className="sr-only z-10 rounded-lg text-xs text-foreground focus-visible:not-sr-only focus-visible:absolute focus-visible:left-0 focus-visible:top-1/2 focus-visible:-translate-y-1/2 focus-visible:bg-surface focus-visible:px-2 focus-visible:py-1 focus-visible:shadow pointer-coarse:hidden"
           {...attributes}
           {...keyListeners}
         >
-          ⠿ 순서 바꾸기
+          {t("handleText")}
         </button>
         <div className="min-w-0 flex-1">{node}</div>
       </div>
@@ -164,6 +167,7 @@ export function SortableList({
   noun: string;
   variant?: Variant;
 }) {
+  const t = useT(todoMessages);
   const ids = items.map((item) => item.id);
   const key = ids.join(",");
 
@@ -211,22 +215,21 @@ export function SortableList({
   // 이 안내에 기대어 순서를 바꾸므로, 무엇을 몇 번째로 옮겼는지 우리말로 알려준다.
   const accessibility = {
     screenReaderInstructions: {
-      draggable:
-        "스페이스를 눌러 집고, 위아래 방향키로 옮긴 뒤 스페이스로 내려놓으세요. 취소하려면 Esc를 누르세요.",
+      draggable: t("listInstructions"),
     },
     announcements: {
       onDragStart: ({ active }: { active: Active }) =>
-        `${labelOf(active.id)}을(를) 집었어요. 지금 ${positionOf(active.id)}번째예요.`,
+        t("dragStartInList", { item: labelOf(active.id), position: positionOf(active.id) }),
       onDragOver: ({ active, over }: { active: Active; over: Over | null }) =>
         over
-          ? `${labelOf(active.id)}을(를) ${positionOf(over.id)}번째 자리로 옮기는 중이에요.`
-          : `${labelOf(active.id)}이(가) 목록 밖에 있어요.`,
+          ? t("dragOverPosition", { item: labelOf(active.id), position: positionOf(over.id) })
+          : t("dragOutside", { item: labelOf(active.id) }),
       onDragEnd: ({ active, over }: { active: Active; over: Over | null }) =>
         over
-          ? `${labelOf(active.id)}을(를) ${positionOf(over.id)}번째에 내려놓았어요.`
-          : `${labelOf(active.id)}을(를) 내려놓았어요. 순서는 그대로예요.`,
+          ? t("dragEndAt", { item: labelOf(active.id), position: positionOf(over.id) })
+          : t("dragEndSame", { item: labelOf(active.id) }),
       onDragCancel: ({ active }: { active: Active }) =>
-        `옮기기를 취소했어요. ${labelOf(active.id)}은(는) 제자리에 있어요.`,
+        t("dragCancel", { item: labelOf(active.id) }),
     },
   };
 

@@ -1,4 +1,6 @@
 import { friendDoneWhere } from "@/lib/friend-done";
+import { DEFAULT_LOCALE, type Locale } from "@/lib/i18n";
+import { doneNotice, followNotice, reactionNotice } from "@/lib/notices";
 import { prisma } from "@/lib/prisma";
 
 export type NotificationPreview = { key: string; at: number; title: string; body: string; url: string };
@@ -12,6 +14,7 @@ export async function latestUnreadNotifications(
   userId: string,
   since: Date,
   friendDone: boolean,
+  locale: Locale = DEFAULT_LOCALE,
 ): Promise<NotificationPreview[]> {
   const [reaction, follow, done] = await Promise.all([
     prisma.reaction.findFirst({
@@ -39,8 +42,7 @@ export async function latestUnreadNotifications(
       // 같은 사람이 같은 할 일에 이모지를 더 누르거나 껐다 켜도 한 번만 울리도록 사람·할 일로 묶는다.
       key: `reaction:${reaction.userId}:${reaction.todoId}`,
       at: reaction.createdAt.getTime(),
-      title: "반응이 왔어요",
-      body: `${reaction.user.nickname ?? "친구"}님이 내 할 일에 반응을 보냈어요`,
+      ...reactionNotice(locale, reaction.user.nickname),
       url: "/feed/reactions",
     });
   }
@@ -48,8 +50,7 @@ export async function latestUnreadNotifications(
     previews.push({
       key: `follow:${follow.followerId}`,
       at: follow.createdAt.getTime(),
-      title: "새 팔로워",
-      body: `${follow.follower.nickname ?? "누군가"}님이 나를 팔로우했어요`,
+      ...followNotice(locale, follow.follower.nickname),
       url: "/feed/followers",
     });
   }
@@ -57,8 +58,7 @@ export async function latestUnreadNotifications(
     previews.push({
       key: `done:${done.user.id}`,
       at: done.doneAt.getTime(),
-      title: `${done.user.nickname ?? "친구"}님이 할 일을 끝냈어요`,
-      body: done.content,
+      ...doneNotice(locale, done.user.nickname, done.content),
       url: `/feed/u/${done.user.id}`,
     });
   }

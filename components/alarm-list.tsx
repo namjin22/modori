@@ -3,15 +3,17 @@
 import { type FormEvent, useOptimistic, useState, useTransition } from "react";
 
 import { deleteAlarm, saveAlarm, setAlarmEnabled } from "@/app/(tabs)/settings/alarms/actions";
+import { useLocale, useT } from "@/components/locale-provider";
 import { Modal } from "@/components/modal";
 import { TimeSheet } from "@/components/time-sheet";
 import { useSaveFailure } from "@/components/use-save-failure";
 import { MAX_ALARMS, MAX_ALARM_MESSAGE, describeWeekdays } from "@/lib/alarm";
-import { formatMinuteOfDay } from "@/lib/date";
+import { clock, weekdayNames } from "@/lib/i18n/format";
+import { alarms as alarmMessages } from "@/lib/i18n/messages/alarms";
+import { common } from "@/lib/i18n/messages/common";
 
 export type AlarmItem = { id: string; minute: number; weekdays: number[]; message: string; enabled: boolean };
 
-const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
 /** 새로 만들 때 처음 보이는 시각: 오전 9시. */
 const DEFAULT_MINUTE = 9 * 60;
 
@@ -20,6 +22,7 @@ const DEFAULT_MINUTE = 9 * 60;
  * 받을 기기가 없으면(앱 푸시 번호·웹 푸시 구독 모두 없음) 만들어도 오지 않으니 그것부터 알린다.
  */
 export function AlarmList({ alarms, hasDevice }: { alarms: AlarmItem[]; hasDevice: boolean }) {
+  const t = useT(alarmMessages);
   const [editing, setEditing] = useState<AlarmItem | "new" | null>(null);
   const full = alarms.length >= MAX_ALARMS;
 
@@ -27,15 +30,14 @@ export function AlarmList({ alarms, hasDevice }: { alarms: AlarmItem[]; hasDevic
     <div className="flex flex-col gap-4">
       {!hasDevice && (
         <p role="note" className="rounded-xl bg-surface p-4 text-sm leading-relaxed text-danger">
-          알림을 받을 기기가 없어요. 폰 앱에서 알림을 허용하거나, 컴퓨터 브라우저에서 마이페이지의 &ldquo;이 기기에서 알림 띄우기&rdquo;를 켜 주세요. Windows
-          앱으로는 받을 수 없어요.
+          {t("noDevice")}
         </p>
       )}
 
       {alarms.length === 0 ? (
-        <p className="rounded-2xl bg-surface p-6 text-center text-sm text-muted">아직 만든 알림이 없어요</p>
+        <p className="rounded-2xl bg-surface p-6 text-center text-sm text-muted">{t("empty")}</p>
       ) : (
-        <ul aria-label="내가 정한 알림" className="flex flex-col gap-2">
+        <ul aria-label={t("listLabel")} className="flex flex-col gap-2">
           {alarms.map((alarm) => (
             <AlarmRow key={alarm.id} alarm={alarm} onOpen={() => setEditing(alarm)} />
           ))}
@@ -48,10 +50,10 @@ export function AlarmList({ alarms, hasDevice }: { alarms: AlarmItem[]; hasDevic
         onClick={() => setEditing("new")}
         className="h-12 rounded-xl border border-dashed border-border text-sm text-muted transition-colors hover:bg-surface disabled:opacity-60"
       >
-        {full ? `알림은 ${MAX_ALARMS}개까지예요` : "+ 알림 추가"}
+        {full ? t("full", { max: MAX_ALARMS }) : t("add")}
       </button>
 
-      <Modal open={editing !== null} onClose={() => setEditing(null)} title={editing === "new" ? "새 알림" : "알림 고치기"}>
+      <Modal open={editing !== null} onClose={() => setEditing(null)} title={editing === "new" ? t("newTitle") : t("editTitle")}>
         {editing && (
           <AlarmForm
             // 열 때마다 새로 그려 이전에 고르던 값이 남지 않게 한다.
@@ -66,6 +68,8 @@ export function AlarmList({ alarms, hasDevice }: { alarms: AlarmItem[]; hasDevic
 }
 
 function AlarmRow({ alarm, onOpen }: { alarm: AlarmItem; onOpen: () => void }) {
+  const t = useT(alarmMessages);
+  const locale = useLocale();
   const [enabled, setEnabled] = useOptimistic(alarm.enabled);
   const [, startTransition] = useTransition();
   const saveFailed = useSaveFailure();
@@ -86,17 +90,17 @@ function AlarmRow({ alarm, onOpen }: { alarm: AlarmItem; onOpen: () => void }) {
       <button
         type="button"
         onClick={onOpen}
-        aria-label={`${alarm.message} 고치기`}
+        aria-label={t("editRow", { message: alarm.message })}
         className={`flex min-w-0 flex-1 flex-col gap-1 text-left ${enabled ? "" : "opacity-50"}`}
       >
-        <span className="text-xl font-bold tabular-nums">{formatMinuteOfDay(alarm.minute)}</span>
+        <span className="text-xl font-bold tabular-nums">{clock(locale, alarm.minute)}</span>
         <span className="truncate text-[15px]">{alarm.message}</span>
-        <span className="text-xs text-muted">{describeWeekdays(alarm.weekdays)}</span>
+        <span className="text-xs text-muted">{describeWeekdays(alarm.weekdays, locale)}</span>
       </button>
       <input
         type="checkbox"
         role="switch"
-        aria-label={`${alarm.message} 켜기`}
+        aria-label={t("turnOn", { message: alarm.message })}
         checked={enabled}
         onChange={(event) => toggle(event.target.checked)}
         className="relative h-6 w-10 shrink-0 cursor-pointer appearance-none rounded-full bg-border transition-colors before:absolute before:left-0.5 before:top-0.5 before:size-5 before:rounded-full before:bg-white before:shadow before:transition-transform checked:bg-brand checked:before:translate-x-4"
@@ -106,6 +110,9 @@ function AlarmRow({ alarm, onOpen }: { alarm: AlarmItem; onOpen: () => void }) {
 }
 
 function AlarmForm({ alarm, onDone }: { alarm: AlarmItem | null; onDone: () => void }) {
+  const t = useT(alarmMessages);
+  const tc = useT(common);
+  const locale = useLocale();
   const [minute, setMinute] = useState(alarm?.minute ?? DEFAULT_MINUTE);
   const [days, setDays] = useState<number[]>(alarm?.weekdays ?? []);
   const [message, setMessage] = useState(alarm?.message ?? "");
@@ -125,7 +132,7 @@ function AlarmForm({ alarm, onDone }: { alarm: AlarmItem | null; onDone: () => v
       try {
         const result = await saveAlarm(null, formData);
         if (result?.ok) onDone();
-        else setProblem(result?.message ?? "저장하지 못했어요.");
+        else setProblem(result?.message ?? t("saveFailed"));
       } catch (error) {
         saveFailed(error);
       }
@@ -152,12 +159,12 @@ function AlarmForm({ alarm, onDone }: { alarm: AlarmItem | null; onDone: () => v
         <input key={day} type="hidden" name="weekday" value={day} />
       ))}
 
-      <TimeSheet label="알림 시각" value={minute} onChange={(next) => next !== null && setMinute(next)} />
+      <TimeSheet label={t("timeLabel")} value={minute} onChange={(next) => next !== null && setMinute(next)} />
 
       <fieldset className="flex flex-col gap-2">
-        <legend className="mb-2 text-xs text-muted">요일 (안 고르면 매일)</legend>
+        <legend className="mb-2 text-xs text-muted">{t("weekdaysLegend")}</legend>
         <div className="flex gap-1.5">
-          {WEEKDAYS.map((name, day) => {
+          {weekdayNames(locale).map((name, day) => {
             const on = days.includes(day);
             return (
               <button
@@ -177,14 +184,14 @@ function AlarmForm({ alarm, onDone }: { alarm: AlarmItem | null; onDone: () => v
       </fieldset>
 
       <label className="flex flex-col gap-1.5 text-xs text-muted">
-        알림 문구
+        {t("messageLabel")}
         <input
           name="message"
           value={message}
           onChange={(event) => setMessage(event.target.value)}
           maxLength={MAX_ALARM_MESSAGE}
           required
-          placeholder="예: 물 한 컵 마시기"
+          placeholder={t("messagePlaceholder")}
           className="h-12 rounded-xl bg-surface-hover px-4 text-[15px] text-foreground outline-none placeholder:text-muted focus:ring-2 focus:ring-brand"
         />
         <span className="self-end tabular-nums">
@@ -201,14 +208,14 @@ function AlarmForm({ alarm, onDone }: { alarm: AlarmItem | null; onDone: () => v
       <div className="flex items-center gap-2">
         {alarm && (
           <button type="button" onClick={remove} disabled={pending} className="-ml-2 h-11 rounded-xl px-2 text-sm font-medium text-danger">
-            삭제
+            {tc("delete")}
           </button>
         )}
         <button type="button" onClick={onDone} className="ml-auto h-11 rounded-xl bg-surface-hover px-5 text-sm font-semibold">
-          취소
+          {tc("cancel")}
         </button>
         <button type="submit" disabled={pending} className="h-11 rounded-xl bg-brand px-7 text-sm font-semibold text-brand-contrast disabled:opacity-60">
-          {pending ? "저장 중" : "저장"}
+          {pending ? tc("saving") : tc("save")}
         </button>
       </div>
     </form>

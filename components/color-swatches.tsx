@@ -3,7 +3,10 @@
 import { useEffect, useRef, useState } from "react";
 
 import { ColorPickerSheet } from "@/components/color-picker-sheet";
+import { useT } from "@/components/locale-provider";
 import { isPaletteColor, PALETTE } from "@/lib/colors";
+import { colorNames } from "@/lib/i18n/messages/categories";
+import { events } from "@/lib/i18n/messages/events";
 
 const SWATCH =
   "color-edge relative flex aspect-square w-full cursor-pointer items-center justify-center rounded-full ring-offset-2 ring-offset-surface has-[:checked]:ring-2 has-[:checked]:ring-foreground has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-brand";
@@ -21,6 +24,8 @@ export function ColorSwatches({
   defaultValue: string;
   legend: string;
 }) {
+  const t = useT(events);
+  const tn = useT(colorNames);
   // 8색 밖의 색(예전에 고른 색이나 더 많은 색에서 고른 색). 그대로 보여 주지 않으면 아무것도 고르지 않은 상태가 되어 저장이 조용히 무시된다.
   const [custom, setCustom] = useState<string | null>(defaultValue && !isPaletteColor(defaultValue) ? defaultValue : null);
   const [picking, setPicking] = useState(false);
@@ -50,13 +55,13 @@ export function ColorSwatches({
         style={{ gridTemplateColumns: `repeat(${PALETTE.length + 1 + (custom ? 1 : 0)}, minmax(0, 1.75rem))` }}
       >
         {PALETTE.map((color) => (
-          <label key={color.value} title={color.name} className={SWATCH} style={{ backgroundColor: color.value }}>
+          <label key={color.value} title={tn(color.value as Parameters<typeof tn>[0])} className={SWATCH} style={{ backgroundColor: color.value }}>
             <input
               type="radio"
               name={name}
               value={color.value}
               defaultChecked={defaultValue === color.value}
-              aria-label={color.name}
+              aria-label={tn(color.value as Parameters<typeof tn>[0])}
               className="absolute inset-0 m-0 cursor-pointer appearance-none rounded-full"
             />
           </label>
@@ -69,7 +74,7 @@ export function ColorSwatches({
               name={name}
               value={custom}
               defaultChecked={defaultValue === custom}
-              aria-label={`고른 색 ${custom}`}
+              aria-label={t("customColor", { color: custom })}
               className="absolute inset-0 m-0 cursor-pointer appearance-none rounded-full"
             />
           </label>
@@ -80,8 +85,8 @@ export function ColorSwatches({
             setPickerStart(current());
             setPicking(true);
           }}
-          aria-label="더 많은 색"
-          title="더 많은 색"
+          aria-label={t("moreColors")}
+          title={t("moreColors")}
           className="relative flex aspect-square w-full items-center justify-center rounded-full text-sm font-bold text-white"
           style={{ backgroundImage: "conic-gradient(#ef4444, #f59e0b, #eab308, #22c55e, #06b6d4, #3b82f6, #8b5cf6, #ec4899, #ef4444)" }}
         >

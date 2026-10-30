@@ -1,6 +1,7 @@
 import type { Prisma } from "@prisma/client";
 
 import { notBlockedWith } from "@/lib/blocks";
+import { doneNotice } from "@/lib/notices";
 import { prisma } from "@/lib/prisma";
 import { sendPushToUser, shouldNotify } from "@/lib/push";
 
@@ -51,11 +52,10 @@ export async function notifyFollowersOfDone(doer: { id: string; nickname: string
 
   for (const follower of followers) {
     if (!shouldNotify(`done:${doer.id}:${follower.id}`)) continue;
-    await sendPushToUser(follower.id, {
-      title: `${doer.nickname}님이 할 일을 끝냈어요`,
-      body: todo.content,
+    await sendPushToUser(follower.id, (locale) => ({
+      ...doneNotice(locale, doer.nickname, todo.content),
       url: `/feed/u/${doer.id}`,
       tag: `done:${doer.id}`,
-    });
+    }));
   }
 }

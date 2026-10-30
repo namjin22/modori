@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useOptimistic, useRef } from "react";
 
 import { Avatar } from "@/components/avatar";
+import { useLocale, useT } from "@/components/locale-provider";
 import { CategoryAdder } from "@/components/category-adder";
 import { DayRollover } from "@/components/day-rollover";
 import { ManageMenu } from "@/components/manage-menu";
@@ -23,10 +24,11 @@ import { applyTodoChange, type HomeTodo, PENDING_PREFIX, TodoStoreProvider } fro
 import { spreadEvents } from "@/lib/calendar-events";
 import { summarizeByDate } from "@/lib/day-summary";
 import { addDays, daysBetween, endOfMonthKST, formatKST, parseKSTDate, parseKSTMonth, weekdayKST } from "@/lib/date";
+import type { Locale } from "@/lib/i18n";
+import { dayHeading } from "@/lib/i18n/format";
+import { todos as todoMessages } from "@/lib/i18n/messages/todos";
 import { groupByCategory } from "@/lib/group-by-category";
 import type { ScheduledRoutine } from "@/lib/routine-todos";
-
-const WEEKDAY_NAMES = ["일", "월", "화", "수", "목", "금", "토"];
 
 export type { HomeTodo };
 
@@ -46,9 +48,9 @@ export type HomeData = {
   upcoming: DayEvent[];
 };
 
-function formatHeading(key: string): string {
+function formatHeading(locale: Locale, key: string): string {
   const [, month, day] = key.split("-");
-  return `${Number(month)}월 ${Number(day)}일 ${WEEKDAY_NAMES[weekdayKST(parseKSTDate(key))]}요일`;
+  return dayHeading(locale, Number(month), Number(day), weekdayKST(parseKSTDate(key)));
 }
 
 const overlaps = (event: DayEvent, day: Date) => event.startDate <= day && event.endDate >= day;
@@ -61,6 +63,8 @@ const overlaps = (event: DayEvent, day: Date) => event.startDate <= day && event
  */
 export function HomeView({ data }: { data: HomeData }) {
   const router = useRouter();
+  const locale = useLocale();
+  const t = useT(todoMessages);
   // date가 없는 "/"만 자정이 지나면 새 오늘로 넘어간다(DayRollover). 날짜를 고르면 늘 date를 붙인다.
   const { selected, hasDateParam, inWindow, hrefFor, select } = useMonthDay({ basePath: "/", ...data });
   // 적기·체크·고치기·옮기기·지우기는 서버 응답 전에 여기부터 바뀐다(components/todo-store.tsx).
@@ -80,11 +84,11 @@ export function HomeView({ data }: { data: HomeData }) {
   const isPast = daysBetween(today, date) < 0;
   // 할 일 창의 한 번에 옮기기: 오늘의 일은 내일로, 오늘이 아닌 날(지난 날·앞날)의 일은 오늘로.
   const quickMove = isPast
-    ? { label: "오늘 하기", target: data.today }
+    ? { kind: "today" as const, target: data.today }
     : isToday
-      ? { label: "내일 하기", target: formatKST(addDays(date, 1)) }
+      ? { kind: "tomorrow" as const, target: formatKST(addDays(date, 1)) }
       : // 앞날의 안 끝낸 일은 "오늘 하기"로 당겨 오는 쪽이 자연스럽다(2026-10-14 요청). 다른 날은 "다른 날에 하기"로 고른다.
-        { label: "오늘 하기", target: data.today };
+        { kind: "today" as const, target: data.today };
 
   const monthStart = parseKSTMonth(data.month);
   const todos = allTodos.filter((todo) => todo.date === selected);
@@ -96,7 +100,7 @@ export function HomeView({ data }: { data: HomeData }) {
   // 투두메이트처럼 카테고리마다 칩과 +를 두고, 할 일이 없는 카테고리도 보여준다.
   // 끝낸 일은 묶음 아래로 내린다(남은 일이 위에 모인다). 같은 쪽 안에서는 원래 순서를 지킨다(sort는 안정 정렬).
   const undoneCount = todos.filter((todo) => !todo.done).length;
-  const todoGroups = groupByCategory(todos, data.categories, { includeEmpty: true }).map((group) => ({
+  const todoGroups = groupByCategory(todos, data.categories, { includeEmpty: true, noCategoryLabel: t("uncategorized") }).map((group) => ({
     ...group,
     items: [...group.items].sort((a, b) => Number(a.done) - Number(b.done)),
   }));
@@ -118,7 +122,7 @@ export function HomeView({ data }: { data: HomeData }) {
           href="#day-list"
           className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-xl focus:bg-brand focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-brand-contrast"
         >
-          할 일로 건너뛰기
+          {t("skipToTodos")}
         </a>
         {/* 넓은 화면에서 달력 칸은 제자리에 둔다. 시작 위치(pt-8)와 같은 top-8이라 스크롤을 시작해도 움직이지 않고,
             창이 달력보다 낮으면(노트북) 칸 안에서만 스크롤해 페이지 끝에서 밀려 올라가지 않는다. */}
@@ -127,7 +131,7 @@ export function HomeView({ data }: { data: HomeData }) {
             <Avatar src={data.profile.avatar} size={48} />
             <span className="min-w-0">
               <span className="block truncate font-bold">{data.profile.nickname}</span>
-              <span className="block truncate text-sm text-muted">{data.profile.bio || "한 줄 소개를 적어보세요"}</span>
+              <span className="block truncate text-sm text-muted">{data.profile.bio || t("bioPlaceholder")}</span>
             </span>
           </Link>
 
@@ -139,6 +143,7 @@ export function HomeView({ data }: { data: HomeData }) {
               summaries={summarizeByDate(allTodos)}
               eventsByDate={spreadEvents(data.events, monthStart, endOfMonthKST(monthStart))}
               dayHref={hrefFor}
+              locale={locale}
               monthHref={(month) => `/?date=${selected}&month=${month}`}
               onSelectDay={select}
               editableEvents
@@ -149,20 +154,20 @@ export function HomeView({ data }: { data: HomeData }) {
         {/* 아래 여백을 이 칸에 둔다(PageFrame은 두 칸 화면에서 빼 준다). 달력 칸이 머물 수 있는 줄 높이가 페이지 끝까지 닿게. */}
         <div id="day-list" tabIndex={-1} className="flex flex-col gap-6 outline-none lg:pb-12">
           <header className="flex items-center justify-between">
-            {dayNav(formatKST(addDays(date, -1)), "이전 날", "‹")}
+            {dayNav(formatKST(addDays(date, -1)), t("prevDay"), "‹")}
             {/* 날짜를 넘기면 제목과 아래 목록이 넘긴 쪽에서 미끄러져 들어온다. ‹ › 버튼은 제자리에 둔다(연달아 누를 때 움직이면 빗나간다). */}
             <SwapIn swapKey={selected} className="text-center">
-              <p className="text-xs text-muted">{isToday ? "오늘" : selected}</p>
-              <h1 className="text-lg font-bold">{formatHeading(selected)}</h1>
+              <p className="text-xs text-muted">{isToday ? t("today") : selected}</p>
+              <h1 className="text-lg font-bold">{formatHeading(locale, selected)}</h1>
             </SwapIn>
-            {dayNav(formatKST(addDays(date, 1)), "다음 날", "›")}
+            {dayNav(formatKST(addDays(date, 1)), t("nextDay"), "›")}
           </header>
 
           <SwapIn swapKey={selected} className="flex flex-col gap-6">
             {/* 카테고리와 루틴은 할 일을 적다가 바로 손보는 것이라 설정이 아니라 여기 둔다. */}
             {/* 가장 좁은 폰(320px)에서 달력 버튼만 다음 줄로 떨어지지 않게 여백을 줄인다. */}
             {/* 관리·기록은 오른쪽에 둔다(2026-10-21 요청). 다른 날을 볼 때만 생기는 "오늘로 돌아가기"는 왼쪽 끝. */}
-            <nav aria-label="할 일 관리" className="flex flex-wrap items-center justify-end gap-1.5 min-[360px]:gap-2">
+            <nav aria-label={t("navLabel")} className="flex flex-wrap items-center justify-end gap-1.5 min-[360px]:gap-2">
               {!isToday && (
                 <Link
                   prefetch={false}
@@ -174,7 +179,7 @@ export function HomeView({ data }: { data: HomeData }) {
                   }}
                   className="mr-auto flex h-8 items-center rounded-full px-3 text-sm text-brand hover:bg-surface-hover"
                 >
-                  오늘로 돌아가기
+                  {t("backToToday")}
                 </Link>
               )}
               {/* 카테고리·일정·루틴은 메뉴 하나로 묶는다(2026-10-19 요청). 기록은 따로 둔다. */}
@@ -184,7 +189,7 @@ export function HomeView({ data }: { data: HomeData }) {
                 href="/stats"
                 className="flex h-8 items-center rounded-full bg-surface px-3 text-sm text-muted hover:text-foreground min-[360px]:px-3.5"
               >
-                기록
+                {t("stats")}
               </Link>
             </nav>
 
@@ -193,14 +198,14 @@ export function HomeView({ data }: { data: HomeData }) {
             {data.categories.length === 0 && (
               // 카테고리 칩이 곧 할 일을 적는 자리다. 하나도 없으면 적을 곳이 없어진다.
               <div className="flex flex-col items-start gap-2 rounded-2xl bg-surface p-5">
-                <p className="text-sm font-medium">카테고리를 먼저 만들어주세요</p>
-                <p className="text-sm text-muted">할 일은 카테고리 안에 적어요. 하나만 만들어도 바로 쓸 수 있어요.</p>
+                <p className="text-sm font-medium">{t("needCategory")}</p>
+                <p className="text-sm text-muted">{t("needCategoryBody")}</p>
                 <Link
                   prefetch={false}
                   href="/categories"
                   className="mt-1 flex h-10 items-center rounded-xl bg-brand px-4 text-sm font-semibold text-brand-contrast"
                 >
-                  카테고리 만들기
+                  {t("createCategory")}
                 </Link>
               </div>
             )}
@@ -255,13 +260,13 @@ export function HomeView({ data }: { data: HomeData }) {
               <div className="flex flex-col items-center gap-1 py-2 text-center">
                 {/* 지난 날은 느긋하게, 오늘과 앞날은 반갑게. */}
                 <Dori mood={isPast ? "calm" : "hello"} size={80} />
-                <p className="text-sm text-muted">아직 할 일이 없어요</p>
+                <p className="text-sm text-muted">{t("noTodos")}</p>
                 {/* 지난 날은 쓰는 날이 아니라 오늘·앞날에만 큰 버튼을 둔다. */}
                 {!isPast && <FirstTodoButton />}
                 <p className="mt-3 text-xs text-muted">
-                  카테고리 이름을 눌러 적어보세요.{" "}
+                  {t("tapCategory")}{" "}
                   <Link prefetch={false} href="/routines" className="text-brand">
-                    반복되는 일이라면 루틴으로 →
+                    {t("toRoutines")}
                   </Link>
                 </p>
               </div>
@@ -269,7 +274,7 @@ export function HomeView({ data }: { data: HomeData }) {
 
             {scheduled.length > 0 && (
               <section className="flex flex-col gap-3">
-                <p className="text-sm text-muted">예정된 루틴</p>
+                <p className="text-sm text-muted">{t("scheduledRoutines")}</p>
                 <ul className="flex flex-col gap-1">
                   {scheduled.map((routine) => (
                     <ScheduledRoutineRow key={routine.id} routine={routine} categories={data.categories} date={selected} />

@@ -1,4 +1,6 @@
 import type { DoriMood } from "@/components/dori";
+import { translator, type Locale } from "@/lib/i18n";
+import { stats } from "@/lib/i18n/messages/stats";
 
 /**
  * 상황에 맞는 도리 표정을 고른다. 화면마다 흩어 두면 같은 상황에 다른 얼굴이 나오기 쉬워서
@@ -17,18 +19,22 @@ export function progressMood(done: number, total: number): DoriMood | null {
 }
 
 /** 기록 화면 맨 위 한 줄. 이어온 날은 이번 달을 볼 때만 뜻이 있다. */
-export function statsMood({
-  rate,
-  streak,
-  isThisMonth,
-}: {
-  rate: number;
-  streak: number;
-  isThisMonth: boolean;
-}): { mood: DoriMood; message: string } {
-  if (rate === 100) return { mood: "cool", message: "빈틈없이 다 해냈어요" };
-  if (isThisMonth && streak >= 7) return { mood: "fire", message: `${streak}일째 이어가고 있어요` };
-  if (rate >= 80) return { mood: "clap", message: "거의 다 해냈어요" };
-  if (rate >= 50) return { mood: "happy", message: "절반 넘게 해냈어요" };
-  return { mood: "calm", message: "하나씩 해나가면 돼요" };
+export function statsMood(
+  {
+    rate,
+    streak,
+    isThisMonth,
+  }: {
+    rate: number;
+    streak: number;
+    isThisMonth: boolean;
+  },
+  locale: Locale = "ko",
+): { mood: DoriMood; message: string } {
+  const t = translator(stats, locale);
+  if (rate === 100) return { mood: "cool", message: t("moodAll") };
+  if (isThisMonth && streak >= 7) return { mood: "fire", message: t("moodStreak", { streak }) };
+  if (rate >= 80) return { mood: "clap", message: t("moodAlmost") };
+  if (rate >= 50) return { mood: "happy", message: t("moodHalf") };
+  return { mood: "calm", message: t("moodGradual") };
 }

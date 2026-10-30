@@ -7,11 +7,13 @@ import {
 import { useState } from "react";
 
 import { AvatarChoice } from "@/components/avatar-choice";
+import { useT } from "@/components/locale-provider";
 import { Modal } from "@/components/modal";
 import { PrivacyPolicy } from "@/components/privacy-policy";
 import { SubmitButton } from "@/components/submit-button";
 import { useFormAction } from "@/components/use-form-action";
 import { deviceTimezone } from "@/lib/device-timezone";
+import { auth } from "@/lib/i18n/messages/auth";
 import { SOURCE_KEY } from "@/lib/signup-source";
 
 function readSource(): string {
@@ -28,6 +30,7 @@ export function OnboardingForm({ next }: { next: string | null }) {
     saveNickname,
     null,
   );
+  const t = useT(auth);
   const [agreed, setAgreed] = useState(false);
   const [reading, setReading] = useState(false);
   return (
@@ -53,7 +56,7 @@ export function OnboardingForm({ next }: { next: string | null }) {
         maxLength={20}
         required
         autoFocus
-        placeholder="닉네임"
+        placeholder={t("nickname")}
         className="h-14 rounded-2xl bg-surface px-4 text-base outline-none ring-border focus:ring-2"
       />
 
@@ -68,24 +71,24 @@ export function OnboardingForm({ next }: { next: string | null }) {
           required
           checked={agreed}
           onChange={(event) => setAgreed(event.target.checked)}
-          data-invalid-message="개인정보 수집·이용에 동의해주세요"
+          data-invalid-message={t("agreeInvalid")}
           className="size-5 shrink-0 cursor-pointer accent-brand"
         />
         <label htmlFor="privacy-agree" className="flex-1 cursor-pointer text-sm">
-          개인정보 수집·이용에 동의해요 <span className="text-muted">(필수)</span>
+          {t("agreeLabel")} <span className="text-muted">{t("required")}</span>
         </label>
         <button
           type="button"
           onClick={() => setReading(true)}
           className="h-8 shrink-0 rounded-lg px-2 text-sm text-brand underline-offset-4 hover:underline"
         >
-          내용 보기
+          {t("viewPolicy")}
         </button>
       </div>
       {/* 만 14세 미만도 가입할 수 있다. 법에 따라 개인정보 처리에는 보호자 동의가 필요해서 먼저 알린다. */}
-      <p className="-mt-4 px-1 text-xs leading-relaxed text-muted">만 14세 미만이면 보호자의 동의를 받은 뒤 가입해 주세요.</p>
+      <p className="-mt-4 px-1 text-xs leading-relaxed text-muted">{t("under14")}</p>
 
-      <Modal open={reading} onClose={() => setReading(false)} title="개인정보 수집·이용 동의">
+      <Modal open={reading} onClose={() => setReading(false)} title={t("agreeTitle")}>
         <PrivacyPolicy />
         <button
           type="button"
@@ -95,7 +98,7 @@ export function OnboardingForm({ next }: { next: string | null }) {
           }}
           className="h-12 rounded-2xl bg-brand text-base font-semibold text-brand-contrast"
         >
-          동의하고 닫기
+          {t("agreeAndClose")}
         </button>
       </Modal>
 
@@ -107,10 +110,10 @@ export function OnboardingForm({ next }: { next: string | null }) {
 
       <SubmitButton
         pending={pending}
-        pendingLabel="확인 중"
+        pendingLabel={t("checking")}
         className="mt-2 h-14 rounded-2xl bg-brand text-base font-semibold text-brand-contrast"
       >
-        시작하기
+        {t("start")}
       </SubmitButton>
     </form>
   );

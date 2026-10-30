@@ -4,6 +4,8 @@ import { useRouter } from "next/navigation";
 import { startTransition, useEffect } from "react";
 
 import { Dori } from "@/components/dori";
+import { useT } from "@/components/locale-provider";
+import { errors } from "@/lib/i18n/messages/errors";
 import { isLoadFailure, reloadOnce } from "@/lib/reload-guard";
 
 export default function Error({
@@ -14,6 +16,7 @@ export default function Error({
   reset: () => void;
 }) {
   const router = useRouter();
+  const t = useT(errors);
 
   useEffect(() => {
     // 화면에는 사람이 읽을 말만 보여주고, 원인은 로그에 남긴다.
@@ -34,10 +37,8 @@ export default function Error({
     <main className="mx-auto flex min-h-screen w-full max-w-sm flex-col items-center justify-center gap-6 px-6 text-center">
       <div>
         <Dori mood="sad" size={110} className="mx-auto" />
-        <h1 className="mt-3 text-xl font-bold">잠깐 문제가 생겼어요</h1>
-        <p className="mt-2 text-sm text-muted">
-          잠깐 뒤에 다시 해보세요. 계속 이러면 알려주세요.
-        </p>
+        <h1 className="mt-3 text-xl font-bold">{t("errorTitle")}</h1>
+        <p className="mt-2 text-sm text-muted">{t("errorBody")}</p>
       </div>
 
       <button
@@ -51,7 +52,7 @@ export default function Error({
         }}
         className="h-12 w-full rounded-2xl bg-brand text-sm font-semibold text-brand-contrast"
       >
-        다시 시도
+        {t("retry")}
       </button>
     </main>
   );

@@ -6,22 +6,27 @@ import { BackLink } from "@/components/back-link";
 import { DoriMessage } from "@/components/dori-message";
 import { UnblockButton } from "@/components/unblock-button";
 import { avatarUrl } from "@/lib/avatar";
+import { settings } from "@/lib/i18n/messages/settings";
+import { getT } from "@/lib/i18n/server";
 
-export const metadata: Metadata = { title: "차단한 사용자 · 모도리" };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getT(settings))("blockedPageTitle") };
+}
 
 export default async function BlockedPage() {
+  const t = await getT(settings);
   const rows = await listBlocked();
 
   return (
     <div className="flex flex-col gap-6">
       <header className="flex items-center gap-1">
-        <BackLink href="/settings" label="마이페이지로" />
-        <h1 className="text-2xl font-bold">차단한 사용자</h1>
+        <BackLink href="/settings" label={t("toMyPage")} />
+        <h1 className="text-2xl font-bold">{t("blockedHeading")}</h1>
       </header>
 
       {rows.length === 0 ? (
         <DoriMessage mood="calm">
-          <p>차단한 사람이 없어요</p>
+          <p>{t("noBlocked")}</p>
         </DoriMessage>
       ) : (
         <ul className="flex flex-col gap-3">

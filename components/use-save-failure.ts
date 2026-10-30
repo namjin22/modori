@@ -3,12 +3,13 @@
 import { unstable_rethrow } from "next/navigation";
 import { useCallback } from "react";
 
+import { useT } from "@/components/locale-provider";
 import { useToast } from "@/components/toast";
+import { pageT } from "@/lib/i18n/client";
+import { common } from "@/lib/i18n/messages/common";
 
-export const OFFLINE_MESSAGE = "인터넷에 연결되어 있지 않아요. 연결된 뒤 다시 해주세요.";
 // 연결은 되는데 서버 액션이 실패하는 가장 흔한 까닭: 화면을 오래 열어 두는 사이 앱이 새 버전으로 바뀌었거나 로그인이 만료됐다.
-// "인터넷을 확인하라"고 하면 사용자가 엉뚱한 곳을 살핀다.
-export const STALE_MESSAGE = "화면이 오래돼서 저장하지 못했어요. 새로고침하면 해결돼요.";
+// "인터넷을 확인하라"고 하면 사용자가 엉뚱한 곳을 살핀다(common의 stale).
 
 /** 화면이 오래됐다는 알림을 띄워 달라는 신호. components/stale-banner.tsx가 듣는다. */
 export const STALE_EVENT = "modori:stale";
@@ -40,17 +41,18 @@ function isOffline(error: unknown): boolean {
  */
 export function useSaveFailure(): (error: unknown) => void {
   const toast = useToast();
+  const t = useT(common);
   return useCallback(
     (error: unknown) => {
       unstable_rethrow(error);
       console.error("[save] 서버에 저장하지 못했다.", error);
       if (isOffline(error)) {
-        toast({ message: OFFLINE_MESSAGE });
+        toast({ message: t("offline") });
         return;
       }
       announceStale();
     },
-    [toast],
+    [toast, t],
   );
 }
 
@@ -69,9 +71,10 @@ export function orSaveFailure<State extends FormState>(
     } catch (error) {
       unstable_rethrow(error);
       console.error("[save] 서버에 저장하지 못했다.", error);
-      if (isOffline(error)) return { message: OFFLINE_MESSAGE } as State;
+      const t = pageT(common);
+      if (isOffline(error)) return { message: t("offline") } as State;
       announceStale();
-      return { message: STALE_MESSAGE } as State;
+      return { message: t("stale") } as State;
     }
   };
 }

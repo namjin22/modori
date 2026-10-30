@@ -12,6 +12,8 @@ import { followUser } from "../actions";
 import { Avatar } from "@/components/avatar";
 import { BackLink } from "@/components/back-link";
 import { avatarUrl } from "@/lib/avatar";
+import { social } from "@/lib/i18n/messages/social";
+import { getT } from "@/lib/i18n/server";
 
 /**
  * 나를 팔로우하는 사람. 마이페이지의 팔로워 수를 누르면 온다. 원하지 않는 사람은 "끊기"로 뺀다.
@@ -20,6 +22,7 @@ import { avatarUrl } from "@/lib/avatar";
  */
 export default async function FollowersPage() {
   const user = await requireUser();
+  const t = await getT(social);
 
   const [followers, myFollowing] = await Promise.all([
     prisma.follow.findMany({
@@ -39,13 +42,13 @@ export default async function FollowersPage() {
   return (
     <div className="flex flex-col gap-6">
       <header className="flex items-center gap-1">
-        <BackLink href="/settings" label="마이페이지로" />
-        <h1 className="text-2xl font-bold">팔로워</h1>
+        <BackLink href="/settings" label={t("toMyPage")} />
+        <h1 className="text-2xl font-bold">{t("followersTitle")}</h1>
       </header>
 
       {followers.length === 0 ? (
         <DoriMessage mood="calm">
-          <p>아직 나를 팔로우한 친구가 없어요</p>
+          <p>{t("noFollowers")}</p>
         </DoriMessage>
       ) : (
         <ul className="flex flex-col gap-3">
@@ -78,15 +81,15 @@ export default async function FollowersPage() {
 
                 <div className="ml-auto flex items-center gap-1">
                 {isFollowing ? (
-                  <span className="shrink-0 px-2 text-sm text-muted">팔로우 중</span>
+                  <span className="shrink-0 px-2 text-sm text-muted">{t("followingNow")}</span>
                 ) : (
                   <form action={followUser}>
                     <input type="hidden" name="targetId" value={person.id} />
                     <SubmitButton
-                      pendingLabel="처리 중"
+                      pendingLabel={t("working")}
                       className="h-9 rounded-full bg-brand px-4 text-sm font-semibold text-brand-contrast"
                     >
-                      맞팔로우
+                      {t("followBack")}
                     </SubmitButton>
                   </form>
                 )}

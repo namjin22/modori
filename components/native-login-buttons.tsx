@@ -3,7 +3,9 @@
 import { useState } from "react";
 
 import { AppleLogo } from "@/components/apple-logo";
+import { useT } from "@/components/locale-provider";
 import { GoogleLogo } from "@/components/google-logo";
+import { auth } from "@/lib/i18n/messages/auth";
 import { appSource, capacitor, createVerifier, finishNativeLogin, VERIFIER_KEY } from "@/lib/native-login";
 
 /**
@@ -13,6 +15,7 @@ import { appSource, capacitor, createVerifier, finishNativeLogin, VERIFIER_KEY }
  */
 export function NativeLoginButtons({ providers }: { providers: { id: "google" | "datagsm" | "apple"; label: string; primary: boolean }[] }) {
   const [problem, setProblem] = useState<string | null>(null);
+  const t = useT(auth);
 
   async function start(provider: string) {
     setProblem(null);
@@ -21,7 +24,7 @@ export function NativeLoginButtons({ providers }: { providers: { id: "google" | 
     // 앱 안 로그인 창은 iOS에만 있다. 안드로이드는 Custom Tabs(앱 위에 뜨는 크롬 창)라 그대로 쓴다.
     const inApp = bridge?.getPlatform?.() === "ios" ? bridge.Plugins?.Modori?.signIn : undefined;
     if (!bridge || (!browser && !inApp)) {
-      setProblem("앱에서 로그인 창을 열지 못했어요. 앱을 다시 켜 주세요.");
+      setProblem(t("nativeOpenFailed"));
       return;
     }
     try {
@@ -34,7 +37,7 @@ export function NativeLoginButtons({ providers }: { providers: { id: "google" | 
       login.searchParams.set("from", appSource(bridge));
       if (inApp) {
         const result = await inApp({ url: login.toString(), callbackScheme: "modori" });
-        if (!finishNativeLogin(result.url)) setProblem("로그인을 마치지 못했어요. 다시 눌러 주세요.");
+        if (!finishNativeLogin(result.url)) setProblem(t("nativeFinishFailed"));
         return;
       }
       // 로그인 창 위쪽 막대를 앱 배경색(app/globals.css의 --background)에 맞춘다. 안 맞추면 검은 막대가 따로 떠 보였다.
@@ -44,7 +47,7 @@ export function NativeLoginButtons({ providers }: { providers: { id: "google" | 
       // 로그인 창을 닫아 취소한 것은 오류가 아니다.
       if ((error as { code?: string } | null)?.code === "CANCELED") return;
       console.error("[native-login] 로그인 창을 열지 못했다.", error);
-      setProblem("로그인 창을 열지 못했어요. 다시 눌러 주세요.");
+      setProblem(t("nativeWindowFailed"));
     }
   }
 
@@ -75,7 +78,7 @@ export function NativeLoginButtons({ providers }: { providers: { id: "google" | 
           {problem}
         </p>
       )}
-      <p className="text-center text-xs text-muted">누르면 로그인 창이 열려요. 로그인을 마치면 앱으로 돌아와요.</p>
+      <p className="text-center text-xs text-muted">{t("nativeHint")}</p>
     </>
   );
 }

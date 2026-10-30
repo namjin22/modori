@@ -24,6 +24,8 @@ import { LockedProfile } from "@/components/locked-profile";
 import { SubmitButton } from "@/components/submit-button";
 import { followUser, unfollowUser } from "../../actions";
 import { avatarUrl } from "@/lib/avatar";
+import { social } from "@/lib/i18n/messages/social";
+import { getLocale, getT } from "@/lib/i18n/server";
 
 function readDate(raw: string | undefined, today: Date): Date {
   if (!raw) return today;
@@ -62,6 +64,8 @@ export default async function FriendDayPage({
   searchParams: Promise<{ date?: string; month?: string }>;
 }) {
   const viewer = await requireUser();
+  const t = await getT(social);
+  const locale = await getLocale();
   const { id } = await params;
   const query = await searchParams;
 
@@ -183,7 +187,7 @@ export default async function FriendDayPage({
     })),
     events: [
       ...events.map(({ memo, memoPublic, ...event }) => ({ ...event, memo: memoPublic ? memo : null })),
-      ...expandEventRoutines(eventRoutines, eventSkips, from, to).map((event) => ({ ...event, memo: null })),
+      ...expandEventRoutines(eventRoutines, eventSkips, from, to, locale).map((event) => ({ ...event, memo: null })),
     ],
   };
 
@@ -192,7 +196,7 @@ export default async function FriendDayPage({
       data={data}
       profile={
         <div className="flex items-center gap-3">
-          <BackLink href="/feed" label="소셜로" />
+          <BackLink href="/feed" label={t("toSocial")} />
           <Avatar src={avatarUrl(friend)} size={48} />
           <div className="min-w-0 flex-1">
             <h1 className="truncate text-xl font-bold">{friend.nickname}</h1>
@@ -200,16 +204,16 @@ export default async function FriendDayPage({
             {/* 좁은 화면에서는 줄이 바뀌어 버튼이 다음 줄로 내려간다. 글자가 한 글자씩 꺾이지 않게 각 조각은 한 덩어리로 둔다. */}
             <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-muted">
               <Link prefetch={false} href={`${basePath}/following`} className="whitespace-nowrap hover:text-foreground">
-                팔로우 <b className="font-semibold text-foreground">{friend._count.following}</b>
+                {t("followingTitleShort")} <b className="font-semibold text-foreground">{friend._count.following}</b>
               </Link>
               <Link prefetch={false} href={`${basePath}/followers`} className="whitespace-nowrap hover:text-foreground">
-                팔로워 <b className="font-semibold text-foreground">{friend._count.followers}</b>
+                {t("followersTitle")} <b className="font-semibold text-foreground">{friend._count.followers}</b>
               </Link>
               {/* 이미 팔로우한 사람이라 여기서 바로 끊을 수 있다. 끊으면 이 화면이 팔로우 안내로 바뀐다. */}
               <form action={unfollowUser}>
                 <input type="hidden" name="targetId" value={friend.id} />
-                <SubmitButton pendingLabel="처리 중" className="h-7 whitespace-nowrap rounded-full bg-surface px-3 text-xs font-medium text-muted">
-                  언팔로우
+                <SubmitButton pendingLabel={t("working")} className="h-7 whitespace-nowrap rounded-full bg-surface px-3 text-xs font-medium text-muted">
+                  {t("unfollow")}
                 </SubmitButton>
               </form>
             </div>

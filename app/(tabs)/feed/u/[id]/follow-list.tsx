@@ -7,14 +7,14 @@ import { DoriMessage } from "@/components/dori-message";
 import { SubmitButton } from "@/components/submit-button";
 import { avatarUrl } from "@/lib/avatar";
 import { notBlockedWith } from "@/lib/blocks";
+import { social } from "@/lib/i18n/messages/social";
+import { getT } from "@/lib/i18n/server";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 
 import { followUser } from "../../actions";
 
 export type FollowListKind = "following" | "followers";
-
-const TITLES: Record<FollowListKind, string> = { following: "팔로우", followers: "팔로워" };
 
 /**
  * 친구가 팔로우하는 사람 / 친구를 팔로우하는 사람. 친구 화면과 같이 내가 팔로우한 사람만 볼 수 있다.
@@ -23,6 +23,7 @@ const TITLES: Record<FollowListKind, string> = { following: "팔로우", followe
  */
 export async function FriendFollowList({ id, kind }: { id: string; kind: FollowListKind }) {
   const viewer = await requireUser();
+  const t = await getT(social);
   const friend = await prisma.user.findFirst({
     where: { id, nickname: { not: null }, followers: { some: { followerId: viewer.id } }, ...notBlockedWith(viewer.id) },
     select: { id: true, nickname: true },
@@ -52,15 +53,15 @@ export async function FriendFollowList({ id, kind }: { id: string; kind: FollowL
   return (
     <div className="flex flex-col gap-6">
       <header className="flex min-w-0 items-center gap-1">
-        <BackLink href={`/feed/u/${friend.id}`} label={`${friend.nickname} 화면으로`} />
+        <BackLink href={`/feed/u/${friend.id}`} label={t("toFriend", { nickname: friend.nickname ?? "" })} />
         <h1 className="min-w-0 truncate text-2xl font-bold">
-          {friend.nickname}의 {TITLES[kind]}
+          {t("followListTitle", { nickname: friend.nickname ?? "", kind: kind === "following" ? t("followingTitleShort") : t("followersTitle") })}
         </h1>
       </header>
 
       {rows.length === 0 ? (
         <DoriMessage mood="calm">
-          <p>{kind === "following" ? "아직 팔로우한 사람이 없어요" : "아직 팔로워가 없어요"}</p>
+          <p>{kind === "following" ? t("noFollowingOfFriend") : t("noFollowersOfFriend")}</p>
         </DoriMessage>
       ) : (
         <ul className="flex flex-col gap-3">
@@ -85,17 +86,17 @@ export async function FriendFollowList({ id, kind }: { id: string; kind: FollowL
                 )}
 
                 {me ? (
-                  <span className="shrink-0 text-sm text-muted">나</span>
+                  <span className="shrink-0 text-sm text-muted">{t("me")}</span>
                 ) : followed ? (
-                  <span className="shrink-0 text-sm text-muted">팔로우 중</span>
+                  <span className="shrink-0 text-sm text-muted">{t("followingNow")}</span>
                 ) : (
                   <form action={followUser} className="shrink-0">
                     <input type="hidden" name="targetId" value={person.id} />
                     <SubmitButton
-                      pendingLabel="처리 중"
+                      pendingLabel={t("working")}
                       className="h-9 rounded-full bg-brand px-4 text-sm font-semibold text-brand-contrast"
                     >
-                      팔로우
+                      {t("follow")}
                     </SubmitButton>
                   </form>
                 )}

@@ -1,18 +1,22 @@
 import Link from "next/link";
 
+import { social } from "@/lib/i18n/messages/social";
+import { getT } from "@/lib/i18n/server";
+
 /**
  * 소셜 화면 맨 위. 제목, 알림(종 + 안 읽은 수), 친구 찾기.
  * 예전에는 알림·팔로우 중 칩 줄이 따로 있어 화면 위가 높고 복잡했다(2026-10-20).
  */
-export function SocialHeader({ unread }: { unread: number }) {
+export async function SocialHeader({ unread }: { unread: number }) {
+  const t = await getT(social);
   return (
     <header className="flex items-center justify-between gap-3">
-      <h1 className="text-2xl font-bold">소셜</h1>
+      <h1 className="text-2xl font-bold">{t("title")}</h1>
       <div className="flex items-center gap-2">
         <Link
           prefetch={false}
           href="/feed/reactions"
-          aria-label={unread > 0 ? `알림 ${unread}` : "알림"}
+          aria-label={unread > 0 ? t("notificationsCount", { count: unread }) : t("notifications")}
           className="relative flex size-9 items-center justify-center rounded-full bg-surface text-muted hover:text-foreground"
         >
           <svg aria-hidden width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -30,7 +34,7 @@ export function SocialHeader({ unread }: { unread: number }) {
           href="/feed/search"
           className="h-9 rounded-full bg-brand px-4 text-sm font-semibold leading-9 text-brand-contrast"
         >
-          친구 찾기
+          {t("findFriends")}
         </Link>
       </div>
     </header>
