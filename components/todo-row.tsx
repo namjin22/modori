@@ -84,6 +84,9 @@ export function TodoRow({
             </span>
           )}
         </button>
+
+        {/* 친구가 보낸 반응(줄 오른쪽 끝에 겹친 그림과 개수). 반응이 많아도 줄이 길어지지 않는다. 누르면 누가 보냈는지 보인다. */}
+        <ReceivedReactions received={received} />
       </div>
 
       <Modal open={open} onClose={() => setOpen(false)} title="할 일">
@@ -201,9 +204,6 @@ export function TodoRow({
         </form>
 
       </Modal>
-
-      {/* 친구가 보낸 반응(투두메이트처럼). 누르면 누가 보냈는지 보인다. */}
-      <ReceivedReactions received={received} />
     </div>
   );
 }
