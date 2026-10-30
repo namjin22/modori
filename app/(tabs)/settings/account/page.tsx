@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+import { settings } from "@/lib/i18n/messages/settings";
+import { getT } from "@/lib/i18n/server";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 
@@ -9,6 +11,7 @@ import { BackLink } from "@/components/back-link";
 
 export default async function AccountPage() {
   const user = await requireUser();
+  const t = await getT(settings);
 
   // 무엇이 사라지는지 숫자로 보여준다. "모든 데이터"라고만 쓰면 와닿지 않는다.
   const [todos, categories, routines, events, following, reactions] = await Promise.all([
@@ -21,45 +24,45 @@ export default async function AccountPage() {
   ]);
 
   const rows = [
-    ["할 일", todos],
-    ["카테고리", categories],
-    ["루틴", routines],
-    ["일정", events],
-    ["팔로우", following],
-    ["받은 반응", reactions],
+    [t("accountTodos"), todos],
+    [t("accountCategories"), categories],
+    [t("accountRoutines"), routines],
+    [t("accountEvents"), events],
+    [t("accountFollowing"), following],
+    [t("accountReactions"), reactions],
   ] as const;
 
   return (
     <div className="flex flex-col gap-6">
       <header className="flex items-center gap-1">
-        <BackLink href="/settings" label="마이페이지로" />
-        <h1 className="text-2xl font-bold">계정 지우기</h1>
+        <BackLink href="/settings" label={t("toMyPage")} />
+        <h1 className="text-2xl font-bold">{t("accountTitle")}</h1>
       </header>
 
       <div className="flex flex-col gap-4 rounded-2xl bg-surface p-4">
         <Dori mood="sad" size={72} className="mx-auto" />
         <p className="text-sm text-muted">
-          지우면 아래 기록이 전부 없어져요. 다시 로그인해도 되살릴 수 없어요.
+          {t("accountIntro")}
         </p>
 
         <ul className="flex flex-col gap-1 text-sm">
           {rows.map(([label, count]) => (
             <li key={label} className="flex justify-between">
               <span className="text-muted">{label}</span>
-              <span className="font-medium">{count}개</span>
+              <span className="font-medium">{t("accountCount", { count })}</span>
             </li>
           ))}
         </ul>
 
         <p className="text-sm text-muted">
-          친구에게 남긴 반응도 같이 없어져요.
+          {t("accountReactionNote")}
         </p>
       </div>
 
       <DeleteAccountForm nickname={user.nickname ?? ""} />
 
       <Link prefetch={false} href="/settings" className="py-2 text-center text-sm text-brand">
-        그냥 두기
+        {t("keepIt")}
       </Link>
     </div>
   );

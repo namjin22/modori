@@ -5,6 +5,8 @@ import { revalidatePath } from "next/cache";
 import { isHexColor } from "@/lib/colors";
 import { isId, readIdList } from "@/lib/ids";
 import { LIMITS } from "@/lib/limits";
+import { categories as categoryMessages } from "@/lib/i18n/messages/categories";
+import { getT } from "@/lib/i18n/server";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 
@@ -67,20 +69,21 @@ export type CategoryUpdate = { ok: true } | { ok: false; message: string };
  */
 export async function updateCategory(formData: FormData): Promise<CategoryUpdate> {
   const user = await requireUser();
+  const t = await getT(categoryMessages);
   const id = readText(formData, "id");
   const name = readText(formData, "name").slice(0, MAX_NAME_LENGTH);
   const color = readColor(formData);
-  if (!name) return { ok: false, message: "이름을 적어주세요" };
-  if (!color) return { ok: false, message: "색을 골라주세요" };
+  if (!name) return { ok: false, message: t("nameRequired") };
+  if (!color) return { ok: false, message: t("colorRequired") };
 
   const current = await prisma.category.findFirst({
     where: { id, userId: user.id },
     select: { color: true },
   });
-  if (!current) return { ok: false, message: "카테고리를 찾지 못했어요" };
+  if (!current) return { ok: false, message: t("notFound") };
 
   if (!isHexColor(color)) {
-    return { ok: false, message: "색을 골라주세요" };
+    return { ok: false, message: t("colorRequired") };
   }
 
   await prisma.category.updateMany({
@@ -171,7 +174,7 @@ export async function undoDeleteCategory(snapshot: DeletedCategory): Promise<str
   // 되돌리기도 새로 만드는 것과 같은 상한을 지킨다. 없으면 이 함수로 카테고리를 끝없이 만든다.
   const count = await prisma.category.count({ where: { userId: user.id, archivedAt: null } });
   if (count >= LIMITS.categories) {
-    return `카테고리는 ${LIMITS.categories}개까지 만들 수 있어요.`;
+    return (await getT(categoryMessages))("tooMany", { max: LIMITS.categories });
   }
 
   await prisma.$transaction([

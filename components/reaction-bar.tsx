@@ -5,6 +5,9 @@ import { useOptimistic, useRef, useState, useTransition, type ReactNode } from "
 import { toggleReaction } from "@/app/(tabs)/feed/actions";
 import { Dori } from "@/components/dori";
 import { CHARACTERS, DEFAULT_CHARACTER, type CharacterId } from "@/lib/characters";
+import { characterNames } from "@/lib/i18n/messages/characters";
+import { reactions } from "@/lib/i18n/messages/reactions";
+import { useLocale, useT } from "@/components/locale-provider";
 import { Modal } from "@/components/modal";
 import { ReactionGlyph } from "@/components/reaction-glyph";
 import { useSaveFailure } from "@/components/use-save-failure";
@@ -38,6 +41,9 @@ export function ReactionBar({
   // 할 일과 같은 줄에 붙일 때는 칩을 작게 한다.
   compact?: boolean;
 }) {
+  const t = useT(reactions);
+  const tn = useT(characterNames);
+  const locale = useLocale();
   const chip = compact ? "h-6 px-1.5 text-xs" : "h-7 px-2 text-sm";
   // 도리·이모지 모두 같은 크기 칸에 그린다(reaction-glyph). 칩 높이에 거의 꽉 차게 둔다.
   const glyphSize = compact ? 20 : 24;
@@ -108,7 +114,7 @@ export function ReactionBar({
           // 처음 그릴 때 있던 칩은 가만히 두고, 방금 보낸 반응의 칩만 통 튀어 나온다.
           fresh={!initialEmojis.has(emoji)}
           onClick={() => setWhoOpened(emoji)}
-          aria-label={`${labelOfReaction(emoji)} ${count}개${mine ? ", 내가 누름" : ""}, 누가 눌렀는지 보기`}
+          aria-label={t("chipLabel", { label: labelOfReaction(emoji, locale), count, mine: mine ? t("mineSuffix") : "" })}
           className={`flex ${chip} items-center gap-1 rounded-full transition-colors active:scale-90 ${
             mine
               ? "bg-brand-subtle text-brand ring-1 ring-brand/40"
@@ -122,13 +128,13 @@ export function ReactionBar({
       <button
         type="button"
         onClick={() => setPicking(true)}
-        aria-label="반응 보내기"
+        aria-label={t("send")}
         className={`flex ${chip} items-center rounded-full bg-surface-hover text-muted transition-colors hover:text-foreground active:scale-90 ${compact ? "px-2" : "px-2.5"}`}
       >
         ♡
       </button>
 
-      <Modal open={whoOpened !== null} onClose={() => setWhoOpened(null)} title="누가 눌렀어요">
+      <Modal open={whoOpened !== null} onClose={() => setWhoOpened(null)} title={t("whoTitle")}>
         <ul className="flex flex-col gap-3">
           {whoList.map(({ emoji, count, mine }) => (
             <li key={emoji} className="flex items-start gap-3">
@@ -137,7 +143,7 @@ export function ReactionBar({
               </span>
               <div className="min-w-0 flex-1 pt-0.5">
                 {/* 반응의 이름("펭이 표정 7" 같은 번호)은 화면에 보이지 않는다(요청). 그림과 개수만 보인다. 이름은 화면 읽기용 aria-label에만 있다. */}
-                <p className="text-sm font-semibold">{count}개</p>
+                <p className="text-sm font-semibold">{t("countOnly", { count })}</p>
                 <p className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm text-muted">
                   {mine && (
                     // 내가 누른 것은 여기서 "나"를 눌러 취소한다. 칩을 누르는 것은 보기만 한다.
@@ -148,13 +154,13 @@ export function ReactionBar({
                         // 이 창에 남은 반응이 없으면 빈 창이 남지 않게 닫는다.
                         if (optimistic.length === 1 && count === 1) setWhoOpened(null);
                       }}
-                      aria-label={`${labelOfReaction(emoji)} 내 반응 취소`}
+                      aria-label={t("cancelMine", { label: labelOfReaction(emoji, locale) })}
                       className="rounded-full bg-brand-subtle px-2 py-0.5 text-xs font-semibold text-brand ring-1 ring-brand/40 transition-colors active:scale-95"
                     >
-                      나 · 취소
+                      {t("meCancel")}
                     </button>
                   )}
-                  <span>{(others[emoji] ?? []).join(", ") || (mine ? "" : "지운 계정")}</span>
+                  <span>{(others[emoji] ?? []).join(", ") || (mine ? "" : t("deletedAccount"))}</span>
                 </p>
               </div>
             </li>
@@ -165,17 +171,17 @@ export function ReactionBar({
       <Modal
         open={picking}
         onClose={() => setPicking(false)}
-        title="반응 보내기"
+        title={t("send")}
       >
         {/* 위는 "종류"를 고르는 막대, 아래 칸에서만 반응을 고른다. 두 줄이 같은 모양이라 위 칸도 보내는 반응인 줄 알았다는
             요청이 있어, 위는 작은 알약 모양 막대(고른 것만 떠 보이고 나머지는 흐리게)로, 아래는 큰 칸으로 나눴다. */}
-        <div role="tablist" aria-label="반응 종류" className="flex gap-1 rounded-full bg-surface-hover p-1">
+        <div role="tablist" aria-label={t("typeLabel")} className="flex gap-1 rounded-full bg-surface-hover p-1">
           {CHARACTERS.map((item) => (
-            <PickTab key={item.id} label={item.name} selected={tab === item.id} onSelect={() => setTab(item.id)}>
+            <PickTab key={item.id} label={tn(item.id)} selected={tab === item.id} onSelect={() => setTab(item.id)}>
               <Dori mood={item.id === DEFAULT_CHARACTER ? "like" : "happy"} character={item.id} size={28} />
             </PickTab>
           ))}
-          <PickTab label="이모지" selected={tab === EMOJI_TAB} onSelect={() => setTab(EMOJI_TAB)}>
+          <PickTab label={t("emojiTab")} selected={tab === EMOJI_TAB} onSelect={() => setTab(EMOJI_TAB)}>
             <span aria-hidden className="text-xl leading-none">
               😊
             </span>
@@ -194,10 +200,10 @@ export function ReactionBar({
             }`}
           >
             {tab === EMOJI_TAB ? (
-              <ul role="tabpanel" aria-label="이모지" className="grid animate-fade-in grid-cols-6 gap-1.5 pb-4">
-                {REACTIONS.map(({ emoji, label }) => (
+              <ul role="tabpanel" aria-label={t("emojiTab")} className="grid animate-fade-in grid-cols-6 gap-1.5 pb-4">
+                {REACTIONS.map(({ emoji }) => (
                   <li key={emoji}>
-                    <PickButton label={label} mine={isMine(emoji)} onPick={() => pick(emoji)} small>
+                    <PickButton label={labelOfReaction(emoji, locale)} mine={isMine(emoji)} onPick={() => pick(emoji)} small>
                       <span aria-hidden className="text-2xl leading-none">
                         {emoji}
                       </span>
@@ -210,12 +216,12 @@ export function ReactionBar({
                 // 종류를 바꾸면 칸이 서서히 바뀐다(탭마다 다른 목록이라 새로 그려지며 한 번 돈다).
                 key={tab}
                 role="tabpanel"
-                aria-label={CHARACTERS.find((item) => item.id === tab)?.name}
+                aria-label={tn(tab)}
                 className="grid animate-fade-in grid-cols-5 gap-2"
               >
-                {CHARACTER_REACTIONS.filter((reaction) => reaction.character === tab).map(({ value, mood, character, label }) => (
+                {CHARACTER_REACTIONS.filter((reaction) => reaction.character === tab).map(({ value, mood, character }) => (
                   <li key={value}>
-                    <PickButton label={label} mine={isMine(value)} onPick={() => pick(value)}>
+                    <PickButton label={labelOfReaction(value, locale)} mine={isMine(value)} onPick={() => pick(value)}>
                       <Dori mood={mood} character={character} size={46} />
                     </PickButton>
                   </li>

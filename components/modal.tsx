@@ -2,6 +2,9 @@
 
 import { useEffect, useRef, type ReactNode } from "react";
 
+import { useT } from "@/components/locale-provider";
+import { common } from "@/lib/i18n/messages/common";
+
 /**
  * 화면 위에 떠서 열리는 창. 펼침(details)으로 열면 아래 내용이 밀려 화면 비율이
  * 흔들리는데, 이건 원래 화면을 그대로 두고 그 위에만 얹는다.
@@ -21,6 +24,7 @@ export function Modal({
   children: ReactNode;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
+  const t = useT(common);
 
   useEffect(() => {
     const dialog = ref.current;
@@ -86,7 +90,7 @@ export function Modal({
         <button
           type="button"
           onClick={onClose}
-          aria-label="닫기"
+          aria-label={t("close")}
           className="flex size-8 shrink-0 items-center justify-center rounded-full bg-surface-hover text-muted"
         >
           ✕

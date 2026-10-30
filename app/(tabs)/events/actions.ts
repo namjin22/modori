@@ -4,7 +4,11 @@ import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
 import { DEFAULT_EVENT_COLOR, isHexColor } from "@/lib/colors";
-import { daysBetween, formatKST, formatMonthDayKST, parseKSTDate } from "@/lib/date";
+import { daysBetween, formatKST, parseKSTDate } from "@/lib/date";
+import type { Translate } from "@/lib/i18n";
+import { formatMonthDay } from "@/lib/i18n/format";
+import { events as eventMessages } from "@/lib/i18n/messages/events";
+import { getLocale, getT } from "@/lib/i18n/server";
 import { firstOverfullDay } from "@/lib/event-limit";
 import { formatTime, parseTime } from "@/lib/event-time";
 import { isId, readIdList } from "@/lib/ids";
@@ -12,6 +16,8 @@ import { LIMITS } from "@/lib/limits";
 import { readMemo } from "@/lib/memo";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
+
+type EventT = Translate<keyof (typeof eventMessages)["ko"] & string>;
 
 const MAX_TITLE_LENGTH = 100;
 // 한 해를 넘는 일정은 입력 실수일 가능성이 크고, 달력에 수백 칸을 칠하게 된다.
@@ -51,33 +57,33 @@ function readDate(value: string): Date | null {
 }
 
 /** 폼 값을 검사한다. 문제가 있으면 사람에게 보여줄 문장을 돌려준다. */
-function readEventInput(formData: FormData): EventInput | string {
+function readEventInput(formData: FormData, t: EventT): EventInput | string {
   const title = readText(formData, "title").slice(0, MAX_TITLE_LENGTH);
-  if (!title) return "일정 이름을 적어주세요.";
+  if (!title) return t("titleRequired");
 
   const startDate = readDate(readText(formData, "startDate"));
-  if (!startDate) return "시작일을 골라주세요.";
+  if (!startDate) return t("startRequired");
 
   // 종료일을 비우면 하루짜리 일정이다.
   const endDate = readDate(readText(formData, "endDate")) ?? startDate;
   if (daysBetween(startDate, endDate) < 0) {
-    return "종료일이 시작일보다 앞설 수 없어요.";
+    return t("endBeforeStart");
   }
   if (daysBetween(startDate, endDate) > MAX_SPAN_DAYS) {
-    return "일정은 1년 안으로만 잡을 수 있어요.";
+    return t("withinYear");
   }
 
   const startTime = parseTime(readText(formData, "startTime"));
   const endTime = parseTime(readText(formData, "endTime"));
-  if (startTime === undefined || endTime === undefined) return "시간을 다시 골라주세요.";
-  if (startTime === null && endTime !== null) return "시작 시간을 먼저 정해주세요.";
+  if (startTime === undefined || endTime === undefined) return t("timeAgain");
+  if (startTime === null && endTime !== null) return t("startTimeFirst");
   if (
     startTime !== null &&
     endTime !== null &&
     daysBetween(startDate, endDate) === 0 &&
     endTime < startTime
   ) {
-    return "끝나는 시간이 시작 시간보다 앞설 수 없어요.";
+    return t("endBeforeStartTime");
   }
 
   // "#rrggbb" 꼴만 받는다(100색·직접 찍기·색상 코드, 2026-10-19). 색이 아닌 글이 style로 들어가지 않게 모양을 엄격히 본다.
@@ -104,6 +110,7 @@ function readEventInput(formData: FormData): EventInput | string {
 async function dailyLimitMessage(
   userId: string,
   input: Pick<EventInput, "startDate" | "endDate">,
+  t: EventT,
   exceptId?: string,
 ): Promise<string | null> {
   const overlapping = await prisma.event.findMany({
@@ -117,7 +124,7 @@ async function dailyLimitMessage(
   });
   const full = firstOverfullDay(overlapping, input.startDate, input.endDate, LIMITS.eventsPerDay);
   if (!full) return null;
-  return `${formatMonthDayKST(full)}에는 일정이 벌써 ${LIMITS.eventsPerDay}개예요. 하루에 ${LIMITS.eventsPerDay}개까지 둘 수 있어요.`;
+  return t("dayFull", { date: formatMonthDay(await getLocale(), full), max: LIMITS.eventsPerDay });
 }
 
 export async function createEvent(
@@ -125,20 +132,21 @@ export async function createEvent(
   formData: FormData,
 ): Promise<EventFormState> {
   const user = await requireUser();
-  const input = readEventInput(formData);
+  const t = await getT(eventMessages);
+  const input = readEventInput(formData, t);
   if (typeof input === "string") return { message: input };
 
   const count = await prisma.event.count({ where: { userId: user.id } });
   if (count >= LIMITS.events) {
-    return { message: `일정은 ${LIMITS.events}개까지 만들 수 있어요. 지난 일정을 지워주세요.` };
+    return { message: t("tooMany", { max: LIMITS.events }) };
   }
-  const full = await dailyLimitMessage(user.id, input);
+  const full = await dailyLimitMessage(user.id, input, t);
   if (full) return { message: full };
 
   await prisma.event.create({ data: { ...input, color: input.color ?? DEFAULT_EVENT_COLOR, userId: user.id } });
 
   revalidatePath("/");
-  return { message: "일정을 만들었어요.", ok: true };
+  return { message: t("created"), ok: true };
 }
 
 export async function updateEvent(
@@ -146,21 +154,22 @@ export async function updateEvent(
   formData: FormData,
 ): Promise<EventFormState> {
   const user = await requireUser();
-  const input = readEventInput(formData);
+  const t = await getT(eventMessages);
+  const input = readEventInput(formData, t);
   if (typeof input === "string") return { message: input };
   const id = readText(formData, "id");
 
-  const full = await dailyLimitMessage(user.id, input, id);
+  const full = await dailyLimitMessage(user.id, input, t, id);
   if (full) return { message: full };
 
   const { count } = await prisma.event.updateMany({
     where: { id, userId: user.id },
     data: input,
   });
-  if (count === 0) return { message: "일정을 찾을 수 없어요." };
+  if (count === 0) return { message: t("notFound") };
 
   revalidatePath("/");
-  return { message: "고쳤어요.", ok: true };
+  return { message: t("fixed"), ok: true };
 }
 
 /** 지운 일정을 되돌릴 때 필요한 값. 날짜는 문자열로 주고받는다. */
@@ -220,7 +229,8 @@ export async function restoreEvent(snapshot: DeletedEvent): Promise<string | voi
   // 값을 모르는 예전 스냅숏은 숨긴 쪽으로 되살린다(보이던 것을 숨기는 쪽이 안전하다).
   if (snapshot.isPublic !== true) formData.set("isPrivate", "on");
   if (snapshot.memoPublic !== true) formData.set("memoPrivate", "on");
-  const input = readEventInput(formData);
+  const t = await getT(eventMessages);
+  const input = readEventInput(formData, t);
   if (typeof input === "string") {
     console.warn("[event] 되돌릴 값이 올바르지 않다.", input);
     return;
@@ -229,9 +239,9 @@ export async function restoreEvent(snapshot: DeletedEvent): Promise<string | voi
   // 되돌리기도 새로 만드는 것과 같은 상한을 지킨다.
   const count = await prisma.event.count({ where: { userId: user.id } });
   if (count >= LIMITS.events) {
-    return `일정은 ${LIMITS.events}개까지 만들 수 있어요.`;
+    return t("tooManyShort", { max: LIMITS.events });
   }
-  const full = await dailyLimitMessage(user.id, input);
+  const full = await dailyLimitMessage(user.id, input, t);
   if (full) return full;
 
   try {
@@ -267,7 +277,8 @@ export async function resizeEvent(
   const startDate = readDate(startKey);
   const endDate = readDate(endKey);
   if (!startDate || !endDate || daysBetween(startDate, endDate) < 0) return;
-  if (daysBetween(startDate, endDate) > MAX_SPAN_DAYS) return "일정은 1년 안으로만 잡을 수 있어요.";
+  const t = await getT(eventMessages);
+  if (daysBetween(startDate, endDate) > MAX_SPAN_DAYS) return t("withinYear");
 
   const event = await prisma.event.findFirst({
     where: { id, userId: user.id },
@@ -275,7 +286,7 @@ export async function resizeEvent(
   });
   if (!event) return;
 
-  const full = await dailyLimitMessage(user.id, { startDate, endDate }, id);
+  const full = await dailyLimitMessage(user.id, { startDate, endDate }, t, id);
   if (full) return full;
 
   // 하루짜리로 줄였는데 끝 시간이 시작보다 이르면(여러 날일 때는 말이 됐다) 끝 시간을 뺀다.

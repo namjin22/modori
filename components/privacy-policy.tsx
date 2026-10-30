@@ -1,3 +1,4 @@
+import { KoreanOriginalNotice } from "@/components/korean-original-notice";
 import {
   PRIVACY_EFFECTIVE,
   PRIVACY_MANAGER,
@@ -8,6 +9,7 @@ import {
 export function PrivacyPolicy() {
   return (
     <div className="flex flex-col gap-5 text-sm leading-relaxed">
+      <KoreanOriginalNotice />
       <p className="text-muted">
         모도리는 할 일 기록과 친구 기능을 위해 꼭 필요한 정보만 모아요. 무엇을 모으고 어떻게
         쓰는지 알려드려요.

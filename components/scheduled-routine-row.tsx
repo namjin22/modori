@@ -1,4 +1,6 @@
 import { completeScheduledRoutine } from "@/app/(tabs)/actions";
+import { useT } from "@/components/locale-provider";
+import { events } from "@/lib/i18n/messages/events";
 
 type ScheduledRoutine = {
   id: string;
@@ -18,6 +20,7 @@ export function ScheduledRoutineRow({
   categories: Category[];
   date: string;
 }) {
+  const t = useT(events);
   const color = categories.find(
     (category) => category.id === routine.categoryId,
   )?.color;
@@ -29,7 +32,7 @@ export function ScheduledRoutineRow({
         <input type="hidden" name="date" value={date} />
         <button
           type="submit"
-          aria-label="미리 완료"
+          aria-label={t("earlyDone")}
           className="size-[22px] rounded-[7px] border-2 border-dashed border-border hover:border-brand"
         />
       </form>
@@ -45,7 +48,7 @@ export function ScheduledRoutineRow({
         <span className="truncate text-muted">{routine.content}</span>
       </div>
 
-      <span className="shrink-0 text-xs text-muted">예정</span>
+      <span className="shrink-0 text-xs text-muted">{t("scheduled")}</span>
     </li>
   );
 }

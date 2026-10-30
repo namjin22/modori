@@ -1,3 +1,4 @@
+import { localeOrDefault } from "@/lib/i18n";
 import { latestUnreadNotifications } from "@/lib/notification-preview";
 import { countUnreadNotifications, getCurrentUser } from "@/lib/session";
 
@@ -16,6 +17,6 @@ export async function GET(request: Request) {
   }
   // 알림을 읽기 전에 시각을 잡는다. 읽는 사이에 생긴 일은 다음 차례에도 at > now라 다시 오지만, 창이 key로 거른다.
   const now = Date.now();
-  const latest = count > 0 ? await latestUnreadNotifications(user.id, user.lastSeenAt, user.notifyFriendDone) : [];
+  const latest = count > 0 ? await latestUnreadNotifications(user.id, user.lastSeenAt, user.notifyFriendDone, localeOrDefault(user.locale)) : [];
   return Response.json({ count, now, latest }, { headers: { "Cache-Control": "no-store" } });
 }

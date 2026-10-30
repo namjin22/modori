@@ -3,10 +3,13 @@
 import { useTransition } from "react";
 
 import { unblockUser } from "@/app/(tabs)/feed/safety-actions";
+import { useT } from "@/components/locale-provider";
 import { useToast } from "@/components/toast";
 import { useSaveFailure } from "@/components/use-save-failure";
+import { social } from "@/lib/i18n/messages/social";
 
 export function UnblockButton({ targetId, small = false }: { targetId: string; small?: boolean }) {
+  const t = useT(social);
   const [pending, startTransition] = useTransition();
   const toast = useToast();
   const saveFailed = useSaveFailure();
@@ -26,7 +29,7 @@ export function UnblockButton({ targetId, small = false }: { targetId: string; s
       }
       className={`rounded-full bg-surface-hover font-medium disabled:opacity-50 ${small ? "h-9 px-4 text-sm" : "h-11 px-8 text-sm"}`}
     >
-      {pending ? "처리 중" : "차단 풀기"}
+      {pending ? t("working") : t("unblock")}
     </button>
   );
 }

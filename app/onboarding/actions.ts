@@ -14,6 +14,8 @@ import {
   MAX_NICKNAME_LENGTH,
   validateNickname,
 } from "@/lib/nickname";
+import { auth } from "@/lib/i18n/messages/auth";
+import { getLocale, getT } from "@/lib/i18n/server";
 import { prisma } from "@/lib/prisma";
 import { isCharacterId } from "@/lib/characters";
 import { isProfileImage } from "@/lib/profile-image";
@@ -24,7 +26,8 @@ import { getCurrentUser } from "@/lib/session";
 // 빈 화면으로 시작하면 무엇부터 해야 할지 모른다. 지우거나 바꿀 수 있는 기본값을 하나 준다.
 // 여러 개를 미리 만들어 두면 쓰지도 않는 칸이 화면을 채운다.
 // 브랜드 파랑과 겹치는 색은 피한다. 카테고리 색인지 버튼 색인지 구분이 안 된다.
-const DEFAULT_CATEGORIES = [{ name: "오늘", color: "#2563eb" }];
+// 이름은 가입하는 사람이 고른 언어로 만든다(그 뒤로는 사용자가 적은 글이라 언어를 바꿔도 따라 바뀌지 않는다).
+const DEFAULT_CATEGORY_COLOR = "#2563eb";
 
 export type OnboardingState = { message: string } | null;
 
@@ -36,24 +39,26 @@ export async function saveNickname(
   if (!user) redirect("/login");
 
   const userId = user.id;
+  const t = await getT(auth);
+  const locale = await getLocale();
   const nickname = normalizeNickname(formData.get("nickname"));
 
   const valid = validateNickname(nickname);
-  if (!valid.ok) return { message: `닉네임은 1~${MAX_NICKNAME_LENGTH}자로 적어주세요.` };
+  if (!valid.ok) return { message: t("nicknameLength", { max: MAX_NICKNAME_LENGTH }) };
   // 화면의 체크박스만 믿지 않는다. 동의 없이 가입되면 안 된다.
   if (formData.get("agree") !== "on") {
-    return { message: "개인정보 수집·이용에 동의해주세요." };
+    return { message: t("mustAgree") };
   }
 
   // 가입할 때 고른 프로필 사진. 비어 있으면 도리 얼굴을 쓴다(components/avatar-choice.tsx).
   const profileImage = String(formData.get("profileImage") ?? "").trim();
   const characterValue = String(formData.get("avatarCharacter") ?? "");
-  if (characterValue && !isCharacterId(characterValue)) return { message: "캐릭터를 고르지 못했어요. 다시 골라주세요." };
+  if (characterValue && !isCharacterId(characterValue)) return { message: t("badCharacter") };
   if (formData.get("profileImageBusy")) {
-    return { message: "사진을 줄이는 중이에요. 잠깐 뒤에 눌러주세요." };
+    return { message: t("photoBusy") };
   }
   if (profileImage && !isProfileImage(profileImage)) {
-    return { message: "사진을 올리지 못했어요. 다른 사진이나 도리로 해주세요." };
+    return { message: t("photoFailed") };
   }
 
   // 가입 경로는 링크에 붙은 정해진 모양의 이름만 받는다. 모양이 틀리면 버리고(경로 모름) 가입은 그대로 진행한다.
@@ -62,14 +67,14 @@ export async function saveNickname(
   const timezone = formData.get("timezone");
 
   if (await isNicknameTaken(nickname, userId)) {
-    return { message: "이미 쓰고 있는 닉네임이에요. 다른 이름으로 해주세요." };
+    return { message: t("nicknameTaken") };
   }
 
   try {
     // 언제 동의했는지 남긴다. 방침이 바뀌면 이 시각과 시행일을 견줘 다시 물을 수 있다.
     await prisma.user.update({
       where: { id: userId },
-      data: { nickname, privacyAgreedAt: new Date(), ...(signupSource && { signupSource }), ...(isAllowedTimezone(timezone) && { timezone }), ...(profileImage && { profileImage }), ...(characterValue && { avatarCharacter: characterValue }) },
+      data: { nickname, locale, privacyAgreedAt: new Date(), ...(signupSource && { signupSource }), ...(isAllowedTimezone(timezone) && { timezone }), ...(profileImage && { profileImage }), ...(characterValue && { avatarCharacter: characterValue }) },
     });
   } catch (error) {
     // 같은 순간에 같은 이름으로 둘이 저장하면 여기서 걸린다.
@@ -77,7 +82,7 @@ export async function saveNickname(
       error instanceof Prisma.PrismaClientKnownRequestError &&
       error.code === "P2002"
     ) {
-      return { message: "방금 누군가 같은 닉네임을 가져갔어요. 다시 골라주세요." };
+      return { message: t("nicknameJustTaken") };
     }
     throw error;
   }
@@ -86,11 +91,7 @@ export async function saveNickname(
   const existing = await prisma.category.count({ where: { userId } });
   if (existing === 0) {
     await prisma.category.createMany({
-      data: DEFAULT_CATEGORIES.map((category, index) => ({
-        ...category,
-        userId,
-        order: index,
-      })),
+      data: [{ name: t("defaultCategory"), color: DEFAULT_CATEGORY_COLOR, userId, order: 0 }],
     });
   }
 

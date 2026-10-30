@@ -5,6 +5,8 @@ import { Prisma, type RoutineFreq } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
 import { formatKST, parseKSTDate, todayIn } from "@/lib/date";
+import { routines as routineMessages } from "@/lib/i18n/messages/routines";
+import { getT } from "@/lib/i18n/server";
 import { isId, readIdList } from "@/lib/ids";
 import { LIMITS } from "@/lib/limits";
 import { prisma } from "@/lib/prisma";
@@ -57,11 +59,12 @@ export async function createRoutine(
   if (readText(formData, "kind") === "EVENT") return createEventRoutine(_previous, formData);
 
   const user = await requireUser();
+  const t = await getT(routineMessages);
 
   const content = readText(formData, "content").slice(0, MAX_CONTENT_LENGTH);
   const freq = readFreq(formData);
-  if (!content) return { message: "반복할 할 일을 적어주세요." };
-  if (!freq) return { message: "반복 주기를 골라주세요." };
+  if (!content) return { message: t("needContent") };
+  if (!freq) return { message: t("pickFreq") };
 
   const byWeekday = freq === "WEEKLY" ? readNumbers(formData, "byWeekday", 6) : [];
   const byMonthday =
@@ -69,27 +72,27 @@ export async function createRoutine(
 
   // 요일이나 날짜를 하나도 고르지 않은 루틴은 영원히 실행되지 않는다. 만들지 않는다.
   if (freq === "WEEKLY" && byWeekday.length === 0) {
-    return { message: "반복할 요일을 하나 이상 골라주세요." };
+    return { message: t("pickWeekday") };
   }
   if (freq === "MONTHLY" && byMonthday.length === 0) {
-    return { message: "반복할 날짜를 하나 이상 골라주세요." };
+    return { message: t("pickMonthday") };
   }
 
   const startDate = readDate(formData, "startDate") ?? todayIn(user.timezone);
   const endDate = readDate(formData, "endDate");
   if (endDate && endDate < startDate) {
-    return { message: "종료일이 시작일보다 앞설 수 없어요." };
+    return { message: t("endBeforeStart") };
   }
 
   // 루틴은 카테고리 안에 들어간다(docs/decisions.md). 카테고리 없는 루틴은 만든 할 일이
   // 적을 수 없는 "카테고리 없음" 묶음에 쌓인다. 보관한 카테고리에도 새로 만들지 않는다.
   const categoryId = readText(formData, "categoryId");
-  if (!categoryId) return { message: "카테고리를 골라주세요." };
+  if (!categoryId) return { message: t("pickCategory") };
   const owned = await prisma.category.findFirst({
     where: { id: categoryId, userId: user.id, archivedAt: null },
     select: { id: true },
   });
-  if (!owned) return { message: "고른 카테고리를 찾을 수 없어요." };
+  if (!owned) return { message: t("categoryNotFound") };
 
   // 상한은 반복 일정과 합쳐 센다.
   const [count, eventCount] = await Promise.all([
@@ -97,7 +100,7 @@ export async function createRoutine(
     prisma.eventRoutine.count({ where: { userId: user.id } }),
   ]);
   if (count + eventCount >= LIMITS.routines) {
-    return { message: `루틴은 ${LIMITS.routines}개까지 만들 수 있어요. 안 쓰는 루틴을 지워주세요.` };
+    return { message: t("tooMany", { max: LIMITS.routines }) };
   }
 
   const last = await prisma.routine.findFirst({
@@ -123,7 +126,7 @@ export async function createRoutine(
   revalidatePath("/routines");
   revalidatePath("/");
 
-  return { message: "루틴을 만들었어요.", ok: true };
+  return { message: t("created"), ok: true };
 }
 
 /** 일시정지하면 다음 조회부터 새 할 일이 생기지 않는다. 이미 만든 것은 남는다. */
@@ -163,18 +166,19 @@ export type RoutineEdit = { ok: true } | { ok: false; message: string };
  */
 export async function updateRoutine(formData: FormData): Promise<RoutineEdit> {
   const user = await requireUser();
+  const t = await getT(routineMessages);
   const id = readText(formData, "id");
   const content = readText(formData, "content");
   const categoryId = readText(formData, "categoryId");
-  if (!content) return { ok: false, message: "루틴 내용을 적어주세요." };
-  if (content.length > MAX_CONTENT_LENGTH) return { ok: false, message: `${MAX_CONTENT_LENGTH}자 안으로 적어주세요.` };
+  if (!content) return { ok: false, message: t("contentRequired") };
+  if (content.length > MAX_CONTENT_LENGTH) return { ok: false, message: t("contentTooLong", { max: MAX_CONTENT_LENGTH }) };
 
   const [routine, category] = await Promise.all([
     prisma.routine.findFirst({ where: { id, userId: user.id }, select: { id: true } }),
     prisma.category.findFirst({ where: { id: categoryId, userId: user.id, archivedAt: null }, select: { id: true } }),
   ]);
-  if (!routine) return { ok: false, message: "루틴을 찾지 못했어요. 새로 고쳐 주세요." };
-  if (!category) return { ok: false, message: "카테고리를 골라주세요." };
+  if (!routine) return { ok: false, message: t("routineNotFound") };
+  if (!category) return { ok: false, message: t("pickCategory") };
 
   const today = todayIn(user.timezone);
   await prisma.$transaction([
@@ -280,7 +284,7 @@ export async function restoreRoutine(snapshot: DeletedRoutine): Promise<string |
   // 되돌리기도 새로 만드는 것과 같은 상한을 지킨다.
   const count = await prisma.routine.count({ where: { userId: user.id } });
   if (count >= LIMITS.routines) {
-    return `루틴은 ${LIMITS.routines}개까지 만들 수 있어요.`;
+    return (await getT(routineMessages))("tooManyShort", { max: LIMITS.routines });
   }
 
   const category = snapshot.categoryId

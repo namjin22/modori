@@ -2,12 +2,14 @@
 
 import { useOptimistic, useRef } from "react";
 
+import { useT } from "@/components/locale-provider";
 import { useCompletionCount } from "@/components/todo-progress";
 import { useTodoStore } from "@/components/todo-store";
 import { useSaveFailure } from "@/components/use-save-failure";
 
 import { toggleTodo } from "@/app/(tabs)/actions";
 import { onColorText } from "@/lib/colors";
+import { todos as todoMessages } from "@/lib/i18n/messages/todos";
 import { useBump } from "@/lib/motion";
 
 // 서버 왕복을 기다렸다가 체크 표시를 바꾸면 손가락보다 화면이 한참 늦다.
@@ -22,6 +24,7 @@ export function TodoCheckbox({
   // 카테고리 색. 카테고리를 고르지 않은 할 일은 브랜드 색을 쓴다.
   color?: string;
 }) {
+  const t = useT(todoMessages);
   const [optimisticDone, setOptimisticDone] = useOptimistic(done);
   const changeDone = useCompletionCount();
   // 홈에서는 달력 칸의 채움까지 같이 바뀐다.
@@ -55,7 +58,7 @@ export function TodoCheckbox({
           밖이 되어 클릭이 되지 않는다. */}
       <button
         type="submit"
-        aria-label={optimisticDone ? "완료 취소" : "완료"}
+        aria-label={optimisticDone ? t("undone") : t("done")}
         // 보이는 크기는 22px, 누르는 영역은 가상 요소로 42px까지 넓힌다. 가장 자주
         // 누르는 곳인데 22px이면 손가락으로 옆 줄을 누르기 쉽다.
         className="group relative flex size-[22px] shrink-0 items-center justify-center after:absolute after:-inset-2.5 after:content-['']"

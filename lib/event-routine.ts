@@ -1,6 +1,7 @@
 import type { EventRoutine } from "@prisma/client";
 
 import { addDays, daysBetween, formatKST } from "@/lib/date";
+import type { Locale } from "@/lib/i18n";
 import { describeRoutineRule, matchesRule } from "@/lib/routine";
 
 /**
@@ -41,6 +42,7 @@ export function expandEventRoutines(
   skips: { eventRoutineId: string; date: Date }[],
   from: Date,
   to: Date,
+  locale: Locale = "ko",
 ): EventOccurrence[] {
   const skipped = new Set(skips.map((skip) => `${skip.eventRoutineId}:${formatKST(skip.date)}`));
   const span = Math.min(daysBetween(from, to), MAX_SPAN_DAYS);
@@ -61,7 +63,7 @@ export function expandEventRoutines(
         color: routine.color,
         memo: null,
         dday: false,
-        repeat: { routineId: routine.id, date: key, rule: describeRoutineRule(routine) },
+        repeat: { routineId: routine.id, date: key, rule: describeRoutineRule(routine, locale) },
       });
     }
     result.push(...today.sort(byTime));

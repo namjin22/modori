@@ -1,4 +1,5 @@
 import { eventDigestDay, eventDigestPush, type EventDigestItem } from "@/lib/event-digest";
+import { localeOrDefault } from "@/lib/i18n";
 import { expandEventRoutines } from "@/lib/event-routine";
 import { prisma } from "@/lib/prisma";
 import { sendPushToUser } from "@/lib/push";
@@ -31,7 +32,7 @@ export async function sendDueEventDigests(now: Date = new Date()): Promise<numbe
   const candidates = await prisma.user.findMany({
     // 알림을 받을 기기가 없으면 보낼 곳이 없다.
     where: { eventDigestMinute: { not: null }, nickname: { not: null }, pushTokens: { some: {} } },
-    select: { id: true, timezone: true, eventDigestMinute: true, eventDigestSentOn: true },
+    select: { id: true, timezone: true, locale: true, eventDigestMinute: true, eventDigestSentOn: true },
   });
 
   let sent = 0;
@@ -48,7 +49,7 @@ export async function sendDueEventDigests(now: Date = new Date()): Promise<numbe
     });
     if (claimed.count === 0) continue;
 
-    const message = eventDigestPush(await eventsOn(owner.id, day), day);
+    const message = eventDigestPush(await eventsOn(owner.id, day), day, localeOrDefault(owner.locale));
     if (!message) continue;
     // 오늘 일정 알림은 앱 푸시로만(웹 푸시로 보내지 않는다, CLAUDE.md 규칙 7).
     await sendPushToUser(owner.id, message, { web: false });

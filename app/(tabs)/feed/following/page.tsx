@@ -12,9 +12,12 @@ import { unfollowUser } from "../actions";
 import { Avatar } from "@/components/avatar";
 import { BackLink } from "@/components/back-link";
 import { avatarUrl } from "@/lib/avatar";
+import { social } from "@/lib/i18n/messages/social";
+import { getT } from "@/lib/i18n/server";
 
 export default async function FollowingPage() {
   const user = await requireUser();
+  const t = await getT(social);
 
   const following = await prisma.follow.findMany({
     where: { followerId: user.id },
@@ -27,15 +30,15 @@ export default async function FollowingPage() {
   return (
     <div className="flex flex-col gap-6">
       <header className="flex items-center gap-1">
-        <BackLink href="/feed" label="소셜로" />
-        <h1 className="text-2xl font-bold">팔로우 중</h1>
+        <BackLink href="/feed" label={t("toSocial")} />
+        <h1 className="text-2xl font-bold">{t("followingTitle")}</h1>
       </header>
 
       {following.length === 0 ? (
         <DoriMessage mood="hello">
-          <p>아직 팔로우한 친구가 없어요</p>
+          <p>{t("noFollowing")}</p>
           <Link prefetch={false} href="/feed/search" className="mt-1 inline-block text-brand">
-            닉네임으로 찾아보기
+            {t("searchByNickname")}
           </Link>
         </DoriMessage>
       ) : (
@@ -56,10 +59,10 @@ export default async function FollowingPage() {
               <form action={unfollowUser}>
                 <input type="hidden" name="targetId" value={person.id} />
                 <SubmitButton
-                  pendingLabel="처리 중"
+                  pendingLabel={t("working")}
                   className="h-9 rounded-full bg-surface-hover px-4 text-sm text-muted"
                 >
-                  언팔로우
+                  {t("unfollow")}
                 </SubmitButton>
               </form>
             </li>

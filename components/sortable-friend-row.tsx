@@ -15,8 +15,10 @@ import { CSS } from "@dnd-kit/utilities";
 
 import { reorderFriends } from "@/app/(tabs)/feed/actions";
 import { Avatar } from "@/components/avatar";
+import { useT } from "@/components/locale-provider";
 import { buzzOnTouchDrag, useRowSensors } from "@/components/sortable-list";
 import { useSaveFailure } from "@/components/use-save-failure";
+import { social } from "@/lib/i18n/messages/social";
 
 export type FriendItem = { id: string; nickname: string; avatar: string | null };
 
@@ -29,6 +31,7 @@ const ROW_AUTO_SCROLL = { threshold: { x: 0.12, y: 0 }, acceleration: 3 };
  * 키보드는 Tab으로 오면 보이는 "순서 바꾸기" 버튼에서 스페이스. 바꾼 순서는 바로 보여 주고, 저장이 실패하면 서버 순서로 되돌린다.
  */
 export function SortableFriendRow({ friends, moreCount }: { friends: FriendItem[]; moreCount: number }) {
+  const t = useT(social);
   const ids = friends.map((friend) => friend.id);
   const key = ids.join(",");
   const [order, setOrder] = useState(ids);
@@ -82,20 +85,24 @@ export function SortableFriendRow({ friends, moreCount }: { friends: FriendItem[
   }
 
   const byId = new Map(friends.map((friend) => [friend.id, friend]));
-  const nameOf = (id: Active["id"]) => byId.get(String(id))?.nickname ?? "친구";
+  const nameOf = (id: Active["id"]) => byId.get(String(id))?.nickname ?? t("friendFallback");
   const positionOf = (id: Active["id"] | Over["id"]) => order.indexOf(String(id)) + 1;
 
   const accessibility = {
     screenReaderInstructions: {
-      draggable: "스페이스를 눌러 집고, 좌우 방향키로 옮긴 뒤 스페이스로 내려놓으세요. 취소하려면 Esc를 누르세요.",
+      draggable: t("friendRowInstructions"),
     },
     announcements: {
-      onDragStart: ({ active }: { active: Active }) => `${nameOf(active.id)}을(를) 집었어요. 지금 ${positionOf(active.id)}번째예요.`,
+      onDragStart: ({ active }: { active: Active }) => t("friendDragStart", { name: nameOf(active.id), position: positionOf(active.id) }),
       onDragOver: ({ active, over }: { active: Active; over: Over | null }) =>
-        over ? `${nameOf(active.id)}을(를) ${positionOf(over.id)}번째 자리로 옮기는 중이에요.` : `${nameOf(active.id)}이(가) 줄 밖에 있어요.`,
+        over
+          ? t("friendDragOver", { name: nameOf(active.id), position: positionOf(over.id) })
+          : t("friendDragOutside", { name: nameOf(active.id) }),
       onDragEnd: ({ active, over }: { active: Active; over: Over | null }) =>
-        over ? `${nameOf(active.id)}을(를) ${positionOf(over.id)}번째에 내려놓았어요.` : `${nameOf(active.id)}을(를) 내려놓았어요. 순서는 그대로예요.`,
-      onDragCancel: ({ active }: { active: Active }) => `옮기기를 취소했어요. ${nameOf(active.id)}은(는) 제자리에 있어요.`,
+        over
+          ? t("friendDragEnd", { name: nameOf(active.id), position: positionOf(over.id) })
+          : t("friendDragEndSame", { name: nameOf(active.id) }),
+      onDragCancel: ({ active }: { active: Active }) => t("friendDragCancel", { name: nameOf(active.id) }),
     },
   };
 
@@ -121,7 +128,7 @@ export function SortableFriendRow({ friends, moreCount }: { friends: FriendItem[
                 <span className="flex size-14 items-center justify-center rounded-full bg-surface text-sm font-semibold text-muted">
                   +{moreCount}
                 </span>
-                <span className="w-full truncate text-center text-xs text-muted">전체 보기</span>
+                <span className="w-full truncate text-center text-xs text-muted">{t("viewAll")}</span>
               </Link>
             </li>
           )}
@@ -132,6 +139,7 @@ export function SortableFriendRow({ friends, moreCount }: { friends: FriendItem[
 }
 
 function FriendTile({ friend }: { friend: FriendItem }) {
+  const t = useT(social);
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: friend.id });
   // 마우스·손가락은 얼굴 전체에서, 키보드는 Tab으로 오면 보이는 버튼에서 받는다.
   const { onTouchStart, onMouseDown, ...keyListeners } = listeners ?? {};
@@ -153,12 +161,12 @@ function FriendTile({ friend }: { friend: FriendItem }) {
     >
       <button
         type="button"
-        aria-label={`${friend.nickname} 순서 바꾸기 손잡이`}
+        aria-label={t("friendHandleLabel", { nickname: friend.nickname })}
         className="sr-only z-10 rounded-lg text-xs text-foreground focus-visible:not-sr-only focus-visible:absolute focus-visible:left-0 focus-visible:top-0 focus-visible:bg-surface focus-visible:px-2 focus-visible:py-1 focus-visible:shadow pointer-coarse:hidden"
         {...attributes}
         {...keyListeners}
       >
-        ⠿ 순서 바꾸기
+        {t("friendHandleText")}
       </button>
       {/* draggable=false: 링크와 그림은 브라우저가 따로 끌기를 시작해 우리 끌기를 끊는다. */}
       <Link

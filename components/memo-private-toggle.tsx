@@ -2,6 +2,9 @@
 
 import { useState } from "react";
 
+import { useT } from "@/components/locale-provider";
+import { todos as todoMessages } from "@/lib/i18n/messages/todos";
+
 /**
  * 메모를 팔로우한 친구에게 숨길지 정하는 한 줄짜리 작은 스위치(2026-10-20 요청: 큰 스위치 줄이 생겼다 사라지며 창이 흔들렸다).
  * 메모 칸 바로 아래에 두고, 켜져 있는지 바로 보이게 오른쪽에 지금 상태를 글로 적는다.
@@ -19,17 +22,18 @@ export function MemoPrivateToggle({
   defaultChecked?: boolean;
   forcedPrivate?: boolean;
 }) {
+  const t = useT(todoMessages);
   const [checked, setChecked] = useState(defaultChecked);
 
   if (forcedPrivate) {
-    return <p className={ROW}>일정이 비공개라 메모도 나만 봐요</p>;
+    return <p className={ROW}>{t("eventPrivateMemo")}</p>;
   }
 
   return (
     <label className={`${ROW} cursor-pointer`}>
       <span className="flex items-baseline gap-2">
-        <span className="font-medium text-foreground">메모 비공개</span>
-        <span>{checked ? "나만 봐요" : "친구에게 보여요"}</span>
+        <span className="font-medium text-foreground">{t("memoPrivate")}</span>
+        <span>{checked ? t("onlyMe") : t("visibleToFriends")}</span>
       </span>
       <input
         type="checkbox"

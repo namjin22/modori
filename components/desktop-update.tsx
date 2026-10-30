@@ -2,9 +2,11 @@
 
 import { useEffect, useState, useSyncExternalStore } from "react";
 
+import { useLocale, useT } from "@/components/locale-provider";
 import { subscribeNothing } from "@/lib/device-timezone";
 import { DESKTOP_DOWNLOAD_URL } from "@/lib/desktop-download";
 import { hasPendingUpdate, updateButtonLabel, updateMessage, type UpdateState } from "@/lib/desktop-update";
+import { desktop } from "@/lib/i18n/messages/desktop";
 
 /** 앱(desktop/updater.js)의 업데이트 상태를 따라간다. 웹 브라우저나 옛 앱처럼 연결이 없으면 null. */
 function useUpdateState(): UpdateState | null {
@@ -33,8 +35,9 @@ function startUpdate() {
 }
 
 function ProgressBar({ percent }: { percent: number }) {
+  const t = useT(desktop);
   return (
-    <div role="progressbar" aria-label="업데이트 받는 중" aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent} className="h-1.5 overflow-hidden rounded-full bg-border">
+    <div role="progressbar" aria-label={t("downloading")} aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent} className="h-1.5 overflow-hidden rounded-full bg-border">
       <div className="h-full rounded-full bg-brand transition-[width]" style={{ width: `${percent}%` }} />
     </div>
   );
@@ -45,19 +48,21 @@ function ProgressBar({ percent }: { percent: number }) {
  * 받는 것은 누른 뒤에만 한다. 설치 파일이 100MB를 넘어서, 모르는 사이 데이터를 쓰지 않게 하려는 것이다.
  */
 export function DesktopUpdateBanner() {
+  const t = useT(desktop);
+  const locale = useLocale();
   const state = useUpdateState();
   if (!state || !hasPendingUpdate(state)) return null;
   const downloading = state.status === "downloading";
   const busy = downloading || state.status === "installing";
 
   return (
-    <div role="region" aria-label="앱 업데이트" className="mb-4 flex flex-col gap-3 rounded-2xl bg-brand-subtle p-4">
+    <div role="region" aria-label={t("updateRegion")} className="mb-4 flex flex-col gap-3 rounded-2xl bg-brand-subtle p-4">
       <p className="text-sm">
-        새 버전 <b className="font-semibold">{state.version}</b>이 나왔어요. 누르면 받아서 설치하고 앱이 다시 시작돼요.
+        {t("newVersionBefore")}<b className="font-semibold">{state.version}</b>{t("newVersionAfter")}
       </p>
       {state.status === "error" && (
         <p role="alert" className="text-xs text-muted">
-          {updateMessage(state)}
+          {updateMessage(state, locale)}
         </p>
       )}
       {downloading && <ProgressBar percent={state.percent} />}
@@ -67,7 +72,7 @@ export function DesktopUpdateBanner() {
         onClick={startUpdate}
         className="h-10 rounded-xl bg-brand text-sm font-semibold text-brand-contrast disabled:opacity-60"
       >
-        {updateButtonLabel(state)}
+        {updateButtonLabel(state, locale)}
       </button>
     </div>
   );
@@ -78,6 +83,8 @@ export function DesktopUpdateBanner() {
  * 앱 안 업데이트가 없는 옛 앱(1.0.6 이하)은 이 줄 대신 OutdatedAppNotice를 쓴다(app/(tabs)/settings/page.tsx).
  */
 export function DesktopUpdateRow() {
+  const t = useT(desktop);
+  const locale = useLocale();
   const bridge = useSyncExternalStore(subscribeNothing, () => Boolean(window.modoriUpdater), () => false);
   const state = useUpdateState();
 
@@ -88,13 +95,13 @@ export function DesktopUpdateRow() {
 
   return (
     <section className="flex flex-col gap-4 rounded-2xl bg-surface p-6">
-      <h2 className="text-sm font-semibold text-muted">앱 업데이트</h2>
+      <h2 className="text-sm font-semibold text-muted">{t("updateTitle")}</h2>
       <div className="flex items-center gap-3">
         <span className="flex flex-1 flex-col gap-0.5">
-          <span className="text-[15px] font-medium">모도리 {state.current}</span>
+          <span className="text-[15px] font-medium">{t("appName", { version: state.current })}</span>
           {/* 받는 중에는 퍼센트가 1%마다 바뀌어 스크린리더가 계속 읽게 된다. 진행은 위의 진행 막대가 알린다. */}
           <span aria-live={state.status === "downloading" ? "off" : "polite"} className="text-[13px] text-muted">
-            {updateMessage(state)}
+            {updateMessage(state, locale)}
           </span>
         </span>
         <button
@@ -103,7 +110,7 @@ export function DesktopUpdateRow() {
           onClick={pending ? startUpdate : () => window.modoriUpdater?.check()}
           className="h-10 shrink-0 rounded-full bg-brand px-4 text-sm font-semibold text-brand-contrast disabled:opacity-60"
         >
-          {updateButtonLabel(state)}
+          {updateButtonLabel(state, locale)}
         </button>
       </div>
       {state.status === "downloading" && <ProgressBar percent={state.percent} />}
@@ -116,15 +123,13 @@ export function DesktopUpdateRow() {
  * 설치 파일 링크는 앱이 평소 브라우저로 열어 준다(desktop/main.js의 guardNavigation, 1.0.0부터).
  */
 export function OutdatedAppNotice({ version }: { version: string }) {
+  const t = useT(desktop);
   return (
     <section className="flex flex-col gap-3 rounded-2xl bg-surface p-6">
-      <h2 className="text-sm font-semibold text-muted">앱 업데이트</h2>
-      <p className="text-[13px] leading-relaxed text-muted">
-        이 앱(모도리 {version})은 앱 안에서 업데이트하는 기능이 없는 옛 버전이에요. 한 번만 새로 설치하면 그다음부터는 여기서 누르는 것만으로
-        업데이트돼요. 로그인과 설정은 그대로예요.
-      </p>
+      <h2 className="text-sm font-semibold text-muted">{t("updateTitle")}</h2>
+      <p className="text-[13px] leading-relaxed text-muted">{t("outdatedRowBefore", { version })}</p>
       <a href={DESKTOP_DOWNLOAD_URL} className="flex h-11 items-center justify-center rounded-xl bg-brand text-sm font-semibold text-brand-contrast">
-        최신 버전 받기
+        {t("getLatest")}
       </a>
     </section>
   );
@@ -136,27 +141,27 @@ export function OutdatedAppNotice({ version }: { version: string }) {
  * 앱 안 업데이트가 있는 앱(1.0.7부터)은 새 버전이 나왔을 때 DesktopUpdateBanner가 알린다.
  */
 export function OutdatedAppBanner({ version }: { version: string }) {
+  const t = useT(desktop);
   const [hidden, setHidden] = useState(false);
   if (hidden) return null;
 
   return (
-    <div role="region" aria-label="앱 업데이트" className="mb-4 flex flex-col gap-3 rounded-2xl bg-brand-subtle p-4">
+    <div role="region" aria-label={t("updateRegion")} className="mb-4 flex flex-col gap-3 rounded-2xl bg-brand-subtle p-4">
       <p className="text-sm">
-        모도리 앱이 오래된 버전(<b className="font-semibold">{version}</b>)이에요. 최신 버전으로 업데이트해 주세요.
+        {t("outdatedBannerBefore")}<b className="font-semibold">{version}</b>{t("outdatedBannerAfter")}
       </p>
       <p className="text-xs leading-relaxed text-muted">
-        한 번만 새로 설치하면 그다음부터는 앱 안에서 버튼만 눌러 업데이트돼요. 로그인과 설정은 그대로예요. 설치할 때 &ldquo;Windows의 PC
-        보호&rdquo; 창이 뜨면 <b>추가 정보</b>를 누르고 <b>실행</b>을 눌러요.
+        {t("outdatedHintBefore")}<b>{t("moreInfo")}</b>{t("outdatedHintMid")}<b>{t("run")}</b>{t("outdatedHintAfter")}
       </p>
       <div className="flex gap-2">
         <a
           href={DESKTOP_DOWNLOAD_URL}
           className="flex h-10 flex-1 items-center justify-center rounded-xl bg-brand text-sm font-semibold text-brand-contrast"
         >
-          최신 버전 받기
+          {t("getLatest")}
         </a>
         <button type="button" onClick={() => setHidden(true)} className="h-10 flex-1 rounded-xl bg-surface text-sm font-medium text-muted">
-          나중에
+          {t("later")}
         </button>
       </div>
     </div>

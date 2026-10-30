@@ -9,6 +9,7 @@ import {
 } from "@/app/(tabs)/events/actions";
 import { ColorSwatches } from "@/components/color-swatches";
 import { DatePicker } from "@/components/date-picker";
+import { useT } from "@/components/locale-provider";
 import { LabeledSwitch } from "@/components/labeled-switch";
 import { MemoPrivateToggle } from "@/components/memo-private-toggle";
 import { PrivateSwitch } from "@/components/private-switch";
@@ -16,6 +17,8 @@ import { SubmitButton } from "@/components/submit-button";
 import { TimePicker } from "@/components/time-picker";
 import { useFormAction } from "@/components/use-form-action";
 import { DEFAULT_EVENT_COLOR } from "@/lib/colors";
+import { common } from "@/lib/i18n/messages/common";
+import { events } from "@/lib/i18n/messages/events";
 import { MAX_MEMO_LENGTH } from "@/lib/memo";
 
 type EditingEvent = {
@@ -54,12 +57,14 @@ export function EventForm({
   // 고치는 창의 삭제 버튼. 주면 취소·저장과 한 줄 왼쪽에 둔다(예전에는 그 아래 따로 한 줄을 차지했다, 2026-10-20).
   deleteButton?: ReactNode;
 }) {
+  const t = useT(events);
+  const tc = useT(common);
   const [state, action, pending] = useFormAction<EventFormState>(
     event ? updateEvent : createEvent,
     null,
   );
   // 만들기 창과 고치기 창이 한 화면에 여럿 떠 있을 수 있다. 이름표를 구분한다.
-  const label = event ? "일정" : "새 일정";
+  const label = event ? t("eventLabel") : t("newEventLabel");
   const [allDay, setAllDay] = useState(!event?.startTime);
   const [startDate, setStartDate] = useState(event?.startDate ?? defaultDate);
   const [endDate, setEndDate] = useState(event?.endDate ?? defaultDate);
@@ -100,8 +105,8 @@ export function EventForm({
         defaultValue={event?.title}
         autoFocus
         data-autofocus
-        placeholder="예: 시험, 친구 생일, 병원 예약"
-        aria-label={`${label} 이름`}
+        placeholder={t("namePlaceholder")}
+        aria-label={t("nameLabel", { label })}
         onKeyDown={(keyEvent) => {
           if (keyEvent.key === "Escape") onCancel();
         }}
@@ -112,19 +117,19 @@ export function EventForm({
           예전에는 긴 날짜라 폰에서는 한 줄에 하나씩, 넓은 화면에서는 스크롤바만 생겨도 "(..."로 잘렸다(2026-10-20). */}
       <div className="grid grid-cols-2 gap-3">
         <div className="flex min-w-0 flex-col gap-1.5 text-xs text-muted">
-          시작일
-          <DatePicker label={`${label} 시작일`} name="startDate" value={startDate} onChange={changeStartDate} short />
+          {t("startDate")}
+          <DatePicker label={t("startDateLabel", { label })} name="startDate" value={startDate} onChange={changeStartDate} short />
         </div>
         <div className="flex min-w-0 flex-col gap-1.5 text-xs text-muted">
-          종료일
-          <DatePicker label={`${label} 종료일`} name="endDate" value={endDate} onChange={setEndDate} short />
+          {t("endDate")}
+          <DatePicker label={t("endDateLabel", { label })} name="endDate" value={endDate} onChange={setEndDate} short />
         </div>
       </div>
 
       <div className="flex flex-col gap-3 rounded-xl border border-border p-3">
         <LabeledSwitch
           name="allDay"
-          title="하루 종일"
+          title={t("allDay")}
           checked={allDay}
           onChange={(checked) => {
             setAllDay(checked);
@@ -138,9 +143,9 @@ export function EventForm({
         {/* 시작·끝을 한 줄에 둔다(예전에는 두 줄이라 하루 종일을 끄면 창이 크게 늘었다). */}
         {!allDay && (
           <div className="flex animate-rise items-center gap-2">
-            <TimePicker label={`${label} 시작`} value={startTime} onChange={changeStart} />
+            <TimePicker label={t("startLabel", { label })} value={startTime} onChange={changeStart} />
             <span aria-hidden className="shrink-0 text-sm text-muted">~</span>
-            <TimePicker label={`${label} 종료`} value={endTime} onChange={setEndTime} optional />
+            <TimePicker label={t("endLabel", { label })} value={endTime} onChange={setEndTime} optional />
           </div>
         )}
         <input type="hidden" name="startTime" value={allDay ? "" : startTime} />
@@ -148,7 +153,7 @@ export function EventForm({
       </div>
 
       {/* 할 일 카테고리와 같은 색 팔레트. 달력 칸의 일정 이름표와 일정 카드의 띠가 이 색이 된다. */}
-      <ColorSwatches name="color" legend="색" defaultValue={event?.color ?? DEFAULT_EVENT_COLOR} />
+      <ColorSwatches name="color" legend={t("color")} defaultValue={event?.color ?? DEFAULT_EVENT_COLOR} />
 
       {/* 메모 칸의 Enter는 줄바꿈이다(textarea라 폼을 보내지 않는다). 메모를 숨길지는 칸 바로 아래 한 줄이다(2026-10-20). */}
       <div className="flex flex-col gap-0.5">
@@ -157,8 +162,8 @@ export function EventForm({
           defaultValue={event?.memo ?? ""}
           maxLength={MAX_MEMO_LENGTH}
           rows={3}
-          placeholder="메모"
-          aria-label={`${label} 메모`}
+          placeholder={t("memo")}
+          aria-label={t("memoLabel", { label })}
           className="w-full resize-none rounded-xl bg-surface-hover px-4 py-3 text-sm outline-none placeholder:text-muted focus:ring-2 focus:ring-brand"
         />
         <MemoPrivateToggle forcedPrivate={isPrivate} defaultChecked={event ? !event.memoPublic : false} />
@@ -168,10 +173,10 @@ export function EventForm({
           비공개: 팔로우한 친구에게 숨길지(기본은 보인다, 2026-10-18). 일정을 숨기면 메모도 숨는다. */}
       <div className="flex flex-col divide-y divide-border rounded-xl border border-border px-3">
         <div className="py-3">
-          <LabeledSwitch name="dday" title="D-day 보이기" description="끄면 다가오는 일정 목록에서도 빠져요" defaultChecked={event?.dday ?? true} />
+          <LabeledSwitch name="dday" title={t("ddayShow")} description={t("ddayHint")} defaultChecked={event?.dday ?? true} />
         </div>
         <div className="py-3">
-          <PrivateSwitch description="켜면 이 일정은 나만 봐요" checked={isPrivate} onChange={setIsPrivate} />
+          <PrivateSwitch title={t("privateTitle")} description={t("privateHint")} checked={isPrivate} onChange={setIsPrivate} />
         </div>
       </div>
 
@@ -188,14 +193,14 @@ export function EventForm({
           onClick={onCancel}
           className={`h-11 rounded-xl bg-surface-hover text-sm font-semibold ${deleteButton ? "px-5" : ""}`}
         >
-          취소
+          {tc("cancel")}
         </button>
         <SubmitButton
           pending={pending}
-          pendingLabel="저장 중"
+          pendingLabel={tc("saving")}
           className={`h-11 rounded-xl bg-brand text-sm font-semibold text-brand-contrast ${deleteButton ? "px-7" : ""}`}
         >
-          저장
+          {tc("save")}
         </SubmitButton>
       </div>
     </form>

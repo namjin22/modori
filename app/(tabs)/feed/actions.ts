@@ -8,6 +8,7 @@ import { after } from "next/server";
 import { notBlockedWith } from "@/lib/blocks";
 import { FRIEND_ROW_SIZE, friendOrderValues } from "@/lib/friend-row";
 import { readIdList } from "@/lib/ids";
+import { followNotice, reactionNotice } from "@/lib/notices";
 import { prisma } from "@/lib/prisma";
 import { sendPushToUser, shouldNotify } from "@/lib/push";
 import { isReactionValue } from "@/lib/reactions";
@@ -41,12 +42,11 @@ export async function followUser(formData: FormData) {
   // 새로 팔로우했을 때만 알린다. 응답은 알림을 보내는 것을 기다리지 않는다.
   if (created.count > 0 && shouldNotify(`follow:${user.id}:${target.id}`)) {
     after(() =>
-      sendPushToUser(target.id, {
-        title: "새 팔로워",
-        body: `${user.nickname}님이 나를 팔로우했어요`,
+      sendPushToUser(target.id, (locale) => ({
+        ...followNotice(locale, user.nickname),
         url: "/feed/followers",
         tag: `follow:${user.id}`,
-      }),
+      })),
     );
   }
 
@@ -135,12 +135,11 @@ export async function toggleReaction(formData: FormData) {
       const mine = await prisma.reaction.count({ where: { userId: user.id, todoId } });
       if (mine === 1 && shouldNotify(`reaction:${user.id}:${todo.userId}`)) {
         after(() =>
-          sendPushToUser(todo.userId, {
-            title: "반응이 왔어요",
-            body: `${user.nickname}님이 내 할 일에 반응을 보냈어요`,
+          sendPushToUser(todo.userId, (locale) => ({
+            ...reactionNotice(locale, user.nickname),
             url: "/feed/reactions",
             tag: `reaction:${todoId}`,
-          }),
+          })),
         );
       }
     }

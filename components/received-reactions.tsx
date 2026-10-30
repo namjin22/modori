@@ -2,8 +2,10 @@
 
 import { useState } from "react";
 
+import { useLocale, useT } from "@/components/locale-provider";
 import { Modal } from "@/components/modal";
 import { ReactionGlyph } from "@/components/reaction-glyph";
+import { reactions } from "@/lib/i18n/messages/reactions";
 import { labelOfReaction, type ReceivedReaction } from "@/lib/reactions";
 
 // 줄 오른쪽에 겹쳐 보이는 그림 수. 이보다 종류가 많아도 줄 폭이 늘지 않는다(전체는 창에서 본다).
@@ -15,20 +17,22 @@ const MAX_SHOWN = 2;
  * 누르면 종류별 개수와 보낸 사람을 창으로 보여준다. 내 일에는 내가 반응할 수 없어서 누르면 반응이 바뀌는 게 아니라 보낸 사람을 보여준다.
  */
 export function ReceivedReactions({ received }: { received: ReceivedReaction[] }) {
+  const t = useT(reactions);
+  const locale = useLocale();
   const [open, setOpen] = useState(false);
   if (received.length === 0) return null;
 
   const total = received.reduce((sum, { count }) => sum + count, 0);
-  const summary = received.map(({ emoji, count }) => `${labelOfReaction(emoji)} ${count}개`).join(", ");
+  const summary = received.map(({ emoji, count }) => t("receivedSummary", { label: labelOfReaction(emoji, locale), count })).join(", ");
 
   return (
     <>
-      <ul aria-label="받은 반응" className="shrink-0">
+      <ul aria-label={t("receivedTitle")} className="shrink-0">
         <li>
           <button
             type="button"
             onClick={() => setOpen(true)}
-            aria-label={`${summary}, 누가 보냈는지 보기`}
+            aria-label={t("receivedOpen", { summary })}
             className="-my-0.5 flex h-7 items-center gap-1.5 rounded-full pr-1 text-xs text-muted transition-colors hover:text-foreground active:scale-95"
           >
             <span aria-hidden className="flex">
@@ -49,7 +53,7 @@ export function ReceivedReactions({ received }: { received: ReceivedReaction[] }
         </li>
       </ul>
 
-      <Modal open={open} onClose={() => setOpen(false)} title="받은 반응">
+      <Modal open={open} onClose={() => setOpen(false)} title={t("receivedTitle")}>
         <ul className="flex flex-col gap-3">
           {received.map(({ emoji, count, names }) => (
             <li key={emoji} className="flex items-start gap-3">
@@ -58,8 +62,8 @@ export function ReceivedReactions({ received }: { received: ReceivedReaction[] }
               </span>
               <div className="min-w-0 flex-1 pt-0.5">
                 {/* 반응의 이름("펭이 표정 7" 같은 번호)은 화면에 보이지 않는다(요청). 그림과 개수만 보인다. 이름은 화면 읽기용 aria-label에만 있다. */}
-                <p className="text-sm font-semibold">{count}개</p>
-                <p className="text-sm text-muted">{names.length > 0 ? names.join(", ") : "지운 계정"}</p>
+                <p className="text-sm font-semibold">{t("countOnly", { count })}</p>
+                <p className="text-sm text-muted">{names.length > 0 ? names.join(", ") : t("deletedAccount")}</p>
               </div>
             </li>
           ))}

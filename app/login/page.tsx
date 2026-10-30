@@ -4,9 +4,12 @@ import { redirect } from "next/navigation";
 
 import { AppleLogo } from "@/components/apple-logo";
 import { GoogleLogo } from "@/components/google-logo";
+import { LanguageSelect } from "@/components/language-select";
 import { Logo } from "@/components/logo";
 import { isAppleConfigured, isDataGSMConfigured, isMockAuth, signIn } from "@/lib/auth";
 import { isAndroidApp, isDesktopApp, isInAppBrowser, isMobileApp } from "@/lib/desktop";
+import { auth as authMessages } from "@/lib/i18n/messages/auth";
+import { getT } from "@/lib/i18n/server";
 import { safeNext } from "@/lib/next-path";
 import { getCurrentUser } from "@/lib/session";
 
@@ -15,16 +18,15 @@ import { NativeLoginButtons } from "@/components/native-login-buttons";
 // ?next=·?error=·?switch=가 붙은 주소는 모두 같은 화면이다. 대표 주소를 알려야 검색 엔진이 중복으로 보지 않는다.
 export const metadata: Metadata = { alternates: { canonical: "/login" } };
 
-// Auth.js가 붙여 보내는 오류 코드. 사람이 읽을 말로 바꾼다.
+// Auth.js가 붙여 보내는 오류 코드. 사람이 읽을 말로 바꾼다(lib/i18n/messages/auth.ts).
 // 모르는 코드는 일반 안내로 받는다.
-const ERROR_MESSAGES: Record<string, string> = {
-  Configuration: "로그인 설정에 문제가 있어요. 잠시 뒤 다시 시도해주세요.",
-  AccessDenied: "로그인이 취소됐거나 권한이 없어요.",
-  Verification: "로그인 링크가 만료됐어요. 다시 시도해주세요.",
-  DesktopLogin: "앱 로그인 시간이 지났어요. 다시 눌러 주세요.",
-  OAuthAccountNotLinked:
-    "같은 이메일로 이미 다른 방법으로 가입했어요. 처음 쓰던 방법으로 로그인해주세요.",
-};
+const ERROR_KEYS = {
+  Configuration: "errorConfiguration",
+  AccessDenied: "errorAccessDenied",
+  Verification: "errorVerification",
+  DesktopLogin: "errorDesktopLogin",
+  OAuthAccountNotLinked: "errorNotLinked",
+} as const;
 
 export default async function LoginPage({
   searchParams,
@@ -43,9 +45,8 @@ export default async function LoginPage({
   const showApple = isAppleConfigured && !(await isAndroidApp());
   const inApp = !desktop && !mobile && (await isInAppBrowser());
 
-  const message = error
-    ? (ERROR_MESSAGES[error] ?? "로그인하지 못했어요. 다시 시도해주세요.")
-    : null;
+  const t = await getT(authMessages);
+  const message = error ? t(Object.hasOwn(ERROR_KEYS, error) ? ERROR_KEYS[error as keyof typeof ERROR_KEYS] : "errorDefault") : null;
 
   return (
     // 이름만 덩그러니 있으면 첫 화면이 휑하다. 위아래로 갈라서, 가운데는 브랜드,
@@ -57,8 +58,8 @@ export default async function LoginPage({
       <div className="flex flex-1 flex-col items-center justify-center gap-4 text-center md:flex-none">
         <Logo size={64} />
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">모도리</h1>
-          <p className="mt-2 text-muted">모도리에서 친구들과 함께 매일을 채워가요</p>
+          <h1 className="text-3xl font-bold tracking-tight">{t("brand")}</h1>
+          <p className="mt-2 text-muted">{t("tagline")}</p>
         </div>
       </div>
 
@@ -76,8 +77,9 @@ export default async function LoginPage({
 
         {inApp && (
           <p role="note" className="rounded-2xl bg-surface p-4 text-center text-sm">
-            카카오톡 같은 앱 안에서는 Google 로그인이 막혀요. 오른쪽 위 메뉴에서 <b>다른 브라우저로 열기</b>(크롬·사파리)를 눌러
-            주세요.
+            {t("inAppBefore")}
+            <b>{t("inAppBold")}</b>
+            {t("inAppAfter")}
           </p>
         )}
 
@@ -85,9 +87,9 @@ export default async function LoginPage({
           // 모바일 앱도 앱 안에서는 Google이 로그인을 막는다. 시스템 로그인 창에서 로그인하고 modori://로 돌아온다.
           <NativeLoginButtons
             providers={[
-              { id: "google", label: "Google로 계속하기", primary: true },
-              ...(showApple ? [{ id: "apple" as const, label: "Apple로 계속하기", primary: false }] : []),
-              ...(isDataGSMConfigured ? [{ id: "datagsm" as const, label: "DataGSM으로 계속하기", primary: false }] : []),
+              { id: "google", label: t("continueGoogle"), primary: true },
+              ...(showApple ? [{ id: "apple" as const, label: t("continueApple"), primary: false }] : []),
+              ...(isDataGSMConfigured ? [{ id: "datagsm" as const, label: t("continueDataGSM"), primary: false }] : []),
             ]}
           />
         ) : desktop ? (
@@ -98,18 +100,18 @@ export default async function LoginPage({
               href="/desktop/start?provider=google"
               className="flex h-14 w-full items-center justify-center rounded-2xl bg-brand text-base font-semibold text-brand-contrast transition-colors hover:bg-brand-hover active:scale-[0.98]"
             >
-              Google로 계속하기
+              {t("continueGoogle")}
             </a>
             {isDataGSMConfigured && (
               <a
                 href="/desktop/start?provider=datagsm"
                 className="flex h-14 w-full items-center justify-center rounded-2xl bg-surface text-base font-semibold text-foreground transition-colors hover:bg-surface-hover active:scale-[0.98]"
               >
-                DataGSM으로 계속하기
+                {t("continueDataGSM")}
               </a>
             )}
             <p className="text-center text-xs text-muted">
-              누르면 평소 쓰는 브라우저가 열려요. 로그인을 마치면 앱으로 돌아와요.
+              {t("desktopHint")}
             </p>
           </>
         ) : (
@@ -126,7 +128,7 @@ export default async function LoginPage({
                 className="flex h-14 w-full items-center justify-center gap-2.5 rounded-2xl bg-white text-base font-semibold text-neutral-900 ring-1 ring-black/15 transition-colors hover:bg-neutral-100 active:scale-[0.98]"
               >
                 <GoogleLogo />
-                Google로 계속하기
+                {t("continueGoogle")}
               </button>
             </form>
 
@@ -137,7 +139,7 @@ export default async function LoginPage({
                   await signIn("apple", { redirectTo: next });
                 }}
               >
-                <AppleButton />
+                <AppleButton label={t("continueApple")} />
               </form>
             )}
 
@@ -152,7 +154,7 @@ export default async function LoginPage({
                   type="submit"
                   className="h-14 w-full rounded-2xl bg-surface text-base font-semibold text-foreground transition-colors hover:bg-surface-hover active:scale-[0.98]"
                 >
-                  DataGSM으로 계속하기
+                  {t("continueDataGSM")}
                 </button>
               </form>
             )}
@@ -189,27 +191,27 @@ export default async function LoginPage({
         )}
 
         {/* 가입 전에 읽을 수 있어야 한다. */}
-        <Link
-          href="/privacy"
-          prefetch={false}
-          className="self-center py-2 text-xs text-muted underline underline-offset-4"
-        >
-          개인정보처리방침
-        </Link>
+        {/* 방침 링크와 같은 줄에 둔다. 따로 줄을 만들면 작은 폰에서 로그인 화면이 스크롤된다. 로그인 전에도 언어를 고를 수 있다(쿠키에 적고, 가입하면 계정에 옮긴다). */}
+        <div className="flex flex-wrap items-center justify-between gap-x-3">
+          <Link href="/privacy" prefetch={false} className="py-2 text-xs text-muted underline underline-offset-4">
+            {t("privacyPolicy")}
+          </Link>
+          <LanguageSelect compact />
+        </div>
       </div>
     </main>
   );
 }
 
 /** Apple 버튼은 Apple의 지침대로 검정 바탕(어두운 화면에서는 흰 바탕)에 사과 표시를 단다. */
-function AppleButton() {
+function AppleButton({ label }: { label: string }) {
   return (
     <button
       type="submit"
       className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-foreground text-base font-semibold text-background transition-opacity hover:opacity-90 active:scale-[0.98]"
     >
       <AppleLogo />
-      Apple로 계속하기
+      {label}
     </button>
   );
 }

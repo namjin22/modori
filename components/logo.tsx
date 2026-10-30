@@ -17,8 +17,7 @@ export function Logo({
       width={size}
       height={size}
       viewBox="0 0 64 64"
-      role="img"
-      aria-label="모도리"
+      aria-hidden
       className={className}
     >
       <g

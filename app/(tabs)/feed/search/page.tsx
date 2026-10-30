@@ -4,6 +4,8 @@ import { PersonRow } from "@/components/person-row";
 import { RecommendedFriends } from "@/components/recommended-friends";
 import { SubmitButton } from "@/components/submit-button";
 import { notBlockedWith } from "@/lib/blocks";
+import { social } from "@/lib/i18n/messages/social";
+import { getT } from "@/lib/i18n/server";
 import { MAX_NICKNAME_LENGTH, normalizeNickname } from "@/lib/nickname";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
@@ -16,6 +18,7 @@ export default async function SearchPage({
   searchParams: Promise<{ q?: string; r?: string }>;
 }) {
   const user = await requireUser();
+  const t = await getT(social);
   const { q, r } = await searchParams;
   // 닉네임과 같은 규칙으로 정리한다. 맥에서 친 한글(NFD)도 찾히고, 닉네임보다 긴 검색어는 자른다.
   const query = normalizeNickname(q).slice(0, MAX_NICKNAME_LENGTH);
@@ -44,36 +47,36 @@ export default async function SearchPage({
   return (
     <div className="flex flex-col gap-6">
       <header className="flex items-center gap-1">
-        <BackLink href="/feed" label="소셜로" />
-        <h1 className="text-2xl font-bold">친구 찾기</h1>
+        <BackLink href="/feed" label={t("toSocial")} />
+        <h1 className="text-2xl font-bold">{t("searchTitle")}</h1>
       </header>
 
       <form className="flex gap-2 rounded-2xl bg-surface p-4">
         <input
           name="q"
           defaultValue={query}
-          placeholder="닉네임"
-          aria-label="닉네임 검색"
+          placeholder={t("nickname")}
+          aria-label={t("searchLabel")}
           className="h-11 min-w-0 flex-1 rounded-xl bg-surface-hover px-3"
         />
         <SubmitButton
-          pendingLabel="찾는 중"
+          pendingLabel={t("searching")}
           className="h-11 rounded-xl bg-brand px-4 text-sm font-semibold text-brand-contrast"
         >
-          검색
+          {t("search")}
         </SubmitButton>
       </form>
 
       {query.length === 0 ? (
         <>
           <DoriMessage mood="happy">
-            <p>닉네임으로 찾아보세요</p>
+            <p>{t("searchHint")}</p>
           </DoriMessage>
           <RecommendedFriends userId={user.id} seed={r} shufflePath="/feed/search" />
         </>
       ) : results.length === 0 ? (
         <DoriMessage mood="confused">
-          <p>{query}에 맞는 사람이 없어요</p>
+          <p>{t("noMatch", { query })}</p>
         </DoriMessage>
       ) : (
         <ul className="flex flex-col gap-3">

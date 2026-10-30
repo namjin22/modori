@@ -3,12 +3,14 @@
 import { useState, useSyncExternalStore } from "react";
 
 import { LabeledSwitch } from "@/components/labeled-switch";
+import { useT } from "@/components/locale-provider";
 import {
   desktopNotifyState,
   saveDesktopNotify,
   serverDesktopNotifyState,
   subscribeDesktopNotify,
 } from "@/lib/desktop-notify";
+import { settings } from "@/lib/i18n/messages/settings";
 import { subscribeWebPush, unsubscribeWebPush } from "@/lib/web-push-client";
 
 /**
@@ -20,11 +22,12 @@ export function DesktopNotifySwitch({ userId }: { userId: string }) {
   const state = useSyncExternalStore(subscribeDesktopNotify, () => desktopNotifyState(userId), serverDesktopNotifyState);
   // 웹 푸시 구독은 서비스 워커를 올리느라 1~2초 걸린다. 그동안 스위치가 그대로면 안 눌린 줄 안다. 누른 쪽으로 먼저 옮겨 둔다.
   const [pending, setPending] = useState<boolean | null>(null);
+  const t = useT(settings);
   if (state === "unsupported") return null;
   if (state === "outdated") {
     return (
       <p className="border-t border-border pt-3 text-xs text-muted">
-        이 컴퓨터에서 알림을 받으려면 마이페이지의 &quot;Windows 앱 받기&quot;로 데스크톱 앱을 새로 설치해 주세요.
+        {t("desktopNotifyReinstall")}
       </p>
     );
   }
@@ -64,15 +67,15 @@ export function DesktopNotifySwitch({ userId }: { userId: string }) {
     <div className="flex flex-col gap-1.5 border-t border-border pt-3">
       <LabeledSwitch
         name="desktopNotify"
-        title="이 기기에서 알림 띄우기"
+        title={t("desktopNotifyTitle")}
         // 설명은 한 줄로 줄였다(알림 화면 위 설정이 목록을 너무 밀어냈다, 2026-10-20).
-        description={state === "push" ? "창을 닫아도 컴퓨터 알림으로 와요" : "창을 열어 둔 동안 컴퓨터 알림으로 와요"}
+        description={state === "push" ? t("desktopNotifyPush") : t("desktopNotifyOpen")}
         checked={pending ?? (state === "on" || state === "push")}
         onChange={(next) => void change(next)}
       />
       {state === "denied" && pending === null && (
         <p role="status" className="text-xs text-danger">
-          브라우저가 알림을 막았어요. 주소창 왼쪽 사이트 설정에서 허용해 주세요.
+          {t("desktopNotifyBlocked")}
         </p>
       )}
     </div>

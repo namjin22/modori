@@ -3,8 +3,11 @@
 import { useState } from "react";
 
 import { Chevron } from "@/components/choice-picker";
+import { useLocale, useT } from "@/components/locale-provider";
 import { Modal } from "@/components/modal";
-import { formatMinuteOfDay } from "@/lib/date";
+import { clock } from "@/lib/i18n/format";
+import { common } from "@/lib/i18n/messages/common";
+import { datetime } from "@/lib/i18n/messages/datetime";
 
 const HOURS = Array.from({ length: 12 }, (_, index) => index + 1);
 const MINUTES = Array.from({ length: 12 }, (_, index) => index * 5);
@@ -32,6 +35,9 @@ export function TimeSheet({
   // 비어 있는 칸을 열었을 때 처음 보일 시각.
   fallback?: number;
 }) {
+  const locale = useLocale();
+  const t = useT(datetime);
+  const tc = useT(common);
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState(value ?? fallback);
   const hour24 = Math.floor(draft / 60);
@@ -54,7 +60,7 @@ export function TimeSheet({
     <>
       <button
         type="button"
-        aria-label={`${label} ${value === null ? "없음" : formatMinuteOfDay(value)}, 바꾸기`}
+        aria-label={t("timeButton", { label, value: value === null ? t("none") : clock(locale, value) })}
         aria-haspopup="dialog"
         onClick={() => {
           setDraft(value ?? fallback);
@@ -62,16 +68,16 @@ export function TimeSheet({
         }}
         className="flex h-11 w-full min-w-0 items-center justify-between gap-2 rounded-xl bg-surface-hover px-4 text-[15px] font-medium tabular-nums"
       >
-        <span className={value === null ? "text-muted" : ""}>{value === null ? "없음" : formatMinuteOfDay(value)}</span>
+        <span className={value === null ? "text-muted" : ""}>{value === null ? t("none") : clock(locale, value)}</span>
         <Chevron />
       </button>
 
       <Modal open={open} onClose={() => setOpen(false)} title={label}>
         <p aria-live="polite" className="text-center text-3xl font-bold tabular-nums">
-          {formatMinuteOfDay(draft)}
+          {clock(locale, draft)}
         </p>
 
-        <div role="radiogroup" aria-label="오전·오후" className="flex gap-1 rounded-xl bg-surface-hover p-1">
+        <div role="radiogroup" aria-label={t("ampm")} className="flex gap-1 rounded-xl bg-surface-hover p-1">
           {[false, true].map((isPm) => (
             <button
               key={String(isPm)}
@@ -83,21 +89,21 @@ export function TimeSheet({
                 pm === isPm ? "bg-surface font-semibold text-foreground shadow-sm" : "text-muted"
               }`}
             >
-              {isPm ? "오후" : "오전"}
+              {isPm ? t("pm") : t("am")}
             </button>
           ))}
         </div>
 
         <fieldset className="flex flex-col gap-2">
-          <legend className="mb-2 text-xs text-muted">시</legend>
-          <div role="radiogroup" aria-label="시" className="grid grid-cols-6 gap-1.5">
+          <legend className="mb-2 text-xs text-muted">{t("hour")}</legend>
+          <div role="radiogroup" aria-label={t("hour")} className="grid grid-cols-6 gap-1.5">
             {HOURS.map((option) => (
               <button
                 key={option}
                 type="button"
                 role="radio"
                 aria-checked={hour12 === option}
-                aria-label={`${option}시`}
+                aria-label={t("hourOption", { n: option })}
                 onClick={() => set({ hour12: option })}
                 className={cell(hour12 === option)}
               >
@@ -108,15 +114,15 @@ export function TimeSheet({
         </fieldset>
 
         <fieldset className="flex flex-col gap-2">
-          <legend className="mb-2 text-xs text-muted">분</legend>
-          <div role="radiogroup" aria-label="분" className="grid grid-cols-6 gap-1.5">
+          <legend className="mb-2 text-xs text-muted">{t("minute")}</legend>
+          <div role="radiogroup" aria-label={t("minute")} className="grid grid-cols-6 gap-1.5">
             {MINUTES.map((option) => (
               <button
                 key={option}
                 type="button"
                 role="radio"
                 aria-checked={minute === option}
-                aria-label={`${option}분`}
+                aria-label={t("minuteOption", { n: option })}
                 onClick={() => set({ minute: option })}
                 className={cell(minute === option)}
               >
@@ -128,7 +134,7 @@ export function TimeSheet({
 
         <div className={`grid gap-2 ${optional ? "grid-cols-3" : "grid-cols-2"}`}>
           <button type="button" onClick={() => setOpen(false)} className="h-12 rounded-xl bg-surface-hover text-sm font-semibold">
-            취소
+            {tc("cancel")}
           </button>
           {/* 끝 시간처럼 안 정해도 되는 칸은 비울 수 있다. */}
           {optional && (
@@ -140,7 +146,7 @@ export function TimeSheet({
               }}
               className="h-12 rounded-xl bg-surface-hover text-sm font-semibold text-muted"
             >
-              없음
+              {t("none")}
             </button>
           )}
           <button
@@ -151,7 +157,7 @@ export function TimeSheet({
             }}
             className="h-12 rounded-xl bg-brand text-sm font-semibold text-brand-contrast"
           >
-            확인
+            {tc("confirm")}
           </button>
         </div>
       </Modal>

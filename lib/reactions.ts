@@ -1,4 +1,7 @@
 import { CHARACTERS, moodsOf, type CharacterId, type CharacterMood } from "@/lib/characters";
+import { translate, type Locale } from "@/lib/i18n";
+import { characterNames } from "@/lib/i18n/messages/characters";
+import { emojiLabels, reactions as reactionMessages } from "@/lib/i18n/messages/reactions";
 
 /**
  * 친구가 끝낸 일에 보낼 수 있는 반응. 캐릭터 넷(도리·몽이·하루·펭이)의 표정 각 열 개와 이모지 서른여섯이다.
@@ -100,14 +103,19 @@ export function characterMoodOf(value: string): { character: CharacterId; mood: 
   return CHARACTER_MOODS.get(value) ?? null;
 }
 
-const LABELS = new Map<string, string>([
-  ...REACTIONS.map((reaction): [string, string] => [reaction.emoji, reaction.label]),
-  ...[...CHARACTER_REACTIONS, ...LEGACY_REACTIONS].map((reaction): [string, string] => [reaction.value, reaction.label]),
-]);
-
-/** 목록에 없는 값이 저장되어 있어도 화면은 이모지를 그대로 보여준다. */
-export function labelOfReaction(emoji: string): string {
-  return LABELS.get(emoji) ?? emoji;
+/**
+ * 반응의 이름(화면 읽기용). 이모지는 이름 표에서, 캐릭터 표정은 "몽이 표정 7"처럼 캐릭터 이름과 번호로 만든다.
+ * 목록에 없는 값이 저장되어 있어도 화면은 그 값을 그대로 보여준다.
+ */
+export function labelOfReaction(value: string, locale: Locale = "ko"): string {
+  const emojiTable: Record<string, string> = emojiLabels[locale];
+  if (value in emojiTable) return emojiTable[value];
+  const found = CHARACTER_MOODS.get(value);
+  if (!found) return value;
+  const name = characterNames[locale][found.character];
+  const legacy = LEGACY_REACTIONS.find((reaction) => reaction.value === value);
+  if (legacy) return translate(reactionMessages, locale, legacy.mood === "calm" ? "legacyCalm" : "legacyWow", { name });
+  return translate(reactionMessages, locale, "characterExpression", { name, n: moodsOf(found.character).indexOf(found.mood) + 1 });
 }
 
 export type ReactionSummary = {

@@ -3,6 +3,9 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
+import { useT } from "@/components/locale-provider";
+import { todos as todoMessages } from "@/lib/i18n/messages/todos";
+
 /** 홈의 일정 칸이 들으면 만들기 칸을 연다(components/event-section.tsx). */
 export const NEW_EVENT_EVENT = "modori:new-event";
 
@@ -11,6 +14,7 @@ export const NEW_EVENT_EVENT = "modori:new-event";
  * 예전에는 알약 버튼이 따로 늘어서 있었다. 일정은 다른 화면으로 가지 않고 이 화면의 일정 만들기 칸을 연다.
  */
 export function ManageMenu() {
+  const t = useT(todoMessages);
   const [open, setOpen] = useState(false);
   const box = useRef<HTMLDivElement>(null);
 
@@ -38,7 +42,7 @@ export function ManageMenu() {
     <div ref={box} className="relative">
       <button
         type="button"
-        aria-label="관리 메뉴"
+        aria-label={t("manageMenu")}
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => setOpen((value) => !value)}
@@ -47,20 +51,20 @@ export function ManageMenu() {
         }`}
       >
         <MenuIcon open={open} />
-        관리
+        {t("manage")}
       </button>
 
       {open && (
         <div
           role="menu"
-          aria-label="관리 메뉴"
+          aria-label={t("manageMenu")}
           // 버튼 아래에서 버튼 쪽(오른쪽 위)을 축으로 커지며 나온다. 0.14초는 너무 빨라 무엇이 열렸는지 몰랐다(2026-10-21 요청).
           // 상자가 0.26초에 걸쳐 자리 잡고, 항목은 그 뒤를 따라 하나씩(60ms 간격) 떠오른다.
           className="absolute right-0 top-10 z-30 flex w-48 origin-top-right animate-menu flex-col gap-0.5 rounded-2xl border border-border bg-surface p-1.5 shadow-xl"
         >
           <Link prefetch={false} href="/categories" role="menuitem" className={item} style={{ animationDelay: "60ms" }} onClick={() => setOpen(false)}>
             <Glyph>🏷️</Glyph>
-            카테고리
+            {t("categories")}
           </Link>
           <button
             type="button"
@@ -73,7 +77,7 @@ export function ManageMenu() {
             }}
           >
             <Glyph>📅</Glyph>
-            일정
+            {t("events")}
           </button>
           <Link
             prefetch={false}
@@ -84,7 +88,7 @@ export function ManageMenu() {
             onClick={() => setOpen(false)}
           >
             <Glyph>🔁</Glyph>
-            루틴
+            {t("routines")}
           </Link>
         </div>
       )}

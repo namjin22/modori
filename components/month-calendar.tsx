@@ -15,12 +15,14 @@ import {
   weekdayKST,
 } from "@/lib/date";
 import { contrastTextColor } from "@/lib/colors";
+import { translator, type Locale } from "@/lib/i18n";
+import { weekdayNames, yearMonth } from "@/lib/i18n/format";
+import { datetime } from "@/lib/i18n/messages/datetime";
 
 import { DayFill } from "@/components/day-fill";
 import { EventDragGrid } from "@/components/event-drag-grid";
 import { SwapIn } from "@/components/swap-in";
 
-const WEEKDAY_NAMES = ["일", "월", "화", "수", "목", "금", "토"];
 // 한 칸에 이름을 몇 개까지 보여줄지. 넘치면 "+n"으로 접는다.
 const MAX_CHIPS = 3;
 
@@ -58,7 +60,10 @@ export function MonthCalendar({
   compact = false,
   onSelectDay,
   editableEvents = false,
+  locale,
 }: {
+  // 화면 언어. 서버 화면과 브라우저 화면 양쪽에서 그려져 훅을 쓸 수 없어 값으로 받는다.
+  locale: Locale;
   // 홈처럼 한 달치를 이미 받아 둔 화면은 칸을 눌러도 서버에 가지 않고 이 함수로 날짜만 바꾼다(components/home-view.tsx).
   onSelectDay?: (dateKey: string) => void;
   // 내 달력에서만 일정 이름표를 끌어 기간을 바꾼다.
@@ -73,6 +78,7 @@ export function MonthCalendar({
   dayHref: (dateKey: string) => string;
   monthHref: (monthKey: string) => string;
 }) {
+  const t = translator(datetime, locale);
   const monthKey = formatMonthKST(monthStart);
   const [year, month] = monthKey.split("-");
   const leadingBlanks = weekdayKST(monthStart);
@@ -91,7 +97,7 @@ export function MonthCalendar({
       <header className="flex items-center justify-between">
         <SwapIn swapKey={monthKey}>
           <h2 className="text-lg font-bold">
-            {Number(year)}년 {Number(month)}월
+            {yearMonth(locale, Number(year), Number(month))}
           </h2>
         </SwapIn>
         <div className="flex items-center gap-1">
@@ -100,19 +106,19 @@ export function MonthCalendar({
               href={monthHref(formatMonthKST(today))}
               className="rounded-full px-3 py-1 text-xs text-brand hover:bg-surface-hover"
             >
-              이번 달
+              {t("thisMonth")}
             </Link>
           )}
           <IntentLink
             href={monthHref(formatMonthKST(addMonths(monthStart, -1)))}
-            aria-label="이전 달"
+            aria-label={t("prevMonth")}
             className="flex size-8 items-center justify-center rounded-full text-muted hover:bg-surface-hover"
           >
             ‹
           </IntentLink>
           <IntentLink
             href={monthHref(formatMonthKST(addMonths(monthStart, 1)))}
-            aria-label="다음 달"
+            aria-label={t("nextMonth")}
             className="flex size-8 items-center justify-center rounded-full text-muted hover:bg-surface-hover"
           >
             ›
@@ -122,7 +128,7 @@ export function MonthCalendar({
 
       <div className="rounded-2xl bg-surface p-2">
         <div className="grid grid-cols-7 text-center text-xs">
-          {WEEKDAY_NAMES.map((name, index) => (
+          {weekdayNames(locale).map((name, index) => (
             <div
               key={name}
               className={`py-1 sm:py-2 ${
@@ -153,10 +159,13 @@ export function MonthCalendar({
               const isToday = isSameKSTDate(day, today);
               const isSelected = isSameKSTDate(day, selected);
               const eventLabel = events.length
-                ? `, 일정 ${events
-                    .slice(0, MAX_CHIPS)
-                    .map((event) => event.title)
-                    .join(", ")}${events.length > MAX_CHIPS ? ` 외 ${events.length - MAX_CHIPS}개` : ""}`
+                ? t("eventsAria", {
+                    titles: events
+                      .slice(0, MAX_CHIPS)
+                      .map((event) => event.title)
+                      .join(", "),
+                    more: events.length > MAX_CHIPS ? t("moreCount", { count: events.length - MAX_CHIPS }) : "",
+                  })
                 : "";
 
               return (
@@ -164,7 +173,7 @@ export function MonthCalendar({
                   key={key}
                   href={dayHref(key)}
                   onSelect={onSelectDay && (() => onSelectDay(key))}
-                  aria-label={`${day.getUTCDate()}일, 완료 ${doneColors.length > 0 ? "있음" : "없음"}`}
+                  aria-label={t(doneColors.length > 0 ? "dayDoneYes" : "dayDoneNo", { day: day.getUTCDate() })}
                   aria-describedby={events.length ? `calendar-events-${key}` : undefined}
                   aria-current={isSelected ? "date" : undefined}
                   data-date={key}
@@ -198,7 +207,7 @@ export function MonthCalendar({
                         data-event-id={editableEvents && !event.fixed ? event.id : undefined}
                         data-event-start={event.start}
                         data-event-end={event.end}
-                        title={editableEvents && !event.fixed ? "끌어서 기간 바꾸기" : undefined}
+                        title={editableEvents && !event.fixed ? t("dragToMove") : undefined}
                         // 마우스로 끌 때는 바로 잡는다. 손가락(pointer-coarse)은 쓸면 화면이 스크롤되고, 길게 눌러 집은 뒤 끈다(EventDragGrid).
                         className={`truncate rounded px-1 text-[10px] font-medium leading-[15px] ring-1 ring-inset ring-foreground/15 transition-transform ${editableEvents && !event.fixed ? "cursor-grab select-none [-webkit-touch-callout:none] pointer-fine:touch-none data-[drag-armed]:relative data-[drag-armed]:z-10 data-[drag-armed]:scale-110 data-[drag-armed]:ring-2 data-[drag-armed]:ring-foreground" : ""}`}
                         style={{ backgroundColor: event.color, color: contrastTextColor(event.color) }}
@@ -214,7 +223,7 @@ export function MonthCalendar({
                   </span>
                   {events.length > 0 && (
                     <span id={`calendar-events-${key}`} className="sr-only">
-                      {eventLabel.slice(2)}
+                      {eventLabel}
                     </span>
                   )}
                 </DayLink>
@@ -224,7 +233,7 @@ export function MonthCalendar({
         </SwapIn>
       </div>
 
-      <p className="text-center text-xs text-muted sm:text-sm">이번 달 완료 {doneCount}개</p>
+      <p className="text-center text-xs text-muted sm:text-sm">{t("monthDone", { count: doneCount })}</p>
     </section>
   );
 }

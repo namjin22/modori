@@ -10,6 +10,9 @@ import {
   useTransition,
 } from "react";
 
+import { useT } from "@/components/locale-provider";
+import { common } from "@/lib/i18n/messages/common";
+
 type ToastAction = {
   label: string;
   // 알릴 말을 돌려주면 알림을 닫지 않고 그 말로 바꾼다(되돌리기가 상한에 걸렸을 때 등).
@@ -44,6 +47,7 @@ export function useToast(): ShowToast {
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toast, setToast] = useState<Toast | null>(null);
   const [isRunning, startTransition] = useTransition();
+  const t = useT(common);
 
   const show = useCallback<ShowToast>((next) => {
     setToast({ ...next, id: Date.now() });
@@ -64,7 +68,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         setToast(message ? { id: Date.now(), message } : null);
       } catch (error) {
         console.error("[toast] 알림의 동작이 실패했다.", error);
-        setToast({ id: Date.now(), message: "처리하지 못했어요. 다시 시도해주세요." });
+        setToast({ id: Date.now(), message: t("actionFailed") });
       }
     });
   }
@@ -78,7 +82,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       <div
         role="status"
         aria-live="polite"
-        aria-label="알림"
+        aria-label={t("notifications")}
         className="pointer-events-none fixed inset-x-0 bottom-[calc(4.25rem+env(safe-area-inset-bottom,0px))] z-50 flex justify-center px-5"
       >
         {toast && (
@@ -95,7 +99,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
                 onClick={() => toast.action && runAction(toast.action)}
                 className="h-8 shrink-0 rounded-xl px-3 font-semibold underline-offset-4 hover:underline disabled:opacity-50"
               >
-                {isRunning ? "처리 중" : toast.action.label}
+                {isRunning ? t("working") : toast.action.label}
               </button>
             )}
           </div>

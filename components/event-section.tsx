@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState, useTransition } from "react";
 
 import { EventForm } from "@/components/event-form";
+import { useLocale, useT } from "@/components/locale-provider";
 import { NEW_EVENT_EVENT } from "@/components/manage-menu";
 import { Modal } from "@/components/modal";
 import { SortableList } from "@/components/sortable-list";
@@ -11,9 +12,13 @@ import { useToast } from "@/components/toast";
 import { UndoableDeleteButton } from "@/components/undoable-delete-button";
 import { useSaveFailure } from "@/components/use-save-failure";
 import { useBlurOutside } from "@/components/use-blur-outside";
-import { formatKST, formatMonthDayKST, parseKSTDate } from "@/lib/date";
-import { ddayLabel } from "@/lib/dday";
+import { formatKST, parseKSTDate } from "@/lib/date";
+import { ddayLabel, isSoonDday } from "@/lib/dday";
 import { describeEventWhen, formatTime } from "@/lib/event-time";
+import type { Locale } from "@/lib/i18n";
+import { formatMonthDay } from "@/lib/i18n/format";
+import { common } from "@/lib/i18n/messages/common";
+import { events as eventMessages } from "@/lib/i18n/messages/events";
 import { LIMITS } from "@/lib/limits";
 
 import { deleteEvent, reorderEvents, restoreEvent } from "@/app/(tabs)/events/actions";
@@ -57,6 +62,8 @@ export function EventSection({
   date: string;
   today: string;
 }) {
+  const t = useT(eventMessages);
+  const locale = useLocale();
   const [creating, setCreating] = useState(false);
   const sectionRef = useRef<HTMLElement>(null);
   // 관리 메뉴의 "일정"을 누르면 만들기 칸을 열고 이 칸으로 내린다(components/manage-menu.tsx).
@@ -80,7 +87,7 @@ export function EventSection({
   const todayDate = parseKSTDate(today);
 
   return (
-    <section ref={sectionRef} aria-label="일정" className="flex scroll-mt-4 flex-col gap-3">
+    <section ref={sectionRef} aria-label={t("section")} className="flex scroll-mt-4 flex-col gap-3">
       <div className="flex items-center justify-between">
         <button
           type="button"
@@ -92,17 +99,17 @@ export function EventSection({
           }}
           className="-mx-1.5 -my-1.5 w-fit px-1.5 py-1.5 text-sm font-semibold text-foreground"
         >
-          일정
+          {t("section")}
         </button>
         {/* 일정이 이미 있으면 더 넣는 버튼은 제목 줄 오른쪽에 작게 둔다. 예전에는 카드 아래에 폭 전체를 쓰는 점선 상자였다(2026-10-20). */}
         {!creating && single.length > 0 && single.length < LIMITS.eventsPerDay && (
           <button
             type="button"
             onClick={() => setCreating(true)}
-            aria-label="+ 일정 더 적기"
+            aria-label={t("addMore")}
             className="-my-1 flex h-8 items-center rounded-full px-3 text-xs font-medium text-muted hover:bg-surface hover:text-foreground"
           >
-            + 추가
+            {t("plusAdd")}
           </button>
         )}
       </div>
@@ -130,7 +137,7 @@ export function EventSection({
 
           // 둘 이상이면 카드를 잡고 끌어(폰은 길게 눌러) 순서를 바꾼다. 하나뿐이면 바꿀 것이 없다.
           return rows.length > 1 ? (
-            <SortableList variant="card" gap="gap-2" noun="일정" save={reorderEvents} items={rows} />
+            <SortableList variant="card" gap="gap-2" noun={t("eventLabel")} save={reorderEvents} items={rows} />
           ) : (
             // 순서를 바꿀 것이 없을 때도 같은 카드 모양(components/sortable-list.tsx의 card 줄)으로 둔다.
             <ul className="flex flex-col gap-2">
@@ -145,7 +152,7 @@ export function EventSection({
 
       {/* 반복 일정(일정 루틴)은 순서를 바꾸지 않고 시각순으로 둔다. 누르면 이 날만 빼거나 루틴 화면으로 간다. */}
       {repeats.length > 0 && (
-        <ul aria-label="반복 일정" className="flex flex-col gap-2">
+        <ul aria-label={t("repeatList")} className="flex flex-col gap-2">
           {repeats.map((event) => (
             <li key={event.id} className="rounded-2xl bg-surface">
               <EventCard event={event} todayDate={todayDate} onOpen={() => setRepeatOpen(event)} />
@@ -161,19 +168,19 @@ export function EventSection({
           onClick={() => setCreating(true)}
           className="rounded-xl border border-dashed border-border py-3 text-sm text-muted hover:bg-surface"
         >
-          시험이나 행사 적어두기
+          {t("addPlaceholder")}
         </button>
       )}
       {!creating && single.length >= LIMITS.eventsPerDay && (
         <p className="text-center text-xs text-muted">
-          일정은 하루에 {LIMITS.eventsPerDay}개까지 둘 수 있어요
+          {t("perDayLimit", { max: LIMITS.eventsPerDay })}
         </p>
       )}
 
       {upcoming.length > 0 && (
         <ul className="flex flex-col gap-1">
           {upcoming.map((event) => {
-            const dday = ddayLabel(event.startDate, event.endDate, todayDate);
+            const dday = ddayLabel(event.startDate, event.endDate, todayDate, locale);
 
             return (
               <li key={event.id}>
@@ -189,10 +196,10 @@ export function EventSection({
                   />
                   <span className="min-w-0 flex-1 truncate">{event.title}</span>
                   <span className="shrink-0 text-xs">
-                    {formatMonthDayKST(event.startDate)}
+                    {formatMonthDay(locale, event.startDate)}
                     {event.startTime !== null && ` ${formatTime(event.startTime)}`}
                   </span>
-                  {dday && <Dday label={dday} />}
+                  {dday && <Dday label={dday} locale={locale} />}
                 </button>
               </li>
             );
@@ -203,7 +210,7 @@ export function EventSection({
       <Modal
         open={editing !== null}
         onClose={() => setEditing(null)}
-        title="일정"
+        title={t("section")}
       >
         {editing && (
           <>
@@ -229,7 +236,7 @@ export function EventSection({
                   id={editing.id}
                   remove={deleteEvent}
                   restore={restoreEvent}
-                  message="일정을 지웠어요"
+                  message={t("eventDeleted")}
                   onDone={() => setEditing(null)}
                   className="-ml-2 h-11 rounded-xl px-2 text-sm font-medium text-danger"
                 />
@@ -246,6 +253,9 @@ export function EventSection({
 
 /** 반복 일정의 그 날 하나. 이 날만 빼기(되돌릴 수 있다), 이름·시간·규칙은 루틴 화면에서 고친다. */
 function RepeatModal({ event, onClose }: { event: DayEvent | null; onClose: () => void }) {
+  const t = useT(eventMessages);
+  const tc = useT(common);
+  const locale = useLocale();
   const [pending, startTransition] = useTransition();
   const toast = useToast();
   const saveFailed = useSaveFailure();
@@ -258,7 +268,7 @@ function RepeatModal({ event, onClose }: { event: DayEvent | null; onClose: () =
         const skipped = await skipEventOccurrence({ routineId: repeat.routineId, date: repeat.date });
         onClose();
         if (!skipped) return;
-        toast({ message: "이 날만 반복 일정을 뺐어요", action: { label: "되돌리기", run: () => includeEventOccurrence(skipped) } });
+        toast({ message: t("skipDone"), action: { label: tc("undo"), run: () => includeEventOccurrence(skipped) } });
       } catch (error) {
         saveFailed(error);
       }
@@ -266,7 +276,7 @@ function RepeatModal({ event, onClose }: { event: DayEvent | null; onClose: () =
   }
 
   return (
-    <Modal open={event !== null} onClose={onClose} title="반복 일정">
+    <Modal open={event !== null} onClose={onClose} title={t("repeatTitle")}>
       {event && repeat && (
         <>
           <div className="flex items-start gap-3">
@@ -274,7 +284,7 @@ function RepeatModal({ event, onClose }: { event: DayEvent | null; onClose: () =
             <div className="min-w-0">
               <p className="font-semibold">{event.title}</p>
               <p className="text-sm text-muted">
-                {[`↻ ${repeat.rule}`, describeEventWhen(event)].filter(Boolean).join(" · ")}
+                {[`↻ ${repeat.rule}`, describeEventWhen(event, locale)].filter(Boolean).join(" · ")}
               </p>
             </div>
           </div>
@@ -285,14 +295,14 @@ function RepeatModal({ event, onClose }: { event: DayEvent | null; onClose: () =
               onClick={skip}
               className="h-11 rounded-xl border border-border text-sm font-medium disabled:opacity-50"
             >
-              {pending ? "빼는 중" : "이 날만 빼기"}
+              {pending ? t("skipping") : t("skipDay")}
             </button>
             <Link
               prefetch={false}
               href="/routines"
               className="flex h-11 items-center justify-center rounded-xl bg-brand text-sm font-semibold text-brand-contrast"
             >
-              루틴에서 고치기
+              {t("editInRoutines")}
             </Link>
           </div>
         </>
@@ -303,9 +313,10 @@ function RepeatModal({ event, onClose }: { event: DayEvent | null; onClose: () =
 
 /** 일정 카드 한 장. 바탕은 줄(li)이 깐다. 반복 일정이면 이름 아래에 반복 규칙이 붙는다. */
 function EventCard({ event, todayDate, onOpen }: { event: DayEvent; todayDate: Date; onOpen: () => void }) {
-  const when = describeEventWhen(event);
+  const locale = useLocale();
+  const when = describeEventWhen(event, locale);
   // D-day를 끈 일정은 이름과 시간만 보인다. 반복 일정에는 D-day가 없다.
-  const dday = event.dday ? ddayLabel(event.startDate, event.endDate, todayDate) : null;
+  const dday = event.dday ? ddayLabel(event.startDate, event.endDate, todayDate, locale) : null;
   const detail = [event.repeat ? `↻ ${event.repeat.rule}` : null, when].filter(Boolean).join(" · ");
   return (
     <div className="flex items-stretch">
@@ -321,15 +332,15 @@ function EventCard({ event, todayDate, onOpen }: { event: DayEvent; todayDate: D
             <span className="mt-0.5 line-clamp-3 whitespace-pre-line wrap-break-word text-[13px] text-muted">{event.memo}</span>
           )}
         </span>
-        {dday && <Dday label={dday} />}
+        {dday && <Dday label={dday} locale={locale} />}
       </button>
     </div>
   );
 }
 
 /** 오늘과 그 앞뒤는 눈에 띄어야 하고, 먼 일정은 조용해야 한다. */
-function Dday({ label }: { label: string }) {
-  const soon = label === "D-DAY" || label === "진행 중";
+function Dday({ label, locale }: { label: string; locale: Locale }) {
+  const soon = isSoonDday(label, locale);
 
   return (
     <span

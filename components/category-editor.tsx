@@ -8,10 +8,13 @@ import {
   updateCategory,
 } from "@/app/(tabs)/categories/actions";
 import { ColorSwatches } from "@/components/color-swatches";
+import { useT } from "@/components/locale-provider";
 import { Modal } from "@/components/modal";
 import { UndoableDeleteButton } from "@/components/undoable-delete-button";
 import { PrivateSwitch } from "@/components/private-switch";
 import { useSaveFailure } from "@/components/use-save-failure";
+import { categories } from "@/lib/i18n/messages/categories";
+import { common } from "@/lib/i18n/messages/common";
 
 type Category = { id: string; name: string; color: string; isPublic: boolean };
 
@@ -23,6 +26,8 @@ type Category = { id: string; name: string; color: string; isPublic: boolean };
  * 눌러야 하면, 누르지 않고 닫았을 때 바꾼 게 사라진 줄 모른다.
  */
 export function CategoryEditor({ category }: { category: Category }) {
+  const t = useT(categories);
+  const tc = useT(common);
   const [open, setOpen] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -39,9 +44,9 @@ export function CategoryEditor({ category }: { category: Category }) {
     startTransition(async () => {
       try {
         const result = await updateCategory(formData);
-        setStatus(result.ok ? "저장했어요" : result.message);
+        setStatus(result.ok ? t("saved") : result.message);
       } catch (error) {
-        setStatus("저장하지 못했어요");
+        setStatus(t("saveFailed"));
         saveFailed(error);
       }
     });
@@ -53,7 +58,7 @@ export function CategoryEditor({ category }: { category: Category }) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        aria-label={`${category.name} 고치기`}
+        aria-label={t("editLabel", { name: category.name })}
         className="flex w-full items-center gap-3 px-4 py-3.5 text-left"
       >
         <span
@@ -64,7 +69,7 @@ export function CategoryEditor({ category }: { category: Category }) {
         <span className="flex-1 truncate font-medium">{category.name}</span>
         {!category.isPublic && (
           <span className="rounded-full bg-surface-hover px-2 py-0.5 text-xs text-muted">
-            비공개
+            {t("privateTitle")}
           </span>
         )}
         <svg
@@ -83,7 +88,7 @@ export function CategoryEditor({ category }: { category: Category }) {
         </svg>
       </button>
 
-      <Modal open={open} onClose={() => setOpen(false)} title="카테고리">
+      <Modal open={open} onClose={() => setOpen(false)} title={t("modalTitle")}>
         <form
           ref={formRef}
           onSubmit={(event) => {
@@ -108,26 +113,26 @@ export function CategoryEditor({ category }: { category: Category }) {
             defaultValue={category.name}
             maxLength={20}
             required
-            aria-label="카테고리 이름"
+            aria-label={t("nameLabel")}
             onBlur={(event) => {
               if (event.target.value !== lastName.current) save();
             }}
             className="h-12 w-full rounded-xl bg-surface-hover px-4 text-[15px] font-medium outline-none focus:ring-2 focus:ring-brand"
           />
 
-          <ColorSwatches name="color" legend="색" defaultValue={category.color} />
+          <ColorSwatches name="color" legend={t("color")} defaultValue={category.color} />
 
-          <PrivateSwitch description="켜면 이 카테고리의 할 일은 나만 봐요" defaultChecked={!category.isPublic} />
+          <PrivateSwitch title={t("privateTitle")} description={t("privateHint")} defaultChecked={!category.isPublic} />
         </form>
 
         <div className="flex items-center justify-between border-t border-border pt-4">
           <span
             aria-live="polite"
             className={`text-xs ${
-              status && status !== "저장했어요" ? "text-danger" : "text-muted"
+              status && status !== t("saved") ? "text-danger" : "text-muted"
             }`}
           >
-            {pending ? "저장 중" : status}
+            {pending ? tc("saving") : status}
           </span>
 
           {/* 할 일은 "카테고리 없음"으로 남는다. 지운 직후 알림에서 되돌릴 수 있다. */}
@@ -135,7 +140,7 @@ export function CategoryEditor({ category }: { category: Category }) {
             id={category.id}
             remove={deleteCategory}
             restore={undoDeleteCategory}
-            message="카테고리를 지웠어요. 할 일은 남아요"
+            message={t("deleted")}
             onDone={() => setOpen(false)}
             className="h-9 rounded-xl px-3 text-sm text-danger hover:bg-surface-hover"
           />

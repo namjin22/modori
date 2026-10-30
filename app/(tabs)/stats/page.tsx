@@ -2,11 +2,14 @@ import Link from "next/link";
 
 import { Dori } from "@/components/dori";
 import { statsMood } from "@/lib/dori-mood";
+import { monthDay, weekdayName, yearMonth } from "@/lib/i18n/format";
+import { stats as statsMessages } from "@/lib/i18n/messages/stats";
+import type { Locale } from "@/lib/i18n";
+import { getLocale, getT } from "@/lib/i18n/server";
 import {
   addDays,
   addMonths,
   endOfMonthKST,
-  formatMonthDayKST,
   formatMonthKST,
   parseKSTMonth,
   startOfMonthKST,
@@ -16,8 +19,6 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 import { countByCategory, countByWeekday, streakDays, untilToday } from "@/lib/stats";
 import { BackLink } from "@/components/back-link";
-
-const WEEKDAY_NAMES = ["일", "월", "화", "수", "목", "금", "토"];
 
 /** 주소의 month가 엉터리여도 화면은 열려야 한다. 그럴 때는 이번 달을 본다. */
 function readMonth(raw: string | undefined, fallback: Date): Date {
@@ -36,6 +37,8 @@ export default async function StatsPage({
   searchParams: Promise<{ month?: string }>;
 }) {
   const user = await requireUser();
+  const t = await getT(statsMessages);
+  const locale = await getLocale();
   const today = todayIn(user.timezone);
 
   const { month } = await searchParams;
@@ -74,20 +77,20 @@ export default async function StatsPage({
   return (
     <div className="flex flex-col gap-6">
       <header className="flex items-center gap-1">
-        <BackLink href="/" label="피드로" />
-        <h1 className="text-2xl font-bold">기록</h1>
+        <BackLink href="/" label={t("toFeed")} />
+        <h1 className="text-2xl font-bold">{t("title")}</h1>
       </header>
 
-      <nav aria-label="달 고르기" className="flex items-center justify-between">
+      <nav aria-label={t("pickMonth")} className="flex items-center justify-between">
         <Link prefetch={false}
           href={`/stats?month=${formatMonthKST(addMonths(monthStart, -1))}`}
-          aria-label="이전 달"
+          aria-label={t("prevMonth")}
           className="flex size-9 items-center justify-center rounded-full text-muted hover:bg-surface-hover"
         >
           ‹
         </Link>
         <h2 className="text-base font-semibold">
-          {Number(year)}년 {Number(monthNumber)}월
+          {yearMonth(locale, Number(year), Number(monthNumber))}
         </h2>
         {isThisMonth ? (
           // 아직 오지 않은 달에는 아무것도 없다. 갈 수 있는 것처럼 보이지 않게 한다.
@@ -95,7 +98,7 @@ export default async function StatsPage({
         ) : (
           <Link prefetch={false}
             href={`/stats?month=${formatMonthKST(addMonths(monthStart, 1))}`}
-            aria-label="다음 달"
+            aria-label={t("nextMonth")}
             className="flex size-9 items-center justify-center rounded-full text-muted hover:bg-surface-hover"
           >
             ›
@@ -106,20 +109,20 @@ export default async function StatsPage({
       {total === 0 ? (
         <div className="flex flex-col items-center gap-2 py-10 text-center">
           <Dori mood="calm" size={80} />
-          <p className="text-sm text-muted">이 달에는 적어둔 할 일이 없어요</p>
+          <p className="text-sm text-muted">{t("empty")}</p>
         </div>
       ) : (
         <>
-          <StatsCheer rate={rate} streak={streak} isThisMonth={isThisMonth} />
+          <StatsCheer rate={rate} streak={streak} isThisMonth={isThisMonth} locale={locale} />
 
           <section className="grid grid-cols-3 gap-2">
-            <Figure label="끝낸 일" value={`${done}개`} />
-            <Figure label="해낸 비율" value={`${rate}%`} />
-            <Figure label="이어온 날" value={`${streak}일`} />
+            <Figure label={t("done")} value={t("figureCount", { count: done })} />
+            <Figure label={t("rate")} value={`${rate}%`} />
+            <Figure label={t("streak")} value={t("figureDays", { count: streak })} />
           </section>
 
           <section className="flex flex-col gap-4">
-            <h2 className="text-sm font-semibold">카테고리별</h2>
+            <h2 className="text-sm font-semibold">{t("byCategory")}</h2>
             <ul className="flex flex-col gap-4">
               {categories.map((category) => (
                 <li key={category.id} className="flex flex-col gap-2">
@@ -132,7 +135,7 @@ export default async function StatsPage({
                       }}
                     />
                     <span className="min-w-0 flex-1 truncate font-medium">
-                      {category.name}
+                      {category.id === "" ? t("noCategory") : category.name}
                     </span>
                     <span className="shrink-0 text-muted">
                       {category.done}/{category.total}
@@ -140,7 +143,7 @@ export default async function StatsPage({
                   </div>
                   <div
                     role="img"
-                    aria-label={`${category.name} ${category.total}개 중 ${category.done}개 완료`}
+                    aria-label={t("categoryProgress", { name: category.id === "" ? t("noCategory") : category.name, total: category.total, done: category.done })}
                     className="h-2 overflow-hidden rounded-full bg-surface-hover"
                   >
                     {/* 0%면 그리지 않는다. 가장자리 선은 폭이 0이어도 그려져서 점이 남는다. */}
@@ -161,7 +164,7 @@ export default async function StatsPage({
           </section>
 
           <section className="flex flex-col gap-4">
-            <h2 className="text-sm font-semibold">요일별로 끝낸 일</h2>
+            <h2 className="text-sm font-semibold">{t("byWeekday")}</h2>
             {/* 막대는 가장 많이 한 요일을 기준으로 높이를 맞춘다. */}
             <ul className="flex h-28 items-end gap-2">
               {weekdays.map((count, weekday) => (
@@ -171,7 +174,7 @@ export default async function StatsPage({
                 >
                   {/* 숫자와 요일을 따로 읽으면 "1 일"이 되어 "하루"로 들린다. 이어서 읽는 이름을 따로 둔다. */}
                   <span className="sr-only">
-                    {WEEKDAY_NAMES[weekday]}요일 {count}개
+                    {t("weekdayCount", { weekday: weekdayName(locale, weekday, "long"), count })}
                   </span>
                   <span aria-hidden className="text-[11px] text-muted">
                     {count}
@@ -194,7 +197,7 @@ export default async function StatsPage({
                           : "text-muted"
                     }`}
                   >
-                    {WEEKDAY_NAMES[weekday]}
+                    {weekdayName(locale, weekday)}
                   </span>
                 </li>
               ))}
@@ -204,8 +207,7 @@ export default async function StatsPage({
       )}
 
       <p className="text-xs text-muted">
-        {formatMonthDayKST(monthStart)}부터 {formatMonthDayKST(monthEnd)}까지 적어둔 할 일을
-        셌어요.
+        {t("footer", { from: monthDay(locale, monthStart.getUTCMonth() + 1, monthStart.getUTCDate()), to: monthDay(locale, monthEnd.getUTCMonth() + 1, monthEnd.getUTCDate()) })}
       </p>
     </div>
   );
@@ -225,12 +227,14 @@ function StatsCheer({
   rate,
   streak,
   isThisMonth,
+  locale,
 }: {
   rate: number;
   streak: number;
   isThisMonth: boolean;
+  locale: Locale;
 }) {
-  const { mood, message } = statsMood({ rate, streak, isThisMonth });
+  const { mood, message } = statsMood({ rate, streak, isThisMonth }, locale);
 
   return (
     <div className="flex items-center gap-3 rounded-2xl bg-brand-subtle px-4 py-3">

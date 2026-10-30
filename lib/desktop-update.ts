@@ -1,3 +1,6 @@
+import { translator, type Locale } from "@/lib/i18n";
+import { desktop } from "@/lib/i18n/messages/desktop";
+
 /**
  * 데스크톱 앱 안 업데이트(2026-10-27 요청)의 웹 쪽 약속. 상태를 갖고 받고 설치하는 것은 앱(desktop/updater.js)이고,
  * 화면은 preload.js가 내주는 window.modoriUpdater로 읽고 누르기만 한다. 두 곳의 모양이 같아야 한다.
@@ -63,38 +66,40 @@ export function hasPendingUpdate(state: UpdateState | null): boolean {
 }
 
 /** 누르는 버튼의 글자. 새 버전을 알면 받는 버튼, 모르면 확인하는 버튼이다. */
-export function updateButtonLabel(state: UpdateState): string {
+export function updateButtonLabel(state: UpdateState, locale: Locale = "ko"): string {
+  const t = translator(desktop, locale);
   switch (state.status) {
     case "checking":
-      return "확인하는 중";
+      return t("btnChecking");
     case "available":
-      return "업데이트";
+      return t("btnUpdate");
     case "downloading":
-      return `받는 중 ${state.percent}%`;
+      return t("btnDownloading", { percent: state.percent });
     case "installing":
-      return "설치하는 중";
+      return t("btnInstalling");
     case "error":
-      return state.version ? "다시 시도" : "다시 확인";
+      return state.version ? t("btnRetry") : t("btnRecheck");
     default:
-      return "업데이트 확인";
+      return t("btnCheck");
   }
 }
 
 /** 마이페이지 줄에 적는 지금 상태 한 줄. */
-export function updateMessage(state: UpdateState): string {
+export function updateMessage(state: UpdateState, locale: Locale = "ko"): string {
+  const t = translator(desktop, locale);
   switch (state.status) {
     case "checking":
-      return "새 버전을 확인하고 있어요";
+      return t("msgChecking");
     case "none":
-      return "최신 버전이에요";
+      return t("msgNone");
     case "available":
-      return `새 버전 ${state.version}이 나왔어요`;
+      return t("msgAvailable", { version: state.version ?? "" });
     case "downloading":
-      return `${state.version} 받는 중이에요 (${state.percent}%)`;
+      return t("msgDownloading", { version: state.version ?? "", percent: state.percent });
     case "installing":
-      return "설치하고 곧 다시 시작해요";
+      return t("msgInstalling");
     case "error":
-      return `업데이트하지 못했어요${state.error ? `: ${state.error}` : ""}`;
+      return state.error ? t("msgErrorWith", { error: state.error }) : t("msgError");
     default:
       return "";
   }

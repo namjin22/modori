@@ -24,8 +24,10 @@ import {
 
 import { moveTodoToCategory, reorderTodos } from "@/app/(tabs)/actions";
 import { buzzOnTouchDrag, GENTLE_AUTO_SCROLL, SortableRow, useRowSensors, type SortableItem } from "@/components/sortable-list";
+import { useT } from "@/components/locale-provider";
 import { useOptimisticDoneIds } from "@/components/todo-progress";
 import { useSaveFailure } from "@/components/use-save-failure";
+import { todos as todoMessages } from "@/lib/i18n/messages/todos";
 import { useFlipList } from "@/lib/motion";
 
 export type BoardGroup = {
@@ -49,6 +51,7 @@ const containerId = (key: string) => `group:${key}`;
  * 옮기면 바로 그 묶음에 들어가 보이고, 저장이 실패하면 끌기 전 모양으로 되돌린다.
  */
 export function TodoBoard({ date, groups }: { date: string; groups: BoardGroup[] }) {
+  const t = useT(todoMessages);
   const initial = Object.fromEntries(
     groups.map((group) => [containerId(group.key), group.items.map((item) => item.id)]),
   );
@@ -173,10 +176,10 @@ export function TodoBoard({ date, groups }: { date: string; groups: BoardGroup[]
     setLayout(startLayout.current);
   }
 
-  const labelOf = (id: string | number) => items.get(String(id))?.label ?? "할 일";
+  const labelOf = (id: string | number) => items.get(String(id))?.label ?? t("defaultTodo");
   const groupLabelOf = (id: string | number) => {
     const container = containerOf(id);
-    return container ? (groupById.get(container)?.label ?? "카테고리") : "카테고리";
+    return container ? (groupById.get(container)?.label ?? t("defaultCategory")) : t("defaultCategory");
   };
   const positionOf = (id: string | number) => {
     const container = containerOf(id);
@@ -186,28 +189,27 @@ export function TodoBoard({ date, groups }: { date: string; groups: BoardGroup[]
   // dnd-kit의 기본 안내는 영어다. 키보드 사용자가 기대어 옮기므로 무엇을 어느 카테고리 몇 번째로 옮겼는지 우리말로 알린다.
   const accessibility = {
     screenReaderInstructions: {
-      draggable:
-        "스페이스를 눌러 집고, 방향키로 옮긴 뒤 스페이스로 내려놓으세요. 다른 카테고리 칸으로도 옮길 수 있어요. 취소하려면 Esc를 누르세요.",
+      draggable: t("boardInstructions"),
     },
     announcements: {
       onDragStart: ({ active }: { active: Active }) =>
-        `${labelOf(active.id)}을(를) 집었어요. ${groupLabelOf(active.id)}의 ${positionOf(active.id)}번째예요.`,
+        t("dragStartInGroup", { item: labelOf(active.id), group: groupLabelOf(active.id), position: positionOf(active.id) }),
       onDragOver: ({ active, over }: { active: Active; over: Over | null }) => {
-        if (!over) return `${labelOf(active.id)}이(가) 목록 밖에 있어요.`;
+        if (!over) return t("dragOutside", { item: labelOf(active.id) });
         // 같은 카테고리 안에서는 몇 번째 자리인지, 다른 카테고리 칸으로 넘어가면 어느 카테고리인지 알린다.
         const sameGroup = containerOf(over.id) === containerOf(active.id) && !(String(over.id) in layout);
         return sameGroup
-          ? `${labelOf(active.id)}을(를) ${positionOf(over.id)}번째 자리로 옮기는 중이에요.`
-          : `${labelOf(active.id)}을(를) ${groupLabelOf(over.id)}로 옮기는 중이에요.`;
+          ? t("dragOverPosition", { item: labelOf(active.id), position: positionOf(over.id) })
+          : t("dragOverGroup", { item: labelOf(active.id), group: groupLabelOf(over.id) });
       },
       onDragEnd: ({ active, over }: { active: Active; over: Over | null }) => {
         // 같은 카테고리 안에서는 놓은 줄의 자리가 곧 새 자리다(순서는 이 안내 뒤에 반영된다).
         const sameGroup = over && containerOf(over.id) === containerOf(active.id) && !(String(over.id) in layout);
         const position = sameGroup ? positionOf(over.id) : positionOf(active.id);
-        return `${labelOf(active.id)}을(를) ${groupLabelOf(active.id)}의 ${position}번째에 내려놓았어요.`;
+        return t("dragEndInGroup", { item: labelOf(active.id), group: groupLabelOf(active.id), position });
       },
       onDragCancel: ({ active }: { active: Active }) =>
-        `옮기기를 취소했어요. ${labelOf(active.id)}은(는) 제자리에 있어요.`,
+        t("dragCancel", { item: labelOf(active.id) }),
     },
   };
 

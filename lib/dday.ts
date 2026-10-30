@@ -1,4 +1,15 @@
 import { daysBetween } from "@/lib/date";
+import type { Locale } from "@/lib/i18n";
+
+/** 여러 날짜리의 가운데에 보이는 말. */
+export function ddayOngoing(locale: Locale): string {
+  return locale === "en" ? "Ongoing" : locale === "ja" ? "進行中" : "진행 중";
+}
+
+/** 오늘이거나 진행 중이라 눈에 띄어야 하는 표시인가. */
+export function isSoonDday(label: string, locale: Locale): boolean {
+  return label === "D-DAY" || label === ddayOngoing(locale);
+}
 
 /**
  * 일정까지 며칠 남았는지. 시험이 언제인지는 그 날짜를 열어봐야 알 수 있었는데,
@@ -12,10 +23,11 @@ export function ddayLabel(
   startDate: Date,
   endDate: Date,
   today: Date,
+  locale: Locale = "ko",
 ): string | null {
   const untilStart = daysBetween(today, startDate);
   if (untilStart > 0) return `D-${untilStart}`;
   if (untilStart === 0) return "D-DAY";
 
-  return daysBetween(today, endDate) >= 0 ? "진행 중" : null;
+  return daysBetween(today, endDate) >= 0 ? ddayOngoing(locale) : null;
 }

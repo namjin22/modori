@@ -1,4 +1,5 @@
 import { alarmDay, alarmPush } from "@/lib/alarm";
+import { localeOrDefault } from "@/lib/i18n";
 import { prisma } from "@/lib/prisma";
 import { sendPushToUser } from "@/lib/push";
 
@@ -13,7 +14,7 @@ export async function sendDueAlarms(now: Date = new Date()): Promise<number> {
       enabled: true,
       user: { nickname: { not: null }, OR: [{ pushTokens: { some: {} } }, { webPushSubscriptions: { some: {} } }] },
     },
-    select: { id: true, minute: true, weekdays: true, message: true, lastSentOn: true, user: { select: { id: true, timezone: true } } },
+    select: { id: true, minute: true, weekdays: true, message: true, lastSentOn: true, user: { select: { id: true, timezone: true, locale: true } } },
   });
 
   let sent = 0;
@@ -25,7 +26,7 @@ export async function sendDueAlarms(now: Date = new Date()): Promise<number> {
       data: { lastSentOn: day },
     });
     if (claimed.count === 0) continue;
-    await sendPushToUser(alarm.user.id, alarmPush(alarm));
+    await sendPushToUser(alarm.user.id, alarmPush(alarm, localeOrDefault(alarm.user.locale)));
     sent += 1;
   }
   return sent;

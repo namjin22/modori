@@ -2,7 +2,9 @@
 
 import { useTransition } from "react";
 
+import { useT } from "@/components/locale-provider";
 import { useToast } from "@/components/toast";
+import { common } from "@/lib/i18n/messages/common";
 
 /**
  * 누르면 확인 없이 바로 지우고, 아래에 "되돌리기"를 띄운다.
@@ -27,6 +29,7 @@ export function UndoableDeleteButton<Snapshot>({
   className?: string;
 }) {
   const toast = useToast();
+  const t = useT(common);
   const [isPending, startTransition] = useTransition();
 
   function handleClick() {
@@ -38,11 +41,11 @@ export function UndoableDeleteButton<Snapshot>({
 
         toast({
           message,
-          action: { label: "되돌리기", run: () => restore(snapshot) },
+          action: { label: t("undo"), run: () => restore(snapshot) },
         });
       } catch (error) {
         console.error("[delete] 지우지 못했다.", error);
-        toast({ message: "지우지 못했어요. 다시 시도해주세요." });
+        toast({ message: t("deleteFailed") });
       } finally {
         onDone?.();
       }
@@ -56,7 +59,7 @@ export function UndoableDeleteButton<Snapshot>({
       disabled={isPending}
       className={`${className ?? ""} disabled:opacity-50`}
     >
-      삭제
+      {t("delete")}
     </button>
   );
 }

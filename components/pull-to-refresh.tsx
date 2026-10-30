@@ -2,6 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 
+import { useT } from "@/components/locale-provider";
+import { settings } from "@/lib/i18n/messages/settings";
+
 // 이만큼(화면에 보이는 거리) 당기면 놓을 때 새로고침한다.
 const THRESHOLD = 70;
 const MAX_PULL = 110;
@@ -16,6 +19,7 @@ const START_WITHIN_MS = 300;
  * 새로고침은 화면을 통째로 새로 연다. 새 배포 뒤 오래 켜 둔 화면도 이걸로 새 버전이 된다.
  */
 export function PullToRefresh() {
+  const t = useT(settings);
   const [pull, setPull] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
   const pullRef = useRef(0);
@@ -105,7 +109,7 @@ export function PullToRefresh() {
         <span aria-hidden className={ready ? "text-brand" : "text-muted"}>
           ↻
         </span>
-        <span className="sr-only">{ready ? "놓으면 새로고침해요" : "당겨서 새로고침"}</span>
+        <span className="sr-only">{ready ? t("release") : t("pull")}</span>
       </span>
     </div>
   );

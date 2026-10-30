@@ -6,14 +6,14 @@ import { LabeledSwitch } from "@/components/labeled-switch";
  */
 export function PrivateSwitch({
   name = "isPrivate",
-  title = "비공개",
+  title,
   description,
   defaultChecked,
   checked,
   onChange,
 }: {
   name?: string;
-  title?: string;
+  title: string;
   description: string;
   defaultChecked?: boolean;
   checked?: boolean;

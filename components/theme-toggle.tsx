@@ -2,12 +2,15 @@
 
 import { useSyncExternalStore } from "react";
 
+import { useT } from "@/components/locale-provider";
+import { settings } from "@/lib/i18n/messages/settings";
+
 type Theme = "light" | "dark";
 
-const OPTIONS: { value: Theme; label: string }[] = [
-  { value: "light", label: "라이트" },
-  { value: "dark", label: "다크" },
-];
+const OPTIONS = [
+  { value: "light", label: "themeLight" },
+  { value: "dark", label: "themeDark" },
+] as const satisfies { value: Theme; label: string }[];
 
 const DARK_QUERY = "(prefers-color-scheme: dark)";
 const listeners = new Set<() => void>();
@@ -60,12 +63,13 @@ function setTheme(theme: Theme) {
 }
 
 export function ThemeToggle() {
+  const t = useT(settings);
   const theme = useSyncExternalStore(subscribe, getTheme, getServerTheme);
 
   return (
     <div
       role="radiogroup"
-      aria-label="화면 테마"
+      aria-label={t("themeLabel")}
       className="flex gap-1 rounded-xl bg-surface-hover p-1"
     >
       {OPTIONS.map((option) => {
@@ -84,7 +88,7 @@ export function ThemeToggle() {
                 : "text-muted hover:text-foreground"
             }`}
           >
-            {option.label}
+            {t(option.label)}
           </button>
         );
       })}

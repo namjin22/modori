@@ -1,6 +1,8 @@
 "use client";
 
+import { useT } from "@/components/locale-provider";
 import { SubmitButton } from "@/components/submit-button";
+import { settings } from "@/lib/i18n/messages/settings";
 
 import {
   deleteAccount,
@@ -9,6 +11,7 @@ import {
 import { useFormAction } from "@/components/use-form-action";
 
 export function DeleteAccountForm({ nickname }: { nickname: string }) {
+  const t = useT(settings);
   const [state, action, pending] = useFormAction<DeleteAccountState>(
     deleteAccount,
     null,
@@ -17,15 +20,14 @@ export function DeleteAccountForm({ nickname }: { nickname: string }) {
   return (
     <form onSubmit={action} className="flex flex-col gap-4">
       <label htmlFor="confirm" className="text-sm text-muted">
-        확인을 위해 지금 닉네임 <b className="text-foreground">{nickname}</b>을(를)
-        그대로 입력해주세요.
+        {t("deleteConfirmBefore")}<b className="text-foreground">{nickname}</b>{t("deleteConfirmAfter")}
       </label>
       <input
         id="confirm"
         name="confirm"
         required
         autoComplete="off"
-        placeholder="닉네임 입력"
+        placeholder={t("nicknamePlaceholder")}
         className="h-11 rounded-xl bg-surface-hover px-3 outline-none focus:ring-2 focus:ring-red-500"
       />
 
@@ -37,10 +39,10 @@ export function DeleteAccountForm({ nickname }: { nickname: string }) {
 
       <SubmitButton
         pending={pending}
-        pendingLabel="지우는 중"
+        pendingLabel={t("deleting")}
         className="h-11 rounded-xl bg-red-600 text-sm font-semibold text-white"
       >
-        계정 지우기
+        {t("deleteAccount")}
       </SubmitButton>
     </form>
   );

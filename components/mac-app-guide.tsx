@@ -2,7 +2,9 @@
 
 import { type ReactNode, useState, useSyncExternalStore } from "react";
 
+import { useT } from "@/components/locale-provider";
 import { Modal } from "@/components/modal";
+import { desktop } from "@/lib/i18n/messages/desktop";
 
 /**
  * "Mac에서 앱처럼 쓰기". Windows의 "Windows 앱 받기"처럼 마이페이지에 둔다(2026-10-21 요청).
@@ -26,6 +28,7 @@ function isMacBrowser(): boolean {
 
 export function MacAppGuide() {
   const show = useSyncExternalStore(subscribe, isMacBrowser, () => false);
+  const t = useT(desktop);
   const [open, setOpen] = useState(false);
   if (!show) return null;
 
@@ -33,35 +36,34 @@ export function MacAppGuide() {
     <>
       <button type="button" onClick={() => setOpen(true)} className="flex w-full items-center gap-3 rounded-2xl bg-surface p-6 text-left">
         <span className="flex flex-1 flex-col gap-1">
-          <span className="text-[15px] font-semibold">Mac에서 앱처럼 쓰기</span>
-          <span className="text-[13px] leading-relaxed text-muted">Dock에 추가하면 브라우저 없이 바로 열려요</span>
+          <span className="text-[15px] font-semibold">{t("macTitle")}</span>
+          <span className="text-[13px] leading-relaxed text-muted">{t("macHint")}</span>
         </span>
-        <span className="shrink-0 rounded-full bg-brand px-3.5 py-1.5 text-xs font-semibold text-brand-contrast">방법 보기</span>
+        <span className="shrink-0 rounded-full bg-brand px-3.5 py-1.5 text-xs font-semibold text-brand-contrast">{t("macShow")}</span>
       </button>
 
-      <Modal open={open} onClose={() => setOpen(false)} title="Dock에 추가하는 방법">
+      <Modal open={open} onClose={() => setOpen(false)} title={t("macModal")}>
         <div className="flex flex-col gap-4 text-sm leading-relaxed">
           <ol className="flex flex-col gap-3">
             <Step n={1}>
-              <b>Safari</b>에서 modori.site를 열고 로그인해요. (Chrome 등 다른 브라우저라면 Safari로 열어 주세요)
+              <b>Safari</b>{t("macStep1After")}
             </Step>
             <Step n={2}>
-              화면 맨 위 메뉴 막대에서 <b>파일 → Dock에 추가</b>를 눌러요.
+              {t("macStep2Before")}<b>{t("macStep2Bold")}</b>{t("macStep2After")}
             </Step>
             <Step n={3}>
-              이름이 &ldquo;모도리&rdquo;로 뜨면 <b>추가</b>를 눌러요. Dock과 응용 프로그램 폴더에 모도리가 생겨요.
+              {t("macStep3Before")}<b>{t("macStep3Bold")}</b>{t("macStep3After")}
             </Step>
           </ol>
           <p className="rounded-xl bg-surface-hover p-3 text-xs text-muted">
-            Dock에서 연 모도리는 주소창 없이 앱처럼 열려요. 알림을 받으려면 마이페이지의 알림에서 &ldquo;이 기기에서 알림
-            띄우기&rdquo;를 켜 주세요.
+            {t("macNote")}
           </p>
           <button
             type="button"
             onClick={() => setOpen(false)}
             className="h-11 rounded-xl bg-brand text-sm font-semibold text-brand-contrast"
           >
-            알겠어요
+            {t("gotIt")}
           </button>
         </div>
       </Modal>

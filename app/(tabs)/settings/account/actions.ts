@@ -3,6 +3,8 @@
 import { revokeAppleAccounts } from "@/lib/apple-revoke";
 import { signOut } from "@/lib/auth";
 import { normalizeNickname } from "@/lib/nickname";
+import { settings } from "@/lib/i18n/messages/settings";
+import { getT } from "@/lib/i18n/server";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 
@@ -21,7 +23,7 @@ export async function deleteAccount(
 
   const typed = normalizeNickname(formData.get("confirm"));
   if (typed !== user.nickname) {
-    return { message: "닉네임이 달라요. 지금 쓰는 닉네임을 그대로 입력해주세요." };
+    return { message: (await getT(settings))("deleteNicknameMismatch") };
   }
 
   // 세션을 먼저 끊는다. 계정을 먼저 지우면 Auth.js가 이미 사라진 세션 행을

@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 
 import { CategoryChip } from "@/components/category-chip";
 import { Dori } from "@/components/dori";
+import { useLocale, useT } from "@/components/locale-provider";
 import { FeedItem } from "@/components/feed-item";
 import { MonthCalendar } from "@/components/month-calendar";
 import { DayNavLink, isModifiedClick, useMonthDay } from "@/components/month-day";
@@ -12,10 +13,12 @@ import { SwapIn } from "@/components/swap-in";
 import { spreadEvents } from "@/lib/calendar-events";
 import { addDays, endOfMonthKST, formatKST, parseKSTDate, parseKSTMonth, weekdayKST } from "@/lib/date";
 import { describeEventWhen } from "@/lib/event-time";
+import type { Locale } from "@/lib/i18n";
+import { dayHeading } from "@/lib/i18n/format";
+import { social } from "@/lib/i18n/messages/social";
 import { summarizeByDate } from "@/lib/day-summary";
 import { groupByCategory } from "@/lib/group-by-category";
 
-const WEEKDAY_NAMES = ["일", "월", "화", "수", "목", "금", "토"];
 
 export type FriendTodo = {
   id: string;
@@ -56,9 +59,9 @@ export type FriendData = {
   events: FriendEvent[];
 };
 
-function formatHeading(key: string): string {
+function formatHeading(locale: Locale, key: string): string {
   const [, month, day] = key.split("-");
-  return `${Number(month)}월 ${Number(day)}일 ${WEEKDAY_NAMES[weekdayKST(parseKSTDate(key))]}요일`;
+  return dayHeading(locale, Number(month), Number(day), weekdayKST(parseKSTDate(key)));
 }
 
 /**
@@ -66,6 +69,8 @@ function formatHeading(key: string): string {
  * 달 안에서 날짜를 바꾸는 것은 여기서 바로 그린다(docs/decisions.md "친구 화면도 한 달치를"). 프로필 줄은 서버가 그려 넘긴다.
  */
 export function FriendView({ profile, data }: { profile: ReactNode; data: FriendData }) {
+  const t = useT(social);
+  const locale = useLocale();
   const basePath = `/feed/u/${data.friendId}`;
   const { selected, inWindow, hrefFor, select } = useMonthDay({ basePath, ...data });
   const date = parseKSTDate(selected);
@@ -75,7 +80,7 @@ export function FriendView({ profile, data }: { profile: ReactNode; data: Friend
   // 내 화면과 같이 끝낸 일은 묶음 아래로 내린다. sort는 안정 정렬이라 같은 쪽 안의 순서는 그대로다.
   const todos = data.todos.filter((todo) => todo.date === selected);
   const dayEvents = data.events.filter((event) => event.startDate <= date && event.endDate >= date);
-  const groups = groupByCategory(todos, []).map((group) => ({
+  const groups = groupByCategory(todos, [], { noCategoryLabel: t("noCategory") }).map((group) => ({
     ...group,
     items: [...group.items].sort((a, b) => Number(a.done) - Number(b.done)),
   }));
@@ -104,6 +109,7 @@ export function FriendView({ profile, data }: { profile: ReactNode; data: Friend
             summaries={summarizeByDate(data.todos)}
             eventsByDate={spreadEvents(data.events, monthStart, endOfMonthKST(monthStart))}
             dayHref={hrefFor}
+            locale={locale}
             monthHref={(month) => `${basePath}?date=${selected}&month=${month}`}
             onSelectDay={select}
           />
@@ -112,13 +118,13 @@ export function FriendView({ profile, data }: { profile: ReactNode; data: Friend
 
       <div className="flex flex-col gap-6 lg:pb-12">
         <header className="flex items-center justify-between">
-          {dayNav(formatKST(addDays(date, -1)), "이전 날", "‹")}
+          {dayNav(formatKST(addDays(date, -1)), t("friendPrevDay"), "‹")}
           {/* 날짜를 넘기면 넘긴 쪽에서 미끄러져 들어온다(홈과 같다, components/home-view.tsx). */}
           <SwapIn swapKey={selected} className="text-center">
-            <p className="text-xs text-muted">{isToday ? "오늘" : selected}</p>
-            <h2 className="text-lg font-bold">{formatHeading(selected)}</h2>
+            <p className="text-xs text-muted">{isToday ? t("friendToday") : selected}</p>
+            <h2 className="text-lg font-bold">{formatHeading(locale, selected)}</h2>
           </SwapIn>
-          {dayNav(formatKST(addDays(date, 1)), "다음 날", "›")}
+          {dayNav(formatKST(addDays(date, 1)), t("friendNextDay"), "›")}
         </header>
 
         {!isToday && (
@@ -132,7 +138,7 @@ export function FriendView({ profile, data }: { profile: ReactNode; data: Friend
             }}
             className="-mt-3 flex h-8 w-fit items-center rounded-full px-3 text-sm text-brand hover:bg-surface-hover"
           >
-            오늘로 돌아가기
+            {t("friendBackToToday")}
           </Link>
         )}
 
@@ -141,7 +147,7 @@ export function FriendView({ profile, data }: { profile: ReactNode; data: Friend
           {todos.length === 0 ? (
             <div className="flex flex-col items-center gap-2 py-8 text-center">
               <Dori mood="calm" size={80} />
-              <p className="text-sm text-muted">할 일이 없어요</p>
+              <p className="text-sm text-muted">{t("friendNoTodos")}</p>
             </div>
           ) : (
             // 내 화면과 같이 카테고리로 묶는다. 쭉 나열하면 무엇을 하는 사람인지 안 보인다.
@@ -170,12 +176,14 @@ export function FriendView({ profile, data }: { profile: ReactNode; data: Friend
 
 /** 친구의 그 날 일정. 보기만 한다(고치기·순서 바꾸기는 내 화면에서만). 내 일정 카드와 같은 모양이다. */
 function FriendEvents({ events }: { events: FriendEvent[] }) {
+  const t = useT(social);
+  const locale = useLocale();
   return (
-    <section aria-label="친구 일정" className="flex flex-col gap-2">
-      <p className="text-sm font-semibold">일정</p>
+    <section aria-label={t("friendEvents")} className="flex flex-col gap-2">
+      <p className="text-sm font-semibold">{t("friendEventsTitle")}</p>
       <ul className="flex flex-col gap-2">
         {events.map((event) => {
-          const detail = [event.repeat ? `↻ ${event.repeat.rule}` : null, describeEventWhen(event)].filter(Boolean).join(" · ");
+          const detail = [event.repeat ? `↻ ${event.repeat.rule}` : null, describeEventWhen(event, locale)].filter(Boolean).join(" · ");
           return (
             <li key={event.id} className="flex items-stretch rounded-2xl bg-surface">
               <span aria-hidden className="color-edge my-3 ml-4 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: event.color }} />

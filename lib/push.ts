@@ -1,6 +1,7 @@
 import { createSign } from "node:crypto";
 
 import { apnsConfigFromEnv, sendToApns } from "@/lib/apns";
+import { localeOrDefault, type Locale } from "@/lib/i18n";
 import { prisma } from "@/lib/prisma";
 import { sendToWebSubscriptions, vapidFromEnv } from "@/lib/web-push";
 
@@ -39,6 +40,9 @@ export type PushMessage = {
   /** 같은 tag는 기기에서 하나로 묶인다(짧은 시간 안의 같은 알림이 쌓이지 않는다). */
   tag?: string;
 };
+
+/** 보낼 문구. 받는 사람의 언어에 따라 달라지는 문구는 언어를 받아 문구를 돌려주는 함수로 준다. */
+export type PushInput = PushMessage | ((locale: Locale) => PushMessage);
 
 export type ServiceAccount = { project_id: string; client_email: string; private_key: string };
 
@@ -152,7 +156,7 @@ export async function sendToTokens(
  */
 export async function sendPushToUser(
   userId: string,
-  message: PushMessage,
+  input: PushInput,
   { web = true }: { web?: boolean } = {},
 ): Promise<void> {
   const account = parseServiceAccount(process.env.FIREBASE_SERVICE_ACCOUNT);
@@ -160,12 +164,15 @@ export async function sendPushToUser(
   const vapid = web ? vapidFromEnv() : null;
   if (!account && !apns && !vapid) return;
   try {
-    const [rows, subscriptions] = await Promise.all([
+    const [rows, subscriptions, owner] = await Promise.all([
       account || apns ? prisma.pushToken.findMany({ where: { userId }, select: { token: true, platform: true } }) : [],
       vapid
         ? prisma.webPushSubscription.findMany({ where: { userId }, select: { endpoint: true, p256dh: true, auth: true } })
         : [],
+      // 문구를 받는 사람의 언어로 만들어야 하면 그 사람의 언어를 읽는다.
+      typeof input === "function" ? prisma.user.findUnique({ where: { id: userId }, select: { locale: true } }) : null,
     ]);
+    const message = typeof input === "function" ? input(localeOrDefault(owner?.locale)) : input;
     const tokensOf = (platform: string) => rows.filter((row) => row.platform === platform).map((row) => row.token);
 
     const [android, ios, browsers] = await Promise.allSettled([

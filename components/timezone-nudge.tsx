@@ -4,10 +4,13 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useSyncExternalStore, useTransition } from "react";
 
 import { setTimezone } from "@/app/(tabs)/settings/actions";
+import { useT } from "@/components/locale-provider";
 import { useTimezone } from "@/components/timezone-context";
 import { useSaveFailure } from "@/components/use-save-failure";
 import { deviceTimezone, subscribeNothing } from "@/lib/device-timezone";
-import { isAllowedTimezone, TIMEZONES } from "@/lib/timezones";
+import { timezoneNames } from "@/lib/i18n/messages/timezones";
+import { settings } from "@/lib/i18n/messages/settings";
+import { isAllowedTimezone } from "@/lib/timezones";
 
 const DISMISS_PREFIX = "modori-tz-dismissed:";
 
@@ -33,6 +36,8 @@ export function TimezoneNudge() {
   // 여행지에서도 그곳의 "오늘"이 맞고, 마이페이지에서는 시간대 고르기를 없앴다.
   const inApp = useSyncExternalStore(subscribeNothing, () => navigator.userAgent.includes("ModoriMobile"), () => false);
   const synced = useRef("");
+  const t = useT(settings);
+  const tz = useT(timezoneNames);
   const [hidden, setHidden] = useState(false);
   const [pending, startTransition] = useTransition();
   const router = useRouter();
@@ -55,7 +60,7 @@ export function TimezoneNudge() {
   }, [inApp, device, saved, router]);
 
   if (inApp || hidden || wasDismissed || device === "" || device === saved || !isAllowedTimezone(device)) return null;
-  const label = TIMEZONES.find((zone) => zone.value === device)?.label ?? device;
+  const label = tz(device as Parameters<typeof tz>[0]);
 
   function apply() {
     startTransition(async () => {
@@ -79,9 +84,9 @@ export function TimezoneNudge() {
   }
 
   return (
-    <div role="region" aria-label="시간대 안내" className="mb-4 flex flex-col gap-3 rounded-2xl bg-brand-subtle p-4">
+    <div role="region" aria-label={t("nudgeLabel")} className="mb-4 flex flex-col gap-3 rounded-2xl bg-brand-subtle p-4">
       <p className="text-sm">
-        이 기기는 <b className="font-semibold">{label}</b> 시간이에요. 오늘 날짜를 이 시간대로 맞출까요?
+        {t("nudgeBefore")}<b className="font-semibold">{label}</b>{t("nudgeAfter")}
       </p>
       <div className="flex gap-2">
         <button
@@ -90,10 +95,10 @@ export function TimezoneNudge() {
           onClick={apply}
           className="h-10 flex-1 rounded-xl bg-brand text-sm font-semibold text-brand-contrast disabled:opacity-60"
         >
-          {pending ? "맞추는 중" : "맞추기"}
+          {pending ? t("adjusting") : t("adjust")}
         </button>
         <button type="button" onClick={keep} className="h-10 flex-1 rounded-xl bg-surface text-sm font-medium text-muted">
-          지금 그대로
+          {t("keepAsIs")}
         </button>
       </div>
     </div>

@@ -1,7 +1,11 @@
+"use client";
+
 import Link from "next/link";
 
+import { useT } from "@/components/locale-provider";
 import { ReactionBar } from "@/components/reaction-bar";
 import { onColorText } from "@/lib/colors";
+import { social } from "@/lib/i18n/messages/social";
 import { othersByEmoji, summarizeReactions } from "@/lib/reactions";
 
 import { Avatar } from "@/components/avatar";
@@ -34,6 +38,7 @@ export function FeedItem({
   // 친구 화면처럼 카테고리로 이미 묶인 곳에서는 한 줄로 줄여 한눈에 많이 보이게 한다.
   compact?: boolean;
 }) {
+  const t = useT(social);
   const color = todo.color ?? todo.category?.color;
   const done = todo.done ?? true;
 
@@ -44,7 +49,7 @@ export function FeedItem({
         {/* 내 화면의 체크와 같은 모양. 안 끝낸 일은 회색 네모, 반응은 끝낸 일에만 보낸다. */}
         <span
           role="img"
-          aria-label={done ? "완료" : "아직 안 함"}
+          aria-label={done ? t("doneMark") : t("notDone")}
           className={`color-edge flex size-[18px] shrink-0 items-center justify-center rounded-[6px] text-[10px] font-bold ${
             done ? "bg-brand" : "bg-border"
           }`}

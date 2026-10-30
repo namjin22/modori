@@ -3,9 +3,12 @@
 import { useRef, useState } from "react";
 
 import { DoriFace } from "@/components/avatar";
+import { useT } from "@/components/locale-provider";
 import { toSquareDataUrl } from "@/components/profile-image-field";
 import { ScrollRow } from "@/components/scroll-row";
 import { CHARACTERS, DEFAULT_CHARACTER, type CharacterId } from "@/lib/characters";
+import { characterNames } from "@/lib/i18n/messages/characters";
+import { profile } from "@/lib/i18n/messages/profile";
 
 /**
  * 프로필 사진 고르기: 캐릭터 넷(도리·몽이·하루·펭이) 중 하나 또는 내 사진. 가입할 때와 마이페이지에서 같이 쓴다.
@@ -24,6 +27,8 @@ export function AvatarChoice({
   // 옆으로 넘기는 줄의 가장자리 흐림 색. 놓인 바탕과 같아야 한다(가입 화면은 화면 바탕, 프로필 수정은 카드).
   fade?: "background" | "surface";
 } = {}) {
+  const t = useT(profile);
+  const tn = useT(characterNames);
   const [character, setCharacter] = useState<CharacterId>(defaultCharacter);
   const [choice, setChoice] = useState<"photo" | "character">(defaultPhoto ? "photo" : "character");
   const [photo, setPhoto] = useState<string | null>(defaultPhoto);
@@ -39,7 +44,7 @@ export function AvatarChoice({
       setChoice("photo");
     } catch (error) {
       console.error("[onboarding] 사진을 읽지 못했다.", error);
-      setProblem("사진을 읽지 못했어요. 다른 파일로 해보세요.");
+      setProblem(t("photoReadFailed"));
     } finally {
       setBusy(false);
     }
@@ -54,10 +59,10 @@ export function AvatarChoice({
   return (
     // fieldset은 기본 min-width가 내용 폭(min-content)이라, 옆으로 넘기는 칸들이 페이지 전체를 넓혔다. min-w-0으로 끊어야 칸 안에서만 넘어간다.
     <fieldset className="flex min-w-0 flex-col gap-4">
-      <legend className="mb-4 px-1 text-sm font-medium">프로필 사진</legend>
+      <legend className="mb-4 px-1 text-sm font-medium">{t("photo")}</legend>
       {/* 한 줄로 늘어놓고 옆으로 넘긴다. 고른 칸의 테두리가 잘리지 않게 안쪽 여백을 두고, 화면 끝까지 넘어가 보이게 좌우로 조금 넓힌다.
           칸 맞춤(snap)도 그 여백(scroll-px-2)을 기준으로 한다. 빠지면 처음부터 8px 넘어가 첫 칸 테두리가 잘렸다. */}
-      <ScrollRow role="radiogroup" aria-label="프로필 사진" fade={fade} className="-mx-2 flex snap-x snap-mandatory scroll-px-2 gap-3 px-2 py-1">
+      <ScrollRow role="radiogroup" aria-label={t("photo")} fade={fade} className="-mx-2 flex snap-x snap-mandatory scroll-px-2 gap-3 px-2 py-1">
         {CHARACTERS.map((item) => {
           const selected = choice === "character" && character === item.id;
           return (
@@ -73,7 +78,7 @@ export function AvatarChoice({
               className={tile(selected)}
             >
               <DoriFace size={56} character={item.id} className="rounded-full" />
-              {item.name}
+              {tn(item.id)}
             </button>
           );
         })}
@@ -96,13 +101,13 @@ export function AvatarChoice({
               +
             </span>
           )}
-          {busy ? "줄이는 중" : "내 사진"}
+          {busy ? t("resizing") : t("myPhoto")}
         </button>
       </ScrollRow>
 
       {photo && choice === "photo" && (
         <button type="button" onClick={() => fileRef.current?.click()} className="w-fit px-1 text-xs text-brand">
-          다른 사진 고르기
+          {t("pickAnother")}
         </button>
       )}
 
@@ -110,7 +115,7 @@ export function AvatarChoice({
         ref={fileRef}
         type="file"
         accept="image/png,image/jpeg,image/webp"
-        aria-label="내 사진 파일"
+        aria-label={t("photoFile")}
         onChange={(event) => {
           const file = event.target.files?.[0];
           if (file) void pick(file);
@@ -130,7 +135,7 @@ export function AvatarChoice({
           {problem}
         </p>
       )}
-      <p className="px-1 text-xs text-muted">마이페이지에서 언제든 바꿀 수 있어요.</p>
+      <p className="px-1 text-xs text-muted">{t("changeLater")}</p>
     </fieldset>
   );
 }

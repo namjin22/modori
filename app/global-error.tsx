@@ -1,7 +1,11 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 
+import { DEFAULT_LOCALE, translator } from "@/lib/i18n";
+import { subscribeNothing } from "@/lib/device-timezone";
+import { cookieLocale } from "@/lib/i18n/client";
+import { errors } from "@/lib/i18n/messages/errors";
 import { reloadOnce } from "@/lib/reload-guard";
 
 import "./globals.css";
@@ -12,6 +16,10 @@ import "./globals.css";
  * 먼저 저절로 한 번 새로고침하고, 그래도 안 되면 우리말 안내와 버튼을 보인다.
  */
 export default function GlobalError({ error }: { error: Error & { digest?: string } }) {
+  // 맨 바깥 레이아웃이 깨졌으니 언어를 건네줄 곳이 없다. 처음은 한국어로 그리고, 브라우저에서 쿠키를 읽어 바꾼다.
+  const locale = useSyncExternalStore(subscribeNothing, cookieLocale, () => DEFAULT_LOCALE);
+  const t = translator(errors, locale);
+
   useEffect(() => {
     console.error("[global-error]", error);
     if (!error.digest) {
@@ -24,11 +32,11 @@ export default function GlobalError({ error }: { error: Error & { digest?: strin
   }, [error]);
 
   return (
-    <html lang="ko">
+    <html lang={locale}>
       <body className="flex min-h-screen flex-col items-center justify-center gap-6 bg-background px-6 text-center text-foreground">
         <div>
-          <h1 className="text-xl font-bold">화면을 불러오지 못했어요</h1>
-          <p className="mt-2 text-sm text-muted">인터넷 연결을 확인하고 다시 불러와 주세요.</p>
+          <h1 className="text-xl font-bold">{t("globalTitle")}</h1>
+          <p className="mt-2 text-sm text-muted">{t("globalBody")}</p>
         </div>
         <div className="flex w-full max-w-xs flex-col gap-2">
           <button
@@ -36,7 +44,7 @@ export default function GlobalError({ error }: { error: Error & { digest?: strin
             onClick={() => window.location.reload()}
             className="h-12 rounded-2xl bg-brand text-sm font-semibold text-brand-contrast"
           >
-            다시 불러오기
+            {t("reloadAgain")}
           </button>
           <button
             type="button"
@@ -44,7 +52,7 @@ export default function GlobalError({ error }: { error: Error & { digest?: strin
             onClick={() => window.location.assign(window.location.origin)}
             className="h-12 rounded-2xl bg-surface text-sm font-medium"
           >
-            처음 화면으로
+            {t("toStart")}
           </button>
         </div>
       </body>

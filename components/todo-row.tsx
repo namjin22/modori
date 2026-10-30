@@ -5,6 +5,7 @@ import { useState, useTransition } from "react";
 import { deleteTodo, moveTodo, repeatTodo, restoreTodo, updateTodo } from "@/app/(tabs)/actions";
 import { ChoicePicker } from "@/components/choice-picker";
 import { DatePicker } from "@/components/date-picker";
+import { useT } from "@/components/locale-provider";
 import { MemoPrivateToggle } from "@/components/memo-private-toggle";
 import { Modal } from "@/components/modal";
 import { ReceivedReactions } from "@/components/received-reactions";
@@ -16,6 +17,8 @@ import { UndoableDeleteButton } from "@/components/undoable-delete-button";
 import { useSaveFailure } from "@/components/use-save-failure";
 import { addDays, formatKST, parseKSTDate } from "@/lib/date";
 import { MAX_MEMO_LENGTH } from "@/lib/memo";
+import { common } from "@/lib/i18n/messages/common";
+import { todos as todoMessages } from "@/lib/i18n/messages/todos";
 import type { ReceivedReaction } from "@/lib/reactions";
 
 type Todo = {
@@ -45,8 +48,8 @@ export function TodoRow({
   todo: Todo;
   // 이 할 일의 날짜("YYYY-MM-DD"). "다른 날에 하기"의 처음 값(다음 날)을 여기서 정한다.
   date: string;
-  // 한 번에 옮기는 버튼. 오늘 할 일은 "내일 하기", 오늘이 아닌 날(지난 날·앞날)의 할 일은 "오늘 하기"(components/home-view.tsx가 정한다).
-  quickMove: { label: string; target: string };
+  // 한 번에 옮기는 버튼. 오늘 할 일은 내일로(tomorrow), 오늘이 아닌 날(지난 날·앞날)의 할 일은 오늘로(today) 옮긴다(components/home-view.tsx가 정한다).
+  quickMove: { kind: "today" | "tomorrow"; target: string };
   // 친구들이 이 할 일에 보낸 반응. 종류별로 묶여 온다.
   received?: ReceivedReaction[];
   // 방금 적어 서버가 아직 모르는 할 일. 저장이 끝날 때까지(잠깐) 누를 수 없다.
@@ -54,6 +57,8 @@ export function TodoRow({
   // 옮길 수 있는 카테고리(보관하지 않은 것). 주면 창에서 카테고리를 고를 수 있다. 폰에서는 끌어 옮기기가 어려워 이 길을 둔다.
   categories?: CategoryOption[];
 }) {
+  const t = useT(todoMessages);
+  const tc = useT(common);
   const [open, setOpen] = useState(false);
   // 저장에 실패한 고친 글자. 다시 연 창에 그대로 채운다.
   const [draft, setDraft] = useState<{ content: string; memo: string } | null>(null);
@@ -89,7 +94,7 @@ export function TodoRow({
         <ReceivedReactions received={received} />
       </div>
 
-      <Modal open={open} onClose={() => setOpen(false)} title="할 일">
+      <Modal open={open} onClose={() => setOpen(false)} title={t("modalTitle")}>
         <form
           // 실패하면 창을 열어 둔 채 고친 글자를 남긴다. form action은 실패해도
           // 입력칸을 처음 값으로 되돌려서 onSubmit으로 보낸다.
@@ -139,15 +144,15 @@ export function TodoRow({
             required
             autoFocus
             data-autofocus
-            aria-label="할 일 내용 수정"
+            aria-label={t("editLabel")}
             className="h-12 w-full rounded-xl bg-surface-hover px-4 text-[15px] outline-none focus:ring-2 focus:ring-brand"
           />
           {categories && todo.category?.id && categories.some((option) => option.id === todo.category?.id) && (
             <div className="flex items-center gap-3 text-sm">
-              <span className="shrink-0 text-muted">카테고리</span>
+              <span className="shrink-0 text-muted">{t("categoryLabel")}</span>
               <div className="min-w-0 flex-1">
                 <ChoicePicker
-                  label="할 일 카테고리"
+                  label={t("categoryPicker")}
                   name="categoryId"
                   defaultValue={todo.category.id}
                   options={categories.map((option) => ({ value: option.id, label: option.name, color: option.color }))}
@@ -169,16 +174,16 @@ export function TodoRow({
             defaultValue={draft?.memo ?? todo.memo ?? ""}
             maxLength={MAX_MEMO_LENGTH}
             rows={3}
-            placeholder="메모"
-            aria-label="할 일 메모"
+            placeholder={t("memoPlaceholder")}
+            aria-label={t("memoLabel")}
             className="w-full resize-none rounded-xl bg-surface-hover px-4 py-3 text-sm outline-none placeholder:text-muted focus:ring-2 focus:ring-brand"
           />
           {/* 메모를 친구에게 숨길지(기본은 보인다, 2026-10-18). 할 일 자체는 카테고리 공개 여부를 따른다. 표시 칸은 이 스위치가 있는 화면이라는 표시다. */}
           <input type="hidden" name="memoPublicField" value="1" />
           <MemoPrivateToggle defaultChecked={!(todo.memoPublic ?? true)} />
           {/* 손잡이가 없어 순서를 바꾸는 법이 안 보인다. 폰은 길게 눌러, 컴퓨터는 줄을 잡고 끈다. */}
-          <p className="hidden text-xs text-muted pointer-coarse:block">할 일을 길게 누르면 집혀서, 끌어 순서를 바꿀 수 있어요.</p>
-          <p className="hidden text-xs text-muted pointer-fine:block">할 일 줄을 잡고 끌면 순서를 바꾸거나 다른 카테고리로 옮길 수 있어요.</p>
+          <p className="hidden text-xs text-muted pointer-coarse:block">{t("hintTouch")}</p>
+          <p className="hidden text-xs text-muted pointer-fine:block">{t("hintMouse")}</p>
           <div className="flex items-center justify-between gap-2">
             <UndoableDeleteButton
               id={todo.id}
@@ -188,17 +193,17 @@ export function TodoRow({
                 return deleteTodo(id);
               }}
               restore={restoreTodo}
-              message="할 일을 지웠어요"
+              message={t("deleted")}
               onDone={() => setOpen(false)}
               className="h-10 rounded-xl px-3 text-sm font-medium text-danger"
             />
             <SubmitButton
               // 홈에서는 저장이 뒤에서 돌아 창이 이미 닫혀 있다. 이어서 다시 열어 고칠 때 버튼을 막지 않는다.
               pending={!store && pending}
-              pendingLabel="저장 중"
+              pendingLabel={tc("saving")}
               className="h-10 rounded-xl bg-brand px-5 text-sm font-semibold text-brand-contrast"
             >
-              저장
+              {tc("save")}
             </SubmitButton>
           </div>
         </form>
@@ -226,11 +231,12 @@ function MoveToDay({
 }: {
   id: string;
   date: string;
-  quickMove: { label: string; target: string };
+  quickMove: { kind: "today" | "tomorrow"; target: string };
   done: boolean;
   todo: Todo;
   onMoved: () => void;
 }) {
+  const t = useT(todoMessages);
   const nextDay = formatKST(addDays(parseKSTDate(date), 1));
   const [picking, setPicking] = useState(false);
   const [day, setDay] = useState(nextDay);
@@ -244,7 +250,7 @@ function MoveToDay({
     setMessage(null);
     // 같은 날은 서버에 묻지 않아도 안다(먼저 옮겨 보이면 줄이 사라졌다 돌아온다). 서버도 같은 이유로 거절한다.
     if (target === date) {
-      setMessage(done ? "이미 그날이에요. 다른 날을 골라 주세요." : "이미 그날의 할 일이에요.");
+      setMessage(done ? t("sameDayAgain") : t("sameDayMove"));
       return;
     }
     startTransition(async () => {
@@ -283,7 +289,8 @@ function MoveToDay({
   }
 
   const button = "h-10 flex-1 rounded-xl border border-border text-sm font-medium disabled:opacity-50";
-  const quickLabel = done ? quickMove.label.replace(/하기$/, "또 하기") : quickMove.label;
+  const quickLabel =
+    quickMove.kind === "today" ? t(done ? "moveTodayAgain" : "moveToday") : t(done ? "moveTomorrowAgain" : "moveTomorrow");
 
   return (
     <div className="flex flex-col gap-2">
@@ -297,16 +304,16 @@ function MoveToDay({
           onClick={() => setPicking((value) => !value)}
           className={`${button} ${picking ? "border-brand text-brand" : ""}`}
         >
-          {done ? "다른 날 또 하기" : "다른 날에 하기"}
+          {done ? t("moveOtherAgain") : t("moveOther")}
         </button>
       </div>
 
       {picking && (
         <div className="flex animate-rise flex-col gap-2 rounded-xl border border-border p-3">
-          <p className="text-xs text-muted">{done ? "어느 날에 또 할까요?" : "어느 날로 옮길까요?"}</p>
+          <p className="text-xs text-muted">{done ? t("whichDayAgain") : t("whichDayMove")}</p>
           <div className="flex items-center gap-2">
             <div className="min-w-0 flex-1">
-              <DatePicker label={done ? "또 할 날짜" : "옮길 날짜"} value={day} onChange={setDay} compact />
+              <DatePicker label={done ? t("againDate") : t("moveDate")} value={day} onChange={setDay} compact />
             </div>
             <button
               type="button"
@@ -314,7 +321,7 @@ function MoveToDay({
               onClick={() => move(day)}
               className="h-10 shrink-0 rounded-xl bg-brand px-4 text-sm font-semibold text-brand-contrast disabled:opacity-50"
             >
-              {pending ? (done ? "적는 중" : "옮기는 중") : done ? "또 하기" : "옮기기"}
+              {pending ? (done ? t("writing") : t("moving")) : done ? t("doAgain") : t("doMove")}
             </button>
           </div>
         </div>

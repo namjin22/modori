@@ -10,15 +10,21 @@ import { MarkNotificationsSeen, NewMark, NotificationRow } from "@/components/no
 import { ReactionGlyph } from "@/components/reaction-glyph";
 import { SubmitButton } from "@/components/submit-button";
 import { avatarUrl } from "@/lib/avatar";
-import { dateIn, formatMonthDayKST } from "@/lib/date";
+import { dateIn } from "@/lib/date";
 import { friendDoneWhere } from "@/lib/friend-done";
+import { formatMonthDay } from "@/lib/i18n/format";
+import { reactions as reactionMessages } from "@/lib/i18n/messages/reactions";
+import { getLocale, getT } from "@/lib/i18n/server";
 import { prisma } from "@/lib/prisma";
 import { labelOfReaction } from "@/lib/reactions";
 import { requireUser } from "@/lib/session";
 
 import { followUser } from "../actions";
 
-export const metadata: Metadata = { title: "알림 · 모도리" };
+/** 제목은 화면 언어를 따른다. */
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getT(reactionMessages))("pageTitle") };
+}
 
 const MAX_ITEMS = 50;
 // 친구가 끝낸 일은 묶기 전에 이만큼만 받는다. 묶으면 줄 수는 훨씬 적다.
@@ -51,6 +57,8 @@ function groupFriendDone(todos: DoneTodo[], timezone: string) {
  */
 export default async function NotificationsPage() {
   const user = await requireUser();
+  const t = await getT(reactionMessages);
+  const locale = await getLocale();
 
   // 이 화면을 그린 시각이 "읽음" 기준이다. 목록보다 먼저 잡아, 그 사이에 온 알림을 읽은 것으로 치지 않는다.
   const lastSeenAt = user.lastSeenAt;
@@ -114,12 +122,12 @@ export default async function NotificationsPage() {
       {/* 링크로 오갈 때는 탭 공통 레이아웃(아래 탭의 알림 수)이 다시 그려지지 않는다. 화면이 뜬 뒤 액션으로 다시 그리게 한다. */}
       <MarkNotificationsSeen renderedAt={renderedAt.toISOString()} />
       <header className="flex items-center gap-1">
-        <BackLink href="/feed" label="소셜로" />
-        <h1 className="text-2xl font-bold">알림</h1>
+        <BackLink href="/feed" label={t("toSocial")} />
+        <h1 className="text-2xl font-bold">{t("notificationsTitle")}</h1>
       </header>
 
       {/* 친구가 끝낸 일은 많이 쌓일 수 있어 여기서 바로 끄고 켠다(2026-10-18 요청). 반응·팔로우 알림은 그대로다. */}
-      <section aria-label="알림 설정" className="flex flex-col gap-3 rounded-2xl bg-surface p-4">
+      <section aria-label={t("settingsLabel")} className="flex flex-col gap-3 rounded-2xl bg-surface p-4">
         <FriendDoneSwitch on={user.notifyFriendDone} />
         {/* 웹·데스크톱 창의 컴퓨터 알림(2026-10-19 요청). 알림을 띄울 수 없는 곳(모바일 앱)에서는 그리지 않는다. */}
         <DesktopNotifySwitch userId={user.id} />
@@ -127,8 +135,8 @@ export default async function NotificationsPage() {
 
       {items.length === 0 ? (
         <DoriMessage mood="calm">
-          <p>아직 받은 알림이 없어요</p>
-          <p className="text-xs">친구가 반응을 보내거나, 나를 팔로우하거나, 할 일을 끝내면 여기 모여요</p>
+          <p>{t("emptyTitle")}</p>
+          <p className="text-xs">{t("emptyBody")}</p>
         </DoriMessage>
       ) : (
         <ul className="flex flex-col gap-3">
@@ -144,11 +152,11 @@ export default async function NotificationsPage() {
                     <Avatar src={avatarUrl(done.friend)} size={40} />
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-semibold">
-                        {done.friend.nickname}님이 {done.count > 1 ? `할 일 ${done.count}개를` : "할 일을"} 끝냈어요
+                        {done.count > 1 ? t("doneMany", { nickname: done.friend.nickname ?? "", count: done.count }) : t("doneOne", { nickname: done.friend.nickname ?? "" })}
                       </p>
                       <p className="truncate text-xs text-muted">
                         {done.latest}
-                        {done.count > 1 && ` 외 ${done.count - 1}개`} · {formatMonthDayKST(done.day)}
+                        {done.count > 1 && t("doneMore", { count: done.count - 1 })} · {formatMonthDay(locale, done.day)}
                       </p>
                     </div>
                   </Link>
@@ -165,7 +173,7 @@ export default async function NotificationsPage() {
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-semibold">{person.nickname}</p>
                     <p className="truncate text-xs text-muted">
-                      나를 팔로우했어요 · {formatMonthDayKST(dateIn(item.at, user.timezone))}
+                      {t("followedMe")} · {formatMonthDay(locale, dateIn(item.at, user.timezone))}
                     </p>
                   </div>
                   {newMark}
@@ -174,10 +182,10 @@ export default async function NotificationsPage() {
                     <form action={followUser} className="shrink-0">
                       <input type="hidden" name="targetId" value={person.id} />
                       <SubmitButton
-                        pendingLabel="처리 중"
+                        pendingLabel={t("working")}
                         className="h-8 rounded-full bg-brand px-3 text-xs font-semibold text-brand-contrast"
                       >
-                        맞팔로우
+                        {t("followBack")}
                       </SubmitButton>
                     </form>
                   )}
@@ -190,7 +198,7 @@ export default async function NotificationsPage() {
               <NotificationRow key={reaction.id} isNew={isNew}>
                 <span
                   role="img"
-                  aria-label={labelOfReaction(reaction.emoji)}
+                  aria-label={labelOfReaction(reaction.emoji, locale)}
                   className="flex size-10 shrink-0 items-center justify-center rounded-full bg-surface-hover text-xl"
                 >
                   <ReactionGlyph value={reaction.emoji} size={30} />
@@ -199,7 +207,7 @@ export default async function NotificationsPage() {
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-semibold">{reaction.user.nickname}</p>
                   <p className="truncate text-xs text-muted">
-                    {reaction.todo.content} · {formatMonthDayKST(reaction.todo.date)}
+                    {reaction.todo.content} · {formatMonthDay(locale, reaction.todo.date)}
                   </p>
                 </div>
                 {newMark}

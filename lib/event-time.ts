@@ -1,4 +1,6 @@
-import { formatMonthDayKST, isSameKSTDate } from "@/lib/date";
+import { isSameKSTDate } from "@/lib/date";
+import type { Locale } from "@/lib/i18n";
+import { formatMonthDay } from "@/lib/i18n/format";
 
 /**
  * 일정 시각. DB에는 자정부터 몇 분인지(0~1439)로 두고, 화면과 폼은 "HH:MM"으로 주고받는다.
@@ -32,7 +34,7 @@ type EventWhen = {
  * 일정 줄 아래에 적는 때. 하루 종일인 하루짜리 일정은 적을 것이 없어 null.
  * 하루짜리: "09:00", "09:00 ~ 10:30". 여러 날: "9월 28일 ~ 9월 30일", 시각이 있으면 날짜 뒤에 붙인다.
  */
-export function describeEventWhen(event: EventWhen): string | null {
+export function describeEventWhen(event: EventWhen, locale: Locale = "ko"): string | null {
   const start = event.startTime === null ? null : formatTime(event.startTime);
   const end = event.endTime === null ? null : formatTime(event.endTime);
 
@@ -41,7 +43,7 @@ export function describeEventWhen(event: EventWhen): string | null {
     return end ? `${start} ~ ${end}` : start;
   }
 
-  const from = [formatMonthDayKST(event.startDate), start].filter(Boolean).join(" ");
-  const to = [formatMonthDayKST(event.endDate), end].filter(Boolean).join(" ");
+  const from = [formatMonthDay(locale, event.startDate), start].filter(Boolean).join(" ");
+  const to = [formatMonthDay(locale, event.endDate), end].filter(Boolean).join(" ");
   return `${from} ~ ${to}`;
 }

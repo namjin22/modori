@@ -3,8 +3,11 @@
 import { useRef, useState } from "react";
 
 import { Dori } from "@/components/dori";
+import { useT } from "@/components/locale-provider";
 import { Modal } from "@/components/modal";
 import { SubmitButton } from "@/components/submit-button";
+import { auth } from "@/lib/i18n/messages/auth";
+import { common } from "@/lib/i18n/messages/common";
 import { unregisterPushToken } from "@/lib/push-client";
 import { unsubscribeWebPush } from "@/lib/web-push-client";
 
@@ -15,6 +18,8 @@ import { unsubscribeWebPush } from "@/lib/web-push-client";
 export function LogoutButton() {
   const [open, setOpen] = useState(false);
   const [leaving, setLeaving] = useState(false);
+  const t = useT(auth);
+  const tc = useT(common);
   const formRef = useRef<HTMLFormElement>(null);
 
   return (
@@ -24,13 +29,13 @@ export function LogoutButton() {
         onClick={() => setOpen(true)}
         className="h-12 w-full rounded-2xl bg-surface text-sm text-muted transition-colors hover:text-foreground"
       >
-        로그아웃
+        {t("logout")}
       </button>
 
-      <Modal open={open} onClose={() => setOpen(false)} title="로그아웃할까요?">
+      <Modal open={open} onClose={() => setOpen(false)} title={t("logoutTitle")}>
         <div className="flex flex-col items-center gap-2 text-center">
           <Dori mood="hello" size={88} />
-          <p className="text-balance text-sm text-muted">다음에 또 만나요. 기록은 그대로 남아 있어요.</p>
+          <p className="text-balance text-sm text-muted">{t("logoutBody")}</p>
         </div>
         {/* 일반 폼 POST로 로그아웃하고 로그인 화면을 통째로 새로 연다(app/api/logout/route.ts). */}
         <form
@@ -57,14 +62,14 @@ export function LogoutButton() {
             onClick={() => setOpen(false)}
             className="h-12 rounded-2xl bg-surface-hover text-sm font-semibold"
           >
-            취소
+            {tc("cancel")}
           </button>
           <SubmitButton
             pending={leaving}
-            pendingLabel="나가는 중"
+            pendingLabel={t("leaving")}
             className="h-12 rounded-2xl bg-brand text-sm font-semibold text-brand-contrast"
           >
-            로그아웃
+            {t("logout")}
           </SubmitButton>
         </form>
       </Modal>
