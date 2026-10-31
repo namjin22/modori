@@ -1,7 +1,8 @@
 // 도리를 뺀 캐릭터(몽이·하루·펭이)의 얼굴. 도리 표정을 그대로 옮기면 얼굴 구조가 다 같아 어색해서,
 // 캐릭터마다 눈의 크기·간격·위치, 코, 입(또는 부리)을 따로 짠다. 귀엽게 보이는 비율을 먼저 잡았다:
 // 눈은 크고 낮게(몽이·하루), 또는 작고 넓고 낮게(펭이), 하이라이트는 눈마다 두 개, 입은 코 바로 밑에 작게.
-// 서버 컴포넌트에서도 쓰므로 상태나 훅을 두지 않는다. 좌표는 머리 좌표계(머리 중심 60,46)다.
+// 서버 컴포넌트에서도 쓰므로 상태나 훅을 두지 않는다.
+// 좌표계: 펭이는 둥근 머리 틀(머리 중심 60,46), 몽이·하루는 도리와 같은 넓은 머리 틀(머리 중심 60,62)이다.
 
 import type { ReactNode } from "react";
 
@@ -53,8 +54,8 @@ type Layout = {
 };
 
 const LAYOUT: Record<Exclude<CharacterId, "dori">, Layout> = {
-  mong: { left: 43, right: 77, y: 47.5, rx: 6.6, ry: 7.8, tilt: 0, color: "#4b392f", glint: 1.1 },
-  haru: { left: 42, right: 78, y: 48, rx: 6.8, ry: 6.4, tilt: 6, color: "#5a2f1c", glint: 1, lidFill: "var(--ch-body)" },
+  mong: { left: 41, right: 79, y: 58, rx: 7, ry: 8.2, tilt: 0, color: "#4b392f", glint: 1.1 },
+  haru: { left: 40, right: 80, y: 56, rx: 7.8, ry: 7.6, tilt: 6, color: "#5a2f1c", glint: 1, lidFill: "var(--ch-body)" },
   peng: { left: 43, right: 77, y: 50.5, rx: 5.2, ry: 6.2, tilt: 0, color: "#1e2a47", glint: 1, single: true, lidFill: "#fffaf2" },
 };
 
@@ -222,7 +223,7 @@ function OmegaMouth({ kind, top, w, depth, color, tongue }: { kind: Mouth; top: 
 /** 몽이가 입에 문 뼈다귀. */
 function Bone() {
   return (
-    <g transform="translate(60 63) rotate(-8)">
+    <g transform="translate(60 79) rotate(-8)">
       <g fill="#fffaf2" stroke="#c9a37f" strokeWidth={1.6}>
         <circle cx={-14} cy={-3.2} r={3.8} />
         <circle cx={-14} cy={3.2} r={3.8} />
@@ -241,16 +242,16 @@ function DogFace({ mood }: { mood: CharacterMood }) {
   return (
     <>
       {/* 눈썹 점: 강아지 얼굴의 귀여움 포인트. 표정에 따라 같이 오르내린다. */}
-      <g fill="#c98f5f">
+      <g fill="var(--ch-ear, #a8693f)">
         <ellipse cx={l.left} cy={l.y - 11.5} rx={2.9} ry={2} />
         <ellipse cx={l.right} cy={l.y - 11.5} rx={2.9} ry={2} />
       </g>
       <Eye kind={s.eye} x={l.left} dir={-1} l={l} />
       <Eye kind={s.eyeRight ?? s.eye} x={l.right} dir={1} l={l} />
       {s.tear && <path d={`M${l.left - 3} ${l.y + 9} q-3 4.2 0 6.6 q3 -2.4 0 -6.6z`} fill="#8ecbff" />}
-      <ellipse cx={60} cy={54.2} rx={5.2} ry={3.7} fill="#4b392f" />
-      <ellipse cx={58.3} cy={52.9} rx={1.7} ry={1} fill="#fff" opacity={0.8} />
-      <OmegaMouth kind={s.mouth} top={57.7} w={8.6} depth={4.4} color="#4b392f" tongue={3.4} />
+      <ellipse cx={60} cy={66.5} rx={6.2} ry={4.4} fill="#4b392f" />
+      <ellipse cx={58} cy={65} rx={2} ry={1.2} fill="#fff" opacity={0.8} />
+      <OmegaMouth kind={s.mouth} top={70.4} w={9.2} depth={4.6} color="#4b392f" tongue={3.6} />
       {mood === "bone" && <Bone />}
     </>
   );
@@ -266,14 +267,14 @@ function FoxFace({ mood }: { mood: CharacterMood }) {
       {s.tear && <path d={`M${l.left - 3} ${l.y + 9.5} q-3 4.2 0 6.6 q3 -2.4 0 -6.6z`} fill="#8ecbff" />}
       {mood === "shy" && (
         <g>
-          <ellipse cx={37} cy={59} rx={9} ry={6.5} fill="#ff6f6f" opacity={0.5} />
-          <ellipse cx={83} cy={59} rx={9} ry={6.5} fill="#ff6f6f" opacity={0.5} />
-          <path d="M31 57 l3 4 M36 56 l3 4 M41 56 l3 4 M76 56 l3 4 M81 56 l3 4 M86 57 l3 4" stroke="#ff4d4d" strokeWidth={1.4} strokeLinecap="round" opacity={0.7} />
+          <ellipse cx={31} cy={69} rx={10} ry={6.8} fill="#ff6f6f" opacity={0.5} />
+          <ellipse cx={89} cy={69} rx={10} ry={6.8} fill="#ff6f6f" opacity={0.5} />
+          <path d="M24 67 l3 4 M29 66 l3 4 M34 66 l3 4 M83 66 l3 4 M88 66 l3 4 M93 67 l3 4" stroke="#ff4d4d" strokeWidth={1.4} strokeLinecap="round" opacity={0.7} />
         </g>
       )}
-      <path d="M55.4 53.4 Q60 50.4 64.6 53.4 Q62.4 57.4 60 57.8 Q57.6 57.4 55.4 53.4Z" fill="#3d2b25" />
-      <ellipse cx={58.4} cy={52.8} rx={1.4} ry={0.8} fill="#fff" opacity={0.75} />
-      <OmegaMouth kind={s.mouth} top={58} w={7.4} depth={4} color="#4a2d28" tongue={2.8} />
+      <path d="M55 61.4 Q60 57.6 65 61.4 Q62.6 66 60 66.4 Q57.4 66 55 61.4Z" fill="#3d2b25" />
+      <ellipse cx={58.2} cy={60.4} rx={1.5} ry={0.9} fill="#fff" opacity={0.75} />
+      <OmegaMouth kind={s.mouth} top={66.6} w={8.2} depth={4.4} color="#4a2d28" tongue={3} />
     </>
   );
 }
