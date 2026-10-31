@@ -32,7 +32,7 @@ test("Windows 앱 받기를 누르면 다운로드와 함께 설치 안내가 �
   await page.getByRole("button", { name: "시작하기" }).click();
   await expect(homeReady(page)).toBeVisible();
 
-  await page.goto("/settings");
+  await page.goto("/settings/preferences");
   const download = page.waitForEvent("download");
   await page.getByRole("link", { name: /Windows 앱 받기/ }).click();
   expect((await download).suggestedFilename()).toBe("Modori-Setup.exe");
@@ -44,5 +44,5 @@ test("Windows 앱 받기를 누르면 다운로드와 함께 설치 안내가 �
   await expect(guide).toContainText("이미 설치했다면");
   await guide.getByRole("button", { name: "알겠어요" }).click();
   await expect(guide).toBeHidden();
-  await expect(page).toHaveURL(/\/settings$/);
+  await expect(page).toHaveURL(/\/settings\/preferences$/);
 });

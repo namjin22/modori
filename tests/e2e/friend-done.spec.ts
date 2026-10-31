@@ -105,10 +105,10 @@ test("친구가 공개 카테고리에서 끝낸 일이 알림 목록에 친구�
 test.describe("앱", () => {
   test.use({ userAgent: APP_UA, viewport: { width: 390, height: 844 } });
 
-  test("마이페이지에서 친구 끝냄 푸시를 끄고 켠다(기본은 켜짐)", async ({ page, emails }, testInfo) => {
+  test("설정에서 친구 끝냄 푸시를 끄고 켠다(기본은 켜짐)", async ({ page, emails }, testInfo) => {
     await signUp(page, emails.me, `나푸${testInfo.testId.slice(-6)}${RUN_TAG}`);
     const saved = async () => (await prisma.user.findUniqueOrThrow({ where: { email: emails.me } })).notifyFriendDone;
-    await page.goto("/settings");
+    await page.goto("/settings/preferences");
     const toggle = page.getByRole("checkbox", { name: /친구가 할 일을 끝내면 알림/ });
     await expect(toggle).toBeChecked();
     await toggle.uncheck();

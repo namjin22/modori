@@ -24,7 +24,7 @@ test.afterAll(async () => {
   await prisma.$disconnect();
 });
 
-test("마이페이지에서 추천 친구에 나오기를 끄면 저장되고, 추천에서 빠진다", async ({ page, browser }) => {
+test("설정에서 추천 친구에 나오기를 끄면 저장되고, 추천에서 빠진다", async ({ page, browser }) => {
   await prisma.user.deleteMany({ where: { email: { in: emails } } });
   const other = await browser.newContext();
   await signUp(await other.newPage(), emails[1], `추천끔${RUN_TAG}`);
@@ -37,14 +37,14 @@ test("마이페이지에서 추천 친구에 나오기를 끄면 저장되고, �
   const ids = async () => (await recommendPeople(me.id, "seed", 1000)).map((person) => person.id);
   expect(await ids()).toContain(them.id);
 
-  // 그 사람이 마이페이지에서 끈다.
+  // 그 사람이 설정에서 끈다.
   const otherAgain = await browser.newContext();
   const theirPage = await otherAgain.newPage();
   await theirPage.goto("/login");
   await theirPage.getByLabel("테스트 이메일").fill(emails[1]);
   await theirPage.getByRole("button", { name: "테스트 로그인" }).click();
   await expect(theirPage).toHaveURL("/");
-  await theirPage.goto("/settings");
+  await theirPage.goto("/settings/preferences");
   const toggle = theirPage.getByLabel("친구 추천에 나오기");
   await expect(toggle).toBeChecked();
   await toggle.click();

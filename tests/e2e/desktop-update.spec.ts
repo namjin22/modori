@@ -103,7 +103,7 @@ test("새 버전이 있으면 탭 화면 위에 알리고, 누르면 앱에 받�
   await context.close();
 });
 
-test("마이페이지에서 지금 버전을 보고 직접 확인한다. 확인만 실패하면 배너는 없고 줄에만 알린다", async ({ browser, email }, testInfo) => {
+test("설정에서 지금 버전을 보고 직접 확인한다. 확인만 실패하면 배너는 없고 줄에만 알린다", async ({ browser, email }, testInfo) => {
   const context = await browser.newContext({ userAgent: WINDOWS_APP_UA });
   const page = await context.newPage();
   await installFakeUpdater(page, { status: "none" });
@@ -111,7 +111,7 @@ test("마이페이지에서 지금 버전을 보고 직접 확인한다. 확인�
   await waitUntilUpdateStateRead(page);
   await expect(page.getByRole("region", { name: "앱 업데이트" })).toHaveCount(0);
 
-  await page.goto("/settings");
+  await page.goto("/settings/preferences");
   const row = page.getByRole("heading", { name: "앱 업데이트" }).locator("..");
   await expect(row).toContainText("모도리 1.0.7");
   await expect(row).toContainText("최신 버전이에요");
@@ -135,8 +135,8 @@ test("앱 안 업데이트를 못 하는 앱(맥)에는 아무것도 보이지 �
   const page = await context.newPage();
   await installFakeUpdater(page, { supported: false, status: "available", version: "1.0.8" });
   await signUp(page, email, `맥${testInfo.testId.slice(-6)}${RUN_TAG}`);
-  await page.goto("/settings");
-  await expect(page.getByRole("heading", { name: "마이페이지" })).toBeVisible();
+  await page.goto("/settings/preferences");
+  await expect(page.getByRole("heading", { name: "설정" })).toBeVisible();
   await waitUntilUpdateStateRead(page);
   await expect(page.getByRole("heading", { name: "앱 업데이트" })).toHaveCount(0);
   await expect(page.getByRole("region", { name: "앱 업데이트" })).toHaveCount(0);
@@ -167,7 +167,9 @@ test("앱 안 업데이트가 없는 옛 앱은 탭 화면 위에서 최신 버�
   await expect(page.getByRole("heading", { name: "마이페이지" })).toBeVisible();
   await expect(banner).toHaveCount(0);
 
-  // 마이페이지에는 같은 안내가 줄로 남아 있다.
+  // 설정에는 같은 안내가 줄로 남아 있다.
+  await page.getByRole("link", { name: /^설정/ }).click();
+  await expect(page.getByRole("heading", { name: "설정" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "앱 업데이트" })).toBeVisible();
   await expect(page.getByRole("link", { name: "최신 버전 받기" })).toHaveAttribute("href", DOWNLOAD_URL);
 
@@ -186,7 +188,7 @@ test("옛 앱 알림은 서버가 사용자 에이전트로 정한다: 새 앱·
   await signUp(legacyPage, email, `분기${testInfo.testId.slice(-6)}${RUN_TAG}`);
   // 기준: 같은 계정이라도 옛 앱에서는 서버가 알림을 그려 보낸다.
   expect(await serverHtml(legacyPage, "/")).toContain(OUTDATED_NOTICE);
-  expect(await serverHtml(legacyPage, "/settings")).toContain("옛 버전이에요");
+  expect(await serverHtml(legacyPage, "/settings/preferences")).toContain("옛 버전이에요");
   await legacy.close();
 
   const signIn = async (page: Page) => {
@@ -209,7 +211,7 @@ test("옛 앱 알림은 서버가 사용자 에이전트로 정한다: 새 앱·
     const page = await context.newPage();
     await signIn(page);
     expect(await serverHtml(page, "/"), `${name}: 홈`).not.toContain(OUTDATED_NOTICE);
-    expect(await serverHtml(page, "/settings"), `${name}: 마이페이지`).not.toContain("옛 버전이에요");
+    expect(await serverHtml(page, "/settings/preferences"), `${name}: 설정`).not.toContain("옛 버전이에요");
     await context.close();
   }
 });

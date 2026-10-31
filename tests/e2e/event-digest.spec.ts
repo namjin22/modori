@@ -41,7 +41,7 @@ test.describe("앱", () => {
     const saved = async () => (await prisma.user.findUniqueOrThrow({ where: { email } })).eventDigestMinute;
     expect(await saved()).toBe(6 * 60);
 
-    await page.goto("/settings");
+    await page.goto("/settings/preferences");
     const toggle = page.getByRole("checkbox", { name: /오늘 일정 알림/ });
     await expect(toggle).toBeChecked();
     await expect(page.getByRole("button", { name: "오늘 일정 알림 시각 오전 6:00, 바꾸기" })).toBeVisible();
@@ -73,8 +73,8 @@ test.describe("앱", () => {
 
 test("웹 브라우저에는 앱 푸시가 없어 오늘 일정 알림 설정을 보이지 않는다", async ({ page, email }, testInfo) => {
   await signUp(page, email, `웹일${testInfo.testId.slice(-6)}${RUN_TAG}`);
-  await page.goto("/settings");
-  await expect(page.getByRole("heading", { name: "마이페이지" })).toBeVisible();
+  await page.goto("/settings/preferences");
+  await expect(page.getByRole("heading", { name: "설정" })).toBeVisible();
   await expect(page.getByRole("checkbox", { name: /오늘 일정 알림/ })).toHaveCount(0);
 });
 

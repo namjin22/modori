@@ -62,7 +62,7 @@ test("이 기기에서 알림을 끄면 아이콘 숫자가 없어지고 켜면 
   await expect(page.getByRole("navigation").last().getByLabel(/안 읽은 알림/)).toHaveAttribute("aria-label", "안 읽은 알림 1개");
   expect(await page.evaluate(() => window.iconBadgeCalls.filter((count) => count > 0))).toEqual([]);
 
-  await page.goto("/settings");
+  await page.goto("/settings/preferences");
   const toggle = page.getByRole("checkbox", { name: /이 기기에서 알림 띄우기/ });
   await toggle.check();
   await expect(toggle).toBeChecked();

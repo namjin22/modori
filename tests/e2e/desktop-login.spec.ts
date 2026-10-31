@@ -100,7 +100,7 @@ test("데스크톱 앱 창의 로그인 버튼은 평소 브라우저로 여는 
   await web.close();
 });
 
-test("마이페이지에 Windows 앱 받기가 있고, 앱 안에서는 숨긴다", async ({ page, browser, email }, testInfo) => {
+test("설정에 Windows 앱 받기가 있고, 앱 안에서는 숨긴다", async ({ page, browser, email }, testInfo) => {
   const signUp = async (target: Page, nickname: string) => {
     await target.goto("/login");
     await target.getByLabel("테스트 이메일").fill(email);
@@ -115,7 +115,7 @@ test("마이페이지에 Windows 앱 받기가 있고, 앱 안에서는 숨긴�
     }
   };
   await signUp(page, `받기${testInfo.testId.slice(-6)}${RUN_TAG}`);
-  await page.goto("/settings");
+  await page.goto("/settings/preferences");
   await expect(page.getByRole("link", { name: /Windows 앱 받기/ })).toHaveAttribute(
     "href",
     "https://github.com/namjin22/modori/releases/latest/download/Modori-Setup.exe",
@@ -126,8 +126,8 @@ test("마이페이지에 Windows 앱 받기가 있고, 앱 안에서는 숨긴�
   });
   const appPage = await desktop.newPage();
   await signUp(appPage, "쓰이지 않음");
-  await appPage.goto("/settings");
-  await expect(appPage.getByRole("heading", { name: "마이페이지" })).toBeVisible();
+  await appPage.goto("/settings/preferences");
+  await expect(appPage.getByRole("heading", { name: "설정" })).toBeVisible();
   await expect(appPage.getByRole("link", { name: /Windows 앱 받기/ })).toHaveCount(0);
   await desktop.close();
 });
