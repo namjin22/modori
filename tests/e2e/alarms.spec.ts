@@ -42,12 +42,12 @@ async function pickTime(page: Page, period: "오전" | "오후", hour: number, m
   await sheet.getByRole("button", { name: "확인", exact: true }).click();
 }
 
-test("마이페이지에서 알림을 만들고, 고치고, 끄고, 지운다", async ({ page, email }, testInfo) => {
+test("설정에서 알림을 만들고, 고치고, 끄고, 지운다", async ({ page, email }, testInfo) => {
   await signUp(page, email, `알람${testInfo.testId.slice(-6)}${RUN_TAG}`);
   const me = await prisma.user.findUniqueOrThrow({ where: { email } });
 
-  // 마이페이지의 알림 칸에서 들어간다.
-  await page.goto("/settings");
+  // 설정의 알림 칸에서 들어간다.
+  await page.goto("/settings/preferences");
   await page.getByRole("link", { name: /내가 정한 알림/ }).click();
   await expect(page.getByRole("heading", { name: "내가 정한 알림" })).toBeVisible();
   await expect(page.getByText("아직 만든 알림이 없어요")).toBeVisible();
@@ -91,8 +91,8 @@ test("마이페이지에서 알림을 만들고, 고치고, 끄고, 지운다", 
   await toggle.check();
   await expect.poll(async () => (await prisma.alarm.findUniqueOrThrow({ where: { id: saved.id } })).enabled).toBe(true);
 
-  // 마이페이지에 몇 개인지 보인다.
-  await page.goto("/settings");
+  // 설정에 몇 개인지 보인다.
+  await page.goto("/settings/preferences");
   await expect(page.getByRole("link", { name: /내가 정한 알림/ })).toContainText("1개");
 
   // 지우기.

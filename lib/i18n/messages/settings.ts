@@ -97,6 +97,10 @@ export const settings = defineMessages({
     accountReactionNote: "친구에게 남긴 반응도 같이 없어져요.",
     keepIt: "그냥 두기",
     accountNavLabel: "계정과 약관",
+    preferencesTitle: "설정",
+    preferencesRow: "설정",
+    preferencesHint: "화면·알림·친구·시간대",
+    friendsSection: "친구",
   },
   en: {
     title: "My page",
@@ -193,6 +197,10 @@ export const settings = defineMessages({
     accountReactionNote: "Reactions you left for friends are removed too.",
     keepIt: "Keep my account",
     accountNavLabel: "Account and terms",
+    preferencesTitle: "Settings",
+    preferencesRow: "Settings",
+    preferencesHint: "Display, notifications, friends, time zone",
+    friendsSection: "Friends",
   },
   ja: {
     title: "マイページ",
@@ -289,5 +297,9 @@ export const settings = defineMessages({
     accountReactionNote: "友だちに送ったリアクションも一緒になくなります。",
     keepIt: "そのままにする",
     accountNavLabel: "アカウントと規約",
+    preferencesTitle: "設定",
+    preferencesRow: "設定",
+    preferencesHint: "画面・通知・友だち・タイムゾーン",
+    friendsSection: "友だち",
   },
 });

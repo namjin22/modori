@@ -76,7 +76,7 @@ test.describe("모바일 앱", () => {
     await expect(nav).toBeVisible();
   });
 
-  test("앱은 묻지 않고 휴대폰의 시간대를 따르고, 마이페이지에는 고르는 칸 대신 지금 값만 보인다", async ({ page }) => {
+  test("앱은 묻지 않고 휴대폰의 시간대를 따르고, 설정에는 고르는 칸 대신 지금 값만 보인다", async ({ page }) => {
     await signUp(page);
     await prisma.user.update({ where: { email: EMAIL }, data: { timezone: "Asia/Seoul" } });
     await page.goto("/");
@@ -84,7 +84,7 @@ test.describe("모바일 앱", () => {
     await expect.poll(async () => (await prisma.user.findUniqueOrThrow({ where: { email: EMAIL } })).timezone).toBe("America/Toronto");
     await expect(page.getByRole("region", { name: "시간대 안내" })).toHaveCount(0);
 
-    await page.goto("/settings");
+    await page.goto("/settings/preferences");
     await expect(page.getByText("앱에서는 휴대폰의 시간대를 자동으로 따라요.")).toBeVisible();
     await expect(page.getByLabel("시간대", { exact: true })).toHaveCount(0);
   });

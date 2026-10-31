@@ -36,14 +36,14 @@ test.afterAll(async () => {
   await prisma.$disconnect();
 });
 
-test("기본은 서울이고, 마이페이지에서 시간대를 고르면 오늘과 새 할 일의 날짜가 그 기준이 된다", async ({ page }) => {
+test("기본은 서울이고, 설정에서 시간대를 고르면 오늘과 새 할 일의 날짜가 그 기준이 된다", async ({ page }) => {
   await signUp(page);
   const me = await prisma.user.findUniqueOrThrow({ where: { email: EMAIL } });
   expect(me.timezone).toBe("Asia/Seoul");
   await expect(page.getByRole("heading", { name: heading("Asia/Seoul"), level: 1 })).toBeVisible();
 
   // 서울과 오늘이 가장 멀어지는 곳(뉴질랜드 +12/+13과 하와이 -10)을 번갈아 고른다.
-  await page.goto("/settings");
+  await page.goto("/settings/preferences");
   // 시간대는 목록 창에서 고른다(2026-10-15, 휴대폰 기본 선택창 대신).
   const choose = async (label: RegExp) => {
     await page.getByRole("button", { name: "시간대", exact: true }).click();
@@ -62,7 +62,7 @@ test("기본은 서울이고, 마이페이지에서 시간대를 고르면 오�
   expect(formatKST(todo.date)).toBe(formatKST(dateIn(new Date(), "Pacific/Honolulu")));
 
   // 다시 서울로 돌리면 오늘도 서울 기준으로 돌아온다.
-  await page.goto("/settings");
+  await page.goto("/settings/preferences");
   await choose(/서울/);
   await expect.poll(async () => (await prisma.user.findUniqueOrThrow({ where: { email: EMAIL } })).timezone).toBe("Asia/Seoul");
   await page.goto("/");
@@ -75,8 +75,8 @@ test("목록에 없는 시간대는 서버가 받지 않는다", async ({ page }
   // 서버 액션을 브라우저에서 직접 부르지 못하니, 목록에서 정상적으로 고른 요청을 보내는 길에 값을 바꿔치기한다.
   // (2026-10-15 전에는 화면의 select에 가짜 항목을 끼웠다. 선택칸을 앱의 목록 창으로 바꿔 끼울 select가 없다.)
   // 확인하는 내용(목록에 없는 값은 서버가 거절)은 그대로다.
-  await page.goto("/settings");
-  await page.route("**/settings", async (route) => {
+  await page.goto("/settings/preferences");
+  await page.route("**/settings/preferences", async (route) => {
     const body = route.request().postData();
     if (route.request().method() === "POST" && body?.includes("Pacific/Honolulu")) {
       await route.continue({ postData: body.replaceAll("Pacific/Honolulu", "Mars/Olympus") });

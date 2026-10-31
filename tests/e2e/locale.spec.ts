@@ -65,7 +65,7 @@ test("로그인 전에 고른 영어로 가입하면 가입 화면도 영어이�
   expect(user.categories.map((category) => category.name)).toEqual(["Today"]);
 });
 
-test("마이페이지에서 언어를 바꾸면 계정에 저장되고 화면이 바뀐다", async ({ page, email }) => {
+test("설정에서 언어를 바꾸면 계정에 저장되고 화면이 바뀐다", async ({ page, email }) => {
   await page.goto("/login");
   await page.getByLabel("테스트 이메일").fill(email);
   await page.getByRole("button", { name: "테스트 로그인" }).click();
@@ -76,9 +76,9 @@ test("마이페이지에서 언어를 바꾸면 계정에 저장되고 화면이
   const saved = async () => (await prisma.user.findUniqueOrThrow({ where: { email } })).locale;
   expect(await saved()).toBe("ko");
 
-  await page.goto("/settings");
+  await page.goto("/settings/preferences");
   await chooseLanguage(page, "日本語");
-  await expect(page.getByRole("heading", { name: "マイページ" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "設定" })).toBeVisible();
   await expect.poll(saved).toBe("ja");
   await expect(page.getByRole("link", { name: "フィード" })).toBeVisible();
 
@@ -86,9 +86,9 @@ test("마이페이지에서 언어를 바꾸면 계정에 저장되고 화면이
   await page.getByRole("link", { name: "フィード" }).click();
   await expect(page.getByRole("heading", { level: 1 })).toContainText(/\d+月\d+日 .曜日/);
 
-  await page.goto("/settings");
+  await page.goto("/settings/preferences");
   await chooseLanguage(page, "English");
-  await expect(page.getByRole("heading", { name: "My page" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Settings" })).toBeVisible();
   await expect.poll(saved).toBe("en");
 });
 

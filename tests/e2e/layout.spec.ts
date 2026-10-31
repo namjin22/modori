@@ -48,9 +48,11 @@ test("탭은 피드, 소셜, 마이페이지 셋이고 카테고리와 루틴은
     "page",
   );
 
-  // 마이페이지에는 카테고리·루틴이 없고, 테마는 라이트와 다크뿐이다.
+  // 마이페이지에는 카테고리·루틴이 없고, 설정의 테마는 라이트와 다크뿐이다.
   await page.getByRole("link", { name: "마이페이지", exact: true }).click();
   await expect(page.getByRole("link", { name: /카테고리 관리|루틴 관리/ })).toHaveCount(0);
+  await page.getByRole("link", { name: /^설정/ }).click();
+  await expect(page.getByRole("heading", { name: "설정" })).toBeVisible();
   await expect(page.getByRole("radio")).toHaveText(["라이트", "다크"]);
 
   await page.getByRole("radio", { name: "다크" }).click();
