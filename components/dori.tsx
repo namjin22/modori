@@ -1,4 +1,4 @@
-// 모도리의 캐릭터 "도리". 옆으로 넓은 모찌 고양이 얼굴이다. 크림색 얼굴에 큰 둥근 귀와
+// 모도리의 캐릭터 "도리". 동글동글한 모찌 고양이 얼굴이다. 크림색 얼굴에 작고 둥근 귀와
 // 머리 윗부분을 파랗게 덮고 이마가 흰 쐐기로 갈라지는 하치와레 무늬를 두고, 눈은 크고
 // 낮게 놓아 아기처럼 순해 보이게 했다. 하치와레는 털 무늬 이름이라 무늬만 쓴다.
 // 몸통을 붙이면 작게 줄였을 때 비율이 어색해져서 얼굴만 그린다. 표정은 눈·입과
@@ -109,7 +109,7 @@ const PALETTES: Partial<Record<CharacterId, CSSProperties>> = {
 
 /**
  * 도리의 얼굴. 눈·코·입·볼은 머리를 그린 좌표(120×120, 머리 가운데 (60, 62))로 적고 WIDE_FIT이 한꺼번에 줄여 놓는다.
- * 눈을 크고 낮게(아기 비율) 두고 눈 사이를 넓혀 둥글고 순해 보이게 했다(2026-10-31 운영자 요청: 도리가 못생겼다).
+ * 눈을 크고 낮게(아기 비율) 두고 눈 사이를 넓혀 둥글고 순해 보이게 했다(2026-10-31 운영자 요청: 도리가 못생겼다, 2026-11-01 더 동글동글 귀엽게).
  */
 const DORI_EYE = "#2b3a67";
 const DORI_PINK = "#ff8fa8";
@@ -119,11 +119,11 @@ function DoriStroke({ d, width = 3 }: { d: string; width?: number }) {
 }
 
 /** 큰 눈. 하이라이트 둘(크고 작은 것)로 눈이 반짝인다. */
-const BigEye = ({ x, y = 57, rx = 6.6, ry = 8.2 }: { x: number; y?: number; rx?: number; ry?: number }) => (
+const BigEye = ({ x, y = 59, rx = 7.4, ry = 9 }: { x: number; y?: number; rx?: number; ry?: number }) => (
   <>
     <ellipse cx={x} cy={y} rx={rx} ry={ry} fill={DORI_EYE} />
-    <circle cx={x + 2.6} cy={y - 3.4} r={2.6} fill="#fff" />
-    <circle cx={x - 2} cy={y + 3.5} r={1.2} fill="#fff" opacity={0.9} />
+    <circle cx={x + 2.8} cy={y - 3.6} r={3} fill="#fff" />
+    <circle cx={x - 2.4} cy={y + 3.8} r={1.4} fill="#fff" opacity={0.9} />
   </>
 );
 
@@ -191,8 +191,8 @@ function DoriGrinMouth() {
 
 const Cheeks = () => (
   <>
-    <ellipse cx={29} cy={67} rx={7} ry={4.6} fill={BLUSH} />
-    <ellipse cx={91} cy={67} rx={7} ry={4.6} fill={BLUSH} />
+    <ellipse cx={27} cy={70} rx={8} ry={5.4} fill={BLUSH} />
+    <ellipse cx={93} cy={70} rx={8} ry={5.4} fill={BLUSH} />
   </>
 );
 
@@ -467,7 +467,7 @@ const LOOKS: Record<
 /** 하치와레 무늬의 파란색. 머리 윗부분과 귀를 덮는다. 도리만 쓰는 색이라 팔레트(--ch-*)에 올리지 않는다. */
 const DORI_CAP = "#8fb0ee";
 
-const DORI_EARS = ["M17 52 Q10 14 33 12 Q50 13 53 31 Z", "M103 52 Q110 14 87 12 Q70 13 67 31 Z"];
+const DORI_EARS = ["M24 50 Q17 28 31 22 Q43 19 50 30 Z", "M96 50 Q103 28 89 22 Q77 19 70 30 Z"];
 
 /**
  * 하치와레(이마가 흰 세로 쐐기로 갈라진 얼굴) 무늬. 바깥 변은 머리 타원 위를 그대로 따라가
@@ -475,18 +475,18 @@ const DORI_EARS = ["M17 52 Q10 14 33 12 Q50 13 53 31 Z", "M103 52 Q110 14 87 12 
  * <svg>에서 풀리는 브라우저가 있어 쓰지 않는다.
  */
 const DORI_CAPS = [
-  "M18.85 55 A42 35 0 0 1 56.3 27.1 L44 44 Q30 49 18.85 55 Z",
-  "M101.15 55 A42 35 0 0 0 63.7 27.1 L76 44 Q90 49 101.15 55 Z",
+  "M22.54 52 A39 36 0 0 1 56.5 26.15 Q50.5 33 46 43 Q33 50 22.54 52 Z",
+  "M97.46 52 A39 36 0 0 0 63.5 26.15 Q69.5 33 74 43 Q87 50 97.46 52 Z",
 ];
 
-/** 도리의 머리: 옆으로 넓은 모찌 모양에 크고 둥근 귀, 크림색 얼굴, 파란 하치와레 무늬. 몸 색은 팔레트(--ch-*)에서 온다. */
+/** 도리의 머리: 동글동글한 모찌 모양에 작고 둥근 귀, 크림색 얼굴, 파란 하치와레 무늬. 몸 색은 팔레트(--ch-*)에서 온다. */
 function DoriHead() {
   const shape = (
     <>
       {DORI_EARS.map((d) => (
         <path key={d} d={d} />
       ))}
-      <ellipse cx={60} cy={62} rx={42} ry={35} />
+      <ellipse cx={60} cy={62} rx={39} ry={36} />
     </>
   );
 
@@ -504,8 +504,8 @@ function DoriHead() {
           <path key={d} d={d} />
         ))}
       </g>
-      <path d="M21 40 Q18 22 31 21 Q41 22 46 31 Z" fill={EAR} />
-      <path d="M99 40 Q102 22 89 21 Q79 22 74 31 Z" fill={EAR} />
+      <path d="M27 45 Q23 32 31 28 Q39 26 44 33 Z" fill={EAR} />
+      <path d="M93 45 Q97 32 89 28 Q81 26 76 33 Z" fill={EAR} />
     </>
   );
 }
@@ -565,7 +565,7 @@ export function Dori({
     <svg
       width={size}
       height={size}
-      // 얼굴(귀 포함)은 가로 16~104, 세로 17~106이다. 원 안에 60% 남짓 차도록 둘레를 넉넉히 준다.
+      // 얼굴(귀 포함)은 가로 20~100, 세로 24~103 안쪽이다(몽이·하루의 큰 귀는 더 벌어진다). 둘레를 넉넉히 준다.
       viewBox={avatar ? "-12 -10 144 144" : "0 0 120 120"}
       role={label ? "img" : undefined}
       aria-label={label}
@@ -576,7 +576,7 @@ export function Dori({
       {character === "dori" ? (
         <g transform={WIDE_FIT}>
           <DoriHead />
-          {look.face}
+          <g transform="translate(0 3)">{look.face}</g>
         </g>
       ) : character === "peng" ? (
         <PengHead mood={mood} />
