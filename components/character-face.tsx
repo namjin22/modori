@@ -2,7 +2,7 @@
 // 캐릭터마다 눈의 크기·간격·위치, 코, 입(또는 부리)을 따로 짠다. 귀엽게 보이는 비율을 먼저 잡았다:
 // 눈은 크고 낮게(몽이·하루), 또는 작고 넓고 낮게(펭이), 하이라이트는 눈마다 두 개, 입은 코 바로 밑에 작게.
 // 서버 컴포넌트에서도 쓰므로 상태나 훅을 두지 않는다.
-// 좌표계: 펭이는 둥근 머리 틀(머리 중심 60,46), 몽이·하루는 도리와 같은 넓은 머리 틀(머리 중심 60,62)이다.
+// 좌표계: 펭이는 둥근 머리 틀(머리 중심 60,46), 몽이·하루는 도리와 같은 머리 가운데(60,62)에서 그린다(components/character-heads.tsx).
 
 import type { ReactNode } from "react";
 
@@ -54,8 +54,8 @@ type Layout = {
 };
 
 const LAYOUT: Record<Exclude<CharacterId, "dori">, Layout> = {
-  mong: { left: 41, right: 79, y: 58, rx: 7, ry: 8.2, tilt: 0, color: "#4b392f", glint: 1.1 },
-  haru: { left: 40, right: 80, y: 56, rx: 7.8, ry: 7.6, tilt: 6, color: "#5a2f1c", glint: 1, lidFill: "var(--ch-body)" },
+  mong: { left: 45, right: 75, y: 57, rx: 6.6, ry: 7.8, tilt: 0, color: "#4b392f", glint: 1.1 },
+  haru: { left: 40, right: 80, y: 56, rx: 8.4, ry: 8.2, tilt: 6, color: "#5a2f1c", glint: 1, lidFill: "var(--ch-body)" },
   peng: { left: 43, right: 77, y: 50.5, rx: 5.2, ry: 6.2, tilt: 0, color: "#1e2a47", glint: 1, single: true, lidFill: "#fffaf2" },
 };
 
@@ -249,9 +249,9 @@ function DogFace({ mood }: { mood: CharacterMood }) {
       <Eye kind={s.eye} x={l.left} dir={-1} l={l} />
       <Eye kind={s.eyeRight ?? s.eye} x={l.right} dir={1} l={l} />
       {s.tear && <path d={`M${l.left - 3} ${l.y + 9} q-3 4.2 0 6.6 q3 -2.4 0 -6.6z`} fill="#8ecbff" />}
-      <ellipse cx={60} cy={66.5} rx={6.2} ry={4.4} fill="#4b392f" />
-      <ellipse cx={58} cy={65} rx={2} ry={1.2} fill="#fff" opacity={0.8} />
-      <OmegaMouth kind={s.mouth} top={70.4} w={9.2} depth={4.6} color="#4b392f" tongue={3.6} />
+      <ellipse cx={60} cy={67.5} rx={6} ry={4.2} fill="#4b392f" />
+      <ellipse cx={58} cy={66} rx={2} ry={1.2} fill="#fff" opacity={0.8} />
+      <OmegaMouth kind={s.mouth} top={71.4} w={8.6} depth={4.4} color="#4b392f" tongue={3.4} />
       {mood === "bone" && <Bone />}
     </>
   );
