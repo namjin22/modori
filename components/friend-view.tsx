@@ -72,7 +72,7 @@ export function FriendView({ profile, data }: { profile: ReactNode; data: Friend
   const t = useT(social);
   const locale = useLocale();
   const basePath = `/feed/u/${data.friendId}`;
-  const { selected, inWindow, hrefFor, select } = useMonthDay({ basePath, ...data });
+  const { selected, inWindow, hrefFor, select, stepHref, stepsInPlace } = useMonthDay({ basePath, ...data });
   const date = parseKSTDate(selected);
   const isToday = selected === data.today;
   const monthStart = parseKSTMonth(data.month);
@@ -86,7 +86,7 @@ export function FriendView({ profile, data }: { profile: ReactNode; data: Friend
   }));
 
   const dayNav = (target: string, label: string, glyph: string) => (
-    <DayNavLink href={hrefFor(target)} onSelect={inWindow(target) ? () => select(target) : undefined} label={label}>
+    <DayNavLink href={stepHref(target)} onSelect={stepsInPlace(target) ? () => select(target) : undefined} label={label}>
       {glyph}
     </DayNavLink>
   );

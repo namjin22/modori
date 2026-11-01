@@ -43,7 +43,7 @@ test("다른 날에 하기로 할 일을 고른 날로 옮긴다", async ({ page
   );
   const target = addDays(todayKST(), 3);
   await chooseDate(page, "옮길 날짜", formatKST(target));
-  await page.getByRole("button", { name: "옮기기" }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "저장", exact: true }).click();
 
   await expect(page.getByText(`${formatMonthDayKST(target)}로 옮겼어요`)).toBeVisible();
   await expect(page.getByRole("button", { name: "영어 단어 외우기", exact: true })).toHaveCount(0);
@@ -55,8 +55,38 @@ test("다른 날에 하기로 할 일을 고른 날로 옮긴다", async ({ page
   await openTodo(page, "영어 단어 외우기");
   await page.getByRole("button", { name: "다른 날에 하기" }).click();
   await chooseDate(page, "옮길 날짜", formatKST(target));
-  await page.getByRole("button", { name: "옮기기" }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "저장", exact: true }).click();
   await expect(page.getByRole("dialog").getByRole("alert")).toHaveText("이미 그날의 할 일이에요.");
+});
+
+test("날짜 창에서 날을 눌러도 확인을 눌러야 정해지고, 저장하면 옮겨진다", async ({ page, email }, testInfo) => {
+  await signUp(page, email, `확인${testInfo.testId.slice(-6)}${RUN_TAG}`);
+  await addTodo(page, "책 읽기");
+
+  await openTodo(page, "책 읽기");
+  await page.getByRole("button", { name: "다른 날에 하기" }).click();
+  // 옮기기 단추는 없다. 고른 날은 저장할 때 옮겨진다(2026-11-01 요청).
+  await expect(page.getByRole("button", { name: "옮기기", exact: true })).toHaveCount(0);
+
+  const target = addDays(todayKST(), 3);
+  const todoDialog = page.getByRole("dialog", { name: "할 일" });
+  await page.getByRole("button", { name: /^옮길 날짜:/ }).click();
+  const picker = page.getByRole("dialog", { name: "날짜 고르기" });
+  await picker.getByRole("button", { name: `${target.getUTCFullYear()}년 ${target.getUTCMonth() + 1}월 ${target.getUTCDate()}일`, exact: true }).click();
+  // 날을 눌러도 창이 닫히지 않는다. 확인을 눌러야 정해진다.
+  await expect(picker).toBeVisible();
+  await picker.getByRole("button", { name: "확인", exact: true }).click();
+  await expect(picker).toBeHidden();
+
+  // 아직 옮겨지지 않았다. 저장을 눌러야 옮겨진다.
+  await expect(todoDialog).toBeVisible();
+  await todoDialog.getByRole("button", { name: "저장", exact: true }).click();
+  await expect(page.getByText(`${formatMonthDayKST(target)}로 옮겼어요`)).toBeVisible();
+  await expect(page.getByRole("button", { name: "책 읽기", exact: true })).toHaveCount(0);
+
+  const user = await prisma.user.findUniqueOrThrow({ where: { email } });
+  const saved = await prisma.todo.findFirstOrThrow({ where: { userId: user.id, content: "책 읽기" } });
+  expect(formatKST(saved.date)).toBe(formatKST(target));
 });
 
 test("루틴 할 일을 옮기면 원래 날에 다시 생기지 않는다", async ({ page, email }, testInfo) => {
@@ -71,7 +101,7 @@ test("루틴 할 일을 옮기면 원래 날에 다시 생기지 않는다", asy
   await openTodo(page, "줄넘기");
   await page.getByRole("button", { name: "다른 날에 하기" }).click();
   await chooseDate(page, "옮길 날짜", formatKST(addDays(today, -1)));
-  await page.getByRole("button", { name: "옮기기" }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "저장", exact: true }).click();
   await expect(page.getByText("로 옮겼어요")).toBeVisible();
 
   // 다시 그려도 오늘 루틴 할 일이 되살아나지 않는다.
@@ -211,7 +241,7 @@ test("끝낸 할 일은 옮기지 않고 '또 하기'로 다른 날에 베낀다
   await openTodo(page, "영어 단어 외우기");
   await page.getByRole("button", { name: "다른 날 또 하기" }).click();
   await chooseDate(page, "또 할 날짜", formatKST(todayKST()));
-  await page.getByRole("button", { name: "또 하기", exact: true }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "저장", exact: true }).click();
   await expect(page.getByRole("dialog").getByRole("alert")).toHaveText("이미 그날이에요. 다른 날을 골라 주세요.");
 });
 

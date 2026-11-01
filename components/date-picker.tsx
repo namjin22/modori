@@ -16,6 +16,7 @@ import {
 } from "@/lib/date";
 import type { Locale } from "@/lib/i18n";
 import { fullDate, fullDateWithWeekday, monthDayWithWeekday, monthName, weekdayName, weekdayNames, yearMonth, yearOnly } from "@/lib/i18n/format";
+import { common } from "@/lib/i18n/messages/common";
 import { datetime } from "@/lib/i18n/messages/datetime";
 
 /** "2026-10-02" → "2026년 10월 2일 (금)". 읽을 수 없으면 null. */
@@ -52,6 +53,8 @@ function shortLabel(locale: Locale, value: string, thisYear: number): string | n
  * 넘기기가 불편했다(사용자 제보). 누르면 달력이 뜨고, 날을 누르면 바로 정해진다. 값은 "YYYY-MM-DD"로 주고받아 서버는 그대로다.
  *
  * name을 주면 폼에 그 이름으로 값이 실려 간다(숨은 칸). value·onChange를 주면 부모가 값을 쥔다.
+ * confirm을 주면 날을 눌러도 창이 닫히지 않고 고르기만 하며, "확인"을 눌러야 정해진다(할 일을 다른 날로 옮길 때, 2026-11-01).
+ * 직접 적어 "적용"을 누르는 길은 그 자체가 확인이라 바로 정해진다.
  */
 export function DatePicker({
   label,
@@ -64,6 +67,7 @@ export function DatePicker({
   compact = false,
   short = false,
   shortEmptyText,
+  confirm = false,
 }: {
   // 화면 읽기용 이름. 단추 이름은 "새 일정 시작일: 2026년 10월 2일 (금)"처럼 읽힌다.
   label: string;
@@ -79,6 +83,8 @@ export function DatePicker({
   short?: boolean;
   // 좁은 칸에서 비어 있을 때 보일 짧은 글. 단추 이름(화면 읽기)은 emptyText 그대로다.
   shortEmptyText?: string;
+  // 날을 누른 뒤 "확인"을 눌러야 정해진다.
+  confirm?: boolean;
 }) {
   const timezone = useTimezone();
   const locale = useLocale();
@@ -118,7 +124,7 @@ export function DatePicker({
       </button>
 
       <Modal open={open} onClose={() => setOpen(false)} title={t("pickDate")}>
-        <PickerBody current={current} clearable={clearable} onChoose={choose} />
+        <PickerBody current={current} clearable={clearable} confirm={confirm} onChoose={choose} />
       </Modal>
     </>
   );
@@ -129,18 +135,24 @@ type Mode = "days" | "months";
 function PickerBody({
   current,
   clearable,
+  confirm,
   onChoose,
 }: {
   current: string;
   clearable: boolean;
+  confirm: boolean;
   onChoose: (value: string) => void;
 }) {
   const locale = useLocale();
   const t = useT(datetime);
+  const tc = useT(common);
   const today = todayIn(useTimezone());
-  const selected = longLabel(locale, current) ? current : "";
+  const initial = longLabel(locale, current) ? current : "";
+  // 확인을 거치는 창에서는 눌러 둔 날(아직 정해지지 않았다). 아니면 정해진 날 그대로다.
+  const [picked, setPicked] = useState(initial);
+  const selected = confirm ? picked : initial;
   // 처음에는 고른 날이 있는 달, 없으면 이번 달을 보여준다.
-  const [view, setView] = useState(() => startOfMonthKST(selected ? parseKSTDate(selected) : today));
+  const [view, setView] = useState(() => startOfMonthKST(initial ? parseKSTDate(initial) : today));
   const [mode, setMode] = useState<Mode>("days");
   const [typed, setTyped] = useState("");
   const [typedError, setTypedError] = useState<string | null>(null);
@@ -149,6 +161,16 @@ function PickerBody({
   const firstCell = addDays(view, -weekdayKST(view));
   const cells = Array.from({ length: 42 }, (_, index) => addDays(firstCell, index));
   const viewMonth = view.getUTCMonth();
+
+  // 날·빠른 단추를 눌렀을 때. 확인을 거치는 창에서는 눌러 두기만 하고 그 달로 넘어간다.
+  function pick(value: string) {
+    if (!confirm) {
+      onChoose(value);
+      return;
+    }
+    setPicked(value);
+    if (value) setView(startOfMonthKST(parseKSTDate(value)));
+  }
 
   function applyTyped() {
     const text = typed.trim();
@@ -244,7 +266,7 @@ function PickerBody({
                   aria-label={fullDate(locale, date.getUTCFullYear(), date.getUTCMonth() + 1, date.getUTCDate())}
                   aria-pressed={isSelected}
                   aria-current={isToday ? "date" : undefined}
-                  onClick={() => onChoose(key)}
+                  onClick={() => pick(key)}
                   className={`mx-auto flex size-10 items-center justify-center rounded-full text-sm transition-colors ${
                     isSelected
                       ? "bg-brand font-bold text-brand-contrast"
@@ -266,17 +288,17 @@ function PickerBody({
       )}
 
       <div className="flex flex-wrap gap-2">
-        <button type="button" onClick={() => onChoose(todayKey)} className={chip}>
+        <button type="button" onClick={() => pick(todayKey)} className={chip}>
           {t("today")}
         </button>
-        <button type="button" onClick={() => onChoose(formatKST(addDays(today, 1)))} className={chip}>
+        <button type="button" onClick={() => pick(formatKST(addDays(today, 1)))} className={chip}>
           {t("tomorrow")}
         </button>
-        <button type="button" onClick={() => onChoose(formatKST(addDays(today, 7)))} className={chip}>
+        <button type="button" onClick={() => pick(formatKST(addDays(today, 7)))} className={chip}>
           {t("inAWeek")}
         </button>
         {clearable && (
-          <button type="button" onClick={() => onChoose("")} className={`${chip} text-muted`}>
+          <button type="button" onClick={() => pick("")} className={`${chip} text-muted`}>
             {t("noDate")}
           </button>
         )}
@@ -316,6 +338,17 @@ function PickerBody({
           </p>
         )}
       </div>
+
+      {confirm && (
+        <button
+          type="button"
+          disabled={!picked && !clearable}
+          onClick={() => onChoose(picked)}
+          className="h-11 rounded-xl bg-brand text-sm font-semibold text-brand-contrast disabled:opacity-40"
+        >
+          {tc("confirm")}
+        </button>
+      )}
     </div>
   );
 }

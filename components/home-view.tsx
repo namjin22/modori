@@ -66,7 +66,7 @@ export function HomeView({ data }: { data: HomeData }) {
   const locale = useLocale();
   const t = useT(todoMessages);
   // date가 없는 "/"만 자정이 지나면 새 오늘로 넘어간다(DayRollover). 날짜를 고르면 늘 date를 붙인다.
-  const { selected, hasDateParam, inWindow, hrefFor, select } = useMonthDay({ basePath: "/", ...data });
+  const { selected, hasDateParam, inWindow, hrefFor, select, stepHref, stepsInPlace } = useMonthDay({ basePath: "/", ...data });
   // 적기·체크·고치기·옮기기·지우기는 서버 응답 전에 여기부터 바뀐다(components/todo-store.tsx).
   const [allTodos, applyChange] = useOptimistic(data.todos, applyTodoChange);
 
@@ -106,7 +106,7 @@ export function HomeView({ data }: { data: HomeData }) {
   }));
 
   const dayNav = (target: string, label: string, glyph: string) => (
-    <DayNavLink href={hrefFor(target)} onSelect={inWindow(target) ? () => select(target) : undefined} label={label}>
+    <DayNavLink href={stepHref(target)} onSelect={stepsInPlace(target) ? () => select(target) : undefined} label={label}>
       {glyph}
     </DayNavLink>
   );

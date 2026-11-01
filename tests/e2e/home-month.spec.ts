@@ -125,6 +125,22 @@ test("아직 열지 않은 지난 날을 고르면 그 날의 루틴 할 일이 
   await expect(page.getByRole("listitem").filter({ hasText: "매일 물 마시기" })).toBeVisible();
 });
 
+test("앞뒤 날 화살표로 다른 달로 넘어가면 달력도 그 달로 따라간다", async ({ page }) => {
+  await signUp(page);
+  // 이번 달 1일에서 이전 날을 누르면 지난달 마지막 날이다.
+  const first = `${formatKST(todayIn("Asia/Seoul")).slice(0, 8)}01`;
+  const prev = formatKST(addDays(new Date(`${first}T00:00:00Z`), -1));
+  const [year, month] = prev.split("-");
+  await page.goto(`/?date=${first}`);
+  await expect(homeReady(page)).toBeVisible();
+
+  await page.getByRole("link", { name: "이전 날" }).click();
+
+  await expect(page.getByRole("heading", { level: 1, name: heading(prev) })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 2, name: `${year}년 ${Number(month)}월` })).toBeVisible();
+  await expect(page).toHaveURL(new RegExp(`date=${prev}&month=${year}-${month}$`));
+});
+
 test("앞날의 루틴은 만들지 않고 예정으로 보인다", async ({ page }) => {
   const me = await signUp(page);
   const today = todayIn("Asia/Seoul");
