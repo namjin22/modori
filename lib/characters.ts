@@ -7,7 +7,7 @@ import type { DoriMood } from "@/components/dori";
 export const CHARACTERS = [
   { id: "dori", name: "도리", animal: "고양이" },
   { id: "mong", name: "몽이", animal: "강아지" },
-  { id: "haru", name: "하루", animal: "여우" },
+  { id: "haru", name: "하루", animal: "너구리" },
   { id: "peng", name: "펭이", animal: "펭귄" },
 ] as const;
 
@@ -27,7 +27,7 @@ export type SpecialMood =
   | "ball" // 몽이: 공놀이
   | "wink" // 하루: 찡긋
   | "shy" // 하루: 수줍
-  | "foxfire" // 하루: 여우불(파이팅)
+  | "foxfire" // 하루: 머리에 나뭇잎을 얹은 변신(파이팅). 여우였을 때 저장된 반응 값("haru:foxfire")이 있어 이름은 그대로
   | "smug" // 하루: 흐뭇
   | "fish" // 펭이: 물고기 냠
   | "snowman" // 펭이: 눈사람 친구
