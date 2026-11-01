@@ -62,7 +62,11 @@ export function TodoRow({
   const [open, setOpen] = useState(false);
   // 저장에 실패한 고친 글자. 다시 연 창에 그대로 채운다.
   const [draft, setDraft] = useState<{ content: string; memo: string } | null>(null);
+  // "다른 날에 하기"로 골라 둔 날(없으면 null). 저장을 눌러야 옮겨진다.
+  const [plan, setPlan] = useState<string | null>(null);
+  const [planMessage, setPlanMessage] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const toast = useToast();
   const saveFailed = useSaveFailure();
   const store = useTodoStore();
 
@@ -77,7 +81,11 @@ export function TodoRow({
 
         <button
           type="button"
-          onClick={() => setOpen(true)}
+          onClick={() => {
+            setPlan(null);
+            setPlanMessage(null);
+            setOpen(true);
+          }}
           className="flex min-w-0 flex-1 flex-col text-left"
         >
           <span className={`truncate transition-colors ${todo.done ? "text-muted line-through" : ""}`}>
@@ -102,6 +110,13 @@ export function TodoRow({
             event.preventDefault();
             const formData = new FormData(event.currentTarget);
             const edited = { content: String(formData.get("content") ?? ""), memo: String(formData.get("memo") ?? "") };
+            const target = plan;
+            // 같은 날로는 옮기지 않는다. 서버도 같은 이유로 거절하지만, 먼저 옮겨 보이면 줄이 사라졌다 돌아온다.
+            if (target !== null && target === date) {
+              setPlanMessage(todo.done ? t("sameDayAgain") : t("sameDayMove"));
+              return;
+            }
+            setPlanMessage(null);
             // 한 달치를 받아 둔 홈에서는 고친 글자를 먼저 보여 주고 창을 바로 닫는다(전환 밖에서 닫아야 응답을 기다리지 않는다).
             // 실패하면 고친 글자를 담은 채 창을 다시 연다.
             if (store) setOpen(false);
@@ -120,10 +135,21 @@ export function TodoRow({
                     ...(moved && { category, color: null }),
                   },
                 });
+                if (target) previewMove(store, todo, target);
               }
               try {
                 await updateTodo(formData);
                 setDraft(null);
+                if (target) {
+                  const result = await (todo.done ? repeatTodo(todo.id, target) : moveTodo(todo.id, target));
+                  if (!result.ok) {
+                    // 글자·메모는 이미 저장됐다. 옮기지 못한 이유만 알린다.
+                    if (store) toast({ message: result.message });
+                    else setPlanMessage(result.message);
+                    return;
+                  }
+                  toast({ message: result.message });
+                }
                 // 홈에서는 이미 닫았다. 그사이 다시 열어 고치는 중일 수 있어 또 닫지 않는다.
                 if (!store) setOpen(false);
               } catch (error) {
@@ -167,6 +193,9 @@ export function TodoRow({
             quickMove={quickMove}
             done={todo.done}
             todo={todo}
+            plan={plan}
+            onPlan={setPlan}
+            planMessage={planMessage}
             onMoved={() => setOpen(false)}
           />
           <textarea
@@ -213,11 +242,38 @@ export function TodoRow({
   );
 }
 
+type TodoStore = NonNullable<ReturnType<typeof useTodoStore>>;
+
+/**
+ * 옮기는(또 하는) 결과를 서버 응답 전에 화면에 먼저 그린다. 끝낸 일은 그 날에 베껴 더하고, 안 끝낸 일은 날짜만 바꾼다.
+ * 서버 액션을 부르는 전환 안에서, await 전에 불러야 한다.
+ */
+function previewMove(store: TodoStore, todo: Todo, target: string) {
+  if (todo.done) {
+    store({
+      type: "add",
+      todo: {
+        id: `${PENDING_PREFIX}${crypto.randomUUID()}`,
+        date: target,
+        content: todo.content,
+        done: false,
+        color: todo.color,
+        memo: todo.memo,
+        doneAt: null,
+        category: todo.category?.id ? { id: todo.category.id, name: todo.category.name, color: todo.category.color } : null,
+        received: [],
+      },
+    });
+  } else {
+    store({ type: "patch", id: todo.id, patch: { date: target } });
+  }
+}
+
 /**
  * 할 일을 다음 날이나 고른 날로 옮긴다. 할 일 폼 안에 들어가므로(폼 안에 폼을 둘 수 없다) 버튼으로 보낸다.
- * 날짜는 달력 창에서 고르고(components/date-picker.tsx), "옮기기"를 눌러야 옮겨진다.
- */
-/**
+ * "오늘/내일 하기"는 누르는 즉시 옮기고, "다른 날에 하기"는 달력 창에서 날을 고르면 그 날을 쥐고 있다가
+ * 창의 저장을 눌렀을 때 함께 옮긴다(옮기기 버튼을 따로 누르지 않으면 안 옮겨져서 헷갈린다는 요청, 2026-11-01).
+ *
  * 안 끝낸 할 일은 다른 날로 "옮기고", 이미 끝낸 할 일은 끝낸 기록을 그 날에 두고 다른 날에 "또 하기"(베끼기)를 더한다.
  * 끝낸 일을 옮겨 버리면 그날 한 일의 기록이 사라진다.
  */
@@ -227,6 +283,9 @@ function MoveToDay({
   quickMove,
   done,
   todo,
+  plan,
+  onPlan,
+  planMessage,
   onMoved,
 }: {
   id: string;
@@ -234,12 +293,15 @@ function MoveToDay({
   quickMove: { kind: "today" | "tomorrow"; target: string };
   done: boolean;
   todo: Todo;
+  // 골라 둔 날(없으면 null). 저장할 때 옮겨진다.
+  plan: string | null;
+  onPlan: (day: string | null) => void;
+  // 저장할 때 옮기지 못한 이유.
+  planMessage: string | null;
   onMoved: () => void;
 }) {
   const t = useT(todoMessages);
   const nextDay = formatKST(addDays(parseKSTDate(date), 1));
-  const [picking, setPicking] = useState(false);
-  const [day, setDay] = useState(nextDay);
   const [message, setMessage] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const toast = useToast();
@@ -248,31 +310,9 @@ function MoveToDay({
 
   function move(target: string) {
     setMessage(null);
-    // 같은 날은 서버에 묻지 않아도 안다(먼저 옮겨 보이면 줄이 사라졌다 돌아온다). 서버도 같은 이유로 거절한다.
-    if (target === date) {
-      setMessage(done ? t("sameDayAgain") : t("sameDayMove"));
-      return;
-    }
     startTransition(async () => {
       // 홈에서는 누르는 즉시 그 날로 옮겨(또 하기는 그 날에 더해) 보여 준다. 거절 이유는 알림으로 띄운다.
-      if (done) {
-        store?.({
-          type: "add",
-          todo: {
-            id: `${PENDING_PREFIX}${crypto.randomUUID()}`,
-            date: target,
-            content: todo.content,
-            done: false,
-            color: todo.color,
-            memo: todo.memo,
-            doneAt: null,
-            category: todo.category?.id ? { id: todo.category.id, name: todo.category.name, color: todo.category.color } : null,
-            received: [],
-          },
-        });
-      } else {
-        store?.({ type: "patch", id, patch: { date: target } });
-      }
+      if (store) previewMove(store, todo, target);
       try {
         const result = await (done ? repeatTodo(id, target) : moveTodo(id, target));
         if (!result.ok) {
@@ -291,6 +331,8 @@ function MoveToDay({
   const button = "h-10 flex-1 rounded-xl border border-border text-sm font-medium disabled:opacity-50";
   const quickLabel =
     quickMove.kind === "today" ? t(done ? "moveTodayAgain" : "moveToday") : t(done ? "moveTomorrowAgain" : "moveTomorrow");
+  const picking = plan !== null;
+  const shownMessage = planMessage ?? message;
 
   return (
     <div className="flex flex-col gap-2">
@@ -301,7 +343,7 @@ function MoveToDay({
         <button
           type="button"
           aria-expanded={picking}
-          onClick={() => setPicking((value) => !value)}
+          onClick={() => onPlan(picking ? null : nextDay)}
           className={`${button} ${picking ? "border-brand text-brand" : ""}`}
         >
           {done ? t("moveOtherAgain") : t("moveOther")}
@@ -311,25 +353,14 @@ function MoveToDay({
       {picking && (
         <div className="flex animate-rise flex-col gap-2 rounded-xl border border-border p-3">
           <p className="text-xs text-muted">{done ? t("whichDayAgain") : t("whichDayMove")}</p>
-          <div className="flex items-center gap-2">
-            <div className="min-w-0 flex-1">
-              <DatePicker label={done ? t("againDate") : t("moveDate")} value={day} onChange={setDay} compact />
-            </div>
-            <button
-              type="button"
-              disabled={pending || !day}
-              onClick={() => move(day)}
-              className="h-10 shrink-0 rounded-xl bg-brand px-4 text-sm font-semibold text-brand-contrast disabled:opacity-50"
-            >
-              {pending ? (done ? t("writing") : t("moving")) : done ? t("doAgain") : t("doMove")}
-            </button>
-          </div>
+          <DatePicker label={done ? t("againDate") : t("moveDate")} value={plan} onChange={onPlan} compact confirm />
+          <p className="text-xs text-muted">{done ? t("againOnSave") : t("moveOnSave")}</p>
         </div>
       )}
 
-      {message && (
+      {shownMessage && (
         <p role="alert" className="text-sm text-danger">
-          {message}
+          {shownMessage}
         </p>
       )}
     </div>

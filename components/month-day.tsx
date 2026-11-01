@@ -58,7 +58,12 @@ export function useMonthDay({
     else router.push(href);
   };
 
-  return { selected, hasDateParam: rawDate !== null, inWindow, hrefFor, select };
+  // 앞뒤 날 화살표로 다른 달의 날로 넘어가면 달력도 그 달로 따라간다. 달력이 그대로면 고른 날이 달력에서 사라져
+  // "10월 31일인데 달력은 11월"로 어긋난다(2026-11-01 요청). 다른 달은 서버에서 새로 받으므로 제자리 이동은 같은 달 안에서만 한다.
+  const stepHref = (key: string) => (key.slice(0, 7) === month ? hrefFor(key) : `${basePath}?date=${key}&month=${key.slice(0, 7)}`);
+  const stepsInPlace = (key: string) => key.slice(0, 7) === month && inWindow(key);
+
+  return { selected, hasDateParam: rawDate !== null, inWindow, hrefFor, select, stepHref, stepsInPlace };
 }
 
 /** 앞뒤 날 화살표. 받아 둔 기간 안이면 서버에 가지 않고, 밖이면(달이 바뀜) 손이 닿는 순간 미리 받는다. */
