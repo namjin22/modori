@@ -198,3 +198,12 @@
 - **원인**: **찾지 못했다.** 이틀 안에 배포가 다섯 번 있었고(받은 반응 위치, 화면 언어 포함) 화면을 열어 둔 채 새 버전이 올라가면 옛 화면이 서버와 어긋날 수 있지만, 이번 일이 그랬는지는 확인하지 못했다(추측).
 - **조치**: 없음(재현하지 못했다).
 - **재발 방지**: 또 나면 어느 화면의 어떤 동작인지, 앱을 껐다 켜면 되는지, 시각을 먼저 받는다. 그러면 `/admin/errors`의 그 시각 기록을 본다.
+
+### INC-17 DataGSM으로 로그인하면 "로그인 설정에 문제가 있어요"가 뜬다 (2026-11-02 제보)
+
+- **영향**: DataGSM으로 로그인하려는 사람(운영자가 직접 겪었다). 언제부터인지는 모른다 — 서버 로그가 11/2 02:32(UTC) 배포 이후만 남아 있다. 그 안의 첫 오류는 05:17(UTC, 한국 14:17)이다. Google·Apple 로그인이 되는지는 확인하지 못했다(제보에 없었다).
+- **발견**: 운영자 제보(로그인 화면에 빨간 글 스크린샷).
+- **증상**: 화면은 `/login`에 "로그인 설정에 문제가 있어요. 잠시 뒤 다시 시도해주세요."(`error=Configuration`). 서버 로그 `[auth:error]`가 8번(UTC 05:17, 05:53 ×3, 05:56, 07:18 ×2, 07:21) 같은 모양이었다: `name: 'f'`, `message: 'Read more at https://errors.authjs.dev#callbackrouteerror'`, `causeName: 'e3'`, `causeMessage: '"response" body "id_token" property must be a string'`, `providerId: undefined`.
+- **원인**: **추측이다.** 토큰 응답 본문은 직접 못 봤다. 근거: ① 이 오류는 `oauth4webapi`가 토큰 응답에 id_token 칸이 있는데 문자열이 아닐 때 낸다(`node_modules/oauth4webapi/build/index.js` 1252줄). DataGSM은 `oauth` 방식이라 id_token이 없어도 되는데, 칸이 `null`로 오면 걸린다. ② DataGSM이 `/.well-known/openid-configuration`(`openid` scope, `jwks_uri`)을 열었고 `docs.datagsm.kr`의 토큰 교환 문서에는 id_token이 없다 — OpenID 지원을 새로 붙이면서 문서에 없는 칸이 생겼다는 설명과 맞는다. ③ 같은 시각 모도리 쪽 인증 설정(`lib/auth.ts`)은 마지막 변경 뒤로 바뀌지 않았다. 로그에 `providerId`가 비어 있어 어느 제공자의 오류인지는 로그만으로 증명하지 못한다.
+- **조치**: `lib/datagsm-token.ts`의 `withoutIdToken`이 DataGSM 토큰 응답에서 id_token 칸을 빼고(값은 로그에 안 남기고 종류만 `[auth:datagsm]`으로 남긴다) `lib/auth.ts`의 토큰 요청 `customFetch`가 쓴다. PR 번호는 배포 뒤 채운다. **배포 뒤 운영자가 DataGSM으로 로그인해 확인해야 한다**(실제 OAuth는 시험할 수 없다).
+- **재발 방지**: 단위 시험 6개(`tests/unit/datagsm-token.test.ts`: null·문자열 id_token 제거, 값 안 남김, id_token 없음·오류 응답·JSON 아님은 그대로). 외부 제공자가 응답을 바꾸는 것 자체는 막을 수 없다. 다음 번엔 로그에 어느 제공자인지 남도록 로그인 오류 로거를 고치는 것이 남은 일이다(`providerId`가 늘 비어 있다).

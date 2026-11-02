@@ -8,6 +8,7 @@ import Google from "next-auth/providers/google";
 import type { OAuthConfig } from "next-auth/providers";
 
 import { appleClientSecret } from "@/lib/apple-secret";
+import { withoutIdToken } from "@/lib/datagsm-token";
 import { prisma } from "@/lib/prisma";
 import { generateSignedSessionToken } from "@/lib/signed-session-token";
 
@@ -101,11 +102,14 @@ function DataGSM(): OAuthConfig<DataGSMProfile> {
       // client_secret_post라서 자격 증명은 이미 본문 params에 들어 있다.
       const headers = new Headers(init.headers);
       headers.set("content-type", "application/json");
-      return fetch(input, {
-        ...init,
-        headers,
-        body: JSON.stringify(Object.fromEntries(params)),
-      });
+      // 응답의 id_token은 oauth 방식에서 쓰지 않는데 null이 오면 로그인이 막힌다(lib/datagsm-token.ts).
+      return withoutIdToken(
+        await fetch(input, {
+          ...init,
+          headers,
+          body: JSON.stringify(Object.fromEntries(params)),
+        }),
+      );
     },
     allowDangerousEmailAccountLinking: true,
     profile(profile) {
