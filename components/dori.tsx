@@ -100,16 +100,15 @@ const PENG_HEAD: { shape: ReactNode; front: ReactNode } = {
 
 /** 캐릭터마다 다른 색. 도리는 기본값(components/character-heads.tsx 위쪽 상수)이라 적지 않는다. 2026-11-02 참고 그림에서 뽑은 색이다. */
 const PALETTES: Partial<Record<CharacterId, CSSProperties>> = {
-  mong: { "--ch-ink": "#3d1f14", "--ch-body": "#f1cc92", "--ch-ear": "#b87a4a", "--ch-blush": "#f4a79b", "--ch-cream": "#fff8ea" } as CSSProperties,
+  mong: { "--ch-ink": "#3d1f14", "--ch-body": "#f1cc92", "--ch-ear": "#b87a4a", "--ch-cream": "#fff8ea" } as CSSProperties,
   haru: {
     "--ch-ink": "#3a3945",
     "--ch-body": "#9c9084",
     "--ch-ear": "#8d6b5c",
-    "--ch-blush": "#e8a89a",
     "--ch-cream": "#f2e6d6",
     "--ch-mask": "#786c60",
   } as CSSProperties,
-  peng: { "--ch-ink": "#2f3b5c", "--ch-body": "#566a9c", "--ch-ear": "#ffb13d", "--ch-blush": "#ffb8c6" } as CSSProperties,
+  peng: { "--ch-ink": "#2f3b5c", "--ch-body": "#566a9c", "--ch-ear": "#ffb13d" } as CSSProperties,
 };
 
 /**
@@ -164,12 +163,11 @@ function DoriSadEye({ x, dir }: { x: number; dir: 1 | -1 }) {
 
 const Nose = () => <path d="M57.7 71.2 h4.6 q0 2.6 -2.3 3 q-2.3 -0.4 -2.3 -3z" fill={DORI_PINK} />;
 
-/** 코와 ω 입, 그 아래 작은 분홍 혀. 고양이다움은 여기서 나온다. */
+/** 코와 ω 입. 고양이다움은 여기서 나온다. 입 밑에 분홍 점(혀)은 두지 않는다(2026-11-02 피드백). */
 const NoseMouth = () => (
   <>
     <Nose />
     <DoriStroke d="M60 74.2 q-0.9 3.4 -6.6 2.9 M60 74.2 q0.9 3.4 6.6 2.9" width={2.2} />
-    <ellipse cx={60} cy={79.2} rx={2.1} ry={1.7} fill={DORI_PINK} />
   </>
 );
 

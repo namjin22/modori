@@ -10,7 +10,6 @@ import type { ReactNode } from "react";
 export const INK = "var(--ch-ink, #35201b)";
 export const BODY = "var(--ch-body, #f0e5e4)";
 export const EAR = "var(--ch-ear, #fcb4a8)";
-export const BLUSH = "var(--ch-blush, #f9b9ae)";
 /** 아랫얼굴·가슴 같은 크림색 털. 너구리만 조금 더 누렇다. */
 export const CREAM = "var(--ch-cream, #fffaf0)";
 /** 도리의 이마 줄무늬. */
@@ -96,10 +95,6 @@ export function DoriHead() {
         <path d="M71 38.5 Q69.6 42 69.4 46" />
       </g>
       <path d={CAT_LOWER} fill={CREAM} />
-      <g fill={BLUSH}>
-        <ellipse cx={28.5} cy={71} rx={3.2} ry={2.2} />
-        <ellipse cx={91.5} cy={74} rx={3.2} ry={2.2} />
-      </g>
       <path d={CAT_WHISKERS} stroke={INK} strokeWidth={2.1} strokeLinecap="round" fill="none" />
     </>
   );
@@ -109,21 +104,20 @@ export function DoriHead() {
 
 const DOG: Ellipse = { cx: 60, cy: 63, rx: 35, ry: 31 };
 
-/** 머리 위 모서리에 매달려 바깥으로 처진 귀. 머리 앞에 얹혀서 안쪽 선도 그린다(참고 그림처럼). */
-const DOG_EAR = "M0 -1 C-7 4 -13 17 -12.5 28 C-12 38 1 41 7.5 33 C13 25 9 8 3 -0.5 Q1.5 -2 0 -1Z";
-const DOG_EAR_PLACE = ["translate(37 40) rotate(28) scale(0.93)", "translate(83 40) rotate(-28) scale(0.93)"];
+/**
+ * 머리 위 모서리에서 볼 옆으로 처진 귀. 머리 뒤에 두어 얼굴을 덮지 않고 바깥쪽 반쯤만 보인다.
+ * (머리 앞에 얹었더니 귀가 얼굴을 너무 덮고 자리가 애매해 보인다는 피드백, 2026-11-02)
+ */
+const DOG_EAR = "M0 -1 C-7 4 -12.5 16 -12 26 C-11.5 36 1.5 39 8 30.5 C13 23.5 9.5 8 3 -0.5 Q1 -2 0 -1Z";
+const DOG_EAR_PLACE = ["translate(31 43) rotate(28)", "translate(89 43) rotate(-28)"];
 
 /** 코 둘레의 동그란 주둥이가 눈높이까지 올라오고, 아래로 갈수록 볼 전체로 퍼지는 크림색. */
 const DOG_LOWER = lowerPart(DOG, 83, (left, right) => `C${right - 9} 77 74 66.5 60 66.5 C46 66.5 ${left + 9} 77 ${left} 83`);
 
-/** 몽이: 처진 갈색 귀, 노릇한 얼굴, 둥근 크림색 주둥이. 머리는 도리보다 작고 둥글다. */
+/** 몽이: 머리 뒤로 처진 갈색 귀, 노릇한 얼굴, 둥근 크림색 주둥이. 머리는 도리보다 작고 둥글다. */
 export function MongHead() {
   return (
     <>
-      <Silhouette>
-        <ellipse cx={DOG.cx} cy={DOG.cy} rx={DOG.rx} ry={DOG.ry} />
-      </Silhouette>
-      <path d={DOG_LOWER} fill={CREAM} />
       <g fill={INK} stroke={INK} strokeWidth={OUTLINE / WIDE_SCALE} strokeLinejoin="round">
         {DOG_EAR_PLACE.map((transform) => (
           <path key={transform} d={DOG_EAR} transform={transform} />
@@ -134,6 +128,10 @@ export function MongHead() {
           <path key={transform} d={DOG_EAR} transform={transform} />
         ))}
       </g>
+      <Silhouette>
+        <ellipse cx={DOG.cx} cy={DOG.cy} rx={DOG.rx} ry={DOG.ry} />
+      </Silhouette>
+      <path d={DOG_LOWER} fill={CREAM} />
     </>
   );
 }

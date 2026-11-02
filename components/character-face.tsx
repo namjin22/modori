@@ -172,7 +172,7 @@ function Eye({ kind, x, dir, l, noBrow = false }: { kind: EyeKind; x: number; di
 }
 
 /** 코 밑에서 갈라지는 "ω" 입(몽이·하루). top은 코 밑 y, w는 한쪽 폭, depth는 입꼬리 깊이. */
-function OmegaMouth({ kind, top, w, depth, color, tongue }: { kind: Mouth; top: number; w: number; depth: number; color: string; tongue: number }) {
+function OmegaMouth({ kind, top, w, depth, color }: { kind: Mouth; top: number; w: number; depth: number; color: string }) {
   const t = top + 2.6; // 입이 갈라지는 점
   const base = `M60 ${top} L60 ${t}`;
   const smile = `${base} M60 ${t} Q${60 - w * 0.55} ${t + depth} ${60 - w} ${t + 0.8} M60 ${t} Q${60 + w * 0.55} ${t + depth} ${60 + w} ${t + 0.8}`;
@@ -193,13 +193,8 @@ function OmegaMouth({ kind, top, w, depth, color, tongue }: { kind: Mouth; top: 
         </>
       );
     case "smile":
-      return (
-        <>
-          <ellipse cx={60} cy={t + depth - 0.5} rx={tongue} ry={tongue * 1.2} fill={PINK} />
-          <Stroke d={smile} color={color} />
-        </>
-      );
     case "small":
+      // 입 밑에 분홍 혀 점을 두지 않는다. 개와 너구리가 닮아 보인다는 피드백(2026-11-02)이 있었다.
       return <Stroke d={smile} color={color} />;
     case "grin":
     case "open":
@@ -258,7 +253,7 @@ function DogFace({ mood }: { mood: CharacterMood }) {
       <Eye kind={s.eyeRight ?? s.eye} x={l.right} dir={1} l={l} />
       {s.tear && <path d={`M${l.left - 2.4} ${l.y + l.ry + 1.4} q-2.6 4 0 6 q2.6 -2 0 -6z`} fill="#8ecbff" />}
       <ellipse cx={60} cy={71.6} rx={5.2} ry={3.7} fill={DOG_INK} />
-      <OmegaMouth kind={s.mouth} top={75} w={7.2} depth={3.8} color={DOG_INK} tongue={2.4} />
+      <OmegaMouth kind={s.mouth} top={75} w={7.2} depth={3.8} color={DOG_INK} />
       {mood === "bone" && <Bone />}
     </>
   );
@@ -273,15 +268,8 @@ function RaccoonFace({ mood }: { mood: CharacterMood }) {
       <Eye kind={s.eye} x={l.left} dir={-1} l={l} noBrow />
       <Eye kind={s.eyeRight ?? s.eye} x={l.right} dir={1} l={l} noBrow />
       {s.tear && <path d={`M${l.left - 2.4} ${l.y + l.ry + 1.4} q-2.6 4 0 6 q2.6 -2 0 -6z`} fill="#8ecbff" />}
-      {mood === "shy" && (
-        <g>
-          <ellipse cx={29} cy={87} rx={8} ry={4.4} fill="#ff6f6f" opacity={0.45} />
-          <ellipse cx={91} cy={87} rx={8} ry={4.4} fill="#ff6f6f" opacity={0.45} />
-          <path d="M23 85 l2.6 3.4 M27.6 84.6 l2.6 3.4 M32.2 85 l2.6 3.4 M85.2 85 l2.6 3.4 M89.8 84.6 l2.6 3.4 M94.4 85 l2.6 3.4" stroke="#ff4d4d" strokeWidth={1.3} strokeLinecap="round" opacity={0.65} />
-        </g>
-      )}
       <path d="M55.4 72.6 Q60 70 64.6 72.6 Q63.2 77.2 60 77.6 Q56.8 77.2 55.4 72.6Z" fill={RACCOON_INK} />
-      <OmegaMouth kind={s.mouth} top={77.4} w={7.8} depth={3.6} color={RACCOON_INK} tongue={2.4} />
+      <OmegaMouth kind={s.mouth} top={77.4} w={7.8} depth={3.6} color={RACCOON_INK} />
     </>
   );
 }
