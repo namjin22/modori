@@ -1,6 +1,5 @@
-// 모도리의 캐릭터 "도리". 하늘색 고양이 얼굴이다. 뾰족하게 선 귀(안쪽 분홍), 이마의 줄무늬 셋, 크림색 주둥이,
-// 볼에서 뻗는 수염으로 한눈에 고양이로 읽히게 했고, 눈은 크고 낮게 놓아 아기처럼 순해 보이게 했다.
-// (예전 하치와레 무늬 그림은 귀가 둥글고 파란 무늬가 머리띠처럼 읽혀 무슨 동물인지 모르겠다는 피드백으로 버렸다, 2026-11-01)
+// 모도리의 캐릭터 "도리". 연한 웜그레이 고양이 얼굴이다. 뾰족한 귀(안쪽 분홍), 이마의 줄무늬 셋, 크림색 아랫얼굴, 볼 수염에
+// 하이라이트 없는 작은 점 눈을 둔다. 2026-11-02에 운영자가 보낸 참고 그림(굵은 짙은 갈색 선, 납작한 색칠)을 따라 다시 그렸다.
 // 몸통을 붙이면 작게 줄였을 때 비율이 어색해져서 얼굴만 그린다. 표정은 눈·입과
 // 둘레의 소품으로만 전한다.
 // 직접 그린 그림이라 외부 저작권이나 표기 의무가 없다.
@@ -9,14 +8,14 @@
 // 부풀리고 위 겹을 몸 색으로 덮는다. 이렇게 해야 도형이 겹치는 안쪽에는 선이 남지
 // 않고 바깥 윤곽만 고르게 두꺼워진다.
 //
-// 하늘색 몸과 진한 파랑 테두리라 흰 바탕에서도 윤곽이 서고(예전 도리는 크림색이라 얼굴이 묻혔다)
-// 다크 모드에서도 배경에서 떠오른다. 24px(반응 줄)까지 줄어들기 때문에 눈·입은 크고 단순하게 그린다.
+// 머리 모양은 components/character-heads.tsx, 도리의 표정(눈·코·입)은 이 파일이 그린다.
+// 24px(반응 줄)까지 줄어들기 때문에 눈·입은 크고 단순하게 그린다.
 // 서버 컴포넌트에서도 쓰므로 상태나 훅을 두지 않는다.
 
 import type { CSSProperties, ReactNode } from "react";
 
 import { CharacterFace, CharacterProps } from "@/components/character-face";
-import { BLUSH, BODY, EAR, FOX_FIT, HaruHead, INK, MongHead, OUTLINE, WIDE_FIT, WIDE_SCALE } from "@/components/character-heads";
+import { BODY, DoriHead, EAR, HaruHead, INK, MongHead, OUTLINE, WIDE_FIT } from "@/components/character-heads";
 import { DEFAULT_CHARACTER, type CharacterId, type CharacterMood } from "@/lib/characters";
 
 export type DoriMood =
@@ -81,7 +80,7 @@ function Outlined({ children }: { children: ReactNode }) {
 
 /**
  * 펭이의 머리: 윤곽을 두를 머리 모양과 머리 위(하얀 얼굴 무늬). 눈·부리는 표정이 그린다.
- * 도리·몽이·하루는 머리 모양이 달라 각자 DoriHead·MongHead·HaruHead가 그린다.
+ * 도리·몽이·하루는 머리 모양이 달라 components/character-heads.tsx의 DoriHead·MongHead·HaruHead가 그린다.
  */
 const PENG_HEAD: { shape: ReactNode; front: ReactNode } = {
   // 통통한 남색 얼굴, 하트 모양 하얀 얼굴 무늬.
@@ -99,41 +98,45 @@ const PENG_HEAD: { shape: ReactNode; front: ReactNode } = {
   ),
 };
 
-/** 캐릭터마다 다른 색. 도리는 기본값(코드 위쪽 상수)이라 적지 않는다. */
+/** 캐릭터마다 다른 색. 도리는 기본값(components/character-heads.tsx 위쪽 상수)이라 적지 않는다. 2026-11-02 참고 그림에서 뽑은 색이다. */
 const PALETTES: Partial<Record<CharacterId, CSSProperties>> = {
-  mong: { "--ch-ink": "#8b5a3c", "--ch-body": "#efc08c", "--ch-ear": "#a8693f", "--ch-blush": "#ff9aa6" } as CSSProperties,
-  haru: { "--ch-ink": "#c25b1c", "--ch-body": "#ff9d4d", "--ch-ear": "#5b3a2e", "--ch-blush": "#ffb09a" } as CSSProperties,
-  peng: { "--ch-ink": "#2f3b5c", "--ch-body": "#566a9c", "--ch-ear": "#ffb13d", "--ch-blush": "#ffb8c6" } as CSSProperties,
+  mong: { "--ch-ink": "#3d1f14", "--ch-body": "#f1cc92", "--ch-ear": "#b87a4a", "--ch-cream": "#fff8ea" } as CSSProperties,
+  haru: {
+    "--ch-ink": "#3a3945",
+    "--ch-body": "#9c9084",
+    "--ch-ear": "#8d6b5c",
+    "--ch-cream": "#f2e6d6",
+    "--ch-mask": "#786c60",
+  } as CSSProperties,
+  peng: { "--ch-ink": "#2f3b5c", "--ch-body": "#566a9c", "--ch-ear": "#ffb13d" } as CSSProperties,
 };
 
 /**
- * 도리의 얼굴. 눈·코·입·볼은 머리를 그린 좌표(120×120, 머리 가운데 (60, 62))로 적고 WIDE_FIT이 한꺼번에 줄여 놓는다.
- * 눈을 크고 낮게(아기 비율) 두고 눈 사이를 넓혀 순해 보이게 했다(2026-10-31 운영자 요청: 도리가 못생겼다, 2026-11-01 고양이로 읽히게).
+ * 도리의 얼굴. 눈·코·입은 머리를 그린 좌표(120×120, 머리 가운데 (60, 64))로 적고 WIDE_FIT이 한꺼번에 줄여 놓는다.
+ * 참고 그림처럼 눈은 작은 민짜 점이고 눈높이는 머리 가운데보다 아래다(2026-11-02, 2026-10-31 "도리가 못생겼다" 요청 이후 세 번째 방향).
  */
-const DORI_EYE = "#2b3a67";
-const DORI_PINK = "#ff8fa8";
+const DORI_EYE = "#2f1a16";
+const DORI_PINK = "#f08f8f";
+const EY = 65;
 
 function DoriStroke({ d, width = 3 }: { d: string; width?: number }) {
   return <Stroke d={d} width={width} color={DORI_EYE} />;
 }
 
-/** 큰 눈. 하이라이트 둘(크고 작은 것)로 눈이 반짝인다. */
-const BigEye = ({ x, y = 59, rx = 8.2, ry = 9.8 }: { x: number; y?: number; rx?: number; ry?: number }) => (
-  <>
-    <ellipse cx={x} cy={y} rx={rx} ry={ry} fill={DORI_EYE} />
-    <circle cx={x + 3} cy={y - 3.8} r={3.3} fill="#fff" />
-    <circle cx={x - 2.6} cy={y + 4} r={1.5} fill="#fff" opacity={0.9} />
-  </>
+/** 작은 점 눈. 하이라이트 없이 짙은 갈색 한 가지다. */
+const BigEye = ({ x, y = EY, rx = 4.8, ry = 5.6 }: { x: number; y?: number; rx?: number; ry?: number }) => (
+  <ellipse cx={x} cy={y} rx={rx} ry={ry} fill={DORI_EYE} />
 );
 
 /** 웃어서 감은 눈. */
-const DoriArcEye = ({ x }: { x: number }) => <DoriStroke d={`M${x - 7} 61 Q${x} 50 ${x + 7} 61`} width={4} />;
+const DoriArcEye = ({ x }: { x: number }) => <DoriStroke d={`M${x - 5.6} ${EY + 2.6} Q${x} ${EY - 5.6} ${x + 5.6} ${EY + 2.6}`} width={3.4} />;
 
-const DoriSleepyEye = ({ x }: { x: number }) => <DoriStroke d={`M${x - 7} 54 Q${x} 62 ${x + 7} 54`} width={4} />;
+const DoriSleepyEye = ({ x }: { x: number }) => <DoriStroke d={`M${x - 5.4} ${EY - 1.6} Q${x} ${EY + 4.8} ${x + 5.4} ${EY - 1.6}`} width={3.4} />;
 
 const DoriStarEye = ({ x }: { x: number }) => (
   <path
-    d={`M${x} 48 l2.8 5.8 6.3 .8 -4.7 4.3 1.3 6.2 -5.7 -3.2 -5.7 3.2 1.3 -6.2 -4.7 -4.3 6.3 -.8z`}
+    d="M0 -10 l2.8 5.8 6.3 .8 -4.7 4.3 1.3 6.2 -5.7 -3.2 -5.7 3.2 1.3 -6.2 -4.7 -4.3 6.3 -.8z"
+    transform={`translate(${x} ${EY}) scale(0.8)`}
     fill={DORI_EYE}
   />
 );
@@ -142,8 +145,8 @@ const DoriStarEye = ({ x }: { x: number }) => (
 function DoriSharpEye({ x, dir }: { x: number; dir: 1 | -1 }) {
   return (
     <>
-      <DoriStroke d={`M${x + 8 * dir} 43 L${x - 7 * dir} 49`} width={3.6} />
-      <BigEye x={x} y={59} rx={5.8} ry={7.2} />
+      <DoriStroke d={`M${x + 6.6 * dir} ${EY - 10.5} L${x - 5.6 * dir} ${EY - 6.6}`} width={3} />
+      <BigEye x={x} rx={4.4} ry={5.2} />
     </>
   );
 }
@@ -152,19 +155,19 @@ function DoriSharpEye({ x, dir }: { x: number; dir: 1 | -1 }) {
 function DoriSadEye({ x, dir }: { x: number; dir: 1 | -1 }) {
   return (
     <>
-      <DoriStroke d={`M${x + 8 * dir} 48 L${x - 7 * dir} 43`} width={3.4} />
-      <BigEye x={x} y={59} rx={6} ry={7.6} />
+      <DoriStroke d={`M${x + 6.6 * dir} ${EY - 6.6} L${x - 5.6 * dir} ${EY - 10.8}`} width={3} />
+      <BigEye x={x} rx={4.4} ry={5.4} />
     </>
   );
 }
 
-const Nose = () => <path d="M57.4 62.6 h5.2 q0 3 -2.6 3.4 q-2.6 -0.4 -2.6 -3.4 z" fill={DORI_PINK} />;
+const Nose = () => <path d="M57.7 71.2 h4.6 q0 2.6 -2.3 3 q-2.3 -0.4 -2.3 -3z" fill={DORI_PINK} />;
 
-/** 코와 ω 입. 고양이다움은 여기서 나온다. */
+/** 코와 ω 입. 고양이다움은 여기서 나온다. 입 밑에 분홍 점(혀)은 두지 않는다(2026-11-02 피드백). */
 const NoseMouth = () => (
   <>
     <Nose />
-    <DoriStroke d="M60 66 q-1 5 -6 4.4 M60 66 q1 5 6 4.4" width={2.6} />
+    <DoriStroke d="M60 74.2 q-0.9 3.4 -6.6 2.9 M60 74.2 q0.9 3.4 6.6 2.9" width={2.2} />
   </>
 );
 
@@ -172,8 +175,8 @@ function DoriOpenMouth() {
   return (
     <>
       <Nose />
-      <ellipse cx={60} cy={73} rx={6} ry={6.8} fill={DORI_EYE} />
-      <ellipse cx={60} cy={77.4} rx={3.6} ry={2.6} fill={DORI_PINK} />
+      <ellipse cx={60} cy={78.6} rx={4.6} ry={5} fill={DORI_EYE} />
+      <ellipse cx={60} cy={81.4} rx={3} ry={2} fill={DORI_PINK} />
     </>
   );
 }
@@ -182,25 +185,8 @@ function DoriGrinMouth() {
   return (
     <>
       <Nose />
-      <path d="M52 67 Q60 80 68 67 Z" fill={DORI_EYE} stroke={DORI_EYE} strokeWidth={2.4} strokeLinejoin="round" />
-      <path d="M55.4 73.4 Q60 70 64.6 73.4 Q60 77 55.4 73.4 Z" fill={DORI_PINK} />
-    </>
-  );
-}
-
-const Cheeks = () => (
-  <>
-    <ellipse cx={27} cy={70} rx={8} ry={5.4} fill={BLUSH} />
-    <ellipse cx={93} cy={70} rx={8} ry={5.4} fill={BLUSH} />
-  </>
-);
-
-/** 도리 얼굴 한 벌: 볼 위에 표정(눈·입)을 얹는다. */
-function DoriFace({ children }: { children: ReactNode }) {
-  return (
-    <>
-      <Cheeks />
-      {children}
+      <path d="M53.6 75.6 Q60 86 66.4 75.6 Z" fill={DORI_EYE} stroke={DORI_EYE} strokeWidth={2.2} strokeLinejoin="round" />
+      <path d="M56.6 81.2 Q60 78.4 63.4 81.2 Q60 84.4 56.6 81.2 Z" fill={DORI_PINK} />
     </>
   );
 }
@@ -216,7 +202,7 @@ function PartyHat() {
   const cone = "M50.5 33 L60 8 L69.5 33 Q60 37 50.5 33 Z";
 
   return (
-    <g transform="rotate(10 60 33)">
+    <g transform="translate(0 5) rotate(10 60 33)">
       <path d={cone} fill="#8b7bff" />
       <path d="M57.34 15 L62.66 15 L64.18 19 L55.82 19 Z" fill="#ffd166" />
       <path d="M54.11 23.5 L65.89 23.5 L67.41 27.5 L52.59 27.5 Z" fill="#ffd166" />
@@ -262,27 +248,27 @@ function Spark({ x, y, s, fill }: { x: number; y: number; s: number; fill: strin
   );
 }
 
-/** 표정마다 얼굴과 둘레 소품을 따로 둔다. 소품은 얼굴 위에 그린다(모자는 머리에 얹힌다). */
+/** 표정마다 얼굴과 둘레 소품을 따로 둔다. 소품은 얼굴 위에 그린다(모자는 머리에 얹힌다). 눈은 왼쪽 42, 오른쪽 78이다. */
 const LOOKS: Record<
   DoriMood,
   { face: ReactNode; props?: ReactNode }
 > = {
   happy: {
     face: (
-      <DoriFace>
-        <BigEye x={41} />
-        <BigEye x={79} />
+      <>
+        <BigEye x={42} />
+        <BigEye x={78} />
         <NoseMouth />
-      </DoriFace>
+      </>
     ),
   },
   like: {
     face: (
-      <DoriFace>
-        <DoriArcEye x={41} />
-        <DoriArcEye x={79} />
+      <>
+        <DoriArcEye x={42} />
+        <DoriArcEye x={78} />
         <NoseMouth />
-      </DoriFace>
+      </>
     ),
     props: (
       <path
@@ -293,22 +279,22 @@ const LOOKS: Record<
   },
   fire: {
     face: (
-      <DoriFace>
-        <DoriSharpEye x={41} dir={-1} />
-        <DoriSharpEye x={79} dir={1} />
+      <>
+        <DoriSharpEye x={42} dir={-1} />
+        <DoriSharpEye x={78} dir={1} />
         <DoriOpenMouth />
-      </DoriFace>
+      </>
     ),
     // 귀에 닿지 않게 오른쪽 위 모서리에 세운다.
     props: <Flame x={108} y={46} scale={0.9} />,
   },
   clap: {
     face: (
-      <DoriFace>
-        <DoriStarEye x={41} />
-        <DoriStarEye x={79} />
+      <>
+        <DoriStarEye x={42} />
+        <DoriStarEye x={78} />
         <DoriOpenMouth />
-      </DoriFace>
+      </>
     ),
     props: (
       <>
@@ -320,11 +306,11 @@ const LOOKS: Record<
   },
   party: {
     face: (
-      <DoriFace>
-        <DoriArcEye x={41} />
-        <DoriArcEye x={79} />
+      <>
+        <DoriArcEye x={42} />
+        <DoriArcEye x={78} />
         <DoriOpenMouth />
-      </DoriFace>
+      </>
     ),
     props: (
       <>
@@ -354,11 +340,11 @@ const LOOKS: Record<
   },
   calm: {
     face: (
-      <DoriFace>
-        <DoriSleepyEye x={41} />
-        <DoriSleepyEye x={79} />
+      <>
+        <DoriSleepyEye x={42} />
+        <DoriSleepyEye x={78} />
         <NoseMouth />
-      </DoriFace>
+      </>
     ),
     props: (
       <>
@@ -369,23 +355,23 @@ const LOOKS: Record<
   },
   sad: {
     face: (
-      <DoriFace>
-        <DoriSadEye x={41} dir={-1} />
-        <DoriSadEye x={79} dir={1} />
+      <>
+        <DoriSadEye x={42} dir={-1} />
+        <DoriSadEye x={78} dir={1} />
         <Nose />
-        <DoriStroke d="M54 73 Q60 66.5 66 73" width={3} />
-        <path d="M41 66 q-4.5 6.5 0 9 q4.5 -2.5 0 -9z" fill="#7cc8ff" />
-      </DoriFace>
+        <DoriStroke d="M54.6 79.8 Q60 73.8 65.4 79.8" width={2.6} />
+        <path d="M37.8 72.6 q-3 4.6 0 6.8 q3 -2.2 0 -6.8z" fill="#7cc8ff" />
+      </>
     ),
   },
   confused: {
     face: (
-      <DoriFace>
-        <BigEye x={41} />
-        <ellipse cx={79} cy={58} rx={3.8} ry={4.8} fill={DORI_EYE} />
+      <>
+        <BigEye x={42} />
+        <ellipse cx={78} cy={EY - 0.5} rx={3.4} ry={4.2} fill={DORI_EYE} />
         <Nose />
-        <DoriStroke d="M54 71 Q57 67 60 70 Q63 73 66 69" width={3} />
-      </DoriFace>
+        <DoriStroke d="M54 78 Q57 74 60 76.8 Q63 79.6 66 75.8" width={2.6} />
+      </>
     ),
     props: (
       <>
@@ -400,11 +386,11 @@ const LOOKS: Record<
   },
   hello: {
     face: (
-      <DoriFace>
-        <BigEye x={41} />
-        <BigEye x={79} />
+      <>
+        <BigEye x={42} />
+        <BigEye x={78} />
         <DoriOpenMouth />
-      </DoriFace>
+      </>
     ),
     // 몸은 없어도 흔드는 앞발 하나면 인사로 읽힌다. 얼굴 옆 볼 높이에 띄운다.
     props: (
@@ -425,25 +411,25 @@ const LOOKS: Record<
   },
   cool: {
     face: (
-      <DoriFace>
-        <DoriStroke d="M31 52 L89 52" width={3} />
-        <path d="M30 50 H52 V58 Q52 68.5 41 68.5 Q30 68.5 30 58 Z" fill="#2b3a67" />
-        <path d="M68 50 H90 V58 Q90 68.5 79 68.5 Q68 68.5 68 58 Z" fill="#2b3a67" />
-        <Stroke d="M35 56 L39.5 52.5" width={2.2} color="#ffffff" />
-        <Stroke d="M73 56 L77.5 52.5" width={2.2} color="#ffffff" />
+      <>
+        <DoriStroke d="M30 58.5 L90 58.5" width={3} />
+        <path d="M30.5 57.5 H53.5 V65 Q53.5 73.5 42 73.5 Q30.5 73.5 30.5 65 Z" fill={DORI_EYE} />
+        <path d="M66.5 57.5 H89.5 V65 Q89.5 73.5 78 73.5 Q66.5 73.5 66.5 65 Z" fill={DORI_EYE} />
+        <Stroke d="M36 64 L40.4 60.6" width={2.2} color="#ffffff" />
+        <Stroke d="M72 64 L76.4 60.6" width={2.2} color="#ffffff" />
         <Nose />
-        <DoriStroke d="M53 71 Q60 76 67 70.5" width={3} />
-      </DoriFace>
+        <DoriStroke d="M54 77.4 Q60 81.6 66.4 76.4" width={2.6} />
+      </>
     ),
   },
   wow: {
     face: (
-      <DoriFace>
-        <BigEye x={41} rx={9} ry={10.8} />
-        <BigEye x={79} rx={9} ry={10.8} />
+      <>
+        <BigEye x={42} rx={5.4} ry={6.4} />
+        <BigEye x={78} rx={5.4} ry={6.4} />
         <Nose />
-        <ellipse cx={60} cy={73} rx={4.2} ry={5.2} fill={DORI_EYE} />
-      </DoriFace>
+        <ellipse cx={60} cy={78.4} rx={3.4} ry={4.2} fill={DORI_EYE} />
+      </>
     ),
     props: (
       <>
@@ -454,69 +440,14 @@ const LOOKS: Record<
   },
   love: {
     face: (
-      <DoriFace>
-        <path d={HEART} fill="#ff6f95" transform="translate(41 58) scale(0.78) translate(-105 -18)" />
-        <path d={HEART} fill="#ff6f95" transform="translate(79 58) scale(0.78) translate(-105 -18)" />
+      <>
+        <path d={HEART} fill="#ff6f95" transform={`translate(42 ${EY}) scale(0.62) translate(-105 -18)`} />
+        <path d={HEART} fill="#ff6f95" transform={`translate(78 ${EY}) scale(0.62) translate(-105 -18)`} />
         <DoriGrinMouth />
-      </DoriFace>
+      </>
     ),
   },
 };
-
-const DORI_CREAM = "#fff6e8";
-/** 이마 줄무늬 색. 몸 색(--ch-body)보다 한 단계 진한 파랑이라 도리만 쓰는 값이다. */
-const DORI_STRIPE = "#7f9fe0";
-
-/** 뾰족하게 선 고양이 귀. 바깥 변은 머리 윤곽에서 시작해 위로 곧게, 안쪽 변은 정수리 쪽으로 기운다. */
-const DORI_EARS = [
-  "M20 56 Q18 30 27 17 Q30 14 33 16 Q44 23 49 33 Z",
-  "M100 56 Q102 30 93 17 Q90 14 87 16 Q76 23 71 33 Z",
-];
-
-const DORI_EAR_INNER = [
-  "M26 48 Q24 32 28 23 Q37 27 43 35 Z",
-  "M94 48 Q96 32 92 23 Q83 27 77 35 Z",
-];
-
-/** 볼에서 바깥으로 뻗는 수염. 고양이로 읽히는 가장 큰 단서라 얼굴 윤곽 밖으로 나온다. */
-const DORI_WHISKERS =
-  "M27 69 Q15 65 4 65 M26 74 Q14 74 3 75 M27 79 Q16 82 6 86 M93 69 Q105 65 116 65 M94 74 Q106 74 117 75 M93 79 Q104 82 114 86";
-
-/**
- * 도리의 머리: 뾰족한 귀를 가진 고양이. 몸은 하늘색(--ch-body), 이마에 줄무늬 셋, 크림색 주둥이, 귀 안쪽 분홍, 수염.
- * 몸 색은 팔레트(--ch-*)에서 온다. (하치와레 무늬는 머리띠처럼 읽혀 무슨 동물인지 모르겠다는 피드백으로 버렸다, 2026-11-01)
- */
-function DoriHead() {
-  const shape = (
-    <>
-      {DORI_EARS.map((d) => (
-        <path key={d} d={d} />
-      ))}
-      <ellipse cx={60} cy={62} rx={40} ry={33} />
-    </>
-  );
-
-  return (
-    <>
-      <g fill={INK} stroke={INK} strokeWidth={OUTLINE / WIDE_SCALE} strokeLinejoin="round">
-        {shape}
-      </g>
-      <g fill={BODY}>{shape}</g>
-      <g fill={EAR}>
-        {DORI_EAR_INNER.map((d) => (
-          <path key={d} d={d} />
-        ))}
-      </g>
-      <g stroke={DORI_STRIPE} strokeWidth={3.6} strokeLinecap="round" fill="none">
-        <path d="M60 36 L60 47" />
-        <path d="M50 38 L52 46" />
-        <path d="M70 38 L68 46" />
-      </g>
-      <ellipse cx={60} cy={74} rx={16} ry={11.5} fill={DORI_CREAM} />
-      <path d={DORI_WHISKERS} stroke={INK} strokeWidth={1.8} strokeLinecap="round" fill="none" />
-    </>
-  );
-}
 
 /** 펭이의 머리와 얼굴. 둥근 머리 틀(HEAD)에 그린다. */
 function PengHead({ mood }: { mood: CharacterMood }) {
@@ -539,7 +470,7 @@ function PengHead({ mood }: { mood: CharacterMood }) {
 /** 몽이·하루: 도리와 같은 넓은 머리 틀(WIDE_FIT)에 각자의 머리를 얹고 같은 좌표계에서 얼굴을 그린다. */
 function WideHead({ character, mood }: { character: "mong" | "haru"; mood: CharacterMood }) {
   return (
-    <g transform={character === "haru" ? FOX_FIT : WIDE_FIT}>
+    <g transform={WIDE_FIT}>
       {character === "mong" ? <MongHead /> : <HaruHead />}
       <CharacterFace character={character} mood={mood} />
     </g>
@@ -573,7 +504,7 @@ export function Dori({
     <svg
       width={size}
       height={size}
-      // 도리의 얼굴(귀 포함)은 가로 20~100, 세로 22~100 안쪽이고 수염은 가로 10~110까지 나간다. 둘레를 넉넉히 준다.
+      // 머리(귀·너구리 볼 털 포함)는 가로 12~108, 세로 20~100 안쪽이다. 아바타는 둘레를 넉넉히 준다.
       viewBox={avatar ? "-12 -10 144 144" : "0 0 120 120"}
       role={label ? "img" : undefined}
       aria-label={label}
@@ -584,7 +515,7 @@ export function Dori({
       {character === "dori" ? (
         <g transform={WIDE_FIT}>
           <DoriHead />
-          <g transform="translate(0 3)">{look.face}</g>
+          {look.face}
         </g>
       ) : character === "peng" ? (
         <PengHead mood={mood} />
