@@ -109,7 +109,7 @@ const DOG: Ellipse = { cx: 60, cy: 63, rx: 35, ry: 31 };
  * (머리 앞에 얹었더니 귀가 얼굴을 너무 덮고 자리가 애매해 보인다는 피드백, 2026-11-02)
  */
 const DOG_EAR = "M0 -1 C-7 4 -12.5 16 -12 26 C-11.5 36 1.5 39 8 30.5 C13 23.5 9.5 8 3 -0.5 Q1 -2 0 -1Z";
-const DOG_EAR_PLACE = ["translate(31 43) rotate(28)", "translate(89 43) rotate(-28)"];
+const DOG_EAR_PLACE = ["translate(32 41) rotate(14)", "translate(88 41) rotate(-14)"];
 
 /** 코 둘레의 동그란 주둥이가 눈높이까지 올라오고, 아래로 갈수록 볼 전체로 퍼지는 크림색. */
 const DOG_LOWER = lowerPart(DOG, 83, (left, right) => `C${right - 9} 77 74 66.5 60 66.5 C46 66.5 ${left + 9} 77 ${left} 83`);
