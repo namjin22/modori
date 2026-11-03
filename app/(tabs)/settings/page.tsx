@@ -75,16 +75,14 @@ export default async function SettingsPage() {
       </section>
 
       {/* 화면·알림·친구·시간대·앱 설정은 한 페이지로 모았다(2026-10-31 요청: 마이페이지가 너무 복잡했다). 여기에는 그리로 가는 줄만 둔다.
-          톱니 그림을 앞에 두어 한눈에 설정으로 읽히게 하고 줄 높이를 줄였다(2026-11-02 요청: 버튼이 투박하다). */}
+          줄 높이를 줄였다(2026-11-02 요청: 버튼이 투박하다). 톱니 그림과 누를 때 바뀌는 바탕색은 뺐다(같은 날 요청: 눌렀을 때 색이 달라져 이상하다).
+          키보드 포커스 선은 카드 안쪽에 붙여, 카드 안에 또 다른 버튼이 있는 것처럼 보이지 않게 한다. */}
       <section className="rounded-2xl bg-surface">
         <Link
           prefetch={false}
           href="/settings/preferences"
-          className="flex items-center gap-3.5 rounded-2xl px-5 py-4 transition-colors hover:bg-surface-hover"
+          className="flex items-center gap-4 rounded-2xl px-5 py-4 focus-visible:outline-offset-[-2px]"
         >
-          <span aria-hidden className="grid size-10 shrink-0 place-items-center rounded-xl bg-brand-subtle text-brand">
-            <GearIcon />
-          </span>
           <span className="flex min-w-0 flex-1 flex-col gap-0.5">
             <span className="text-[15px] font-semibold">{t("preferencesRow")}</span>
             <span className="truncate text-[13px] text-muted">{t("preferencesHint")}</span>
@@ -170,15 +168,4 @@ function FooterLink({ href, children }: { href: string; children: React.ReactNod
 /** 바닥글 링크 사이 세로 막대. 점(·)은 너무 흐려 한 줄이 한쪽으로 쏠려 보였다. */
 function Dot() {
   return <span aria-hidden className="h-3 w-px bg-border" />;
-}
-
-/** 톱니바퀴. 바깥 고리를 점선으로 그려 이를 여덟 개 만들고, 가운데에 둥근 몸통과 구멍을 둔다. 직접 그렸다. */
-function GearIcon() {
-  return (
-    <svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="butt">
-      <circle cx={12} cy={12} r={8.6} strokeWidth={3} strokeDasharray="3.4 3.4" strokeDashoffset={1.7} />
-      <circle cx={12} cy={12} r={6.4} strokeWidth={2.2} />
-      <circle cx={12} cy={12} r={2.4} strokeWidth={2.2} />
-    </svg>
-  );
 }
