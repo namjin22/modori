@@ -24,6 +24,15 @@ const MONTH_DAYS = Array.from({ length: 31 }, (_, index) => index + 1);
 
 type Freq = "DAILY" | "WEEKLY" | "MONTHLY";
 
+/** 고치기 창이 채워 넣는 지금 규칙. 날짜는 "YYYY-MM-DD". */
+export type RuleInitial = {
+  freq: Freq;
+  byWeekday: number[];
+  byMonthday: number[];
+  startDate: string;
+  endDate: string | null;
+};
+
 const FREQ_OPTIONS = [
   { value: "DAILY", label: "daily" },
   { value: "WEEKLY", label: "weekly" },
@@ -38,9 +47,6 @@ export function RoutineForm({
   today: string;
 }) {
   const t = useT(routines);
-  const locale = useLocale();
-  // 주기를 고르기 전에는 요일·날짜를 다 보여줄 이유가 없다. 폼이 화면을 넘어간다.
-  const [freq, setFreq] = useState<Freq>("DAILY");
   // 할 일 루틴은 그날 할 일로 들어오고, 일정 루틴(반복 일정)은 달력과 일정 목록에 뜬다(2026-10-14 요청).
   const [kind, setKind] = useState<"TODO" | "EVENT">("TODO");
 
@@ -96,6 +102,44 @@ export function RoutineForm({
         <EventRoutineFields />
       )}
 
+      <RoutineRuleFields today={today} />
+
+      {state && (
+        <p
+          role="status"
+          className={`text-sm ${
+            state.ok
+              ? "text-brand"
+              : "text-danger"
+          }`}
+        >
+          {state.message}
+        </p>
+      )}
+
+      <SubmitButton
+        pending={pending}
+        pendingLabel={t("adding")}
+        className="h-12 rounded-xl bg-brand text-sm font-semibold text-brand-contrast"
+      >
+        {t("add")}
+      </SubmitButton>
+    </form>
+  );
+}
+
+/**
+ * 반복 규칙 칸: 반복 주기, 요일·날짜, 시작일·종료일. 루틴(할 일·일정) 만들기 폼과 고치기 창이 같이 쓴다(2026-11-05 요청: 고치기도 만들 때와 같은 칸).
+ * 고칠 때는 initial에 지금 규칙을 넘기고, 만들 때는 매일·오늘부터로 시작한다.
+ */
+export function RoutineRuleFields({ today, initial }: { today?: string; initial?: RuleInitial }) {
+  const t = useT(routines);
+  const locale = useLocale();
+  // 주기를 고르기 전에는 요일·날짜를 다 보여줄 이유가 없다. 폼이 화면을 넘어간다.
+  const [freq, setFreq] = useState<Freq>(initial?.freq ?? "DAILY");
+
+  return (
+    <>
       <div role="radiogroup" aria-label={t("freqLabel")} className="flex gap-1 rounded-xl bg-surface-hover p-1">
         {FREQ_OPTIONS.map((option) => (
           <button
@@ -128,6 +172,7 @@ export function RoutineForm({
                 type="checkbox"
                 name="byWeekday"
                 value={index}
+                defaultChecked={initial?.byWeekday.includes(index)}
                 className="peer sr-only"
               />
               <span className="block rounded-lg bg-surface-hover py-2.5 text-muted transition-colors peer-checked:bg-brand peer-checked:font-semibold peer-checked:text-brand-contrast">
@@ -147,6 +192,7 @@ export function RoutineForm({
                 type="checkbox"
                 name="byMonthday"
                 value={day}
+                defaultChecked={initial?.byMonthday.includes(day)}
                 className="peer sr-only"
               />
               <span className="block rounded-lg bg-surface-hover py-2 text-muted transition-colors peer-checked:bg-brand peer-checked:font-semibold peer-checked:text-brand-contrast">
@@ -162,36 +208,23 @@ export function RoutineForm({
       <div className="grid grid-cols-2 gap-3">
         <div className="flex min-w-0 flex-col gap-1 text-xs text-muted">
           {t("startDate")}
-          <DatePicker label={t("startLabel")} name="startDate" defaultValue={today} short />
+          <DatePicker label={t("startLabel")} name="startDate" defaultValue={initial?.startDate ?? today} short />
         </div>
 
         <div className="flex min-w-0 flex-col gap-1 text-xs text-muted">
           {t("endDate")}
-          <DatePicker label={t("endLabel")} name="endDate" clearable emptyText={t("noEnd")} shortEmptyText={t("noEndShort")} short />
+          <DatePicker
+            label={t("endLabel")}
+            name="endDate"
+            defaultValue={initial?.endDate ?? ""}
+            clearable
+            emptyText={t("noEnd")}
+            shortEmptyText={t("noEndShort")}
+            short
+          />
         </div>
       </div>
-
-      {state && (
-        <p
-          role="status"
-          className={`text-sm ${
-            state.ok
-              ? "text-brand"
-              : "text-danger"
-          }`}
-        >
-          {state.message}
-        </p>
-      )}
-
-      <SubmitButton
-        pending={pending}
-        pendingLabel={t("adding")}
-        className="h-12 rounded-xl bg-brand text-sm font-semibold text-brand-contrast"
-      >
-        {t("add")}
-      </SubmitButton>
-    </form>
+    </>
   );
 }
 

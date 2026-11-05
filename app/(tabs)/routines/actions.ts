@@ -10,6 +10,7 @@ import { getT } from "@/lib/i18n/server";
 import { isId, readIdList } from "@/lib/ids";
 import { LIMITS } from "@/lib/limits";
 import { prisma } from "@/lib/prisma";
+import { hasRuleForm, readRuleForm } from "@/lib/routine-rule-form";
 import { requireUser } from "@/lib/session";
 
 import { createEventRoutine } from "./event-routine-actions";
@@ -22,31 +23,6 @@ const FREQS: RoutineFreq[] = ["DAILY", "WEEKLY", "MONTHLY"];
 function readText(formData: FormData, key: string): string {
   const raw = formData.get(key);
   return typeof raw === "string" ? raw.trim() : "";
-}
-
-function readFreq(formData: FormData): RoutineFreq | null {
-  const value = readText(formData, "freq");
-  return FREQS.find((freq) => freq === value) ?? null;
-}
-
-/** 체크박스는 체크된 것만 전송된다. 0~6, 1~31 범위 밖은 버린다. */
-function readNumbers(formData: FormData, key: string, max: number): number[] {
-  return formData
-    .getAll(key)
-    .map((value) => Number(value))
-    .filter((value) => Number.isInteger(value) && value >= 0 && value <= max);
-}
-
-function readDate(formData: FormData, key: string): Date | null {
-  const value = readText(formData, key);
-  if (!value) return null;
-
-  try {
-    return parseKSTDate(value);
-  } catch (error) {
-    console.error(`[routine] ${key} 날짜 형식이 잘못됐다.`, error);
-    return null;
-  }
 }
 
 export type RoutineFormState = { message: string; ok?: boolean } | null;
@@ -62,27 +38,11 @@ export async function createRoutine(
   const t = await getT(routineMessages);
 
   const content = readText(formData, "content").slice(0, MAX_CONTENT_LENGTH);
-  const freq = readFreq(formData);
   if (!content) return { message: t("needContent") };
-  if (!freq) return { message: t("pickFreq") };
-
-  const byWeekday = freq === "WEEKLY" ? readNumbers(formData, "byWeekday", 6) : [];
-  const byMonthday =
-    freq === "MONTHLY" ? readNumbers(formData, "byMonthday", 31) : [];
 
   // 요일이나 날짜를 하나도 고르지 않은 루틴은 영원히 실행되지 않는다. 만들지 않는다.
-  if (freq === "WEEKLY" && byWeekday.length === 0) {
-    return { message: t("pickWeekday") };
-  }
-  if (freq === "MONTHLY" && byMonthday.length === 0) {
-    return { message: t("pickMonthday") };
-  }
-
-  const startDate = readDate(formData, "startDate") ?? todayIn(user.timezone);
-  const endDate = readDate(formData, "endDate");
-  if (endDate && endDate < startDate) {
-    return { message: t("endBeforeStart") };
-  }
+  const rule = readRuleForm(formData, todayIn(user.timezone));
+  if (typeof rule === "string") return { message: t(rule) };
 
   // 루틴은 카테고리 안에 들어간다(docs/decisions.md). 카테고리 없는 루틴은 만든 할 일이
   // 적을 수 없는 "카테고리 없음" 묶음에 쌓인다. 보관한 카테고리에도 새로 만들지 않는다.
@@ -113,12 +73,8 @@ export async function createRoutine(
     data: {
       userId: user.id,
       content,
-      freq,
-      byWeekday,
-      byMonthday,
+      ...rule,
       categoryId,
-      startDate,
-      endDate,
       order: (last?.order ?? -1) + 1,
     },
   });
@@ -160,8 +116,10 @@ export async function toggleRoutinePause(formData: FormData) {
 export type RoutineEdit = { ok: true } | { ok: false; message: string };
 
 /**
- * 이미 만든 루틴의 내용과 카테고리를 고친다. 반복 규칙(요일·날짜·기간)은 그대로 둔다.
+ * 이미 만든 루틴의 내용·카테고리·반복 규칙(주기·요일·날짜·기간)을 고친다. 만들 때와 같은 칸이다(2026-11-05 요청).
  * 오늘 이후의 아직 안 끝낸 할 일도 새 내용·카테고리로 바꾼다(오늘 화면에 옛 이름이 남지 않게). 지난 날과 끝낸 일은 기록이라 그대로 둔다.
+ * 반복 규칙을 바꿔도 이미 만들어진 할 일은 지우거나 옮기지 않는다(루틴을 멈추거나 지울 때와 같다). 앞날은 어차피 "예정"으로만 계산되고
+ * 오늘과 지난 30일은 그 날을 열 때 새 규칙으로 만들어진다. 규칙 칸이 안 오면(옛 화면) 규칙은 그대로 둔다.
  * 카테고리를 지워 멈춘 루틴은 여기서 새 카테고리를 고르면 다시 시작할 수 있게 된다(멈춤은 사용자가 푼다).
  */
 export async function updateRoutine(formData: FormData): Promise<RoutineEdit> {
@@ -174,15 +132,17 @@ export async function updateRoutine(formData: FormData): Promise<RoutineEdit> {
   if (content.length > MAX_CONTENT_LENGTH) return { ok: false, message: t("contentTooLong", { max: MAX_CONTENT_LENGTH }) };
 
   const [routine, category] = await Promise.all([
-    prisma.routine.findFirst({ where: { id, userId: user.id }, select: { id: true } }),
+    prisma.routine.findFirst({ where: { id, userId: user.id }, select: { id: true, startDate: true } }),
     prisma.category.findFirst({ where: { id: categoryId, userId: user.id, archivedAt: null }, select: { id: true } }),
   ]);
   if (!routine) return { ok: false, message: t("routineNotFound") };
   if (!category) return { ok: false, message: t("pickCategory") };
+  const rule = hasRuleForm(formData) ? readRuleForm(formData, routine.startDate) : null;
+  if (typeof rule === "string") return { ok: false, message: t(rule) };
 
   const today = todayIn(user.timezone);
   await prisma.$transaction([
-    prisma.routine.update({ where: { id: routine.id }, data: { content, categoryId: category.id } }),
+    prisma.routine.update({ where: { id: routine.id }, data: { content, categoryId: category.id, ...rule } }),
     prisma.todo.updateMany({
       where: { routineId: routine.id, userId: user.id, done: false, date: { gte: today } },
       // 따로 고른 색은 카테고리를 옮기면 버린다(할 일을 다른 카테고리로 끌어 옮길 때와 같다).

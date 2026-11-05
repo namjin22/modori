@@ -3,7 +3,7 @@ import Link from "next/link";
 import { CategoryChip } from "@/components/category-chip";
 import { EventRoutineEditButton } from "@/components/event-routine-edit-button";
 import { RoutineEditButton } from "@/components/routine-edit-button";
-import { RoutineForm } from "@/components/routine-form";
+import { RoutineForm, type RuleInitial } from "@/components/routine-form";
 import { UndoableDeleteButton } from "@/components/undoable-delete-button";
 import { formatKST, todayIn } from "@/lib/date";
 import { routines as routineMessages } from "@/lib/i18n/messages/routines";
@@ -28,6 +28,23 @@ import {
 } from "./event-routine-actions";
 import { BackLink } from "@/components/back-link";
 import { DoriMessage } from "@/components/dori-message";
+
+/** 고치기 창에 채워 넣을 지금 규칙. 날짜는 문자열로 넘긴다. */
+function ruleOf(routine: {
+  freq: RuleInitial["freq"];
+  byWeekday: number[];
+  byMonthday: number[];
+  startDate: Date;
+  endDate: Date | null;
+}): RuleInitial {
+  return {
+    freq: routine.freq,
+    byWeekday: routine.byWeekday,
+    byMonthday: routine.byMonthday,
+    startDate: formatKST(routine.startDate),
+    endDate: routine.endDate ? formatKST(routine.endDate) : null,
+  };
+}
 
 export default async function RoutinesPage() {
   const user = await requireUser();
@@ -121,7 +138,7 @@ export default async function RoutinesPage() {
                     {routine.endDate && ` · ${t("until", { date: formatKST(routine.endDate) })}`}
                   </p>
                   <div className="-mx-2 mt-1 flex flex-wrap">
-                    <EventRoutineEditButton routine={routine} />
+                    <EventRoutineEditButton routine={routine} rule={ruleOf(routine)} />
                     <form action={toggleEventRoutinePause}>
                       <input type="hidden" name="id" value={routine.id} />
                       <input type="hidden" name="paused" value={String(!routine.pausedAt)} />
@@ -190,7 +207,7 @@ export default async function RoutinesPage() {
                   </p>
 
                   <div className="-mx-2 mt-1 flex flex-wrap">
-                    {categories.length > 0 && <RoutineEditButton routine={routine} categories={categories} />}
+                    {categories.length > 0 && <RoutineEditButton routine={routine} rule={ruleOf(routine)} categories={categories} />}
                     {/* 카테고리가 지워진 루틴은 다시 시작할 수 없다. 지우거나 그대로 둔다. */}
                     {(routine.categoryId || !routine.pausedAt) && (
                       <form action={toggleRoutinePause}>

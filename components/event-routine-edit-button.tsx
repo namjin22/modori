@@ -5,18 +5,20 @@ import { useState, useTransition } from "react";
 import { updateEventRoutine } from "@/app/(tabs)/routines/event-routine-actions";
 import { useT } from "@/components/locale-provider";
 import { Modal } from "@/components/modal";
-import { EventRoutineFields } from "@/components/routine-form";
+import { EventRoutineFields, RoutineRuleFields, type RuleInitial } from "@/components/routine-form";
 import { SubmitButton } from "@/components/submit-button";
 import { useSaveFailure } from "@/components/use-save-failure";
 import { formatTime } from "@/lib/event-time";
 import { common } from "@/lib/i18n/messages/common";
 import { events } from "@/lib/i18n/messages/events";
 
-/** 반복 일정 한 줄의 "고치기". 이름·시간·색을 바꾼다. 반복 규칙은 할 일 루틴과 같이 지우고 새로 만든다. */
+/** 반복 일정 한 줄의 "고치기". 이름·시간·색과 반복 규칙(주기·요일·날짜·기간)을 만들 때와 같은 칸으로 바꾼다(2026-11-05 요청, 할 일 루틴 고치기와 같다). */
 export function EventRoutineEditButton({
   routine,
+  rule,
 }: {
   routine: { id: string; title: string; color: string; startTime: number | null; endTime: number | null; isPublic: boolean };
+  rule: RuleInitial;
 }) {
   const t = useT(events);
   const tc = useT(common);
@@ -64,6 +66,7 @@ export function EventRoutineEditButton({
               isPublic: routine.isPublic,
             }}
           />
+          <RoutineRuleFields initial={rule} />
           <p className="text-xs text-muted">{t("editRepeatHint")}</p>
           {message && (
             <p role="alert" className="text-sm text-danger">

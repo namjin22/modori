@@ -12,6 +12,7 @@ import { getT } from "@/lib/i18n/server";
 import { isId } from "@/lib/ids";
 import { LIMITS } from "@/lib/limits";
 import { prisma } from "@/lib/prisma";
+import { hasRuleForm, readRuleForm } from "@/lib/routine-rule-form";
 import { requireUser } from "@/lib/session";
 
 /**
@@ -38,13 +39,6 @@ function readDate(value: string): Date | null {
     console.error("[event-routine] 날짜 형식이 잘못됐다.", error);
     return null;
   }
-}
-
-function readNumbers(formData: FormData, key: string, min: number, max: number): number[] {
-  return formData
-    .getAll(key)
-    .map((value) => Number(value))
-    .filter((value) => Number.isInteger(value) && value >= min && value <= max);
 }
 
 /** 이름·색·시각. 만들 때와 고칠 때 같이 쓴다. 문제가 있으면 보여 줄 문장을 돌려준다. */
@@ -89,24 +83,16 @@ export async function createEventRoutine(
   const look = readLook(formData, t);
   if (typeof look === "string") return { message: look };
 
-  const freq = FREQS.find((value) => value === readText(formData, "freq"));
-  if (!freq) return { message: t("pickFreq") };
-  const byWeekday = freq === "WEEKLY" ? readNumbers(formData, "byWeekday", 0, 6) : [];
-  const byMonthday = freq === "MONTHLY" ? readNumbers(formData, "byMonthday", 1, 31) : [];
   // 요일이나 날짜를 하나도 고르지 않으면 한 번도 뜨지 않는다. 만들지 않는다.
-  if (freq === "WEEKLY" && byWeekday.length === 0) return { message: t("pickWeekday") };
-  if (freq === "MONTHLY" && byMonthday.length === 0) return { message: t("pickMonthday") };
-
-  const startDate = readDate(readText(formData, "startDate")) ?? todayIn(user.timezone);
-  const endDate = readDate(readText(formData, "endDate"));
-  if (endDate && endDate < startDate) return { message: t("endBeforeStart") };
+  const rule = readRuleForm(formData, todayIn(user.timezone));
+  if (typeof rule === "string") return { message: t(rule) };
 
   if ((await routineCount(user.id)) >= LIMITS.routines) {
     return { message: t("routinesTooMany", { max: LIMITS.routines }) };
   }
 
   await prisma.eventRoutine.create({
-    data: { userId: user.id, ...look, freq, byWeekday, byMonthday, startDate, endDate },
+    data: { userId: user.id, ...look, ...rule },
   });
   refresh();
   return { message: t("repeatCreated"), ok: true };
@@ -114,13 +100,23 @@ export async function createEventRoutine(
 
 export type EventRoutineEdit = { ok: true } | { ok: false; message: string };
 
-/** 이름·색·시각을 고친다. 반복 규칙(요일·날짜·기간)은 그대로 둔다(할 일 루틴 고치기와 같다). 지난 날에도 바뀐 이름으로 보인다. */
+/**
+ * 이름·색·시각과 반복 규칙(주기·요일·날짜·기간)을 고친다. 만들 때와 같은 칸이다(2026-11-05 요청, 할 일 루틴 고치기와 같다).
+ * 반복 일정은 규칙만 저장하고 화면이 날짜로 펼치므로 지난 날과 앞날 모두 바뀐 이름·규칙으로 보인다. 규칙 칸이 안 오면(옛 화면) 규칙은 그대로 둔다.
+ */
 export async function updateEventRoutine(formData: FormData): Promise<EventRoutineEdit> {
   const user = await requireUser();
   const t = await getT(eventMessages);
   const look = readLook(formData, t);
   if (typeof look === "string") return { ok: false, message: look };
-  const { count } = await prisma.eventRoutine.updateMany({ where: { id: readText(formData, "id"), userId: user.id }, data: look });
+
+  const id = readText(formData, "id");
+  const existing = await prisma.eventRoutine.findFirst({ where: { id, userId: user.id }, select: { startDate: true } });
+  if (!existing) return { ok: false, message: t("repeatNotFound") };
+  const rule = hasRuleForm(formData) ? readRuleForm(formData, existing.startDate) : null;
+  if (typeof rule === "string") return { ok: false, message: t(rule) };
+
+  const { count } = await prisma.eventRoutine.updateMany({ where: { id, userId: user.id }, data: { ...look, ...rule } });
   if (count === 0) return { ok: false, message: t("repeatNotFound") };
   refresh();
   return { ok: true };

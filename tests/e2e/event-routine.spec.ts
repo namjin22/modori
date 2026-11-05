@@ -81,3 +81,25 @@ test("멈춘 반복 일정은 홈에 뜨지 않고, 하루 상한은 그 날에�
   // 반복 일정이 있어도 그 날 일정은 처음처럼 적을 수 있다.
   await expect(section.getByRole("button", { name: "시험이나 행사 적어두기" })).toBeVisible();
 });
+
+test("반복 일정 고치기 창에도 만들 때와 같은 반복 칸이 지금 값으로 떠서, 요일까지 바꾼다", async ({ page, email }, testInfo) => {
+  await signUp(page, email, `규칙${testInfo.testId.slice(-6)}${RUN_TAG}`);
+  const user = await prisma.user.findUniqueOrThrow({ where: { email } });
+  await prisma.eventRoutine.create({
+    data: { userId: user.id, title: "동아리", color: "#2563eb", freq: "DAILY", startDate: todayKST() },
+  });
+
+  await page.goto("/routines");
+  const repeats = page.getByRole("region", { name: "반복 일정" });
+  await repeats.getByRole("button", { name: "고치기" }).click();
+  const dialog = page.getByRole("dialog", { name: "반복 일정 고치기" });
+  await expect(dialog.getByRole("radio", { name: "매일" })).toHaveAttribute("aria-checked", "true");
+  await dialog.getByRole("radio", { name: "매주" }).click();
+  await dialog.getByText("화", { exact: true }).click();
+  await dialog.getByText("목", { exact: true }).click();
+  await dialog.getByRole("button", { name: "저장" }).click();
+  await expect(dialog).toBeHidden();
+
+  await expect(repeats).toContainText("매주 화·목");
+  expect(await prisma.eventRoutine.findFirstOrThrow({ where: { userId: user.id } })).toMatchObject({ freq: "WEEKLY", byWeekday: [2, 4], byMonthday: [] });
+});
