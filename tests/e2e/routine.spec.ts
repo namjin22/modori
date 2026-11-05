@@ -196,3 +196,70 @@ test("빈 내용으로는 루틴을 고치지 않는다", async ({ page }) => {
   await dialog.getByRole("button", { name: "저장" }).click();
   await expect(dialog.getByRole("alert")).toContainText("루틴 내용을 적어주세요");
 });
+
+test("루틴 고치기 창에도 만들 때와 같은 반복 칸이 지금 값으로 떠서, 요일까지 바꾸고 이미 만든 할 일은 남는다", async ({ page, email }) => {
+  await createDailyRoutine(page, "영어 단어");
+  // 오늘 화면을 열어 오늘 할 일을 만든다. 규칙을 바꿔도 이 할 일은 지우지 않는다.
+  await page.goto("/");
+  await expect(page.getByText("영어 단어")).toBeVisible();
+
+  // 오늘이 아닌 요일 둘을 고른다.
+  const names = ["일", "월", "화", "수", "목", "금", "토"];
+  const todayIndex = todayKST().getUTCDay();
+  const picked = [(todayIndex + 2) % 7, (todayIndex + 4) % 7];
+
+  await page.goto("/routines");
+  await page.getByRole("listitem").filter({ hasText: "영어 단어" }).getByRole("button", { name: "고치기" }).click();
+  const dialog = page.getByRole("dialog", { name: "루틴 고치기" });
+  // 지금 규칙(매일)으로 떠 있다.
+  await expect(dialog.getByRole("radio", { name: "매일" })).toHaveAttribute("aria-checked", "true");
+  await dialog.getByRole("radio", { name: "매주" }).click();
+  for (const index of picked) await dialog.getByText(names[index], { exact: true }).click();
+  await dialog.getByRole("button", { name: "저장" }).click();
+  await expect(dialog).toBeHidden();
+
+  const routine = await prisma.routine.findFirstOrThrow({ where: { content: "영어 단어", user: { email } } });
+  expect(routine).toMatchObject({ freq: "WEEKLY", byWeekday: [...picked].sort((a, b) => a - b), byMonthday: [] });
+  await expect(page.getByRole("listitem").filter({ hasText: "영어 단어" })).toContainText("매주");
+  // 이미 만들어진 오늘 할 일은 그대로 남는다.
+  expect(await prisma.todo.count({ where: { routineId: routine.id } })).toBe(1);
+});
+
+test("루틴 고치기 창은 지금 날짜·종료일을 채워 보여 주고, 요일·날짜를 하나도 안 고르면 저장하지 않는다", async ({ page, email }) => {
+  await createDailyRoutine(page, "청소");
+  const routine = await prisma.routine.findFirstOrThrow({ where: { content: "청소", user: { email } } });
+  const start = addDays(todayKST(), 1);
+  const end = addDays(todayKST(), 40);
+  await prisma.routine.update({
+    where: { id: routine.id },
+    data: { freq: "MONTHLY", byMonthday: [5, 20], byWeekday: [], startDate: start, endDate: end },
+  });
+
+  await page.goto("/routines");
+  await page.getByRole("listitem").filter({ hasText: "청소" }).getByRole("button", { name: "고치기" }).click();
+  const dialog = page.getByRole("dialog", { name: "루틴 고치기" });
+  await expect(dialog.getByRole("radio", { name: "매월" })).toHaveAttribute("aria-checked", "true");
+  await expect(dialog.getByLabel("5", { exact: true })).toBeChecked();
+  await expect(dialog.getByLabel("20", { exact: true })).toBeChecked();
+  await expect(dialog.getByLabel("6", { exact: true })).not.toBeChecked();
+  // 시작일·종료일 단추에 지금 날짜가 보인다(날짜는 "2026년 12월 31일 (목)" 꼴이라 월·일로 본다).
+  const [, startMonth, startDay] = formatKST(start).split("-").map(Number);
+  const [, endMonth, endDay] = formatKST(end).split("-").map(Number);
+  await expect(dialog.getByRole("button", { name: /^루틴 시작일:/ })).toContainText(`${startMonth}월 ${startDay}일`);
+  await expect(dialog.getByRole("button", { name: /^루틴 종료일:/ })).toContainText(`${endMonth}월 ${endDay}일`);
+
+  // 날짜를 모두 빼면 저장하지 않고 이유를 보여 준다. 규칙은 그대로다.
+  await dialog.getByText("5", { exact: true }).click();
+  await dialog.getByText("20", { exact: true }).click();
+  await dialog.getByRole("button", { name: "저장" }).click();
+  await expect(dialog.getByRole("alert")).toContainText("반복할 날짜를 하나 이상 골라주세요");
+  expect(await prisma.routine.findUniqueOrThrow({ where: { id: routine.id } })).toMatchObject({ freq: "MONTHLY", byMonthday: [5, 20] });
+
+  // 6일을 더해 저장하면 바뀐다.
+  await dialog.getByText("6", { exact: true }).click();
+  await dialog.getByRole("button", { name: "저장" }).click();
+  await expect(dialog).toBeHidden();
+  const updated = await prisma.routine.findUniqueOrThrow({ where: { id: routine.id } });
+  expect(updated.byMonthday).toEqual([6]);
+  expect(formatKST(updated.endDate ?? start)).toBe(formatKST(end));
+});
