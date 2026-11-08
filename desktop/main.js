@@ -172,7 +172,12 @@ function setupMenu() {
           { label: "앞으로", accelerator: "Alt+Right", click: () => win?.webContents.navigationHistory.goForward() },
           { type: "separator" },
           { role: "zoomIn" },
+          // 확대 역할의 기본 단축키는 Ctrl+Plus, 곧 Shift를 눌러야 하는 Ctrl+Shift+=라서 브라우저처럼 Ctrl+=를 누르면 확대가 안 됐다(Ctrl+-는 됐다).
+          // 같은 역할에 Shift 없는 Ctrl+=와 숫자 패드 +·-를 숨은 항목으로 더한다(위 Ctrl+R과 같은 방식).
+          { role: "zoomIn", accelerator: "CmdOrCtrl+=", visible: false },
+          { role: "zoomIn", accelerator: "CmdOrCtrl+numadd", visible: false },
           { role: "zoomOut" },
+          { role: "zoomOut", accelerator: "CmdOrCtrl+numsub", visible: false },
           { role: "resetZoom" },
           { type: "separator" },
           { role: "togglefullscreen" },
