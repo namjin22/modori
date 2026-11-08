@@ -173,6 +173,36 @@ test("연결 안내 화면에서 F5(새로고침)를 누르면 원래 주소를 
   }
 });
 
+/** 메뉴 항목에서 이 시험이 쓰는 부분만(Electron 타입이 이 환경에 없어 직접 적는다). */
+type MenuItemLike = { accelerator?: string | null; click: (event: undefined, window: unknown, contents: unknown) => void };
+
+test("확대는 Shift 없는 Ctrl+=와 숫자 패드 +로도, 축소는 숫자 패드 -로도 된다", async () => {
+  // 확대 역할의 기본 단축키(Ctrl+Plus)는 Shift가 필요해 브라우저처럼 Ctrl+=를 누르면 확대가 안 됐다(2026-11-08 제보, Ctrl+-는 됐다).
+  // 메뉴 단축키는 운영체제 키 입력으로만 눌려서 시험에서는 그 단축키에 걸린 메뉴 항목을 직접 눌러 확대 단계가 바뀌는지 본다.
+  const app = await launch("http://127.0.0.1:9");
+  try {
+    const win = await app.firstWindow();
+    await expect(win.getByRole("heading", { name: "모도리에 연결하지 못했어요" })).toBeVisible();
+    const steps = await app.evaluate(({ BrowserWindow, Menu }) => {
+      const window = BrowserWindow.getAllWindows()[0];
+      const contents = window.webContents;
+      const menus: { submenu?: { items: MenuItemLike[] } }[] = Menu.getApplicationMenu()?.items ?? [];
+      const items = menus.flatMap((menu) => menu.submenu?.items ?? []);
+      const press = (accelerator: string) => {
+        const item = items.find((candidate) => candidate.accelerator === accelerator);
+        if (!item) return null;
+        const before = contents.getZoomLevel();
+        item.click(undefined, window, contents);
+        return contents.getZoomLevel() - before;
+      };
+      return { equals: press("CmdOrCtrl+="), numAdd: press("CmdOrCtrl+numadd"), numSub: press("CmdOrCtrl+numsub") };
+    });
+    expect(steps).toEqual({ equals: 0.5, numAdd: 0.5, numSub: -0.5 });
+  } finally {
+    await app.close();
+  }
+});
+
 /** 지금은 아무도 듣지 않는 포트 하나(열었다 닫아서 얻는다). */
 async function closedPort(): Promise<number> {
   const server = createServer();
