@@ -60,6 +60,9 @@ export function DesktopUpdateBanner() {
       <p className="text-sm">
         {t("newVersionBefore")}<b className="font-semibold">{state.version}</b>{t("newVersionAfter")}
       </p>
+      {/* 조용한 설치는 앱이 꺼지고 새 버전이 열리기까지 30초 안팎 아무 화면이 없다. 그사이 사용자가 앱을 다시 켜면 옛 버전이 열려
+          같은 카드가 또 떠서 업데이트가 안 된 줄 안다(2026-11-10 제보). 누르기 전에 읽히게 한다. */}
+      <p className="text-xs leading-relaxed text-muted">{t("installHint")}</p>
       {state.status === "error" && (
         <p role="alert" className="text-xs text-muted">
           {updateMessage(state, locale)}
@@ -74,6 +77,10 @@ export function DesktopUpdateBanner() {
       >
         {updateButtonLabel(state, locale)}
       </button>
+      {/* 조용한 설치가 보이지 않게 실패하면 카드가 그대로 남는다. 설치 파일을 직접 받는 길을 늘 열어 둔다(앱이 평소 브라우저로 열어 준다). */}
+      <a href={DESKTOP_DOWNLOAD_URL} className="self-center text-xs text-muted underline underline-offset-4">
+        {t("manualInstall")}
+      </a>
     </div>
   );
 }
@@ -113,6 +120,7 @@ export function DesktopUpdateRow() {
           {updateButtonLabel(state, locale)}
         </button>
       </div>
+      {pending && <p className="text-xs leading-relaxed text-muted">{t("installHint")}</p>}
       {state.status === "downloading" && <ProgressBar percent={state.percent} />}
     </section>
   );

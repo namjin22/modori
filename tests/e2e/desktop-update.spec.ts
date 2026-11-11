@@ -82,6 +82,9 @@ test("새 버전이 있으면 탭 화면 위에 알리고, 누르면 앱에 받�
 
   const banner = page.getByRole("region", { name: "앱 업데이트" });
   await expect(banner).toContainText("새 버전 1.0.8이 나왔어요");
+  // 설치하는 동안 앱이 30초쯤 꺼져 있고 그사이 다시 켜면 옛 버전이 열린다는 것을 누르기 전에 알린다. 안 될 때 직접 받는 길도 늘 있다.
+  await expect(banner).toContainText("30초쯤 지나 새 버전으로 저절로 다시 열려요");
+  await expect(banner.getByRole("link", { name: "업데이트가 안 되면 설치 파일을 직접 받아 설치할 수 있어요" })).toHaveAttribute("href", /\/releases\//);
   await banner.getByRole("button", { name: "업데이트", exact: true }).click();
   expect(await updateCalls(page)).toEqual(["start"]);
 
