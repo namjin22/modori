@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { DEFAULT_LOCALE, LOCALES, isLocale, localeOrDefault, translate, translator, type MessageBundle } from "@/lib/i18n";
+import { ai } from "@/lib/i18n/messages/ai";
 import { alarms } from "@/lib/i18n/messages/alarms";
 import { auth } from "@/lib/i18n/messages/auth";
 import { categories, colorNames } from "@/lib/i18n/messages/categories";
@@ -29,6 +30,7 @@ import { todos } from "@/lib/i18n/messages/todos";
 
 // 파일 이름 → 그 파일이 내보내는 사전들. 새 사전 파일을 더하면 여기에도 적어야 시험이 본다.
 const FILES: Record<string, Record<string, MessageBundle>> = {
+  ai: { ai },
   alarms: { alarms },
   auth: { auth },
   categories: { categories, colorNames },
