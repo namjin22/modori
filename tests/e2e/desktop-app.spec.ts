@@ -3,7 +3,7 @@ import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { createServer as createHttpServer } from "node:http";
 import { createServer } from "node:net";
 import { createRequire } from "node:module";
-import { tmpdir } from "node:os";
+import { homedir, tmpdir } from "node:os";
 import path from "node:path";
 
 import { _electron as electron, expect, test as base, type ElectronApplication } from "@playwright/test";
@@ -347,7 +347,13 @@ test("새 버전이 있으면 켠 직후 알아내고, 누르면 받아서 해�
       window.modoriUpdater?.start();
     });
     await expect.poll(() => updateStatus(win)).toBe("installing");
-    expect(await installs(app)).toEqual([{ silent: true, forceRun: true }]);
+    expect(await installs(app)).toEqual([{ silent: false, forceRun: true }]);
+    // 설치를 시도한 사실과 버전이 이 기기의 updater.log에 남는다(설치가 안 됐을 때 원인을 가릴 기록, 2026-11-11). 사용자 이름이 든 홈 경로는 가려진다.
+    const logDir = await app.evaluate(({ app: electronApp }) => electronApp.getPath("userData"));
+    const log = readFileSync(path.join(logDir, "updater.log"), "utf8");
+    expect(log).toContain(`start version=${appVersion}`);
+    expect(log).toContain(`install-attempt target=99.0.0 from=${appVersion}`);
+    expect(log.toLowerCase()).not.toContain(homedir().toLowerCase());
     // 화면은 상태가 바뀔 때마다 알림을 받는다(받는 중은 너무 빨라 건너뛸 수 있다).
     expect(await win.evaluate(() => (window as unknown as { __seen: string[] }).__seen)).toContain("installing");
 
@@ -376,7 +382,7 @@ test("받은 파일이 latest.yml의 해시와 다르면 설치하지 않고 원
     feed.set({ wrongHash: false });
     await win.evaluate(() => window.modoriUpdater?.start());
     await expect.poll(() => updateStatus(win)).toBe("installing");
-    expect(await installs(app)).toEqual([{ silent: true, forceRun: true }]);
+    expect(await installs(app)).toEqual([{ silent: false, forceRun: true }]);
   });
 });
 
@@ -456,7 +462,7 @@ test("설치 파일을 받다가 응답이 멈추면 오류로 알리고, 서버
       feed.set({ hang: "none" });
       await win.evaluate(() => window.modoriUpdater?.start());
       await expect.poll(() => updateStatus(win)).toBe("installing");
-      expect(await installs(app)).toEqual([{ silent: true, forceRun: true }]);
+      expect(await installs(app)).toEqual([{ silent: false, forceRun: true }]);
     },
     FAST,
   );

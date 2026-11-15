@@ -5,7 +5,7 @@
  * 수집 항목·보관 위치는 실제 코드와 맞아야 한다. 무엇을 저장하는지(prisma/schema.prisma, lib/auth.ts),
  * 어디에 두는지(docs/gsmsv-migration.md)를 바꾸면 여기도 고친다.
  */
-export const PRIVACY_EFFECTIVE = "2026년 10월 30일";
+export const PRIVACY_EFFECTIVE = "2026년 11월 11일";
 export const PRIVACY_MANAGER = { name: "이남진", email: "penamjin@gmail.com" };
 
 export type PrivacySection = { title: string; items: string[] };
@@ -90,6 +90,7 @@ export const PRIVACY_SECTIONS: PrivacySection[] = [
     items: [
       "로그인을 유지하는 쿠키와, 고른 화면 언어를 기억하는 쿠키(locale, 1년)만 써요. 광고나 추적용 쿠키는 쓰지 않아요.",
       "화면 테마(라이트·다크), 시간대 안내를 거절했다는 표시, 가입 전에 열었던 초대 링크의 경로 이름, 컴퓨터 알림을 켰다는 표시, 모바일 앱에서는 알림용 기기 번호가 내 기기에만 저장돼요.",
+      "Windows 데스크톱 앱은 업데이트가 잘 됐는지 확인하려고, 새 버전 확인과 설치 시도의 시각·버전·오류 이름을 앱 데이터 폴더의 기록 파일(updater.log)에 적어요. 내 기기에만 있고 모도리 서버로 보내지 않으며, 컴퓨터 사용자 이름이 든 경로는 가려서 적어요.",
     ],
   },
   {

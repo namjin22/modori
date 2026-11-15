@@ -1,11 +1,16 @@
 // 앱 안 업데이트(2026-10-27 요청). 설치 파일을 웹에서 새로 받지 않고, 앱 안의 버튼으로 새 버전을 받아 설치한다.
 // 새 버전 정보(latest.yml)와 설치 파일은 GitHub 릴리스에서 받고, 받은 파일은 latest.yml의 sha512로 확인한다(electron-updater).
 // Windows만 된다. 맥 앱은 코드 서명이 없어 운영체제가 앱을 자동으로 바꾸게 두지 않는다.
+// 설치는 설치 창이 보이게 한다(2026-11-11, 아래 install()). 시도와 결과는 앱 데이터 폴더의 updater.log에 남긴다(update-log.js).
 //
 // 상태는 여기(메인 프로세스)가 하나만 갖고, 웹 화면에는 preload.js의 modoriUpdater로 읽기·알림만 내준다.
 // 웹이 넘기는 값은 없다. 받을 주소와 파일은 앱에 박힌 설정(app-update.yml)이 정하므로 화면이 바꿀 수 없다.
 
 const { app, ipcMain } = require("electron");
+const os = require("node:os");
+const path = require("node:path");
+
+const updateLog = require("./update-log");
 
 const FIRST_CHECK_MS = 15 * 1000;
 const CHECK_EVERY_MS = 4 * 60 * 60 * 1000;
@@ -35,6 +40,35 @@ let retryTimer = null;
 // 받는 중에 진행이 있을 때마다 부른다(멈춤 감시를 다시 건다).
 let onProgress = null;
 global.modoriUpdateInstalls = [];
+
+let logPath = null;
+
+function logFile() {
+  logPath ??= path.join(app.getPath("userData"), "updater.log");
+  return logPath;
+}
+
+/** 콘솔과 updater.log에 한 줄 남긴다. 기록을 못 써도 업데이트는 계속한다(콘솔에는 남긴다). */
+function note(level, message) {
+  const text = message && message.stack ? message.stack : message;
+  console[level]("[updater]", text);
+  if (level === "debug") return;
+  try {
+    updateLog.appendLine(logFile(), updateLog.formatLine(level, message, os.homedir()));
+  } catch (error) {
+    console.warn("[updater] 기록을 쓰지 못했다", error && error.message);
+  }
+}
+
+/** 지난번에 설치를 시도하고 앱이 꺼졌다면, 다시 켠 지금 버전으로 그 설치가 적용됐는지 적는다. */
+function reportPreviousInstall() {
+  try {
+    const line = updateLog.describePreviousInstall(updateLog.readLog(logFile()), app.getVersion());
+    if (line) note(line.includes("applied=false") ? "warn" : "info", line);
+  } catch (error) {
+    console.warn("[updater] 지난 설치 기록을 읽지 못했다", error && error.message);
+  }
+}
 
 function publicState() {
   return { ...state, current: app.getVersion() };
@@ -128,13 +162,16 @@ async function start() {
 }
 
 function install() {
+  note("info", `install-attempt target=${state.version} from=${app.getVersion()}`);
   if (testFeed) {
     // 시험에서는 설치 파일을 실행하지 않고 부른 사실만 남긴다.
-    global.modoriUpdateInstalls.push({ silent: true, forceRun: true });
+    global.modoriUpdateInstalls.push({ silent: false, forceRun: true });
     return;
   }
-  // 조용히 설치하고(/S) 끝나면 앱을 다시 연다. 로그인 쿠키가 든 데이터 폴더는 건드리지 않는다.
-  updater.quitAndInstall(true, true);
+  // 설치 창이 보이게 하고(/S를 쓰지 않는다) 끝나면 앱을 다시 연다. 로그인 쿠키가 든 데이터 폴더는 건드리지 않는다.
+  // 조용한 설치(/S)는 앱이 꺼진 뒤 새 버전이 열릴 때까지 화면이 전혀 없어서(이 PC에서 재 보니 16~33초), 그사이 앱을 다시 켜면 옛 버전이 열려
+  // 업데이트가 안 된 줄 알았고, 설치가 시작도 못 하거나 중간에 멈춰도 사용자와 우리 모두 알 길이 없었다(docs/incidents.md INC-18).
+  updater.quitAndInstall(false, true);
 }
 
 /** 우리 창이 보낸 요청인지. 다른 곳에서 열린 페이지가 업데이트를 부르지 못하게 한다. */
@@ -158,6 +195,14 @@ function registerUpdater(windowGetter) {
   // 쓰지 않는 곳(개발 중, 맥)에서는 불러오지도 않는다. 플랫폼마다 다른 업데이트 클래스가 만들어진다.
   const { autoUpdater } = require("electron-updater");
   updater = autoUpdater;
+  updater.logger = {
+    info: (message) => note("info", message),
+    warn: (message) => note("warn", message),
+    error: (message) => note("error", message),
+    debug: (message) => note("debug", message),
+  };
+  note("info", `start version=${app.getVersion()}`);
+  reportPreviousInstall();
   // 받는 것은 사용자가 누른 뒤에만 한다(설치 파일이 100MB를 넘는다). 설치도 그때 같이 하므로 끌 때 자동 설치는 끈다.
   updater.autoDownload = false;
   updater.autoInstallOnAppQuit = false;
@@ -182,6 +227,7 @@ function registerUpdater(windowGetter) {
   // 듣는 쪽이 없으면 error 이벤트가 앱을 죽인다. 확인·받기 실패는 부른 쪽의 catch가 처리한다(같은 오류가 이벤트로도 온다).
   // 설치 단계는 quitAndInstall이 바로 실패를 알릴 때(받은 파일이 없을 때)만 여기서 화면에 닿는다. 설치 파일을 여는 데 실패하는 것은
   // 나중에 알려지는데, 그때는 이미 앱을 닫는 중이라 화면에 보이지 않는다(다시 열면 15초 뒤 새 버전 카드가 다시 뜬다).
+  // 그래서 electron-updater의 기록(설치 파일을 실행한 명령, "Cannot run installer: error code …")을 updater.log에 남긴다.
   updater.on("error", (error) => {
     if (state.status === "installing") fail(error);
     else console.warn("[updater] 이벤트", (error && error.message) || error);
