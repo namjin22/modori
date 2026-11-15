@@ -14,6 +14,7 @@ import { TimezoneSelect } from "@/components/timezone-select";
 import { dateIn, weekdayKST } from "@/lib/date";
 import { isDesktopApp, isMobileApp, isWindowsBrowser, outdatedDesktopApp } from "@/lib/desktop";
 import { formatMonthDay, weekdayName } from "@/lib/i18n/format";
+import { ai } from "@/lib/i18n/messages/ai";
 import { language } from "@/lib/i18n/messages/language";
 import { settings } from "@/lib/i18n/messages/settings";
 import { timezoneNames } from "@/lib/i18n/messages/timezones";
@@ -29,6 +30,7 @@ import { timezoneOrDefault } from "@/lib/timezones";
 export default async function PreferencesPage() {
   const user = await requireUser();
   const t = await getT(settings);
+  const ta = await getT(ai);
   const tl = await getT(language);
   const locale = await getLocale();
   const mobileApp = await isMobileApp();
@@ -41,11 +43,12 @@ export default async function PreferencesPage() {
   const todayHere = dateIn(new Date(), timezone);
   const todayLabel = `${formatMonthDay(locale, todayHere)} (${weekdayName(locale, weekdayKST(todayHere))})`;
   const zoneLabel = (timezoneNames[locale] as Record<string, string>)[timezone] ?? timezone;
-  const [blockedCount, notify, devices, alarmCount] = await Promise.all([
+  const [blockedCount, notify, devices, alarmCount, tokenCount] = await Promise.all([
     prisma.block.count({ where: { blockerId: user.id } }),
     prisma.user.findUniqueOrThrow({ where: { id: user.id }, select: { eventDigestMinute: true, notifyFriendDone: true } }),
     prisma.pushToken.count({ where: { userId: user.id } }),
     prisma.alarm.count({ where: { userId: user.id } }),
+    prisma.apiToken.count({ where: { userId: user.id } }),
   ]);
 
   return (
@@ -89,6 +92,17 @@ export default async function PreferencesPage() {
         <Link prefetch={false} href="/settings/blocked" className="flex items-center justify-between text-[15px]">
           <span>{t("blockedUsers")}</span>
           <span className="text-sm text-muted">{t("blockedCount", { count: blockedCount })}</span>
+        </Link>
+      </section>
+
+      {/* 외부 AI가 쓰는 접근 토큰(2026-11-15, docs/mcp.md). 모도리가 AI를 돌리는 것이 아니라 내가 고른 AI가 오는 문이다. */}
+      <section className="flex flex-col gap-5 rounded-2xl bg-surface p-6">
+        <Link prefetch={false} href="/settings/ai" className="-mx-2 flex items-center justify-between rounded-xl px-2 py-1 text-[15px]">
+          <span className="flex flex-col gap-0.5">
+            <span className="font-medium">{ta("linkTitle")}</span>
+            <span className="text-[13px] text-muted">{ta("linkHint")}</span>
+          </span>
+          <span className="shrink-0 text-sm text-muted">{tokenCount > 0 ? ta("linkCount", { count: tokenCount }) : ta("linkCreate")}</span>
         </Link>
       </section>
 
