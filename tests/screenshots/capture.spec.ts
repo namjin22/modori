@@ -138,6 +138,7 @@ for (const viewport of STORE || IOS ? [] : VIEWPORTS) {
       ["06-notifications", "/feed/reactions"],
       ["07-stats", "/stats"],
       ["08-mypage", "/settings"],
+      ["17-ai-connection", "/settings/ai"],
     ];
     for (const [name, url] of screens) {
       await page.goto(url);
