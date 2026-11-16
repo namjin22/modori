@@ -1842,3 +1842,15 @@ VM에 시험 DB(사용자 1000, 할 일 108만, 반응 24만, 280MB)를 만들�
 - **`tests/unit/i18n.test.ts`**: 새 사전 `tutorial`을 `FILES`에 한 줄 올렸다(그 파일 안내대로 새 사전 등록. 시험 기준을 바꾼 것이 아니다).
 - **못 한 것**: 실제 폰 앱·데스크톱 앱 안에서의 모양, 영어·일본어 화면의 모양은 눈으로 보지 못했다. 배포 뒤 스크린샷(`docs/screenshots/`)을 다시 찍어야 한다(촬영 목록에 카드 첫 장·마지막 장을 더해 두었다).
 - **알아 둘 것**: 카드 글은 실제 화면 이름(번역 사전)에 맞춰 적었다. 화면 이름이 바뀌면 `tutorial.ts` 글도 같이 고쳐야 하고, 알려 주는 자동 검사는 없다.
+
+## 2026-11-16 — 사용법 카드를 홈 화면 위 둘러보기로 교체, 테마·언어를 마이페이지로 (브랜치 `feat/home-tour`)
+
+운영자 요청: 방금 만든 사용법 카드가 약관 같다 → 실제 메인 화면의 버튼을 짚으며 "무엇이고 어떻게 쓰는지" 알려 주는 안내로, 그리고 마이페이지의 화면(라이트·다크)·언어를 설정 밖으로(`docs/decisions.md` "사용법 카드를 홈 화면 위 둘러보기로…").
+
+- **둘러보기**: `components/tour.tsx`(구멍 뚫기·말풍선·키보드·포커스 가두기), `lib/tutorial.ts`(단계 `TOUR_STEPS`, 말풍선 자리 계산 `placeTip`, `tourMode`), 글 `lib/i18n/messages/tutorial.ts`, 끝내기 `app/(tabs)/tutorial-actions.ts`(`finishTutorial`, 이미 적힌 시각은 덮어쓰지 않는다). 짚을 요소에는 `data-tour="…"`가 붙어 있다(홈 `components/home-view.tsx`·`manage-menu.tsx`·`category-adder.tsx`·`event-section.tsx`·`todo-row.tsx`, 하단 탭 `bottom-nav.tsx`). **새 단계를 더하려면** `TOUR_STEPS`에 `{ id, target }`, 사전 3개 언어에 `${id}Title`·`${id}Body`, 요소에 `data-tour`를 달면 된다(요소가 화면에 없으면 그 단계는 저절로 건너뛴다). 요소 이름·위치를 바꾸면 안내가 엉뚱한 곳을 짚을 수 있어서 `tests/e2e/tutorial.spec.ts`가 단계마다 구멍 자리를 확인한다.
+- **홈**: `app/(tabs)/page.tsx`는 더 이상 `/welcome`으로 보내지 않고 `HomeData.tour`(`first`·`replay`·null)를 넘긴다. 설정 > "사용법 다시 보기"는 `/?tour=1`. `/welcome`(`app/welcome/`, `components/tutorial.tsx`)은 지웠고 `robots.ts`의 막음도 뺐다.
+- **마이페이지**: `app/(tabs)/settings/page.tsx`에 화면 테마·언어 칸을 두고 설정(`preferences/page.tsx`)에서는 뺐다. 언어 밑 회색 설명 글(`language.hint`)은 번역 키째 지웠다.
+- **시험을 건드린 곳**: `layout.spec.ts`·`locale.spec.ts`는 테마·언어를 찾는 위치만 마이페이지로 바꿨고(검사 내용은 그대로, "설정 안에는 없다" 확인을 더함), `tutorial.spec.ts`는 새 기능에 맞게 다시 썼다. `tests/screenshots/capture.spec.ts`의 사용법 카드 두 장은 둘러보기 세 장(첫 안내·달력·할 일 줄)으로 바꿨다(창을 늘리지 않는 `shootView`).
+- **고친 오류(시험이 잡음)**: 가입 직후처럼 화면을 옮겨 들어올 때 단계 목록을 컴포넌트가 처음 그려질 때 만들면 새 홈이 아직 붙기 전이라 하단 탭 둘만 찾았다("1 / 3"). 지금은 화면이 그려진 뒤(requestAnimationFrame)에 만든다. 또 말풍선의 `overflow`가 화살표를 잘라서 바깥 칸·안쪽 칸으로 나눴다.
+- **검증**: 타입 검사·린트·단위(×3 시간대)·E2E 중 `tutorial`·`layout`·`locale` 묶음을 돌려 통과했다. 데스크톱·폰 폭의 화면 사진으로 말풍선·화살표 모양을 눈으로 봤다. 전체 `npm run verify`는 아래 "검증 결과"를 본다.
+- **못 한 것**: 실제 폰 앱·데스크톱 앱 안에서의 모양, 영어·일본어 화면에서 말풍선이 얼마나 높아지는지(자리 계산은 실제 높이를 재서 정하므로 깨지지는 않는다), 가로 모드·키보드가 올라온 상태. 배포 뒤 `npm run screenshots`로 릴리스 사진을 다시 찍어야 한다.
