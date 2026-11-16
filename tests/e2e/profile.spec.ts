@@ -180,3 +180,25 @@ test("투명 배경 사진은 흰 바탕으로 저장된다", async ({ page }) =
   // JPEG라 정확히 255는 아닐 수 있다. 검정(0)이 아니라 흰색에 가까우면 된다.
   expect(Math.min(corner[0], corner[1], corner[2])).toBeGreaterThan(240);
 });
+
+// 프로필 수정은 피드의 내 프로필과 마이페이지의 프로필 줄 두 곳에서 들어온다. 뒤로가기는 들어온 곳으로 돌아간다(2026-11-16 신고: 피드에서 들어갔는데 마이페이지로 나갔다).
+test("프로필 수정의 뒤로가기는 피드에서 들어오면 피드로, 마이페이지에서 들어오면 마이페이지로 돌아간다", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("link", { name: new RegExp(`처음${RUN_TAG}`) }).first().click();
+  await expect(page).toHaveURL(/\/settings\/profile\?from=feed$/);
+  await expect(page.getByRole("link", { name: "마이페이지로" })).toHaveCount(0);
+  await page.getByRole("link", { name: "피드로" }).click();
+  await expect(page).toHaveURL(/\/$/);
+  await expect(homeReady(page)).toBeVisible();
+
+  await page.goto("/settings");
+  await page.getByRole("link", { name: /프로필 수정/ }).click();
+  await expect(page).toHaveURL(/\/settings\/profile$/);
+  await page.getByRole("link", { name: "마이페이지로" }).click();
+  await expect(page).toHaveURL(/\/settings$/);
+
+  // 알 수 없는 값(다른 사이트 주소 등)은 무시하고 마이페이지로 둔다.
+  await page.goto("/settings/profile?from=https://example.com");
+  await expect(page.getByRole("link", { name: "마이페이지로" })).toHaveAttribute("href", "/settings");
+});
+

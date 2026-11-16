@@ -132,7 +132,8 @@ export function HomeView({ data }: { data: HomeData }) {
         {/* 넓은 화면에서 달력 칸은 제자리에 둔다. 시작 위치(pt-8)와 같은 top-8이라 스크롤을 시작해도 움직이지 않고,
             창이 달력보다 낮으면(노트북) 칸 안에서만 스크롤해 페이지 끝에서 밀려 올라가지 않는다. */}
         <div className="flex flex-col gap-4 lg:gap-6 lg:sticky lg:top-8 lg:max-h-[calc(100dvh-6rem)] lg:overflow-y-auto lg:scroll-stable">
-          <Link prefetch={false} href="/settings/profile" data-tour="profile" className="flex items-center gap-3">
+          {/* 프로필 수정 화면의 뒤로가기가 이 화면(피드)으로 돌아오게 from=feed를 붙인다(2026-11-16 신고: 마이페이지로 나갔다). */}
+          <Link prefetch={false} href="/settings/profile?from=feed" data-tour="profile" className="flex items-center gap-3">
             <Avatar src={data.profile.avatar} size={48} />
             <span className="min-w-0">
               <span className="block truncate font-bold">{data.profile.nickname}</span>
