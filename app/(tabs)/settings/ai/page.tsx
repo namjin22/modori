@@ -6,6 +6,7 @@ import { BackLink } from "@/components/back-link";
 import { isTokenUsable } from "@/lib/api-token";
 import { dateIn, formatKST } from "@/lib/date";
 import { ai } from "@/lib/i18n/messages/ai";
+import { settings } from "@/lib/i18n/messages/settings";
 import { getT } from "@/lib/i18n/server";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
@@ -18,6 +19,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function AiPage() {
   const user = await requireUser();
   const t = await getT(ai);
+  const ts = await getT(settings);
   const tokens = await prisma.apiToken.findMany({
     where: { userId: user.id },
     orderBy: { createdAt: "desc" },
@@ -29,7 +31,7 @@ export default async function AiPage() {
   return (
     <div className="flex flex-col gap-6">
       <header className="flex items-center gap-1">
-        <BackLink href="/settings" label={t("toMyPage")} />
+        <BackLink href="/settings/preferences" label={ts("toSettings")} />
         <h1 className="text-2xl font-bold">{t("heading")}</h1>
       </header>
       <p className="text-sm leading-relaxed text-muted">{t("intro")}</p>
