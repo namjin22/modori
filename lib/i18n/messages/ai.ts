@@ -4,7 +4,7 @@ import { defineMessages } from "@/lib/i18n";
 export const ai = defineMessages({
   ko: {
     linkTitle: "AI 연결(MCP)",
-    linkHint: "외부 AI가 할 일·일정을 한꺼번에 만들어요",
+    linkHint: "AI 도구로 할 일과 일정을 관리해요",
     linkCount: "{count}개 ›",
     linkCreate: "연결하기 ›",
     pageTitle: "AI 연결(MCP) · 모도리",
@@ -91,7 +91,7 @@ export const ai = defineMessages({
   },
   en: {
     linkTitle: "AI connection (MCP)",
-    linkHint: "Let an outside AI create todos and events in bulk",
+    linkHint: "Manage todos and events with an AI tool",
     linkCount: "{count} ›",
     linkCreate: "Connect ›",
     pageTitle: "AI connection (MCP) · Modori",
@@ -178,7 +178,7 @@ export const ai = defineMessages({
   },
   ja: {
     linkTitle: "AI連携（MCP）",
-    linkHint: "外部のAIが ToDo と予定をまとめて作ります",
+    linkHint: "AIツールで ToDo と予定を管理します",
     linkCount: "{count}件 ›",
     linkCreate: "連携する ›",
     pageTitle: "AI連携（MCP） · Modori",

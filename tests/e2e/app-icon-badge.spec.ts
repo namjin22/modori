@@ -9,9 +9,11 @@ import { RUN_TAG } from "./run-tag";
 // 데스크톱 앱이 넘겨받는 window.modoriDesktop.setBadge를 가짜로 두고, 불린 숫자를 센다.
 const ME = `e2e-iconbadge-me-${RUN_TAG}@modori.test`;
 const FRIEND = `e2e-iconbadge-friend-${RUN_TAG}@modori.test`;
+const SECOND = `e2e-iconbadge-second-${RUN_TAG}@modori.test`;
+const THIRD = `e2e-iconbadge-third-${RUN_TAG}@modori.test`;
 
 test.afterAll(async () => {
-  await prisma.user.deleteMany({ where: { email: { in: [ME, FRIEND] } } });
+  await prisma.user.deleteMany({ where: { email: { in: [ME, FRIEND, SECOND, THIRD] } } });
   await prisma.$disconnect();
 });
 
@@ -22,13 +24,16 @@ declare global {
 }
 
 test("이 기기에서 알림을 끄면 아이콘 숫자가 없어지고 켜면 다시 뜬다. 탭 아래 숫자는 스위치와 상관없이 그대로다", async ({ page }) => {
-  await prisma.user.deleteMany({ where: { email: { in: [ME, FRIEND] } } });
+  await prisma.user.deleteMany({ where: { email: { in: [ME, FRIEND, SECOND, THIRD] } } });
   await page.addInitScript(() => {
     window.iconBadgeCalls = [];
+    // 진짜 브라우저는 알림 허락을 페이지를 새로 열어도 기억한다. 스위치가 알림 화면에 있어 켠 뒤 다른 화면을 새로 열어 보므로, 허락 값을 세션 저장소에 둔다.
     class FakeNotification {
-      static permission: NotificationPermission = "default";
+      static get permission(): NotificationPermission {
+        return (sessionStorage.getItem("fake-notification-permission") as NotificationPermission | null) ?? "default";
+      }
       static async requestPermission(): Promise<NotificationPermission> {
-        FakeNotification.permission = "granted";
+        sessionStorage.setItem("fake-notification-permission", "granted");
         return "granted";
       }
       onclick: (() => void) | null = null;
@@ -62,14 +67,24 @@ test("이 기기에서 알림을 끄면 아이콘 숫자가 없어지고 켜면 
   await expect(page.getByRole("navigation").last().getByLabel(/안 읽은 알림/)).toHaveAttribute("aria-label", "안 읽은 알림 1개");
   expect(await page.evaluate(() => window.iconBadgeCalls.filter((count) => count > 0))).toEqual([]);
 
-  await page.goto("/settings/preferences");
+  // 스위치는 소셜의 알림 화면에 있다(설정에서는 뺐다, 2026-11-16 요청). 그 화면을 열면 알림을 읽은 것으로 쳐서 안 읽은 알림이 0이 되므로,
+  // 켠 뒤와 끈 뒤에 새 팔로워를 하나씩 더해 "안 읽은 알림 1개"를 만들고 홈 쪽 탭에서 아이콘 숫자를 본다.
+  await page.goto("/feed/reactions");
   const toggle = page.getByRole("checkbox", { name: /이 기기에서 알림 띄우기/ });
   await toggle.check();
   await expect(toggle).toBeChecked();
+  const second = await prisma.user.create({ data: { email: SECOND, nickname: `아둘${RUN_TAG}`, privacyAgreedAt: new Date() } });
+  await prisma.follow.create({ data: { followerId: second.id, followingId: me.id } });
+  await page.goto("/feed");
+  await expect(page.getByRole("navigation").last().getByLabel(/안 읽은 알림/)).toHaveAttribute("aria-label", "안 읽은 알림 1개");
   await expect.poll(() => page.evaluate(() => window.iconBadgeCalls.at(-1))).toBe(1);
 
+  await page.goto("/feed/reactions");
   await toggle.uncheck();
   await expect(toggle).not.toBeChecked();
+  const third = await prisma.user.create({ data: { email: THIRD, nickname: `아셋${RUN_TAG}`, privacyAgreedAt: new Date() } });
+  await prisma.follow.create({ data: { followerId: third.id, followingId: me.id } });
+  await page.goto("/feed");
   await expect.poll(() => page.evaluate(() => window.iconBadgeCalls.at(-1))).toBe(0);
   await expect(page.getByRole("navigation").last().getByLabel(/안 읽은 알림/)).toHaveAttribute("aria-label", "안 읽은 알림 1개");
 });

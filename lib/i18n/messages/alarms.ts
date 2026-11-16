@@ -3,7 +3,7 @@ import { defineMessages } from "@/lib/i18n";
 /** "내가 정한 알림" 화면(목록, 만들기·고치기 창). 서버 동작의 말은 settings의 alarm… 글을 쓴다. */
 export const alarms = defineMessages({
   ko: {
-    noDevice: "알림을 받을 기기가 없어요. 폰 앱에서 알림을 허용하거나, 컴퓨터 브라우저에서 마이페이지의 “이 기기에서 알림 띄우기”를 켜 주세요. Windows 앱으로는 받을 수 없어요.",
+    noDevice: "알림을 받을 기기가 없어요. 폰 앱에서 알림을 허용하거나, 컴퓨터 브라우저에서 소셜 탭의 알림 화면에서 “이 기기에서 알림 띄우기”를 켜 주세요. Windows 앱으로는 받을 수 없어요.",
     empty: "아직 만든 알림이 없어요",
     listLabel: "내가 정한 알림",
     full: "알림은 {max}개까지예요",
@@ -22,7 +22,7 @@ export const alarms = defineMessages({
     weekend: "주말",
   },
   en: {
-    noDevice: "There's no device to receive alarms. Allow notifications in the phone app, or turn on \"Show notifications on this device\" in My page on a computer browser. The Windows app can't receive them.",
+    noDevice: "There's no device to receive alarms. Allow notifications in the phone app, or turn on \"Show notifications on this device\" on the Notifications screen in the Social tab on a computer browser. The Windows app can't receive them.",
     empty: "No alarms yet",
     listLabel: "My alarms",
     full: "Up to {max} alarms",
@@ -41,7 +41,7 @@ export const alarms = defineMessages({
     weekend: "Weekends",
   },
   ja: {
-    noDevice: "通知を受け取れる端末がありません。スマートフォンのアプリで通知を許可するか、パソコンのブラウザでマイページの「この端末で通知を表示」をオンにしてください。Windowsアプリでは受け取れません。",
+    noDevice: "通知を受け取れる端末がありません。スマートフォンのアプリで通知を許可するか、パソコンのブラウザで、ソーシャルタブの通知画面にある「この端末で通知を表示」をオンにしてください。Windowsアプリでは受け取れません。",
     empty: "まだ作った通知がありません",
     listLabel: "自分で決めた通知",
     full: "通知は{max}件までです",
