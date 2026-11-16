@@ -1828,3 +1828,17 @@ VM에 시험 DB(사용자 1000, 할 일 108만, 반응 24만, 280MB)를 만들�
 - **알아 둘 것**: `lib/mcp/tools.ts`는 서버 액션의 규칙(하루 상한·날짜 범위·루틴 건너뛰기)을 다시 적은 것이다. 규칙을 바꾸면 두 곳을 같이 고친다. `McpBatch`는 7일이 지난 것을 다음에 AI가 만들 때 지운다(`pruneBatches`). 토큰은 폐기하면 행을 지운다(만료돼도 사용자가 지울 때까지 목록에 남고, 5개 상한에 센다).
 - **CI 메모**: PR #254의 CI가 한 번 실패했다(`service-worker.spec.ts`의 웹 푸시 알림 대기 10초 초과 1개, flaky 2개, 걸린 시간 54분). 같은 코드가 로컬에서는 모두 통과해 러너가 느린 날의 시간 초과로 보지만 확정하진 못했다. 실패한 작업만 다시 돌렸다. 또 나면 그 시험을 따로 본다.
 - **운영자의 미커밋 변경**: `CLAUDE.md`의 Next.js 문서 안내 줄, 이 파일의 11월 5일 줄, `.claude/`, `.mcp.json`, `.vscode/`는 건드리지 않았고 커밋에 넣지 않았다.
+
+## 2026-11-16 — 설정 줄 설명 삭제, AI 연결 설명 확장, 사용법 카드 (브랜치 `feat/tutorial`)
+
+운영자 요청 세 가지(`docs/decisions.md` "처음 쓰는 사람용 사용법 카드를 만들고…"). 어느 글씨를 지우는지와 카드 모양·대상은 운영자에게 물어 정했다.
+
+- **설정 줄**: `app/(tabs)/settings/page.tsx`에서 "설정" 밑 회색 설명 한 줄과 번역 키 `preferencesHint`(3개 언어)를 지웠다. 맨 아래 방침·약관·계정 지우기 링크는 법·스토어 요구라 그대로다.
+- **AI 연결 설명**: `components/ai-guide.tsx`(예시, 할 수 있는 일·못 하는 일, 한도, 연결이 안 될 때), `api-token-manager.tsx`의 연결 방법을 4단계로, 글은 `lib/i18n/messages/ai.ts`.
+- **사용법 카드**: `/welcome`(`app/welcome/`, `components/tutorial.tsx`, 글 `lib/i18n/messages/tutorial.ts`, 카드 순서 `lib/tutorial.ts`). 홈(`app/(tabs)/page.tsx`)이 `tutorialSeenAt`이 비어 있으면 보낸다. 설정 > "사용법 다시 보기"는 `/welcome?replay=1`. `/welcome`은 `robots.ts`에서 막았다.
+- **DB**: `User.tutorialSeenAt`(마이그레이션 `20261116120000_user_tutorial_seen`: 칸을 더하고 **이미 있던 사용자 전원을 그 시각으로 채운다**. 값을 지우거나 바꾸는 것은 없다). 시험 DB에 `migrate deploy`로 적용했다. 운영 DB에는 배포가 적용한다. 개인정보 목록·방침(시행일 2026-11-16)을 같은 커밋에서 고쳤다.
+- **시험 서버의 자동 표시**: E2E는 가입 직후 홈을 기대하는 시험이 많아, `AUTH_MODE=mock`에서는 자동으로 보내지 않고 머리글 `x-modori-tutorial: on`일 때만 보낸다(`lib/tutorial.ts`의 `shouldAutoShowTutorial`). 사용법 카드 시험(`tests/e2e/tutorial.spec.ts`)만 이 머리글을 쓴다. 새 가입 흐름을 시험하는 새 E2E가 홈을 기다리다 걸리면 이것 때문이 아니라 머리글을 켠 시험인지 먼저 본다.
+- **검증**: `npm run verify` 통과(타입 검사, 린트, 단위 462개 ×3개 시간대, E2E 308개). 브라우저 화면 사진으로 카드 첫 장·마지막 장, 마이페이지, AI 연결 화면을 눈으로 봤다.
+- **`tests/unit/i18n.test.ts`**: 새 사전 `tutorial`을 `FILES`에 한 줄 올렸다(그 파일 안내대로 새 사전 등록. 시험 기준을 바꾼 것이 아니다).
+- **못 한 것**: 실제 폰 앱·데스크톱 앱 안에서의 모양, 영어·일본어 화면의 모양은 눈으로 보지 못했다. 배포 뒤 스크린샷(`docs/screenshots/`)을 다시 찍어야 한다(촬영 목록에 카드 첫 장·마지막 장을 더해 두었다).
+- **알아 둘 것**: 카드 글은 실제 화면 이름(번역 사전)에 맞춰 적었다. 화면 이름이 바뀌면 `tutorial.ts` 글도 같이 고쳐야 하고, 알려 주는 자동 검사는 없다.

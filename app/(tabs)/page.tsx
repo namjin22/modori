@@ -1,3 +1,6 @@
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
+
 import { HomeView, type HomeData } from "@/components/home-view";
 import { avatarUrl } from "@/lib/avatar";
 import {
@@ -14,7 +17,9 @@ import { expandEventRoutines } from "@/lib/event-routine";
 import { prisma } from "@/lib/prisma";
 import { groupReceivedReactions } from "@/lib/reactions";
 import { ensureRoutineTodos, listRoutineRange } from "@/lib/routine-todos";
+import { isMockAuth } from "@/lib/auth";
 import { requireUser } from "@/lib/session";
+import { TUTORIAL_TEST_HEADER, shouldAutoShowTutorial } from "@/lib/tutorial";
 
 function readDate(raw: string | undefined, today: Date): Date {
   if (!raw) return today;
@@ -72,6 +77,10 @@ export default async function FeedPage({
   searchParams: Promise<{ date?: string; month?: string }>;
 }) {
   const user = await requireUser();
+  // 가입 뒤 처음 홈을 열면 사용법 카드를 한 번 보여 준다(2026-11-16). 끝내거나 건너뛰면 다시 오지 않는다.
+  if (shouldAutoShowTutorial({ tutorialSeenAt: user.tutorialSeenAt, mockAuth: isMockAuth, testHeader: (await headers()).get(TUTORIAL_TEST_HEADER) })) {
+    redirect("/welcome");
+  }
   const params = await searchParams;
   const today = todayIn(user.timezone);
   const date = readDate(params.date, today);

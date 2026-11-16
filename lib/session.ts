@@ -39,6 +39,8 @@ export const getCurrentUser = cache(async () => {
       notifyFriendDone: true,
       // 화면·푸시 언어(lib/i18n/index.ts). 기기의 쿠키와 다르면 (tabs)/layout.tsx가 맞춘다.
       locale: true,
+      // 사용법 카드를 끝내거나 건너뛴 시각. 비어 있으면 홈이 처음 한 번 /welcome으로 보낸다.
+      tutorialSeenAt: true,
     },
   });
 });

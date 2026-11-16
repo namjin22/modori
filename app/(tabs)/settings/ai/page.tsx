@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 
+import { AiGuide, AiTroubleshoot } from "@/components/ai-guide";
 import { ApiTokenManager } from "@/components/api-token-manager";
 import { BackLink } from "@/components/back-link";
 import { isTokenUsable } from "@/lib/api-token";
@@ -32,6 +33,8 @@ export default async function AiPage() {
         <h1 className="text-2xl font-bold">{t("heading")}</h1>
       </header>
       <p className="text-sm leading-relaxed text-muted">{t("intro")}</p>
+      <p className="text-sm leading-relaxed text-muted">{t("introMcp")}</p>
+      <AiGuide />
       <ApiTokenManager
         tokens={tokens.map((token) => ({
           id: token.id,
@@ -43,6 +46,7 @@ export default async function AiPage() {
           lastUsedOn: token.lastUsedAt ? day(token.lastUsedAt) : null,
         }))}
       />
+      <AiTroubleshoot />
     </div>
   );
 }
