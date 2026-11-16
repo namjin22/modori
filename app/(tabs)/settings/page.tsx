@@ -1,6 +1,9 @@
 import Link from "next/link";
 
+import { LanguageSelect } from "@/components/language-select";
 import { LogoutButton } from "@/components/logout-button";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { language } from "@/lib/i18n/messages/language";
 import { settings } from "@/lib/i18n/messages/settings";
 import { getT } from "@/lib/i18n/server";
 import { isAdmin } from "@/lib/admin";
@@ -14,6 +17,7 @@ import { avatarUrl } from "@/lib/avatar";
 export default async function SettingsPage() {
   const user = await requireUser();
   const t = await getT(settings);
+  const tl = await getT(language);
   const [following, followers, admin] = await Promise.all([
     prisma.follow.count({ where: { followerId: user.id } }),
     prisma.follow.count({ where: { followingId: user.id } }),
@@ -71,6 +75,17 @@ export default async function SettingsPage() {
             <span className="text-lg font-bold">{followers}</span>
             <span className="text-xs text-muted">{t("followers")}</span>
           </Link>
+        </div>
+      </section>
+
+      {/* 화면 테마와 화면 언어는 설정 안이 아니라 마이페이지 바로 여기에 둔다(2026-11-16 요청: 자주 바꾸는데 한 번 더 들어가야 했다).
+          언어 밑에 붙던 회색 설명 글("알림도 이 언어로 와요")은 설정 줄의 설명 글을 지운 것(같은 날)과 같은 이유로 뺐다. */}
+      <section className="flex flex-col gap-5 rounded-2xl bg-surface p-6">
+        <h2 className="text-sm font-semibold text-muted">{t("display")}</h2>
+        <ThemeToggle />
+        <div className="flex flex-col gap-2">
+          <span className="text-[15px] font-medium">{tl("title")}</span>
+          <LanguageSelect />
         </div>
       </section>
 

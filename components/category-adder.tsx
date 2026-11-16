@@ -76,6 +76,7 @@ export function CategoryAdder({
             type="button"
             aria-label={t("writeIn", { name })}
             data-add-todo-chip
+            data-tour="category"
             aria-expanded={open}
             onClick={() => setOpen((value) => !value)}
             // 열린 채로 칩을 다시 누르면 입력칸이 먼저 포커스를 잃어 닫혔다가 클릭으로 다시 열린다.

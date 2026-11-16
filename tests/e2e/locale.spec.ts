@@ -76,9 +76,10 @@ test("설정에서 언어를 바꾸면 계정에 저장되고 화면이 바뀐�
   const saved = async () => (await prisma.user.findUniqueOrThrow({ where: { email } })).locale;
   expect(await saved()).toBe("ko");
 
-  await page.goto("/settings/preferences");
+  // 언어는 설정 안이 아니라 마이페이지에 있다(2026-11-16 요청).
+  await page.goto("/settings");
   await chooseLanguage(page, "日本語");
-  await expect(page.getByRole("heading", { name: "設定" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "マイページ" })).toBeVisible();
   await expect.poll(saved).toBe("ja");
   await expect(page.getByRole("link", { name: "フィード" })).toBeVisible();
 
@@ -86,10 +87,13 @@ test("설정에서 언어를 바꾸면 계정에 저장되고 화면이 바뀐�
   await page.getByRole("link", { name: "フィード" }).click();
   await expect(page.getByRole("heading", { level: 1 })).toContainText(/\d+月\d+日 .曜日/);
 
-  await page.goto("/settings/preferences");
+  await page.goto("/settings");
   await chooseLanguage(page, "English");
-  await expect(page.getByRole("heading", { name: "Settings" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "My page" })).toBeVisible();
   await expect.poll(saved).toBe("en");
+  // 설정 안에는 언어 고르는 칸이 없다.
+  await page.goto("/settings/preferences");
+  await expect(page.locator("[data-language-select]")).toHaveCount(0);
 });
 
 test("다른 기기처럼 쿠키가 없으면 계정에 저장된 언어로 맞춰진다", async ({ page, email }) => {

@@ -6,17 +6,14 @@ import { DesktopNotifySwitch } from "@/components/desktop-notify-switch";
 import { DesktopUpdateRow, OutdatedAppNotice } from "@/components/desktop-update";
 import { EventDigestSetting } from "@/components/event-digest-setting";
 import { FriendDoneSwitch } from "@/components/friend-done-switch";
-import { LanguageSelect } from "@/components/language-select";
 import { MacAppGuide } from "@/components/mac-app-guide";
 import { RecommendSwitch } from "@/components/recommend-switch";
-import { ThemeToggle } from "@/components/theme-toggle";
 import { TimezoneSelect } from "@/components/timezone-select";
 import { dateIn, weekdayKST } from "@/lib/date";
 import { isDesktopApp, isMobileApp, isWindowsBrowser, outdatedDesktopApp } from "@/lib/desktop";
 import { formatMonthDay, weekdayName } from "@/lib/i18n/format";
 import { ai } from "@/lib/i18n/messages/ai";
 import { tutorial } from "@/lib/i18n/messages/tutorial";
-import { language } from "@/lib/i18n/messages/language";
 import { settings } from "@/lib/i18n/messages/settings";
 import { timezoneNames } from "@/lib/i18n/messages/timezones";
 import { getLocale, getT } from "@/lib/i18n/server";
@@ -33,7 +30,6 @@ export default async function PreferencesPage() {
   const t = await getT(settings);
   const ta = await getT(ai);
   const tt = await getT(tutorial);
-  const tl = await getT(language);
   const locale = await getLocale();
   const mobileApp = await isMobileApp();
   const desktopApp = await isDesktopApp();
@@ -60,16 +56,7 @@ export default async function PreferencesPage() {
         <h1 className="text-2xl font-bold">{t("preferencesTitle")}</h1>
       </header>
 
-      <section className="flex flex-col gap-5 rounded-2xl bg-surface p-6">
-        <h2 className="text-sm font-semibold text-muted">{t("display")}</h2>
-        <ThemeToggle />
-        {/* 화면 언어(2026-10-30 요청). 푸시 알림도 이 언어로 온다. */}
-        <div className="flex flex-col gap-2">
-          <span className="text-[15px] font-medium">{tl("title")}</span>
-          <LanguageSelect />
-          <span className="text-[13px] text-muted">{tl("hint")}</span>
-        </div>
-      </section>
+      {/* 화면 테마와 화면 언어는 마이페이지로 옮겼다(2026-11-16 요청, app/(tabs)/settings/page.tsx). */}
 
       {/* 컴퓨터 알림 스위치는 알림을 띄울 수 있는 컴퓨터 브라우저·데스크톱 앱에서만 보인다(그 밖에서는 스스로 숨는다). */}
       <section className="flex flex-col gap-5 rounded-2xl bg-surface p-6">
@@ -106,8 +93,8 @@ export default async function PreferencesPage() {
           </span>
           <span className="shrink-0 text-sm text-muted">{tokenCount > 0 ? ta("linkCount", { count: tokenCount }) : ta("linkCreate")}</span>
         </Link>
-        {/* 처음 쓰는 사람용 사용법 카드를 언제든 다시 본다(2026-11-16). */}
-        <Link prefetch={false} href="/welcome?replay=1" className="-mx-2 flex items-center justify-between rounded-xl px-2 py-1 text-[15px]">
+        {/* 처음 쓰는 사람용 둘러보기(홈 화면 위 안내)를 언제든 다시 본다(2026-11-16). */}
+        <Link prefetch={false} href="/?tour=1" className="-mx-2 flex items-center justify-between rounded-xl px-2 py-1 text-[15px]">
           <span className="font-medium">{tt("replayRow")}</span>
           <span className="shrink-0 text-sm text-muted">{tt("replayGo")}</span>
         </Link>

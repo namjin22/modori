@@ -196,6 +196,7 @@ export function BottomNav({
               <Link
                 href={href}
                 prefetch
+                data-tour={`tab-${label}`}
                 aria-current={isActive ? "page" : undefined}
                 className={`flex h-14 flex-col items-center justify-center gap-0.5 transition-colors active:scale-95 ${
                   isActive ? "text-brand" : "text-muted hover:text-foreground"

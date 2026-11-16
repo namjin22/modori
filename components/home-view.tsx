@@ -19,6 +19,7 @@ import { ScheduledRoutineRow } from "@/components/scheduled-routine-row";
 import { SwapIn } from "@/components/swap-in";
 import { TodoBoard } from "@/components/todo-board";
 import { TodoProgress } from "@/components/todo-progress";
+import { Tour } from "@/components/tour";
 import { TodoRow } from "@/components/todo-row";
 import { applyTodoChange, type HomeTodo, PENDING_PREFIX, TodoStoreProvider } from "@/components/todo-store";
 import { spreadEvents } from "@/lib/calendar-events";
@@ -29,6 +30,7 @@ import { dayHeading } from "@/lib/i18n/format";
 import { todos as todoMessages } from "@/lib/i18n/messages/todos";
 import { groupByCategory } from "@/lib/group-by-category";
 import type { ScheduledRoutine } from "@/lib/routine-todos";
+import type { TourMode } from "@/lib/tutorial";
 
 export type { HomeTodo };
 
@@ -46,6 +48,8 @@ export type HomeData = {
   pending: string[];
   events: DayEvent[];
   upcoming: DayEvent[];
+  // 둘러보기를 띄울 때만(처음 가입한 뒤 first, 설정에서 다시 보기 replay). 아니면 null.
+  tour: TourMode | null;
 };
 
 function formatHeading(locale: Locale, key: string): string {
@@ -114,6 +118,7 @@ export function HomeView({ data }: { data: HomeData }) {
   return (
     // 넓은 화면에서는 왼쪽에 프로필과 달력, 오른쪽에 고른 날의 목록을 둔다.
     <TodoStoreProvider value={applyChange}>
+      {data.tour && <Tour mode={data.tour} />}
       <div className="flex flex-col gap-4 lg:grid lg:grid-cols-2 lg:items-start lg:gap-10">
         {!hasDateParam && <DayRollover day={data.today} />}
         {/* 넓은 화면에서는 달력이 먼저 와서 할 일까지 Tab을 서른 번 넘게 눌러야 한다.
@@ -127,7 +132,7 @@ export function HomeView({ data }: { data: HomeData }) {
         {/* 넓은 화면에서 달력 칸은 제자리에 둔다. 시작 위치(pt-8)와 같은 top-8이라 스크롤을 시작해도 움직이지 않고,
             창이 달력보다 낮으면(노트북) 칸 안에서만 스크롤해 페이지 끝에서 밀려 올라가지 않는다. */}
         <div className="flex flex-col gap-4 lg:gap-6 lg:sticky lg:top-8 lg:max-h-[calc(100dvh-6rem)] lg:overflow-y-auto lg:scroll-stable">
-          <Link prefetch={false} href="/settings/profile" className="flex items-center gap-3">
+          <Link prefetch={false} href="/settings/profile" data-tour="profile" className="flex items-center gap-3">
             <Avatar src={data.profile.avatar} size={48} />
             <span className="min-w-0">
               <span className="block truncate font-bold">{data.profile.nickname}</span>
@@ -135,7 +140,7 @@ export function HomeView({ data }: { data: HomeData }) {
             </span>
           </Link>
 
-          <div>
+          <div data-tour="calendar">
             <MonthCalendar
               monthStart={monthStart}
               selected={date}
@@ -153,7 +158,7 @@ export function HomeView({ data }: { data: HomeData }) {
 
         {/* 아래 여백을 이 칸에 둔다(PageFrame은 두 칸 화면에서 빼 준다). 달력 칸이 머물 수 있는 줄 높이가 페이지 끝까지 닿게. */}
         <div id="day-list" tabIndex={-1} className="flex flex-col gap-6 outline-none lg:pb-12">
-          <header className="flex items-center justify-between">
+          <header data-tour="day-nav" className="flex items-center justify-between">
             {dayNav(formatKST(addDays(date, -1)), t("prevDay"), "‹")}
             {/* 날짜를 넘기면 제목과 아래 목록이 넘긴 쪽에서 미끄러져 들어온다. ‹ › 버튼은 제자리에 둔다(연달아 누를 때 움직이면 빗나간다). */}
             <SwapIn swapKey={selected} className="text-center">
@@ -187,6 +192,7 @@ export function HomeView({ data }: { data: HomeData }) {
               <Link
                 prefetch={false}
                 href="/stats"
+                data-tour="stats"
                 className="flex h-8 items-center rounded-full bg-surface px-3 text-sm text-muted hover:text-foreground min-[360px]:px-3.5"
               >
                 {t("stats")}
