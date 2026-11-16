@@ -139,11 +139,17 @@ for (const viewport of STORE || IOS ? [] : VIEWPORTS) {
       ["07-stats", "/stats"],
       ["08-mypage", "/settings"],
       ["17-ai-connection", "/settings/ai"],
+      ["18-tutorial-first", "/welcome?replay=1"],
     ];
     for (const [name, url] of screens) {
       await page.goto(url);
       await shoot(page, `${viewport.name}-${name}`);
     }
+
+    // 사용법 카드의 마지막 장(2026-11-16).
+    await page.goto("/welcome?replay=1");
+    for (let index = 0; index < 4; index += 1) await page.getByRole("button", { name: "다음" }).click();
+    await shoot(page, `${viewport.name}-19-tutorial-last`);
 
     // 할 일을 눌렀을 때 뜨는 창(메모, 다른 날에 하기).
     await page.goto("/");

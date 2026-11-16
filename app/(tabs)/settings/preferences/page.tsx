@@ -15,6 +15,7 @@ import { dateIn, weekdayKST } from "@/lib/date";
 import { isDesktopApp, isMobileApp, isWindowsBrowser, outdatedDesktopApp } from "@/lib/desktop";
 import { formatMonthDay, weekdayName } from "@/lib/i18n/format";
 import { ai } from "@/lib/i18n/messages/ai";
+import { tutorial } from "@/lib/i18n/messages/tutorial";
 import { language } from "@/lib/i18n/messages/language";
 import { settings } from "@/lib/i18n/messages/settings";
 import { timezoneNames } from "@/lib/i18n/messages/timezones";
@@ -31,6 +32,7 @@ export default async function PreferencesPage() {
   const user = await requireUser();
   const t = await getT(settings);
   const ta = await getT(ai);
+  const tt = await getT(tutorial);
   const tl = await getT(language);
   const locale = await getLocale();
   const mobileApp = await isMobileApp();
@@ -103,6 +105,11 @@ export default async function PreferencesPage() {
             <span className="text-[13px] text-muted">{ta("linkHint")}</span>
           </span>
           <span className="shrink-0 text-sm text-muted">{tokenCount > 0 ? ta("linkCount", { count: tokenCount }) : ta("linkCreate")}</span>
+        </Link>
+        {/* 처음 쓰는 사람용 사용법 카드를 언제든 다시 본다(2026-11-16). */}
+        <Link prefetch={false} href="/welcome?replay=1" className="-mx-2 flex items-center justify-between rounded-xl px-2 py-1 text-[15px]">
+          <span className="font-medium">{tt("replayRow")}</span>
+          <span className="shrink-0 text-sm text-muted">{tt("replayGo")}</span>
         </Link>
       </section>
 

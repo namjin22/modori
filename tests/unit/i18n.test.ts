@@ -27,6 +27,7 @@ import { social } from "@/lib/i18n/messages/social";
 import { stats } from "@/lib/i18n/messages/stats";
 import { timezoneNames } from "@/lib/i18n/messages/timezones";
 import { todos } from "@/lib/i18n/messages/todos";
+import { tutorial } from "@/lib/i18n/messages/tutorial";
 
 // 파일 이름 → 그 파일이 내보내는 사전들. 새 사전 파일을 더하면 여기에도 적어야 시험이 본다.
 const FILES: Record<string, Record<string, MessageBundle>> = {
@@ -52,6 +53,7 @@ const FILES: Record<string, Record<string, MessageBundle>> = {
   stats: { stats },
   timezones: { timezoneNames },
   todos: { todos },
+  tutorial: { tutorial },
 };
 
 const HANGUL = /[ㄱ-ㆎ가-힣]/;
