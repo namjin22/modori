@@ -89,7 +89,8 @@ test("읽기 토큰에는 읽는 도구만 보이고 바꾸는 도구는 부를 
   const { token } = await makeToken(account.id, "READ");
   const list = await rpc(request, token, "tools/list");
   expect(list.status).toBe(200);
-  expect(list.body.result?.tools?.map((tool) => tool.name).sort()).toEqual(["get_overview", "list_events", "list_todos"]);
+  // 읽는 도구만 보인다(2026-11-16에 루틴·프로필·사람 찾기 조회 도구가 늘었다. 바꾸는 도구가 없다는 것은 그대로다).
+  expect(list.body.result?.tools?.map((tool) => tool.name).sort()).toEqual(["get_overview", "get_profile", "list_events", "list_people", "list_routines", "list_todos", "search_users"]);
 
   await seedTodo(account.id, TODAY, "읽기 시험");
   const read = await call(request, token, "list_todos", { from: TODAY });
@@ -104,14 +105,19 @@ test("읽기 토큰에는 읽는 도구만 보이고 바꾸는 도구는 부를 
 test("쓰기 토큰: 한 번에 만들고, 읽고, 끝내고, 옮기고, 되돌린다", async ({ request, account }) => {
   const { token } = await makeToken(account.id, "WRITE");
   const list = await rpc(request, token, "tools/list");
+  // 만들기·끝내기·옮기기·되돌리기까지. 고치기·지우기 도구는 모든 권한 토큰에만 있다(tests/e2e/mcp-full.spec.ts).
   expect(list.body.result?.tools?.map((tool) => tool.name).sort()).toEqual([
     "complete_todos",
     "create_events",
     "create_todos",
     "get_overview",
+    "get_profile",
     "list_events",
+    "list_people",
+    "list_routines",
     "list_todos",
     "move_todos",
+    "search_users",
     "undo_batch",
   ]);
 

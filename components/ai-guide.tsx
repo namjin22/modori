@@ -13,7 +13,7 @@ export async function AiGuide() {
       <section className={card}>
         <h2 className={heading}>{t("examplesTitle")}</h2>
         <ul className="flex flex-col gap-2">
-          {(["example1", "example2", "example3"] as const).map((key) => (
+          {(["example1", "example2", "example3", "example4"] as const).map((key) => (
             <li key={key} className="rounded-xl bg-surface-hover px-4 py-3 text-sm leading-relaxed">
               {t(key)}
             </li>
@@ -24,7 +24,7 @@ export async function AiGuide() {
       <section className={card}>
         <h2 className={heading}>{t("canTitle")}</h2>
         <ul className={list}>
-          {(["can1", "can2", "can3", "can4"] as const).map((key) => (
+          {(["can1", "can2", "can3", "can4", "can5", "can6", "can7"] as const).map((key) => (
             <li key={key}>{t(key)}</li>
           ))}
         </ul>

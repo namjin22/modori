@@ -1,0 +1,303 @@
+import { revalidatePath } from "next/cache";
+
+import { isHexColor } from "@/lib/colors";
+import { firstOverfullDay } from "@/lib/event-limit";
+import { formatTime, parseTime } from "@/lib/event-time";
+import { LIMITS } from "@/lib/limits";
+import { MCP_LIMITS } from "@/lib/mcp/inputs";
+import {
+  BULK_TRANSACTION,
+  dayText,
+  eventShapeProblem,
+  fail,
+  ok,
+  parseDay,
+  pruneBatches,
+  writeLimited,
+  type McpContext,
+  type ToolResult,
+} from "@/lib/mcp/shared";
+import type { EventSnapshotRow, Snapshot, TodoSnapshotRow } from "@/lib/mcp/snapshot";
+import { prisma } from "@/lib/prisma";
+
+/**
+ * 모든 권한(FULL) 토큰의 고치기·지우기 도구(할 일·일정). 서버 액션(updateTodo, deleteTodo, updateEvent, deleteEvent)과 같은 규칙이고,
+ * 서버 액션처럼 한 번에 한 개가 아니라 여러 개를 전부 아니면 무로 다룬다. 지우거나 고치기 전의 모습은 McpBatch.snapshot에 두어
+ * undo_batch가 24시간 안에 되돌린다(lib/mcp/undo.ts).
+ */
+const undoNote = `Call undo_batch with this batchId within ${MCP_LIMITS.undoHours} hours to put things back.`;
+
+type TodoUpdate = { id: string; content?: string; memo?: string | null; memoPublic?: boolean; category?: string };
+
+export async function updateTodos(ctx: McpContext, input: { updates: TodoUpdate[] }): Promise<ToolResult> {
+  const limited = writeLimited(ctx);
+  if (limited) return limited;
+
+  const ids = input.updates.map((update) => update.id);
+  if (new Set(ids).size !== ids.length) return fail("Each todo id may appear only once per call.");
+  const [rows, categories] = await Promise.all([
+    prisma.todo.findMany({ where: { id: { in: ids }, userId: ctx.userId } }),
+    prisma.category.findMany({ where: { userId: ctx.userId, archivedAt: null }, select: { id: true, name: true } }),
+  ]);
+  const found = new Map(rows.map((row) => [row.id, row]));
+  const byId = new Map(categories.map((category) => [category.id, category]));
+  const byName = new Map(categories.map((category) => [category.name.trim().toLowerCase(), category]));
+
+  const problems: string[] = [];
+  const plan: { row: (typeof rows)[number]; data: Record<string, unknown> }[] = [];
+  input.updates.forEach((update, index) => {
+    const row = found.get(update.id);
+    if (!row) {
+      problems.push(`updates[${index}].id "${update.id}" was not found.`);
+      return;
+    }
+    let categoryId: string | undefined;
+    if (update.category !== undefined) {
+      const category = byId.get(update.category) ?? byName.get(update.category.trim().toLowerCase());
+      if (!category) {
+        problems.push(`updates[${index}].category "${update.category}" was not found. Available: ${categories.map((each) => each.name).join(", ") || "(none)"}.`);
+        return;
+      }
+      categoryId = category.id;
+    }
+    plan.push({
+      row,
+      data: {
+        ...(update.content !== undefined && { content: update.content }),
+        ...(update.memo !== undefined && { memo: update.memo ? update.memo : null }),
+        ...(update.memoPublic !== undefined && { memoPublic: update.memoPublic }),
+        // 서버 액션 updateTodo와 같다: 다른 카테고리로 옮기면 따로 고른 색은 버린다.
+        ...(categoryId !== undefined && categoryId !== row.categoryId && { categoryId, color: null }),
+      },
+    });
+  });
+  if (problems.length > 0) return fail("Nothing was changed.", { problems });
+
+  const snapshot: Snapshot = {
+    kind: "todos-updated",
+    rows: plan.map(({ row }) => ({ id: row.id, content: row.content, memo: row.memo, memoPublic: row.memoPublic, categoryId: row.categoryId, color: row.color })),
+  };
+  const batch = await prisma.$transaction(async (tx) => {
+    for (const { row, data } of plan) await tx.todo.updateMany({ where: { id: row.id, userId: ctx.userId }, data });
+    return tx.mcpBatch.create({ data: { userId: ctx.userId, snapshot }, select: { id: true } });
+  }, BULK_TRANSACTION);
+  await pruneBatches(ctx.userId);
+  revalidatePath("/");
+
+  return ok({ batchId: batch.id, updated: plan.map(({ row }) => row.id), undo: undoNote });
+}
+
+const todoRow = (row: {
+  id: string;
+  content: string;
+  date: Date;
+  done: boolean;
+  doneAt: Date | null;
+  order: number;
+  categoryId: string | null;
+  color: string | null;
+  routineId: string | null;
+  memo: string | null;
+  memoPublic: boolean;
+  createdAt: Date;
+}): TodoSnapshotRow => ({
+  id: row.id,
+  content: row.content,
+  date: dayText(row.date),
+  done: row.done,
+  doneAt: row.doneAt?.toISOString() ?? null,
+  order: row.order,
+  categoryId: row.categoryId,
+  color: row.color,
+  routineId: row.routineId,
+  memo: row.memo,
+  memoPublic: row.memoPublic,
+  createdAt: row.createdAt.toISOString(),
+});
+
+export async function deleteTodos(ctx: McpContext, input: { ids: string[] }): Promise<ToolResult> {
+  const limited = writeLimited(ctx);
+  if (limited) return limited;
+
+  const ids = [...new Set(input.ids)];
+  const rows = await prisma.todo.findMany({ where: { id: { in: ids }, userId: ctx.userId } });
+  const foundIds = new Set(rows.map((row) => row.id));
+  const notFound = ids.filter((id) => !foundIds.has(id));
+  if (rows.length === 0) return ok({ deleted: 0, notFound });
+
+  // 서버 액션 deleteTodo와 같다: 루틴이 만든 할 일이면 그 날을 건너뛴다고 남긴다. 남기지 않으면 화면을 다시 그릴 때 "없으니 만든다"가 돌아 되살아난다.
+  const skips = rows.flatMap((row) => (row.routineId ? [{ routineId: row.routineId, date: row.date }] : []));
+  const batch = await prisma.$transaction(async (tx) => {
+    await tx.todo.deleteMany({ where: { id: { in: [...foundIds] }, userId: ctx.userId } });
+    if (skips.length > 0) await tx.routineSkip.createMany({ data: skips, skipDuplicates: true });
+    return tx.mcpBatch.create({ data: { userId: ctx.userId, snapshot: { kind: "todos-deleted", rows: rows.map(todoRow) } satisfies Snapshot }, select: { id: true } });
+  }, BULK_TRANSACTION);
+  await pruneBatches(ctx.userId);
+  revalidatePath("/");
+
+  return ok({ batchId: batch.id, deleted: rows.length, notFound, undo: `${undoNote} Reactions friends sent to these todos cannot be restored.` });
+}
+
+type EventUpdate = {
+  id: string;
+  title?: string;
+  startDate?: string;
+  endDate?: string;
+  startTime?: string | null;
+  endTime?: string | null;
+  color?: string;
+  memo?: string | null;
+  isPublic?: boolean;
+  memoPublic?: boolean;
+  dday?: boolean;
+};
+
+type EventRow = {
+  id: string;
+  title: string;
+  startDate: Date;
+  endDate: Date;
+  startTime: number | null;
+  endTime: number | null;
+  color: string;
+  memo: string | null;
+  dday: boolean;
+  isPublic: boolean;
+  memoPublic: boolean;
+  sortOrder: number;
+  createdAt: Date;
+};
+
+const eventSnapshot = (row: EventRow): EventSnapshotRow => ({
+  id: row.id,
+  title: row.title,
+  startDate: dayText(row.startDate),
+  endDate: dayText(row.endDate),
+  startTime: row.startTime,
+  endTime: row.endTime,
+  color: row.color,
+  memo: row.memo,
+  dday: row.dday,
+  isPublic: row.isPublic,
+  memoPublic: row.memoPublic,
+  sortOrder: row.sortOrder,
+  createdAt: row.createdAt.toISOString(),
+});
+
+export async function updateEvents(ctx: McpContext, input: { updates: EventUpdate[] }): Promise<ToolResult> {
+  const limited = writeLimited(ctx);
+  if (limited) return limited;
+
+  const ids = input.updates.map((update) => update.id);
+  if (new Set(ids).size !== ids.length) return fail("Each event id may appear only once per call.");
+  const rows = await prisma.event.findMany({ where: { id: { in: ids }, userId: ctx.userId } });
+  const found = new Map(rows.map((row) => [row.id, row]));
+
+  const problems: string[] = [];
+  const plan: { before: EventRow; after: Omit<EventRow, "id" | "sortOrder" | "createdAt"> }[] = [];
+  input.updates.forEach((update, index) => {
+    const row = found.get(update.id);
+    if (!row) {
+      problems.push(`updates[${index}].id "${update.id}" was not found.`);
+      return;
+    }
+    const startDate = update.startDate === undefined ? row.startDate : parseDay(update.startDate);
+    const endDate = update.endDate === undefined ? row.endDate : parseDay(update.endDate);
+    if (!startDate || !endDate) {
+      problems.push(`updates[${index}] dates must be real dates (YYYY-MM-DD).`);
+      return;
+    }
+    // 시작 시각을 지우면(하루 종일) 끝 시각도 같이 지운다. 끝 시각만 남은 일정은 없다.
+    const startTime = update.startTime === undefined ? row.startTime : update.startTime === null ? null : parseTime(update.startTime);
+    const parsedEnd = update.endTime === undefined ? row.endTime : update.endTime === null ? null : parseTime(update.endTime);
+    if (startTime === undefined || parsedEnd === undefined) {
+      problems.push(`updates[${index}] times must be HH:MM.`);
+      return;
+    }
+    const endTime = update.endTime === undefined && startTime === null ? null : parsedEnd;
+    const shape = eventShapeProblem({ startDate, endDate, startTime, endTime });
+    if (shape) {
+      problems.push(`updates[${index}]: ${shape}`);
+      return;
+    }
+    if (update.color !== undefined && !isHexColor(update.color)) {
+      problems.push(`updates[${index}].color must be #rrggbb.`);
+      return;
+    }
+    const isPublic = update.isPublic ?? row.isPublic;
+    plan.push({
+      before: row,
+      after: {
+        title: update.title ?? row.title,
+        startDate,
+        endDate,
+        startTime,
+        endTime,
+        color: update.color ? update.color.toLowerCase() : row.color,
+        memo: update.memo === undefined ? row.memo : update.memo ? update.memo : null,
+        dday: update.dday ?? row.dday,
+        isPublic,
+        // 일정을 숨기면 메모도 같이 숨는다(서버 액션 updateEvent와 같다).
+        memoPublic: isPublic && (update.memoPublic ?? row.memoPublic),
+      },
+    });
+  });
+  if (problems.length > 0) return fail("Nothing was changed.", { problems });
+
+  // 하루 상한은 고치는 일정끼리 서로 겹치는 것까지 합쳐서, 고치지 않는 일정과 함께 센다.
+  const first = plan.reduce((min, { after }) => (after.startDate < min ? after.startDate : min), plan[0].after.startDate);
+  const last = plan.reduce((max, { after }) => (after.endDate > max ? after.endDate : max), plan[0].after.endDate);
+  const accepted = await prisma.event.findMany({
+    where: { userId: ctx.userId, id: { notIn: ids }, startDate: { lte: last }, endDate: { gte: first } },
+    select: { startDate: true, endDate: true },
+  });
+  plan.forEach(({ after }, index) => {
+    const full = firstOverfullDay(accepted, after.startDate, after.endDate, LIMITS.eventsPerDay);
+    if (full) problems.push(`updates[${index}]: ${dayText(full)} already has ${LIMITS.eventsPerDay} events, the limit per day.`);
+    accepted.push({ startDate: after.startDate, endDate: after.endDate });
+  });
+  if (problems.length > 0) return fail("Nothing was changed.", { problems });
+
+  const batch = await prisma.$transaction(async (tx) => {
+    for (const { before, after } of plan) await tx.event.updateMany({ where: { id: before.id, userId: ctx.userId }, data: after });
+    return tx.mcpBatch.create({
+      data: { userId: ctx.userId, snapshot: { kind: "events-updated", rows: plan.map(({ before }) => eventSnapshot(before)) } satisfies Snapshot },
+      select: { id: true },
+    });
+  }, BULK_TRANSACTION);
+  await pruneBatches(ctx.userId);
+  revalidatePath("/");
+
+  return ok({
+    batchId: batch.id,
+    updated: plan.map(({ before, after }) => ({
+      id: before.id,
+      title: after.title,
+      startDate: dayText(after.startDate),
+      endDate: dayText(after.endDate),
+      startTime: after.startTime === null ? null : formatTime(after.startTime),
+      endTime: after.endTime === null ? null : formatTime(after.endTime),
+    })),
+    undo: undoNote,
+  });
+}
+
+export async function deleteEvents(ctx: McpContext, input: { ids: string[] }): Promise<ToolResult> {
+  const limited = writeLimited(ctx);
+  if (limited) return limited;
+
+  const ids = [...new Set(input.ids)];
+  const rows = await prisma.event.findMany({ where: { id: { in: ids }, userId: ctx.userId } });
+  const foundIds = new Set(rows.map((row) => row.id));
+  const notFound = ids.filter((id) => !foundIds.has(id));
+  if (rows.length === 0) return ok({ deleted: 0, notFound });
+
+  const batch = await prisma.$transaction(async (tx) => {
+    await tx.event.deleteMany({ where: { id: { in: [...foundIds] }, userId: ctx.userId } });
+    return tx.mcpBatch.create({ data: { userId: ctx.userId, snapshot: { kind: "events-deleted", rows: rows.map(eventSnapshot) } satisfies Snapshot }, select: { id: true } });
+  }, BULK_TRANSACTION);
+  await pruneBatches(ctx.userId);
+  revalidatePath("/");
+
+  return ok({ batchId: batch.id, deleted: rows.length, notFound, undo: undoNote });
+}

@@ -12,7 +12,8 @@ import { common } from "@/lib/i18n/messages/common";
 export type ApiTokenItem = {
   id: string;
   name: string;
-  scope: "READ" | "WRITE";
+  scope: "READ" | "WRITE" | "FULL";
+  allowFriends: boolean;
   hint: string;
   expiresOn: string;
   expired: boolean;
@@ -53,6 +54,7 @@ export function ApiTokenManager({ tokens }: { tokens: ApiTokenItem[] }) {
           <li>{t("safety1")}</li>
           <li>{t("safety2")}</li>
           <li>{t("safety3")}</li>
+          <li>{t("safety4")}</li>
         </ul>
       </section>
 
@@ -102,7 +104,8 @@ function TokenRow({ token }: { token: ApiTokenItem }) {
         <div className="flex min-w-0 flex-col gap-0.5">
           <span className="truncate text-[15px] font-medium">{token.name}</span>
           <span className="text-xs text-muted">
-            {token.hint}… · {token.scope === "WRITE" ? t("scopeWrite") : t("scopeRead")}
+            {token.hint}… · {token.scope === "FULL" ? t("scopeFull") : token.scope === "WRITE" ? t("scopeWrite") : t("scopeRead")}
+            {token.allowFriends && ` · ${t("tagFriends")}`}
           </span>
           <span className="text-xs text-muted">
             {token.expired ? t("expired") : t("until", { date: token.expiresOn })} · {token.lastUsedOn ? t("lastUsed", { date: token.lastUsedOn }) : t("neverUsed")}
@@ -183,7 +186,23 @@ function CreateForm({ onCreated }: { onCreated: (token: string) => void }) {
             <span className="text-xs text-muted">{t("scopeWriteHint")}</span>
           </span>
         </label>
+        <label className="flex items-start gap-3 rounded-xl bg-surface-hover p-3 text-sm">
+          <input type="radio" name="scope" value="FULL" className="mt-1 accent-brand" />
+          <span className="flex flex-col">
+            <span className="font-medium">{t("scopeFull")}</span>
+            <span className="text-xs text-muted">{t("scopeFullHint")}</span>
+          </span>
+        </label>
       </fieldset>
+
+      {/* 친구의 공개 정보를 읽게 하는 것은 권한과 따로 고르고, 기본은 끈다. 친구가 정한 공개 범위는 "모도리 안의 팔로워"까지였다. */}
+      <label className="flex items-start gap-3 rounded-xl bg-surface-hover p-3 text-sm">
+        <input type="checkbox" name="friends" className="mt-1 accent-brand" />
+        <span className="flex flex-col">
+          <span className="font-medium">{t("friendsLabel")}</span>
+          <span className="text-xs text-muted">{t("friendsHint")}</span>
+        </span>
+      </label>
 
       <label className="flex flex-col gap-1.5 text-xs text-muted">
         {t("expiryLabel")}

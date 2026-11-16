@@ -45,7 +45,9 @@ export async function createApiToken(formData: FormData): Promise<CreateTokenRes
   if (count >= MAX_API_TOKENS) return { ok: false, message: t("full", { max: MAX_API_TOKENS }) };
 
   const { token, hash, hint } = generateApiToken();
-  await prisma.apiToken.create({ data: { userId: user.id, name, scope, tokenHash: hash, hint, expiresAt: tokenExpiry(days) } });
+  // 친구의 공개 정보를 읽게 할지는 권한과 따로 묻고 기본은 끈다(체크하지 않으면 값이 오지 않는다).
+  const allowFriends = formData.get("friends") === "on";
+  await prisma.apiToken.create({ data: { userId: user.id, name, scope, allowFriends, tokenHash: hash, hint, expiresAt: tokenExpiry(days) } });
 
   revalidatePath("/settings/ai");
   revalidatePath("/settings/preferences");

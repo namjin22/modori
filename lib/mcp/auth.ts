@@ -1,13 +1,11 @@
 import { isTokenUsable, readBearerToken } from "@/lib/api-token";
 import { hashApiToken } from "@/lib/api-token-secret";
-import type { McpContext } from "@/lib/mcp/tools";
+import type { McpContext } from "@/lib/mcp/shared";
 import { prisma } from "@/lib/prisma";
 import { take, type RateRule } from "@/lib/rate-limit";
 
-export type McpScope = "READ" | "WRITE";
-
 export type McpAuth =
-  | { ok: true; ctx: McpContext; scope: McpScope }
+  | { ok: true; ctx: McpContext }
   | { ok: false; status: 401 | 403 | 429; message: string; retryAfter?: number };
 
 /** 토큰 하나가 보내는 요청의 속도 상한(읽기·쓰기 모두). 바꾸는 도구는 tools.ts에서 더 좁게 센다. */
@@ -29,6 +27,7 @@ export async function authenticate(request: Request): Promise<McpAuth> {
     select: {
       id: true,
       scope: true,
+      allowFriends: true,
       expiresAt: true,
       lastUsedAt: true,
       user: { select: { id: true, nickname: true, timezone: true } },
@@ -54,7 +53,6 @@ export async function authenticate(request: Request): Promise<McpAuth> {
 
   return {
     ok: true,
-    scope: row.scope,
-    ctx: { userId: row.user.id, nickname: row.user.nickname, timezone: row.user.timezone, tokenId: row.id },
+    ctx: { userId: row.user.id, nickname: row.user.nickname, timezone: row.user.timezone, tokenId: row.id, scope: row.scope, allowFriends: row.allowFriends },
   };
 }
