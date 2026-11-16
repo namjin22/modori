@@ -33,7 +33,7 @@ export const tutorial = defineMessages({
     socialTitle: "소셜",
     socialBody: "친구를 찾아 팔로우하고, 친구가 끝낸 일에 이모지로 반응해요. 받은 반응과 새 소식은 이 탭에 숫자로 떠요.",
     myPageTitle: "마이페이지",
-    myPageBody: "프로필을 고치고, 화면(라이트·다크)과 언어를 바꿔요. 알림·시간대·AI 연결은 “설정”에서 맞춰요.",
+    myPageBody: "프로필을 고치고, 화면(라이트·다크)과 언어를 바꿔요. 알림·시간대·AI 연결(MCP)은 “설정”에서 맞춰요.",
   },
   en: {
     replayRow: "Replay the tour",
@@ -66,7 +66,7 @@ export const tutorial = defineMessages({
     socialTitle: "Social",
     socialBody: "Find friends and follow them, and react with emoji to what they finish. Reactions you receive and new updates show as a number on this tab.",
     myPageTitle: "My page",
-    myPageBody: "Edit your profile and change the theme (light or dark) and language. Set up notifications, time zone and AI connection in “Settings”.",
+    myPageBody: "Edit your profile and change the theme (light or dark) and language. Set up notifications, time zone and AI connection (MCP) in “Settings”.",
   },
   ja: {
     replayRow: "使い方をもう一度見る",
@@ -99,6 +99,6 @@ export const tutorial = defineMessages({
     socialTitle: "ソーシャル",
     socialBody: "友だちを探してフォローし、友だちが終えたことに絵文字でリアクションします。もらったリアクションや新しいお知らせは、このタブに数字で出ます。",
     myPageTitle: "マイページ",
-    myPageBody: "プロフィールを直し、画面（ライト・ダーク）と言語を変えます。通知・タイムゾーン・AI連携は「設定」で整えます。",
+    myPageBody: "プロフィールを直し、画面（ライト・ダーク）と言語を変えます。通知・タイムゾーン・AI連携（MCP）は「設定」で整えます。",
   },
 });
