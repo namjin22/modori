@@ -40,6 +40,8 @@ export function ApiTokenManager({ tokens }: { tokens: ApiTokenItem[] }) {
         <ol className="flex list-decimal flex-col gap-1.5 pl-5 text-sm leading-relaxed">
           <li>{t("howStep1")}</li>
           <li>{t("howStep2")}</li>
+          <li>{t("howStep3")}</li>
+          <li>{t("howStep4")}</li>
         </ol>
         <CopyField label={t("serverUrl")} value={serverUrl} />
         <p className="text-xs leading-relaxed text-muted">{t("howNote")}</p>
