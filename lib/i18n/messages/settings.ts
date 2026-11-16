@@ -99,7 +99,6 @@ export const settings = defineMessages({
     accountNavLabel: "계정과 약관",
     preferencesTitle: "설정",
     preferencesRow: "설정",
-    preferencesHint: "화면·알림·친구·시간대",
     friendsSection: "친구",
   },
   en: {
@@ -199,7 +198,6 @@ export const settings = defineMessages({
     accountNavLabel: "Account and terms",
     preferencesTitle: "Settings",
     preferencesRow: "Settings",
-    preferencesHint: "Display, notifications, friends, time zone",
     friendsSection: "Friends",
   },
   ja: {
@@ -299,7 +297,6 @@ export const settings = defineMessages({
     accountNavLabel: "アカウントと規約",
     preferencesTitle: "設定",
     preferencesRow: "設定",
-    preferencesHint: "画面・通知・友だち・タイムゾーン",
     friendsSection: "友だち",
   },
 });

@@ -76,17 +76,15 @@ export default async function SettingsPage() {
 
       {/* 화면·알림·친구·시간대·앱 설정은 한 페이지로 모았다(2026-10-31 요청: 마이페이지가 너무 복잡했다). 여기에는 그리로 가는 줄만 둔다.
           줄 높이를 줄였다(2026-11-02 요청: 버튼이 투박하다). 톱니 그림과 누를 때 바뀌는 바탕색은 뺐다(같은 날 요청: 눌렀을 때 색이 달라져 이상하다).
-          키보드 포커스 선은 카드 안쪽에 붙여, 카드 안에 또 다른 버튼이 있는 것처럼 보이지 않게 한다. */}
+          키보드 포커스 선은 카드 안쪽에 붙여, 카드 안에 또 다른 버튼이 있는 것처럼 보이지 않게 한다.
+          밑에 붙어 있던 회색 설명 글("화면·알림·친구·시간대")은 뺐다(2026-11-16 요청). */}
       <section className="rounded-2xl bg-surface">
         <Link
           prefetch={false}
           href="/settings/preferences"
           className="flex items-center gap-4 rounded-2xl px-5 py-4 focus-visible:outline-offset-[-2px]"
         >
-          <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-            <span className="text-[15px] font-semibold">{t("preferencesRow")}</span>
-            <span className="truncate text-[13px] text-muted">{t("preferencesHint")}</span>
-          </span>
+          <span className="min-w-0 flex-1 text-[15px] font-semibold">{t("preferencesRow")}</span>
           <svg
             aria-hidden
             width={16}
