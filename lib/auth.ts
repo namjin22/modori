@@ -8,6 +8,7 @@ import Google from "next-auth/providers/google";
 import type { OAuthConfig } from "next-auth/providers";
 
 import { appleClientSecret } from "@/lib/apple-secret";
+import { callbackUrlCookies } from "@/lib/auth-cookies";
 import { withoutIdToken } from "@/lib/datagsm-token";
 import { prisma } from "@/lib/prisma";
 import { generateSignedSessionToken } from "@/lib/signed-session-token";
@@ -233,6 +234,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   // 오류도 로그인 화면에서 받는다. 기본 오류 화면은 영어로 "Server error"만 뜬다.
   // /login은 로그인을 요구하지 않으므로 되돌기 고리가 생기지 않는다.
   pages: { signIn: "/login", error: "/login" },
+  // Apple 로그인은 결과를 POST로 돌려보내 돌아갈 주소 쿠키가 사라진다. 운영에서만 그 쿠키를 SameSite=None으로 둔다(lib/auth-cookies.ts).
+  cookies: callbackUrlCookies(!isMockAuth && process.env.NODE_ENV === "production"),
   callbacks: {
     session({ session, user, token }) {
       // DB 전략은 user, JWT 전략은 token으로 들어온다.

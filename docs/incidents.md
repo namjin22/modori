@@ -228,3 +228,14 @@
 - **원인**: 의존성을 정확한 버전으로 고정해 두어(`next` 16.3.8) 자동으로 올라가지 않았고, 정기 `npm audit` 점검이 없었다.
 - **조치**: `next`·`eslint-config-next`를 16.4.6으로 올리고 `npm audit fix`로 나머지를 고쳤다. `npm audit --omit=dev` 결과 0건. 전체 검증 통과(단위 430개 ×3개 시간대, E2E 291개).
 - **재발 방지**: 없음 — 정기 점검은 아직 자동이 아니다. 의존성을 바꿀 때 `npm audit --omit=dev`를 돌리는 것은 사람이 기억해야 하는 일이다. CI에 넣을지는 운영자에게 묻는다.
+
+### INC-20 iOS 앱에서 Apple로 로그인하면 앱으로 돌아오지 못하고 웹에 남는다 (2026-11-16 제보)
+
+- **영향**: 앱(iOS, 데스크톱)에서 Apple로 로그인하는 모든 사람. Google·DataGSM은 영향이 없다(결과를 GET으로 돌려받는다). 웹에서 친구가 보낸 링크(`?next=`)로 들어와 Apple로 로그인한 사람도 원래 링크를 잃었다.
+- **발견**: 운영자가 아이폰 쓰는 친구 폰에서 새로 Apple로 가입해 보다가 겪었다.
+- **증상**: 앱에서 Apple 로그인을 누르면 웹 로그인 창이 열리고 Apple 로그인은 끝나는데, 앱으로 돌아오지 않고 그 웹 창에서 모도리 첫 가입(닉네임) 화면이 뜬다. 거기서 웹으로 계속 쓰게 된다. 시각은 적어 두지 못했다.
+- **원인**: Apple만 로그인 결과를 **POST(`response_mode=form_post`)**로 돌려보낸다. 다른 사이트에서 오는 POST에는 `SameSite=Lax` 쿠키가 실리지 않는다. Auth.js는 `state`·`nonce` 쿠키만 `SameSite=None`으로 바꾸고, 로그인 뒤 돌아갈 주소를 담은 `authjs.callback-url` 쿠키는 `Lax`로 둔다(`node_modules/@auth/core/lib/actions/signin/authorization-url.js`, `lib/utils/callback-url.js`). 그래서 돌아갈 주소(`/desktop/login?challenge=…&from=app-ios`)를 잃고 사이트 첫 화면(`/`)으로 갔고, 새 가입자는 거기서 `/onboarding`을 만났다. 이 앱 로그인 흐름은 Apple 로그인으로는 한 번도 끝까지 확인한 적이 없었다(Apple 계정을 우리가 쓸 수 없다).
+- **조치**: 운영(https)에서만 `callback-url` 쿠키를 `SameSite=None; Secure`로 둔다(`lib/auth-cookies.ts`, `lib/auth.ts`). 쿠키 이름은 Auth.js 기본(`__Secure-authjs.callback-url`)과 같다. 시험 서버(http)·개발 서버는 기본값 그대로다.
+- **확인한 것**: 단위 시험(`tests/unit/auth-cookies.test.ts`)이 실제 Auth.js가 만드는 `Set-Cookie`를 본다: 고치기 전에는 `state`만 `None`이고 돌아갈 주소 쿠키는 `Lax`, 고친 뒤에는 둘 다 `None; Secure`이고 값이 앱으로 돌아가는 주소다. Google도 같은 설정에서 정상으로 시작된다.
+- **못 한 것**: **실제 Apple 로그인과 iOS 앱에서는 확인하지 못했다.** 원인은 코드와 쿠키 규칙으로 설명되지만 운영에서 직접 재현하지 못했다. 배포 뒤 아이폰에서 새 계정으로 다시 확인해야 한다(Apple 계정은 연락이 안 되어 외부 테스팅으로만 가능). 다른 원인(예: 사파리가 `SameSite=None` 쿠키를 막는 경우)은 가능성이 낮다고 본다: `state` 쿠키가 이미 같은 방식으로 되고 있어 Apple 로그인 자체는 끝났다.
+- **재발 방지**: 위 단위 시험. 결과를 POST로 돌려보내는 로그인 제공자를 새로 더하면 같은 문제가 생기므로 그때 이 기록을 본다.
