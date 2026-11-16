@@ -30,6 +30,13 @@ async function shoot(page: Page, name: string) {
   await page.setViewportSize(viewport);
 }
 
+/** 창 크기 그대로 한 화면만 찍는다. 화면 위에 덮이는 안내(둘러보기)는 창을 늘리면 보이는 모습과 달라진다. */
+async function shootView(page: Page, name: string) {
+  await page.waitForLoadState("networkidle");
+  await page.evaluate(() => document.fonts.ready);
+  await page.screenshot({ path: path.join(OUT, `${name}.jpg`), type: "jpeg", quality: 80 });
+}
+
 /**
  * Google Play 스토어 등록정보용. 스토어는 9:16(또는 16:9)만 받아서 창을 늘리지 않고 화면 한 장 크기로 찍는다.
  * 1080×1920이 되도록 405×720에 배율 2.667을 준다. STORE_ASSETS=1일 때만 돈다.
@@ -139,17 +146,28 @@ for (const viewport of STORE || IOS ? [] : VIEWPORTS) {
       ["07-stats", "/stats"],
       ["08-mypage", "/settings"],
       ["17-ai-connection", "/settings/ai"],
-      ["18-tutorial-first", "/welcome?replay=1"],
     ];
     for (const [name, url] of screens) {
       await page.goto(url);
       await shoot(page, `${viewport.name}-${name}`);
     }
 
-    // 사용법 카드의 마지막 장(2026-11-16).
-    await page.goto("/welcome?replay=1");
-    for (let index = 0; index < 4; index += 1) await page.getByRole("button", { name: "다음" }).click();
-    await shoot(page, `${viewport.name}-19-tutorial-last`);
+    // 둘러보기(2026-11-16): 첫 안내, 달력을 짚은 단계, 할 일 줄을 짚은 단계. 구멍이 자리 잡는 움직임(0.3초)이 끝난 뒤 찍는다.
+    await page.goto("/?tour=1");
+    const tour = page.getByRole("dialog", { name: "모도리 둘러보기" });
+    await expect(tour).toBeVisible();
+    await shootView(page, `${viewport.name}-18-tour-intro`);
+    await tour.getByRole("button", { name: "시작하기" }).click();
+    await tour.getByRole("button", { name: "다음" }).click();
+    await expect(tour.getByRole("heading", { name: "달력", exact: true })).toBeVisible();
+    await page.waitForTimeout(600);
+    await shootView(page, `${viewport.name}-19-tour-calendar`);
+    while (!(await tour.getByRole("heading", { name: "할 일 줄", exact: true }).isVisible())) {
+      await tour.getByRole("button", { name: "다음" }).click();
+    }
+    await page.waitForTimeout(600);
+    await shootView(page, `${viewport.name}-20-tour-todo`);
+    await page.keyboard.press("Escape");
 
     // 할 일을 눌렀을 때 뜨는 창(메모, 다른 날에 하기).
     await page.goto("/");

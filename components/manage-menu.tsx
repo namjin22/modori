@@ -39,7 +39,7 @@ export function ManageMenu() {
     "flex h-12 w-full animate-menu-item items-center gap-3 rounded-xl px-3 text-left text-[15px] font-medium hover:bg-surface-hover focus-visible:bg-surface-hover";
 
   return (
-    <div ref={box} className="relative">
+    <div ref={box} data-tour="manage" className="relative">
       <button
         type="button"
         aria-label={t("manageMenu")}

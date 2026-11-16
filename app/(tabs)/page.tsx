@@ -1,5 +1,4 @@
 import { headers } from "next/headers";
-import { redirect } from "next/navigation";
 
 import { HomeView, type HomeData } from "@/components/home-view";
 import { avatarUrl } from "@/lib/avatar";
@@ -19,7 +18,7 @@ import { groupReceivedReactions } from "@/lib/reactions";
 import { ensureRoutineTodos, listRoutineRange } from "@/lib/routine-todos";
 import { isMockAuth } from "@/lib/auth";
 import { requireUser } from "@/lib/session";
-import { TUTORIAL_TEST_HEADER, shouldAutoShowTutorial } from "@/lib/tutorial";
+import { TUTORIAL_TEST_HEADER, shouldAutoShowTutorial, tourMode } from "@/lib/tutorial";
 
 function readDate(raw: string | undefined, today: Date): Date {
   if (!raw) return today;
@@ -74,14 +73,15 @@ const EVENT_ORDER = [
 export default async function FeedPage({
   searchParams,
 }: {
-  searchParams: Promise<{ date?: string; month?: string }>;
+  searchParams: Promise<{ date?: string; month?: string; tour?: string }>;
 }) {
   const user = await requireUser();
-  // 가입 뒤 처음 홈을 열면 사용법 카드를 한 번 보여 준다(2026-11-16). 끝내거나 건너뛰면 다시 오지 않는다.
-  if (shouldAutoShowTutorial({ tutorialSeenAt: user.tutorialSeenAt, mockAuth: isMockAuth, testHeader: (await headers()).get(TUTORIAL_TEST_HEADER) })) {
-    redirect("/welcome");
-  }
   const params = await searchParams;
+  // 가입 뒤 처음 홈을 열면 둘러보기를 화면 위에 한 번 띄운다(2026-11-16). 끝내거나 건너뛰면 다시 오지 않는다. 설정의 "사용법 다시 보기"는 ?tour=1.
+  const tour = tourMode({
+    auto: shouldAutoShowTutorial({ tutorialSeenAt: user.tutorialSeenAt, mockAuth: isMockAuth, testHeader: (await headers()).get(TUTORIAL_TEST_HEADER) }),
+    param: params.tour,
+  });
   const today = todayIn(user.timezone);
   const date = readDate(params.date, today);
   // 한 달 달력을 모든 화면 폭에서 늘 보인다. 예전 주소의 view=month는 무시한다.
@@ -169,6 +169,7 @@ export default async function FeedPage({
     // 보통 일정 다음에 반복 일정. 반복 일정은 끌어 기간을 바꾸거나 순서를 바꾸지 않는다(components/event-section.tsx).
     events: [...events, ...expandEventRoutines(eventRoutines, eventSkips, from, to)],
     upcoming,
+    tour,
   };
 
   return <HomeView data={data} />;

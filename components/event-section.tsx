@@ -87,7 +87,7 @@ export function EventSection({
   const todayDate = parseKSTDate(today);
 
   return (
-    <section ref={sectionRef} aria-label={t("section")} className="flex scroll-mt-4 flex-col gap-3">
+    <section ref={sectionRef} aria-label={t("section")} data-tour="events" className="flex scroll-mt-4 flex-col gap-3">
       <div className="flex items-center justify-between">
         <button
           type="button"

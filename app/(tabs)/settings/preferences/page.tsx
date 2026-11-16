@@ -93,8 +93,8 @@ export default async function PreferencesPage() {
           </span>
           <span className="shrink-0 text-sm text-muted">{tokenCount > 0 ? ta("linkCount", { count: tokenCount }) : ta("linkCreate")}</span>
         </Link>
-        {/* 처음 쓰는 사람용 사용법 카드를 언제든 다시 본다(2026-11-16). */}
-        <Link prefetch={false} href="/welcome?replay=1" className="-mx-2 flex items-center justify-between rounded-xl px-2 py-1 text-[15px]">
+        {/* 처음 쓰는 사람용 둘러보기(홈 화면 위 안내)를 언제든 다시 본다(2026-11-16). */}
+        <Link prefetch={false} href="/?tour=1" className="-mx-2 flex items-center justify-between rounded-xl px-2 py-1 text-[15px]">
           <span className="font-medium">{tt("replayRow")}</span>
           <span className="shrink-0 text-sm text-muted">{tt("replayGo")}</span>
         </Link>
