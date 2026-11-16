@@ -18,7 +18,8 @@ export const MAX_TOKEN_NAME_LENGTH = 40;
 /** 고를 수 있는 유효 기간(일). 영원히 살아 있는 토큰은 만들지 않는다. */
 export const API_TOKEN_EXPIRY_DAYS = [30, 90, 365] as const;
 
-export const API_TOKEN_SCOPES = ["READ", "WRITE"] as const;
+/** 권한: READ 읽기만 / WRITE 만들기·끝내기·옮기기·되돌리기 / FULL 거기에 고치기·지우기·카테고리·루틴·프로필·설정·친구·반응(2026-11-16). */
+export const API_TOKEN_SCOPES = ["READ", "WRITE", "FULL"] as const;
 export type ApiTokenScopeName = (typeof API_TOKEN_SCOPES)[number];
 
 const BEARER = new RegExp(`^[Bb]earer +(${API_TOKEN_PREFIX}[A-Za-z0-9_-]{${SECRET_LENGTH}})$`);

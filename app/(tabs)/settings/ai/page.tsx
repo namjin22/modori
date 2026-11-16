@@ -21,7 +21,7 @@ export default async function AiPage() {
   const tokens = await prisma.apiToken.findMany({
     where: { userId: user.id },
     orderBy: { createdAt: "desc" },
-    select: { id: true, name: true, scope: true, hint: true, expiresAt: true, lastUsedAt: true },
+    select: { id: true, name: true, scope: true, allowFriends: true, hint: true, expiresAt: true, lastUsedAt: true },
   });
   // 날짜는 내 시간대의 달력으로 적는다(CLAUDE.md 규칙 2).
   const day = (instant: Date) => formatKST(dateIn(instant, user.timezone));
@@ -40,6 +40,7 @@ export default async function AiPage() {
           id: token.id,
           name: token.name,
           scope: token.scope,
+          allowFriends: token.allowFriends,
           hint: token.hint,
           expiresOn: day(token.expiresAt),
           expired: !isTokenUsable(token),

@@ -19,6 +19,12 @@ const day = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD").describe("
 const time = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Use HH:MM (24-hour)").describe("Time as HH:MM (24-hour), the user's local time");
 const id = z.string().regex(/^[A-Za-z0-9_-]{1,64}$/, "Invalid id");
 
+// 모든 권한 도구의 입력(inputs-full.ts)도 같은 칸 모양을 쓴다.
+export const dayInput = day;
+export const timeInput = time;
+export const idInput = id;
+export const hexColorInput = z.string().regex(/^#[0-9a-fA-F]{6}$/, "Use #rrggbb").describe("#rrggbb");
+
 export const listTodosInput = {
   from: day.describe("First day to list, YYYY-MM-DD"),
   to: day.optional().describe(`Last day to list, YYYY-MM-DD. Defaults to 'from'. At most ${MCP_LIMITS.listDays} days after 'from'.`),

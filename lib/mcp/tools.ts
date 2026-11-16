@@ -2,72 +2,39 @@ import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 
 import { DEFAULT_EVENT_COLOR } from "@/lib/colors";
-import { daysBetween, formatKST, isSameKSTDate, parseKSTDate, todayIn } from "@/lib/date";
+import { daysBetween, isSameKSTDate, parseKSTDate, todayIn } from "@/lib/date";
 import { firstOverfullDay } from "@/lib/event-limit";
 import { formatTime, parseTime } from "@/lib/event-time";
 import { notifyFollowersOfDone } from "@/lib/friend-done";
 import { LIMITS } from "@/lib/limits";
 import { MCP_LIMITS } from "@/lib/mcp/inputs";
+import {
+  BULK_TRANSACTION,
+  MAX_DAYS_FROM_TODAY,
+  MAX_EVENT_SPAN_DAYS,
+  dayText,
+  fail,
+  ok,
+  parseDay,
+  pruneBatches,
+  writeLimited,
+  type McpContext,
+  type ToolResult,
+} from "@/lib/mcp/shared";
+import { snapshotSchema } from "@/lib/mcp/snapshot";
+import { restoreSnapshot } from "@/lib/mcp/undo";
 import { prisma } from "@/lib/prisma";
-import { take, type RateRule } from "@/lib/rate-limit";
 
 /**
- * MCP 도구가 하는 일. 서버 액션(app/(tabs)/actions.ts, events/actions.ts)과 같은 규칙(소유자 확인, 하루 상한, 날짜 범위, 시각 검사)을 따른다.
- * 서버 액션은 로그인 세션에 묶여 있어 그대로 부를 수 없어서 여기에 다시 적었다. 규칙을 바꿀 때는 두 곳을 같이 본다(docs/mcp.md).
+ * MCP 핵심 도구(읽기, 만들기, 끝내기, 옮기기, 되돌리기)가 하는 일. 서버 액션(app/(tabs)/actions.ts, events/actions.ts)과 같은 규칙(소유자 확인, 하루 상한,
+ * 날짜 범위, 시각 검사)을 따른다. 서버 액션은 로그인 세션에 묶여 있어 그대로 부를 수 없어서 여기에 다시 적었다. 규칙을 바꿀 때는 두 곳을 같이 본다(docs/mcp.md).
+ * 고치기·지우기·카테고리·루틴은 edit-tools.ts·organize-tools.ts, 프로필·설정·친구·반응은 people-tools.ts에 있다. 공용은 shared.ts.
  *
  * 모든 질의에 userId를 건다. id는 AI가 넘기는 값이라 믿지 않는다. 오류는 던지지 않고 isError 결과로 돌려줘서 AI가 읽고 고치게 한다.
  */
-export type McpContext = { userId: string; nickname: string; timezone: string; tokenId: string };
 
-export type ToolResult = { content: { type: "text"; text: string }[]; isError?: boolean };
-
-function ok(data: unknown): ToolResult {
-  return { content: [{ type: "text", text: JSON.stringify(data) }] };
-}
-
-function fail(error: string, extra: Record<string, unknown> = {}): ToolResult {
-  return { isError: true, content: [{ type: "text", text: JSON.stringify({ error, ...extra }) }] };
-}
-
-/** 바꾸는 도구(만들기·완료·옮기기·되돌리기)는 읽기보다 더 좁게 센다. 10번까지 한꺼번에, 이후 6초에 한 번. */
-const WRITE_RULE: RateRule = { capacity: 10, refillPerSecond: 1 / 6 };
-
-function writeLimited(ctx: McpContext): ToolResult | null {
-  const result = take(`mcp-write:${ctx.tokenId}`, WRITE_RULE);
-  return result.ok ? null : fail(`Too many changes in a short time. Retry in ${result.retryAfter} seconds.`);
-}
-
-/** 20개를 한 번에 만드는 트랜잭션은 질의가 스무 번을 넘는다. DB가 멀리 있어도(개발·시험) 기본 5초에 걸리지 않게 늘린다. */
-const BULK_TRANSACTION = { maxWait: 10_000, timeout: 20_000 } as const;
-
-/** 서버 액션(addTodo, moveTodo)과 같은 범위: 오늘에서 이만큼 안의 날만 받는다. */
-const MAX_DAYS_FROM_TODAY = 366;
-const MAX_EVENT_SPAN_DAYS = 366;
 /** 한 번에 완료해도 친구에게 보내는 "끝냈어요" 알림은 이만큼까지만 보낸다. AI가 수십 개를 한꺼번에 끝내도 친구 폰이 울리지 않게 한다. */
 const MAX_DONE_NOTIFICATIONS = 5;
-/** 묶음 기록은 이 기간만 둔다(되돌릴 수 있는 24시간보다 넉넉히). */
-const BATCH_KEEP_DAYS = 7;
-
-function parseDay(value: string): Date | null {
-  try {
-    return parseKSTDate(value);
-  } catch (error) {
-    // 2월 30일처럼 모양은 맞지만 없는 날은 호출한 AI에게 오류로 돌려준다(로그가 필요한 일이 아니다). 그 밖의 오류는 그대로 올린다.
-    if (error instanceof RangeError) return null;
-    throw error;
-  }
-}
-
-const dayText = (date: Date) => formatKST(date);
-
-/** 지난 묶음 기록을 치운다. 되돌리기에만 쓰는 id 목록이라 오래 둘 이유가 없다. 실패해도 만들기는 이미 끝났으니 기록만 남긴다. */
-async function pruneBatches(userId: string): Promise<void> {
-  try {
-    await prisma.mcpBatch.deleteMany({ where: { userId, createdAt: { lt: new Date(Date.now() - BATCH_KEEP_DAYS * 86_400_000) } } });
-  } catch (error) {
-    console.warn("[mcp] 지난 묶음 기록을 지우지 못했다.", error instanceof Error ? error.name : error);
-  }
-}
 
 export async function getOverview(ctx: McpContext): Promise<ToolResult> {
   const categories = await prisma.category.findMany({
@@ -78,6 +45,8 @@ export async function getOverview(ctx: McpContext): Promise<ToolResult> {
   return ok({
     today: dayText(todayIn(ctx.timezone)),
     timezone: ctx.timezone,
+    // 이 토큰으로 할 수 있는 일. 목록에 보이는 도구와 같은 뜻이다(READ 읽기만, WRITE 만들기·끝내기·옮기기, FULL 고치기·지우기·설정·친구까지).
+    access: { scope: ctx.scope, canReadFriends: ctx.allowFriends },
     categories: categories.map((category) => ({
       id: category.id,
       name: category.name,
@@ -417,6 +386,18 @@ export async function undoBatch(ctx: McpContext, input: { batchId: string }): Pr
     return fail(`This batch is older than ${MCP_LIMITS.undoHours} hours. Ask the user to delete the items in the app.`);
   }
 
+  // 지우거나 고치기 전의 모습을 담은 묶음은 그 모습으로 되돌린다(lib/mcp/undo.ts). 한 번 쓴 묶음은 지운다.
+  if (batch.snapshot !== null) {
+    const parsed = snapshotSchema.safeParse(batch.snapshot);
+    if (!parsed.success) {
+      console.error("[mcp] 되돌리기 기록의 모양이 올바르지 않다.", batch.id);
+      return fail("This batch record is damaged and cannot be undone. Ask the user to fix it in the app.");
+    }
+    const restored = await restoreSnapshot(ctx, parsed.data);
+    if (!restored.isError) await prisma.mcpBatch.deleteMany({ where: { id: batch.id, userId: ctx.userId } });
+    return restored;
+  }
+
   // 사용자가 그 사이 끝낸 할 일은 사용자가 손댄 것이라 지우지 않는다.
   const [todos, events] = await prisma.$transaction([
     prisma.todo.deleteMany({ where: { id: { in: batch.todoIds }, userId: ctx.userId, done: false } }),
@@ -427,7 +408,3 @@ export async function undoBatch(ctx: McpContext, input: { batchId: string }): Pr
 
   return ok({ deletedTodos: todos.count, deletedEvents: events.count, keptBecauseDone: batch.todoIds.length - todos.count });
 }
-
-/** 시험과 문서가 쓰는 도구 이름 목록. 읽기 도구는 읽기·쓰기 토큰 모두, 쓰기 도구는 쓰기 토큰만 쓴다. */
-export const READ_TOOLS = ["get_overview", "list_todos", "list_events"] as const;
-export const WRITE_TOOLS = ["create_todos", "complete_todos", "move_todos", "create_events", "undo_batch"] as const;

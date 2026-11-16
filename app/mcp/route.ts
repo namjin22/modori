@@ -13,7 +13,7 @@ function problem(status: number, message: string, extra: Record<string, string> 
 }
 
 /**
- * 모도리의 MCP 서버(2026-11-15, docs/decisions.md "MCP", docs/mcp.md). 외부 AI가 접근 토큰으로 할 일·일정을 한꺼번에 읽고 쓴다.
+ * 모도리의 MCP 서버(2026-11-15, docs/decisions.md "MCP", docs/mcp.md). 외부 AI가 접근 토큰으로 할 일·일정을 한꺼번에 읽고 쓰고(모든 권한 토큰은 지우기·고치기·카테고리·루틴·프로필·설정·친구·반응까지, 2026-11-16) 친구의 공개 정보는 허락한 토큰만 읽는다.
  * 세션을 두지 않는(stateless) JSON 응답 방식이라 POST만 받는다. 모도리가 AI를 돌리는 것이 아니라 사용자가 고른 외부 AI가 부르는 문이다.
  */
 export async function POST(request: Request): Promise<Response> {
@@ -25,7 +25,7 @@ export async function POST(request: Request): Promise<Response> {
     });
   }
 
-  const server = createMcpServer(auth.ctx, auth.scope);
+  const server = createMcpServer(auth.ctx);
   const transport = new WebStandardStreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true, maxRequestBodySize: MAX_BODY_BYTES });
   try {
     await server.connect(transport);
