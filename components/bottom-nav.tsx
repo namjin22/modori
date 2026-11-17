@@ -26,7 +26,7 @@ const TABS = [
     href: "/",
     label: "feed",
     Icon: TodayIcon,
-    isActive: (path: string) => FEED_PATHS.includes(path),
+    isActive: (path: string) => FEED_PATHS.includes(path) || path === "/diary" || path.startsWith("/diary/"),
   },
   {
     href: "/feed",

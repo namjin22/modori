@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { homeReady } from "./todo-helpers";
 import { RUN_TAG } from "./run-tag";
 
-// 작업표시줄·Dock 아이콘의 알림 숫자는 "이 기기에서 알림 띄우기" 스위치를 따른다(2026-10-28 제보: 알림을 껐는데 아이콘 숫자가 그대로였다).
+// 작업표시줄·Dock 아이콘의 알림 숫자는 "친구가 할 일을 끝내면 알림" 스위치(이 컴퓨터의 알림도 같이 켜고 끈다, 2026-11-17)를 따른다(2026-10-28 제보: 알림을 껐는데 아이콘 숫자가 그대로였다).
 // 데스크톱 앱이 넘겨받는 window.modoriDesktop.setBadge를 가짜로 두고, 불린 숫자를 센다.
 const ME = `e2e-iconbadge-me-${RUN_TAG}@modori.test`;
 const FRIEND = `e2e-iconbadge-friend-${RUN_TAG}@modori.test`;
@@ -70,7 +70,7 @@ test("이 기기에서 알림을 끄면 아이콘 숫자가 없어지고 켜면 
   // 스위치는 소셜의 알림 화면에 있다(설정에서는 뺐다, 2026-11-16 요청). 그 화면을 열면 알림을 읽은 것으로 쳐서 안 읽은 알림이 0이 되므로,
   // 켠 뒤와 끈 뒤에 새 팔로워를 하나씩 더해 "안 읽은 알림 1개"를 만들고 홈 쪽 탭에서 아이콘 숫자를 본다.
   await page.goto("/feed/reactions");
-  const toggle = page.getByRole("checkbox", { name: /이 기기에서 알림 띄우기/ });
+  const toggle = page.getByRole("checkbox", { name: /친구가 할 일을 끝내면 알림/ });
   await toggle.check();
   await expect(toggle).toBeChecked();
   const second = await prisma.user.create({ data: { email: SECOND, nickname: `아둘${RUN_TAG}`, privacyAgreedAt: new Date() } });

@@ -24,6 +24,7 @@ import { LockedProfile } from "@/components/locked-profile";
 import { SubmitButton } from "@/components/submit-button";
 import { followUser, unfollowUser } from "../../actions";
 import { avatarUrl } from "@/lib/avatar";
+import { diary } from "@/lib/i18n/messages/diary";
 import { social } from "@/lib/i18n/messages/social";
 import { getLocale, getT } from "@/lib/i18n/server";
 
@@ -65,6 +66,7 @@ export default async function FriendDayPage({
 }) {
   const viewer = await requireUser();
   const t = await getT(social);
+  const td = await getT(diary);
   const locale = await getLocale();
   const { id } = await params;
   const query = await searchParams;
@@ -101,6 +103,8 @@ export default async function FriendDayPage({
         select: {
           following: { where: { following: { nickname: { not: null } } } },
           followers: { where: { follower: { nickname: { not: null } } } },
+          // 친구가 공개로 켠 일기 수(2026-11-17). 있을 때만 일기 화면으로 가는 링크를 보인다.
+          diaryEntries: { where: { isPublic: true } },
         },
       },
     },
@@ -209,6 +213,11 @@ export default async function FriendDayPage({
               <Link prefetch={false} href={`${basePath}/followers`} className="whitespace-nowrap hover:text-foreground">
                 {t("followersTitle")} <b className="font-semibold text-foreground">{friend._count.followers}</b>
               </Link>
+              {friend._count.diaryEntries > 0 && (
+                <Link prefetch={false} href={`${basePath}/diary`} className="whitespace-nowrap hover:text-foreground">
+                  {td("friendLink", { count: friend._count.diaryEntries })}
+                </Link>
+              )}
               {/* 이미 팔로우한 사람이라 여기서 바로 끊을 수 있다. 끊으면 이 화면이 팔로우 안내로 바뀐다. */}
               <form action={unfollowUser}>
                 <input type="hidden" name="targetId" value={friend.id} />

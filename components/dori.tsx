@@ -171,6 +171,20 @@ const NoseMouth = () => (
   </>
 );
 
+/**
+ * 기본(happy) 표정: 더 웃는 얼굴(2026-11-17 요청). ω 입의 끝을 올려 넓히고 볼에 연한 홍조를 둔다. 눈은 그대로다.
+ * 입만 키웠을 때는 24~48px에서 차이가 거의 안 보여 홍조를 더했다. 다른 표정의 입(NoseMouth)은 그대로다.
+ * 홍조는 수염(왼쪽 x≈10~30)과 겹치지 않는 자리다.
+ */
+const SmileMouth = () => (
+  <>
+    <ellipse cx={33} cy={75} rx={5.2} ry={3} fill={DORI_PINK} opacity={0.55} />
+    <ellipse cx={87} cy={75} rx={5.2} ry={3} fill={DORI_PINK} opacity={0.55} />
+    <Nose />
+    <DoriStroke d="M60 74.2 q-1.6 5.8 -9.4 2.2 M60 74.2 q1.6 5.8 9.4 2.2" width={2.6} />
+  </>
+);
+
 function DoriOpenMouth() {
   return (
     <>
@@ -258,7 +272,7 @@ const LOOKS: Record<
       <>
         <BigEye x={42} />
         <BigEye x={78} />
-        <NoseMouth />
+        <SmileMouth />
       </>
     ),
   },

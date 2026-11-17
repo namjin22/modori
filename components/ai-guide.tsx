@@ -76,7 +76,7 @@ export async function AiHelp() {
 
       <Topic title={t("cannotTitle")}>
         <ul className={list}>
-          {(["cannot1", "cannot2", "cannot3"] as const).map((key) => (
+          {(["cannot1", "cannot2", "cannot3", "cannot4"] as const).map((key) => (
             <li key={key}>{t(key)}</li>
           ))}
         </ul>

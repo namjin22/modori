@@ -55,12 +55,15 @@ test("웹 푸시를 못 쓰는 브라우저에서 켜 두고 알림 화면에 �
 
   await page.goto("/feed/reactions");
   const me = await prisma.user.findUniqueOrThrow({ where: { email: ME } });
-  const toggle = page.getByRole("checkbox", { name: /이 기기에서 알림 띄우기/ });
+  const toggle = page.getByRole("checkbox", { name: /친구가 할 일을 끝내면 알림/ });
+  // 서버의 알림 설정은 기본으로 켜져 있어도, 이 컴퓨터의 알림이 꺼져 있으면 스위치는 꺼진 것으로 보인다(스위치 하나로 합쳤다, 2026-11-17).
+  await expect(toggle).not.toBeChecked();
   // 켜자마자 한 번 물어 기준 시각을 잡는다. 그 뒤에 생긴 일만 띄운다.
   const baseline = page.waitForResponse((response) => response.url().includes("/api/notifications/unread?detail=1"));
   await toggle.check();
   await expect(toggle).toBeChecked();
   await baseline;
+  expect((await prisma.user.findUniqueOrThrow({ where: { id: me.id } })).notifyFriendDone).toBe(true);
   // 다른 계정이 같은 브라우저로 로그인하면 꺼진 것으로 보도록 계정 id를 같이 적는다.
   expect(await page.evaluate(() => localStorage.getItem("modori-desktop-notify"))).toBe(`on:${me.id}`);
 

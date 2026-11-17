@@ -62,8 +62,8 @@ export default async function PreferencesPage() {
         <h2 className="text-sm font-semibold text-muted">{t("notifications")}</h2>
         {/* 오늘 일정 알림은 앱 푸시로만 보낸다(웹 푸시로는 보내지 않는다, CLAUDE.md 규칙 7). 앱에서만 보인다. */}
         {mobileApp && <EventDigestSetting minute={notify.eventDigestMinute} hasDevice={devices > 0} />}
-        <FriendDoneSwitch on={notify.notifyFriendDone} />
-        {/* "이 기기에서 알림 띄우기"는 설정에서 뺐다(2026-11-16 요청: 알림 설정은 하나면 된다). 소셜의 알림 화면(app/(tabs)/feed/reactions/page.tsx)에 그대로 있다. */}
+        {/* 알림 스위치는 하나다(2026-11-17). 컴퓨터에서는 이 스위치가 이 컴퓨터의 알림도 같이 켜고 끈다. */}
+        <FriendDoneSwitch on={notify.notifyFriendDone} userId={user.id} />
         {/* 정한 시각·문구로 오는 푸시(2026-10-26 요청). 앱·컴퓨터 모두에서 만든다. */}
         <Link prefetch={false} href="/settings/alarms" className="-mx-2 flex items-center justify-between rounded-xl px-2 py-1 text-[15px]">
           <span className="flex flex-col gap-0.5">
