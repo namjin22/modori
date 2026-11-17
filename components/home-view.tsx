@@ -193,7 +193,7 @@ export function HomeView({ data }: { data: HomeData }) {
                   {t("backToToday")}
                 </Link>
               )}
-              {/* 카테고리·일정·루틴은 메뉴 하나로 묶는다(2026-10-19 요청). 기록은 따로 둔다. */}
+              {/* 카테고리·일정·루틴은 메뉴 하나로 묶는다(2026-10-19 요청). 기록은 마이페이지로 옮겼다(2026-11-17 요청). */}
               {/* AI 도우미(2026-11-17): 목표를 말하면 할 일·일정을 제안하는 대화 화면. */}
               {data.aiReady && (
                 <Link
@@ -213,14 +213,6 @@ export function HomeView({ data }: { data: HomeData }) {
                 {t("diary")}
               </Link>
               <ManageMenu />
-              <Link
-                prefetch={false}
-                href="/stats"
-                data-tour="stats"
-                className="flex h-8 items-center rounded-full bg-surface px-3 text-sm text-muted hover:text-foreground min-[360px]:px-3.5"
-              >
-                {t("stats")}
-              </Link>
             </nav>
 
             <EventSection events={dayEvents} upcoming={upcoming} date={selected} today={data.today} />

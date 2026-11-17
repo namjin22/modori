@@ -77,7 +77,7 @@ export default async function StatsPage({
   return (
     <div className="flex flex-col gap-6">
       <header className="flex items-center gap-1">
-        <BackLink href="/" label={t("toFeed")} />
+        <BackLink href="/settings" label={t("toMyPage")} />
         <h1 className="text-2xl font-bold">{t("title")}</h1>
       </header>
 

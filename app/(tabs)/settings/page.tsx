@@ -38,9 +38,22 @@ export default async function SettingsPage() {
           prefetch={false}
           href="/settings/preferences"
           aria-label={t("preferencesRow")}
-          className="-mr-2 flex size-10 shrink-0 items-center justify-center rounded-full text-foreground"
+          // 호버·눌림 애니메이션(2026-11-17 요청: 너무 재미없다): 톱니가 올리면 한 칸 돌아 튀어 오르고, 누르면 줄어들며 반 바퀴 더 돈다.
+          // 바탕색은 그대로다(11-02 요청). 움직임을 줄인 기기(prefers-reduced-motion)에서는 돌지 않는다.
+          className="group -mr-2 flex size-10 shrink-0 items-center justify-center rounded-full text-foreground transition-transform duration-200 active:scale-90"
         >
-          <svg aria-hidden width={24} height={24} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+          <svg
+            aria-hidden
+            width={24}
+            height={24}
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={2}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="transition-transform duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] group-hover:rotate-90 group-focus-visible:rotate-90 group-active:rotate-180 motion-reduce:transition-none motion-reduce:group-hover:rotate-0 motion-reduce:group-active:rotate-0"
+          >
             <circle cx={12} cy={12} r={7} />
             <circle cx={12} cy={12} r={2.8} />
             <path d="M19 12 L21.5 12 M16.95 16.95 L18.72 18.72 M12 19 L12 21.5 M7.05 16.95 L5.28 18.72 M5 12 L2.5 12 M7.05 7.05 L5.28 5.28 M12 5 L12 2.5 M16.95 7.05 L18.72 5.28" />
@@ -105,6 +118,23 @@ export default async function SettingsPage() {
           <LanguageSelect />
         </div>
       </section>
+
+      {/* 기록(달마다 끝낸 일)은 홈의 알약 버튼에서 마이페이지로 옮겼다(2026-11-17 요청). 화면·언어 칸 바로 아래에 둔다. */}
+      <Link
+        prefetch={false}
+        href="/stats"
+        className="flex items-center gap-4 rounded-2xl bg-surface p-6 transition-colors hover:bg-surface-hover active:scale-[0.99]"
+      >
+        <span aria-hidden className="flex size-10 items-center justify-center rounded-xl bg-surface-hover">
+          <svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+            <path d="M5 20 V12 M12 20 V5 M19 20 V9" />
+          </svg>
+        </span>
+        <span className="flex-1 text-[15px] font-medium">{t("statsRow")}</span>
+        <svg aria-hidden width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" className="text-muted">
+          <path d="M9 5 L16 12 L9 19" />
+        </svg>
+      </Link>
 
       <LogoutButton />
 

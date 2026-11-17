@@ -41,6 +41,9 @@ test("기록 화면이 이번 달 성취를 보여준다", async ({ page, email 
     .click();
   await expect(page.getByText("2개 중 1개 완료")).toBeVisible();
 
+  // 기록은 홈의 알약 버튼이 아니라 마이페이지의 언어 칸 밑에서 연다(2026-11-17 요청).
+  await expect(page.getByRole("link", { name: "기록", exact: true })).toHaveCount(0);
+  await page.goto("/settings");
   await page.getByRole("link", { name: "기록", exact: true }).click();
   await expect(page).toHaveURL(/\/stats$/);
 

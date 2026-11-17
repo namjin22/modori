@@ -19,7 +19,7 @@ import { nav } from "@/lib/i18n/messages/nav";
 import { safePushPath } from "@/lib/push-client";
 
 // 카테고리와 루틴은 할 일을 적다 손보는 화면이라 피드 탭에 속한다.
-const FEED_PATHS = ["/", "/categories", "/routines", "/stats", "/ai"];
+const FEED_PATHS = ["/", "/categories", "/routines", "/ai"];
 
 const TABS = [
   {
@@ -38,7 +38,8 @@ const TABS = [
     href: "/settings",
     label: "myPage",
     Icon: MyPageIcon,
-    isActive: (path: string) => path.startsWith("/settings"),
+    // 기록(월별 통계)은 마이페이지 안에서 들어가는 화면이다(2026-11-17).
+    isActive: (path: string) => path.startsWith("/settings") || path === "/stats",
   },
 ] as const;
 
