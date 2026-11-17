@@ -186,8 +186,8 @@ test("한 번 부르면 전부 되거나 하나도 안 된다", async ({ request
 
   // 진짜 날짜가 아니다(형식은 맞다).
   expect((await call(request, token, "create_todos", { todos: [{ content: "2월 30일", date: "2026-02-30" }] })).failed).toBe(true);
-  // 오늘에서 366일을 넘는다.
-  expect((await call(request, token, "create_todos", { todos: [{ content: "먼 훗날", date: day(400) }] })).failed).toBe(true);
+  // 오늘에서 10년(3650일)을 넘는다(2026-11-17에 366일에서 넓혔다).
+  expect((await call(request, token, "create_todos", { todos: [{ content: "먼 훗날", date: day(3651) }] })).failed).toBe(true);
   // 20개를 넘는다.
   expect((await call(request, token, "create_todos", { todos: Array.from({ length: 21 }, (_, index) => ({ content: `일 ${index}`, date: TODAY })) })).failed).toBe(true);
 
@@ -388,6 +388,29 @@ test("만료 없는 토큰은 막히지 않고, 설정에서 만료 없음으로
   } finally {
     await prisma.user.deleteMany({ where: { email } });
   }
+});
+
+test("1년을 넘는 먼 날짜의 할 일도 10년 안이면 만들고 옮길 수 있다", async ({ request, account }) => {
+  const { token } = await makeToken(account.id, "WRITE");
+  const overview = await call(request, token, "get_overview", {});
+  expect((overview.data.limits as { maxDaysFromToday: number }).maxDaysFromToday).toBe(3650);
+
+  // 앞날도 지난날도 10년까지(366일에 막혀 있다고 AI가 사용자에게 말하던 문제의 재발 방지).
+  const made = await call(request, token, "create_todos", {
+    todos: [
+      { content: "내년 이맘때", date: day(400) },
+      { content: "5년 뒤", date: day(1826) },
+      { content: "딱 10년 뒤", date: day(3650) },
+      { content: "2년 전", date: day(-730) },
+    ],
+  });
+  expect(made.failed).toBe(false);
+  expect(await prisma.todo.count({ where: { userId: account.id } })).toBe(4);
+
+  // 옮기기도 같은 범위다.
+  const target = await seedTodo(account.id, TODAY, "옮길 할 일");
+  expect((await call(request, token, "move_todos", { ids: [target.id], date: day(3650) })).failed).toBe(false);
+  expect((await call(request, token, "move_todos", { ids: [target.id], date: day(3651) })).failed).toBe(true);
 });
 
 test("토큰마다 바꾸는 요청의 속도를 제한한다", async ({ request, account }) => {

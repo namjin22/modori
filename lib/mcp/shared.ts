@@ -1,4 +1,5 @@
 import { parseKSTDate, formatKST, daysBetween } from "@/lib/date";
+import { LIMITS } from "@/lib/limits";
 import { MCP_LIMITS } from "@/lib/mcp/inputs";
 import { prisma } from "@/lib/prisma";
 import { take, type RateRule } from "@/lib/rate-limit";
@@ -54,8 +55,8 @@ export function socialLimited(ctx: McpContext): ToolResult | null {
 /** 20개를 한 번에 만드는 트랜잭션은 질의가 스무 번을 넘는다. DB가 멀리 있어도(개발·시험) 기본 5초에 걸리지 않게 늘린다. */
 export const BULK_TRANSACTION = { maxWait: 10_000, timeout: 20_000 } as const;
 
-/** 서버 액션(addTodo, moveTodo)과 같은 범위: 오늘에서 이만큼 안의 날만 받는다. */
-export const MAX_DAYS_FROM_TODAY = 366;
+/** 서버 액션(addTodo, moveTodo)과 같은 범위(lib/limits.ts): 오늘에서 이만큼 안의 날만 받는다. */
+export const MAX_DAYS_FROM_TODAY = LIMITS.todoDays;
 export const MAX_EVENT_SPAN_DAYS = 366;
 
 /** 묶음 기록은 이 기간만 둔다(되돌릴 수 있는 24시간보다 넉넉히). */
