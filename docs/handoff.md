@@ -1879,3 +1879,14 @@ VM에 시험 DB(사용자 1000, 할 일 108만, 반응 24만, 280MB)를 만들�
 - **CI 메모**: #260 병합분 main verify가 `home-month.spec.ts:179`("서버 응답이 늦어도…", `[aria-busy=true]`가 10초 넘게 남음)로 두 번 실패했다. 같은 시각에 PR CI와 로컬 E2E가 같은 DB를 쓰고 있었고 서버 로그에 다른 실행이 지운 행을 참조하는 외래키 오류가 있었다. 단독으로 돌리면 통과했다. 이번엔 `gh run rerun --failed`로 다시 돌렸다. 또 나면 그 시험을 따로 본다. `admin-users.spec.ts:64`도 가입 버튼이 "확인 중"에서 10초를 넘겨 한 번 실패했다(원격 DB가 느린 순간, 다시 돌리니 통과).
 - **이 PC에서 작업할 때(중요)**: 메모리가 바닥나면 셸이 먹통이 된다(`fork: Resource temporarily unavailable`, Node `heap out of memory`, 11-16 노트북이 먹통이 되어 재시작했다). **빌드·E2E·큰 프로세스는 한 번에 하나만** 돌리고, E2E는 `--workers=1`로 한다. `npx`는 내부에서 프로세스를 여럿 띄워 먼저 죽으니 `node node_modules/@playwright/test/cli.js test …`, `node node_modules/vitest/vitest.mjs run …`처럼 직접 부른다(vitest는 작업 폴더를 대문자 `C:`로). 로컬 E2E와 CI는 같은 Neon DB를 쓰므로 CI가 도는 동안에는 로컬 E2E를 돌리지 않는다.
 - **아직 결정 필요(만들지 않음)**: 앱 안 AI 채팅 페이지(CLAUDE.md 규칙 7을 바꾸는 일), 설정 버튼 UI 재배치(어느 버튼·어떤 모양인지). `docs/feedback.md`에 적어 두었다.
+
+## 2026-11-17 — 접근 토큰 만료 없음, 쓰기 토큰 메모 달기, 검증 없이 배포 (브랜치 `feat/token-no-expiry`)
+
+운영자 요청 둘(`docs/decisions.md` "AI 연결 접근 토큰에 만료 없음을 더한다", "쓰기 토큰도 이미 있는 할 일에 메모를 달 수 있게 한다") + "CI 기다리지 말고 바로 배포해 달라"는 지시.
+
+- **만료 없음**: `ApiToken.expiresAt`이 `DateTime?`(마이그레이션 `20261117110000_api_token_no_expiry`, NOT NULL만 풀었다). 비어 있으면 만료 없음. 코드: `lib/api-token.ts`(`NO_EXPIRY`, `readTokenExpiry`, `isTokenUsable`), `app/(tabs)/settings/ai/actions.ts`, `components/api-token-manager.tsx`(고르면 경고, 모든 권한이면 한 줄 더), 글 `lib/i18n/messages/ai.ts`. 방침·개인정보 목록·`docs/mcp.md`도 고쳤다. **내가 권한 길(모든 권한만 365일 유지)과 다르다**: 위험 조합을 막으려면 `createApiToken`에서 권한이 FULL일 때만 `NO_EXPIRY`를 거절하면 된다.
+- **메모**: 새 할 일을 만들 때의 메모는 원래 됐다(`create_todos.memo`). 이미 있는 할 일에 메모를 다는 길이 `update_todos`(모든 권한)뿐이라 읽기·쓰기 토큰의 AI는 못 했다 → 쓰기 토큰에 `add_todo_memos`(`lib/mcp/edit-tools.ts`, 입력 `lib/mcp/inputs.ts`, 등록 `lib/mcp/server.ts`). 기본은 덧붙이기(`replace: true`면 교체), AI가 쓴 메모는 비공개, `update_todos`와 같은 snapshot이라 `undo_batch`로 되돌린다. **일정 메모는 그대로 모든 권한만**이다.
+- **시험을 건드린 곳**: 도구 목록을 정확히 비교하던 `mcp.spec.ts`("쓰기 토큰" 시험)와 `mcp-full.spec.ts`(`WRITE` 상수)에 `add_todo_memos`를 더했다(사양 변경). 단위 "상한" 시험은 제목만 바꿨다. 새 시험: `tests/unit/api-token.test.ts`, `tests/unit/mcp-inputs.test.ts`, `mcp.spec.ts`의 메모 달기·남의 할 일·만료 없음 시험 셋.
+- **검증(로컬)**: 타입 검사·린트·단위 시험(시간대 3개, 파일 59개·시험 522개) 통과, E2E `mcp.spec`+`mcp-full.spec` 33개 통과(워커 1개). **전체 `npm run verify`는 돌리지 않았다.** 운영자가 "CI 기다리지 말고 바로 배포"를 지시해서 CI 결과가 나오기 전에 `deploy-gsmsv`를 손으로 돌렸다(`deploy/README.md` "급한 배포"). 배포 뒤 main의 `verify` 결과를 확인할 것 — 실패하면 아래 "알아 둘 것"을 보고 고친다.
+- **알아 둘 것**: ① 이 브랜치는 `origin/main`에서 따서 두 커밋(만료 없음, 메모)만 옮겼다. 작업 폴더의 `feat/ai-chat`에는 AI 도우미(E2E 아직 안 돌림)가 미커밋으로 있고 **이번 배포에 들어가지 않았다**. ② 배포 직전 돌고 있던 main CI(#261 병합분)는 옛 커밋을 자동 배포해 이번 배포를 덮어쓸 수 있어 취소했다. ③ 로컬 E2E와 CI는 같은 DB를 쓰므로 위 로컬 E2E는 main CI가 도는 중에 돌렸다(통과했지만 서로 영향을 줬을 수 있다).
+- **못 한 것**: 실제 Claude Code에 "할 일에 메모 입력해 줘"를 시켜 보기(도구 입력·결과는 MCP 요청을 직접 보내는 시험으로만 확인), 설정 화면의 경고 모양을 폰·앱·영어·일본어에서 보기, 전체 verify.

@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import {
   MCP_LIMITS,
+  addTodoMemosInput,
   completeTodosInput,
   createEventsInput,
   createTodosInput,
@@ -93,5 +94,29 @@ describe("id 목록", () => {
   it("목록 조회의 to는 안 적어도 된다", () => {
     expect(schema(listTodosInput).safeParse({ from: "2026-11-20" }).success).toBe(true);
     expect(schema(listTodosInput).safeParse({ to: "2026-11-20" }).success).toBe(false);
+  });
+});
+
+describe("addTodoMemosInput", () => {
+  const parse = (value: unknown) => z.object(addTodoMemosInput).safeParse(value);
+
+  it("id와 메모를 받고, 메모의 앞뒤 공백을 자른다", () => {
+    const result = parse({ memos: [{ id: "abc", memo: "  p.30~45  " }] });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.memos[0].memo).toBe("p.30~45");
+  });
+
+  it("빈 메모·500자 넘는 메모·모양이 틀린 id·빈 목록·한 번에 너무 많은 개수는 거절한다(지우기는 update_todos의 일)", () => {
+    expect(parse({ memos: [{ id: "abc", memo: "   " }] }).success).toBe(false);
+    expect(parse({ memos: [{ id: "abc", memo: "가".repeat(501) }] }).success).toBe(false);
+    expect(parse({ memos: [{ id: "abc", memo: "가".repeat(500) }] }).success).toBe(true);
+    expect(parse({ memos: [{ id: "../x", memo: "메모" }] }).success).toBe(false);
+    expect(parse({ memos: [] }).success).toBe(false);
+    expect(parse({ memos: Array.from({ length: MCP_LIMITS.todosPerCall + 1 }, (_, index) => ({ id: `t${index}`, memo: "메모" })) }).success).toBe(false);
+  });
+
+  it("replace는 true·false만 받는다", () => {
+    expect(parse({ memos: [{ id: "abc", memo: "메모" }], replace: true }).success).toBe(true);
+    expect(parse({ memos: [{ id: "abc", memo: "메모" }], replace: "yes" }).success).toBe(false);
   });
 });
