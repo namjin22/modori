@@ -32,7 +32,7 @@ test.afterAll(async () => {
 const TODAY = formatKST(todayIn("Asia/Seoul"));
 const day = (offset: number) => formatKST(addDays(parseKSTDate(TODAY), offset));
 
-async function makeToken(userId: string, scope: "READ" | "WRITE", expiresAt = new Date(Date.now() + 30 * 86_400_000)) {
+async function makeToken(userId: string, scope: "READ" | "WRITE", expiresAt: Date | null = new Date(Date.now() + 30 * 86_400_000)) {
   const { token, hash, hint } = generateApiToken();
   const row = await prisma.apiToken.create({ data: { userId, name: "시험", scope, tokenHash: hash, hint, expiresAt } });
   return { token, id: row.id };
@@ -278,10 +278,55 @@ test("만료된 토큰과 지운 토큰은 바로 막힌다", async ({ request, 
   const expired = await makeToken(account.id, "WRITE", new Date(Date.now() - 1000));
   expect((await rpc(request, expired.token, "tools/list")).status).toBe(401);
 
+  const forever = await makeToken(account.id, "WRITE", null);
+  expect((await rpc(request, forever.token, "tools/list")).status).toBe(200);
+
   const live = await makeToken(account.id, "WRITE");
   expect((await rpc(request, live.token, "tools/list")).status).toBe(200);
   await prisma.apiToken.delete({ where: { id: live.id } });
   expect((await rpc(request, live.token, "tools/list")).status).toBe(401);
+});
+
+test("만료 없는 토큰은 막히지 않고, 설정에서 만료 없음으로 만들 수 있다", async ({ page, request }, testInfo) => {
+  const email = `e2e-mcp-forever-${testInfo.testId.slice(-6)}-${RUN_TAG}@modori.test`;
+  await prisma.user.deleteMany({ where: { email } });
+  try {
+    await signUp(page, email, `무기한${testInfo.testId.slice(-6)}${RUN_TAG}`);
+    await page.goto("/settings/ai");
+
+    await page.getByLabel("이름 (어디에 쓰는지)").fill("오래 쓸 토큰");
+    // 만료 없음을 고르면 경고가 뜨고, 모든 권한이면 한 줄이 더 붙는다. 다른 기간으로 바꾸면 사라진다.
+    await expect(page.getByRole("note")).toHaveCount(0);
+    await page.getByLabel("유효 기간").selectOption({ label: "만료 없음" });
+    await expect(page.getByRole("note")).toContainText("직접 지우기 전까지");
+    await expect(page.getByRole("note")).not.toContainText("할 일·일정을 지울 수도");
+    await page.getByRole("radio", { name: /모든 권한/ }).check();
+    await expect(page.getByRole("note")).toContainText("할 일·일정을 지울 수도");
+    await page.getByRole("radio", { name: /읽기·쓰기/ }).check();
+    await expect(page.getByRole("note")).not.toContainText("할 일·일정을 지울 수도");
+    await page.getByLabel("유효 기간").selectOption("90");
+    await expect(page.getByRole("note")).toHaveCount(0);
+    await page.getByLabel("유효 기간").selectOption({ label: "만료 없음" });
+
+    await page.getByRole("button", { name: "토큰 만들기" }).click();
+    await expect(page.getByRole("heading", { name: "토큰이 만들어졌어요" })).toBeVisible();
+    const token = await page.getByLabel("접근 토큰", { exact: true }).inputValue();
+
+    // 만료 시각은 비어 있고, 그 토큰은 바로 쓸 수 있다.
+    const stored = await prisma.apiToken.findFirstOrThrow({ where: { user: { email } } });
+    expect(stored.expiresAt).toBeNull();
+    expect((await rpc(request, token, "tools/list")).status).toBe(200);
+
+    // 폼은 비워졌고(경고도 사라졌고), 목록에는 만료일 대신 "만료 없음"이 보인다.
+    await page.getByRole("button", { name: "복사했어요, 닫기" }).click();
+    await page.reload();
+    await expect(page.getByRole("note")).toHaveCount(0);
+    const row = page.getByRole("listitem").filter({ hasText: "오래 쓸 토큰" });
+    await expect(row).toContainText("만료 없음");
+    await expect(row).not.toContainText("만료됨");
+  } finally {
+    await prisma.user.deleteMany({ where: { email } });
+  }
 });
 
 test("토큰마다 바꾸는 요청의 속도를 제한한다", async ({ request, account }) => {

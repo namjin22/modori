@@ -42,7 +42,7 @@ export default async function AiPage() {
           scope: token.scope,
           allowFriends: token.allowFriends,
           hint: token.hint,
-          expiresOn: day(token.expiresAt),
+          expiresOn: token.expiresAt ? day(token.expiresAt) : null,
           expired: !isTokenUsable(token),
           lastUsedOn: token.lastUsedAt ? day(token.lastUsedAt) : null,
         }))}
