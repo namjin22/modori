@@ -20,7 +20,7 @@ export default async function BlockedPage() {
   return (
     <div className="flex flex-col gap-6">
       <header className="flex items-center gap-1">
-        <BackLink href="/settings" label={t("toMyPage")} />
+        <BackLink href="/settings/preferences" label={t("toSettings")} />
         <h1 className="text-2xl font-bold">{t("blockedHeading")}</h1>
       </header>
 

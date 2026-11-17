@@ -29,7 +29,24 @@ export default async function SettingsPage() {
   return (
     // 칸 사이·칸 안 여백을 넓혔다(2026-10-21 요청: 글자와 여백이 너무 좁아 보인다).
     <div className="flex flex-col gap-7">
-      <h1 className="text-2xl font-bold">{t("title")}</h1>
+      {/* 설정은 화면·알림·친구·시간대·앱 설정을 한 페이지로 모은 곳이다(2026-10-31). 가는 길은 제목 줄 오른쪽의 톱니 버튼 하나다(2026-11-16 요청).
+          예전에는 프로필·화면 칸 아래의 넓은 "설정 ›" 줄이었고 줄 높이·톱니·눌림 색을 세 번 고쳤다(2026-11-02). 이번에는 아예 줄을 없앴다.
+          눌러도 색이 바뀌지 않게 한다(11-02 요청: 눌렀을 때 색이 달라져 이상하다). 키보드 포커스 선만 보인다. 누르는 면적은 40px. */}
+      <header className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold">{t("title")}</h1>
+        <Link
+          prefetch={false}
+          href="/settings/preferences"
+          aria-label={t("preferencesRow")}
+          className="-mr-2 flex size-10 shrink-0 items-center justify-center rounded-full text-foreground"
+        >
+          <svg aria-hidden width={24} height={24} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+            <circle cx={12} cy={12} r={7} />
+            <circle cx={12} cy={12} r={2.8} />
+            <path d="M19 12 L21.5 12 M16.95 16.95 L18.72 18.72 M12 19 L12 21.5 M7.05 16.95 L5.28 18.72 M5 12 L2.5 12 M7.05 7.05 L5.28 5.28 M12 5 L12 2.5 M16.95 7.05 L18.72 5.28" />
+          </svg>
+        </Link>
+      </header>
 
       <section className="flex flex-col rounded-2xl bg-surface">
         <Link
@@ -87,34 +104,6 @@ export default async function SettingsPage() {
           <span className="text-[15px] font-medium">{tl("title")}</span>
           <LanguageSelect />
         </div>
-      </section>
-
-      {/* 화면·알림·친구·시간대·앱 설정은 한 페이지로 모았다(2026-10-31 요청: 마이페이지가 너무 복잡했다). 여기에는 그리로 가는 줄만 둔다.
-          줄 높이를 줄였다(2026-11-02 요청: 버튼이 투박하다). 톱니 그림과 누를 때 바뀌는 바탕색은 뺐다(같은 날 요청: 눌렀을 때 색이 달라져 이상하다).
-          키보드 포커스 선은 카드 안쪽에 붙여, 카드 안에 또 다른 버튼이 있는 것처럼 보이지 않게 한다.
-          밑에 붙어 있던 회색 설명 글("화면·알림·친구·시간대")은 뺐다(2026-11-16 요청). */}
-      <section className="rounded-2xl bg-surface">
-        <Link
-          prefetch={false}
-          href="/settings/preferences"
-          className="flex items-center gap-4 rounded-2xl px-5 py-4 focus-visible:outline-offset-[-2px]"
-        >
-          <span className="min-w-0 flex-1 text-[15px] font-semibold">{t("preferencesRow")}</span>
-          <svg
-            aria-hidden
-            width={16}
-            height={16}
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth={2.2}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="shrink-0 text-muted"
-          >
-            <path d="M9 5 L16 12 L9 19" />
-          </svg>
-        </Link>
       </section>
 
       <LogoutButton />

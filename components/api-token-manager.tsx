@@ -34,6 +34,7 @@ export function ApiTokenManager({ tokens }: { tokens: ApiTokenItem[] }) {
   const [created, setCreated] = useState<string | null>(null);
   const full = tokens.length >= MAX_API_TOKENS;
 
+  // 위에서부터: 연결 방법과 서버 주소, 토큰 만들기, 내 토큰(2026-11-16 요청: 중요한 것만 바로 보이게). 긴 설명은 아래 도움말(components/ai-guide.tsx).
   return (
     <div className="flex flex-col gap-6">
       <section className="flex flex-col gap-3 rounded-2xl bg-surface p-5">
@@ -48,14 +49,11 @@ export function ApiTokenManager({ tokens }: { tokens: ApiTokenItem[] }) {
         <p className="text-xs leading-relaxed text-muted">{t("howNote")}</p>
       </section>
 
-      <section className="flex flex-col gap-2 rounded-2xl bg-surface p-5">
-        <h2 className="text-sm font-semibold text-muted">{t("safetyTitle")}</h2>
-        <ul className="flex list-disc flex-col gap-1.5 pl-5 text-sm leading-relaxed">
-          <li>{t("safety1")}</li>
-          <li>{t("safety2")}</li>
-          <li>{t("safety3")}</li>
-          <li>{t("safety4")}</li>
-        </ul>
+      {created !== null && <CreatedPanel token={created} serverUrl={serverUrl} onDone={() => setCreated(null)} />}
+
+      <section className="flex flex-col gap-3 rounded-2xl bg-surface p-5">
+        <h2 className="text-sm font-semibold text-muted">{t("createTitle")}</h2>
+        {full ? <p className="text-sm text-muted">{t("full", { max: MAX_API_TOKENS })}</p> : <CreateForm onCreated={setCreated} />}
       </section>
 
       <section className="flex flex-col gap-3">
@@ -69,13 +67,6 @@ export function ApiTokenManager({ tokens }: { tokens: ApiTokenItem[] }) {
             ))}
           </ul>
         )}
-      </section>
-
-      {created !== null && <CreatedPanel token={created} serverUrl={serverUrl} onDone={() => setCreated(null)} />}
-
-      <section className="flex flex-col gap-3 rounded-2xl bg-surface p-5">
-        <h2 className="text-sm font-semibold text-muted">{t("createTitle")}</h2>
-        {full ? <p className="text-sm text-muted">{t("full", { max: MAX_API_TOKENS })}</p> : <CreateForm onCreated={setCreated} />}
       </section>
     </div>
   );

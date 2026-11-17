@@ -578,3 +578,46 @@ test("설정에서 모든 권한 토큰을 만들 때 친구 읽기는 따로 �
     await prisma.user.deleteMany({ where: { email } });
   }
 });
+
+// 2026-11-16 요청: 이름은 "AI 연결(MCP)"이고, 들어가자마자 긴 설명이 아니라 연결 방법·서버 주소·토큰 만들기·내 토큰이 보이며, 설명·도움말은 아래에서 눌러야 펴진다.
+test("AI 연결(MCP) 화면은 핵심 기능이 위에 있고, 긴 설명은 아래에서 눌러야 펴진다", async ({ page }, testInfo) => {
+  const email = `e2e-mcpf-help-${testInfo.testId.slice(-6)}-${RUN_TAG}@modori.test`;
+  await prisma.user.deleteMany({ where: { email } });
+  try {
+    await signUp(page, email, `도움${testInfo.testId.slice(-6)}${RUN_TAG}`);
+    await page.goto("/settings/preferences");
+    await page.getByRole("link", { name: /AI 연결\(MCP\)/ }).click();
+    await expect(page.getByRole("heading", { level: 1, name: "AI 연결(MCP)" })).toBeVisible();
+
+    // 핵심: 연결 방법과 서버 주소, 토큰 만들기, 내 토큰이 이 순서로 바로 보인다.
+    const sections = ["연결하는 방법", "새 토큰 만들기", "내 접근 토큰", "자세한 설명과 도움말"];
+    const tops: number[] = [];
+    for (const name of sections) {
+      const heading = page.getByRole("heading", { level: 2, name, exact: true });
+      await expect(heading).toBeVisible();
+      tops.push((await heading.boundingBox())?.y ?? -1);
+    }
+    expect([...tops].sort((a, b) => a - b)).toEqual(tops);
+    await expect(page.getByLabel("서버 주소")).toBeVisible();
+    await expect(page.getByRole("button", { name: "토큰 만들기" })).toBeVisible();
+
+    // 긴 설명은 접혀 있다: 열린 칸이 없고, 설명 글이 보이지 않는다.
+    await expect(page.locator("details")).toHaveCount(7);
+    await expect(page.locator("details[open]")).toHaveCount(0);
+    const about = page.getByText("모도리가 AI를 돌리는 게 아니라");
+    await expect(about).toBeHidden();
+
+    // 제목을 누르면 펴지고, 다시 누르면 접힌다. 키보드(Enter)로도 된다.
+    const summary = page.getByText("AI 연결(MCP)이 뭐예요?", { exact: true });
+    await summary.click();
+    await expect(about).toBeVisible();
+    await expect(page.locator("details[open]")).toHaveCount(1);
+    await summary.click();
+    await expect(about).toBeHidden();
+    await summary.focus();
+    await page.keyboard.press("Enter");
+    await expect(about).toBeVisible();
+  } finally {
+    await prisma.user.deleteMany({ where: { email } });
+  }
+});
