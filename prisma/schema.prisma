@@ -50,6 +50,8 @@ model User {
   // 처음 쓰는 사람용 사용법 카드(/welcome)를 끝내거나 건너뛴 시각(2026-11-16). 비어 있으면 가입 뒤 처음 홈을 열 때 한 번 보여 준다.
   // 이 칸을 만들 때 이미 있던 사용자는 그 시각으로 채웠다(자동으로 띄우지 않기로 해서). 설정의 "사용법 다시 보기"는 이 값과 상관없이 연다.
   tutorialSeenAt    DateTime?
+  // AI 도우미(앱 안 대화형 일정 도우미, 2026-11-17)를 쓰기 전에 "내 말과 이번 달 할 일·일정이 Google Gemini로 전송된다"는 안내에 동의한 시각. 비어 있으면 도우미를 열 수 없다.
+  aiChatConsentAt   DateTime?
   createdAt         DateTime  @default(now())
 
   accounts             Account[]
