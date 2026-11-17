@@ -8,6 +8,7 @@ import { Avatar } from "@/components/avatar";
 import { useLocale, useT } from "@/components/locale-provider";
 import { CategoryAdder } from "@/components/category-adder";
 import { DayRollover } from "@/components/day-rollover";
+import { DiaryCard, type HomeDiary } from "@/components/diary-card";
 import { ManageMenu } from "@/components/manage-menu";
 import { Dori } from "@/components/dori";
 import { type DayEvent, EventSection } from "@/components/event-section";
@@ -52,6 +53,8 @@ export type HomeData = {
   tour: TourMode | null;
   // 운영에 Gemini 키가 있을 때만 "AI 도우미" 버튼을 보인다(키가 없으면 "준비 중"인 막다른 화면으로 가게 된다).
   aiReady: boolean;
+  // 받아 둔 기간의 일기 맛보기(2026-11-17). 하루 화면에 그날 것을 보인다.
+  diaries: (HomeDiary & { date: string })[];
 };
 
 function formatHeading(locale: Locale, key: string): string {
@@ -201,10 +204,10 @@ export function HomeView({ data }: { data: HomeData }) {
                   {t("aiHelper")}
                 </Link>
               )}
-              {/* 일기(2026-11-17): 보고 있는 날의 일기를 쓰러 간다. 아직 오지 않은 날이면 쓰기 화면이 오늘로 보낸다. */}
+              {/* 일기(2026-11-17): 일기 목록으로 간다. 보고 있는 날의 일기는 아래 카드에서 바로 보고 쓴다. */}
               <Link
                 prefetch={false}
-                href={`/diary/${selected}`}
+                href="/diary"
                 className="flex h-8 items-center rounded-full bg-surface px-3 text-sm text-muted hover:text-foreground min-[360px]:px-3.5"
               >
                 {t("diary")}
@@ -221,6 +224,9 @@ export function HomeView({ data }: { data: HomeData }) {
             </nav>
 
             <EventSection events={dayEvents} upcoming={upcoming} date={selected} today={data.today} />
+
+            {/* 그날의 일기(2026-11-17 요청: 쓰면 피드에서 바로 확인할 수 있게). 누르면 그 날의 일기 화면이 열린다. */}
+            <DiaryCard date={selected} today={data.today} entry={data.diaries.find((entry) => entry.date === selected) ?? null} />
 
             {data.categories.length === 0 && (
               // 카테고리 칩이 곧 할 일을 적는 자리다. 하나도 없으면 적을 곳이 없어진다.

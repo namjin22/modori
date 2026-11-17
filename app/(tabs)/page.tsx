@@ -2,6 +2,7 @@ import { headers } from "next/headers";
 
 import { HomeView, type HomeData } from "@/components/home-view";
 import { isGeminiConfigured } from "@/lib/ai/gemini";
+import { diaryExcerpt } from "@/lib/diary";
 import { avatarUrl } from "@/lib/avatar";
 import {
   daysBetween,
@@ -95,7 +96,7 @@ export default async function FeedPage({
   // 이 날짜를 여는 순간 루틴 할 일이 없으면 만든다. 미래 날짜에는 만들지 않는다.
   await ensureRoutineTodos(user, date);
 
-  const [todos, categories, routines, events, upcoming, eventRoutines, eventSkips] = await Promise.all([
+  const [todos, categories, routines, events, upcoming, eventRoutines, eventSkips, diaryRows] = await Promise.all([
     prisma.todo.findMany({
       where: { userId: user.id, date: { gte: from, lte: to } },
       orderBy: { order: "asc" },
@@ -147,6 +148,11 @@ export default async function FeedPage({
       where: { date: { gte: from, lte: to }, eventRoutine: { userId: user.id } },
       select: { eventRoutineId: true, date: true },
     }),
+    // 하루 화면에 보이는 일기(2026-11-17). 받아 둔 기간 안에서만, 글은 맛보기만 읽는다.
+    prisma.diaryEntry.findMany({
+      where: { userId: user.id, date: { gte: from, lte: to } },
+      select: { date: true, content: true, mood: true, isPublic: true },
+    }),
   ]);
 
   const data: HomeData = {
@@ -172,6 +178,7 @@ export default async function FeedPage({
     upcoming,
     tour,
     aiReady: isGeminiConfigured(),
+    diaries: diaryRows.map((row) => ({ date: formatKST(row.date), mood: row.mood, excerpt: diaryExcerpt(row.content, 120), isPublic: row.isPublic })),
   };
 
   return <HomeView data={data} />;

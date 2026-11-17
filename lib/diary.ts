@@ -1,5 +1,8 @@
+import { moodsOf, type CharacterId } from "@/lib/characters";
+import { characterMoodOf } from "@/lib/reactions";
+
 /**
- * 일기(2026-11-17 운영자 결정, docs/decisions.md "일기"): 하루 한 편, 글과 이모지. 사진은 2단계라 여기에 없다.
+ * 일기(2026-11-17 운영자 결정, docs/decisions.md "일기"): 하루 한 편, 글과 기분. 사진은 2단계라 여기에 없다.
  * 날짜는 그 사람의 시간대 달력의 날이다(CLAUDE.md 규칙 2). 서버 액션과 화면이 같은 규칙을 쓰도록 모아 둔다.
  */
 
@@ -9,21 +12,18 @@ export const MAX_DIARY_LENGTH = 5000;
 /** 이 날짜보다 오래된 날의 일기는 쓰지 않는다(입력 실수로 아주 먼 옛날 날짜가 들어오지 않게). */
 const EARLIEST_DAY = Date.UTC(2000, 0, 1);
 
-/** "오늘의 기분"으로 고를 수 있는 이모지. 고르지 않을 수도 있다. */
-export const DIARY_MOODS = ["😊", "😄", "🥰", "😌", "🤔", "😐", "😴", "😢", "😭", "😡", "🤒", "🥳"] as const;
-export type DiaryMood = (typeof DIARY_MOODS)[number];
+/**
+ * "오늘의 기분"은 캐릭터의 표정이다(2026-11-17 요청: 기본 이모지가 별로라 도리·펭이 같은 캐릭터로). 저장하는 값은 반응과 같은 "캐릭터id:표정"
+ * (예: "dori:happy", "peng:nap")이라 그림은 ReactionGlyph가 그린다. 고르는 창에는 내가 고른 캐릭터의 표정 열 개를 보이고,
+ * 캐릭터를 바꿔도 예전 일기는 그때 고른 캐릭터로 남는다.
+ */
+export function diaryMoodOptions(character: CharacterId): string[] {
+  return moodsOf(character).map((mood) => `${character}:${mood}`);
+}
 
-/** 글 사이에 끼워 넣는 이모지 모음(직접 만든 목록이라 의존성이 없다). 휴대폰 자판의 이모지도 그대로 쓸 수 있다. */
-export const DIARY_EMOJIS = [
-  "😊", "😄", "😂", "🥹", "😍", "🥰", "😎", "🤩", "😌", "😉", "🤗", "🤔",
-  "😐", "😑", "😴", "🥱", "😢", "😭", "😡", "😤", "😱", "😨", "🤒", "🤧",
-  "🥳", "🎉", "🎂", "🎁", "✨", "🌟", "💖", "💕", "💪", "🙏", "👍", "👏",
-  "🔥", "🌈", "☀️", "🌙", "⭐", "☁️", "🌧️", "❄️", "🌸", "🍀", "🍕", "🍜",
-  "🍰", "☕", "📚", "✏️", "🎵", "🎮", "⚽", "🏃", "🚌", "🏠", "🐶", "🐱",
-] as const;
-
-export function isDiaryMood(value: unknown): value is DiaryMood {
-  return typeof value === "string" && (DIARY_MOODS as readonly string[]).includes(value);
+/** 서버가 받아도 되는 기분 값인지. 어느 캐릭터의 표정이든 반응에 있는 것만 받는다. */
+export function isDiaryMood(value: unknown): value is string {
+  return typeof value === "string" && characterMoodOf(value) !== null;
 }
 
 /** 글자 수. 이모지처럼 두 칸을 차지하는 글자도 하나로 센다. */
@@ -42,7 +42,7 @@ export function readDiaryContent(value: unknown): DiaryContent {
 }
 
 /** 폼의 기분. 빈 값은 "고르지 않음"(null), 목록에 없는 값은 잘못된 값(undefined). */
-export function readDiaryMood(value: unknown): DiaryMood | null | undefined {
+export function readDiaryMood(value: unknown): string | null | undefined {
   if (value === null || value === undefined || value === "") return null;
   return isDiaryMood(value) ? value : undefined;
 }
