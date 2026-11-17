@@ -1,6 +1,7 @@
 import { headers } from "next/headers";
 
 import { HomeView, type HomeData } from "@/components/home-view";
+import { isGeminiConfigured } from "@/lib/ai/gemini";
 import { avatarUrl } from "@/lib/avatar";
 import {
   daysBetween,
@@ -170,6 +171,7 @@ export default async function FeedPage({
     events: [...events, ...expandEventRoutines(eventRoutines, eventSkips, from, to)],
     upcoming,
     tour,
+    aiReady: isGeminiConfigured(),
   };
 
   return <HomeView data={data} />;

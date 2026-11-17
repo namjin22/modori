@@ -50,6 +50,8 @@ export type HomeData = {
   upcoming: DayEvent[];
   // 둘러보기를 띄울 때만(처음 가입한 뒤 first, 설정에서 다시 보기 replay). 아니면 null.
   tour: TourMode | null;
+  // 운영에 Gemini 키가 있을 때만 "AI 도우미" 버튼을 보인다(키가 없으면 "준비 중"인 막다른 화면으로 가게 된다).
+  aiReady: boolean;
 };
 
 function formatHeading(locale: Locale, key: string): string {
@@ -190,13 +192,15 @@ export function HomeView({ data }: { data: HomeData }) {
               )}
               {/* 카테고리·일정·루틴은 메뉴 하나로 묶는다(2026-10-19 요청). 기록은 따로 둔다. */}
               {/* AI 도우미(2026-11-17): 목표를 말하면 할 일·일정을 제안하는 대화 화면. */}
-              <Link
-                prefetch={false}
-                href="/ai"
-                className="flex h-8 items-center rounded-full bg-surface px-3 text-sm text-muted hover:text-foreground min-[360px]:px-3.5"
-              >
-                {t("aiHelper")}
-              </Link>
+              {data.aiReady && (
+                <Link
+                  prefetch={false}
+                  href="/ai"
+                  className="flex h-8 items-center rounded-full bg-surface px-3 text-sm text-muted hover:text-foreground min-[360px]:px-3.5"
+                >
+                  {t("aiHelper")}
+                </Link>
+              )}
               <ManageMenu />
               <Link
                 prefetch={false}
