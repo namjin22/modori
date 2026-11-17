@@ -111,8 +111,9 @@ test("마이페이지의 설정은 제목 줄 오른쪽 톱니 버튼이고, 눌
   // 제목과 같은 줄에서 제목 오른쪽 끝에 있고, 손가락이 누르기 충분히 크다.
   expect(Math.abs(box.y + box.height / 2 - (title.y + title.height / 2))).toBeLessThan(12);
   expect(box.x).toBeGreaterThan(title.x + title.width);
-  expect(box.width).toBeGreaterThanOrEqual(40);
-  expect(box.height).toBeGreaterThanOrEqual(40);
+  // 40px(size-10)가 CI에서 39.999996으로 재어져 반올림해서 본다(부동소수 오차).
+  expect(Math.round(box.width)).toBeGreaterThanOrEqual(40);
+  expect(Math.round(box.height)).toBeGreaterThanOrEqual(40);
 
   // 마우스를 올려도 바탕색이 달라지지 않는다(2026-11-02 요청: 눌렀을 때 색이 달라져 이상하다).
   const background = () => gear.evaluate((element) => getComputedStyle(element).backgroundColor);
