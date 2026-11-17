@@ -21,6 +21,9 @@ export function DiaryEditor({ date, initial }: { date: string; initial: DiaryDra
   const router = useRouter();
   const saveFailed = useSaveFailure();
   const [content, setContent] = useState(initial?.content ?? "");
+  // 기분과 공개 여부도 값을 쥐고 있는다. 기본값만 주고 두면 저장 뒤 router.refresh()가 서버 값을 다시 내려줄 때, 그 사이에 바꾼 선택이 되돌아간다.
+  const [mood, setMood] = useState(initial?.mood ?? "");
+  const [isPublic, setIsPublic] = useState(initial?.isPublic ?? false);
   const [exists, setExists] = useState(initial !== null);
   const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(null);
   const [confirming, setConfirming] = useState(false);
@@ -29,6 +32,15 @@ export function DiaryEditor({ date, initial }: { date: string; initial: DiaryDra
 
   const length = diaryLength(content);
   const tooLong = length > MAX_DIARY_LENGTH;
+  // 무엇이든 바꾸면 "저장했어요."는 지난 저장에 대한 말이라 지운다.
+  const changeMood = (value: string) => {
+    setMood(value);
+    setMessage(null);
+  };
+  const changePublic = (value: boolean) => {
+    setIsPublic(value);
+    setMessage(null);
+  };
   const empty = content.trim() === "";
 
   /** 커서가 있는 자리(글을 고르고 있었다면 그 글을 대신해서)에 이모지를 끼운다. */
@@ -85,16 +97,16 @@ export function DiaryEditor({ date, initial }: { date: string; initial: DiaryDra
         <legend className="mb-1 text-xs text-muted">{t("moodLabel")}</legend>
         <div className="flex flex-wrap gap-2">
           <label>
-            <input type="radio" name="mood" value="" defaultChecked={!initial?.mood} className="peer sr-only" />
+            <input type="radio" name="mood" value="" checked={mood === ""} onChange={() => changeMood("")} className="peer sr-only" />
             <span className="flex h-11 cursor-pointer items-center justify-center rounded-xl bg-surface-hover px-3 text-sm text-muted transition-colors peer-checked:bg-brand peer-checked:text-brand-contrast peer-focus-visible:ring-2 peer-focus-visible:ring-foreground">
               {t("moodNone")}
             </span>
           </label>
-          {DIARY_MOODS.map((mood) => (
-            <label key={mood}>
-              <input type="radio" name="mood" value={mood} defaultChecked={initial?.mood === mood} aria-label={mood} className="peer sr-only" />
+          {DIARY_MOODS.map((option) => (
+            <label key={option}>
+              <input type="radio" name="mood" value={option} checked={mood === option} onChange={() => changeMood(option)} aria-label={option} className="peer sr-only" />
               <span aria-hidden className={moodItem}>
-                {mood}
+                {option}
               </span>
             </label>
           ))}
@@ -142,7 +154,7 @@ export function DiaryEditor({ date, initial }: { date: string; initial: DiaryDra
         </div>
       </div>
 
-      <LabeledSwitch name="public" title={t("publicTitle")} description={t("publicHint")} defaultChecked={initial?.isPublic ?? false} />
+      <LabeledSwitch name="public" title={t("publicTitle")} description={t("publicHint")} checked={isPublic} onChange={changePublic} />
 
       {message && (
         <p role={message.ok ? "status" : "alert"} className={`text-sm ${message.ok ? "text-muted" : "text-danger"}`}>

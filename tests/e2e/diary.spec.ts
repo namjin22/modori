@@ -81,9 +81,11 @@ test("일기를 쓰고 고치고 지운다: 글·이모지·기분·친구 공�
 
   // 기분을 "고르지 않음"으로 되돌릴 수 있다.
   await page.getByText("고르지 않음", { exact: true }).click();
+  // 값을 바꾸면 지난 저장의 "저장했어요."는 사라진다. 새로 저장된 뒤에 다시 뜬다.
+  await expect(page.getByText("저장했어요.")).toHaveCount(0);
   await save.click();
   await expect(page.getByText("저장했어요.")).toBeVisible();
-  expect((await entryOf(me.id, TODAY))?.mood).toBeNull();
+  await expect.poll(async () => (await entryOf(me.id, TODAY))?.mood).toBeNull();
 
   // 지우기는 한 번 더 묻는다.
   await page.getByRole("button", { name: "일기 지우기" }).click();
@@ -139,8 +141,11 @@ test("날짜 규칙: 아직 오지 않은 날은 오늘로, 없는 날짜는 없
 
   await page.goto(`/diary/${day(3)}`);
   await expect(page).toHaveURL(new RegExp(`/diary/${TODAY}$`));
-  expect((await page.goto("/diary/2026-02-30"))?.status()).toBe(404);
-  expect((await page.goto("/diary/abc"))?.status()).toBe(404);
+  // 이 앱은 loading.tsx 때문에 스트리밍으로 응답해서 없는 주소도 HTTP 200이다. 안내 화면의 내용으로 확인한다.
+  await page.goto("/diary/2026-02-30");
+  await expect(page.getByText("없는 주소예요")).toBeVisible();
+  await page.goto("/diary/abc");
+  await expect(page.getByText("없는 주소예요")).toBeVisible();
 
   // 지난 날의 일기는 쓸 수 있고, 앞뒤 날로 넘어갈 수 있다. 오늘에서는 다음 날 단추가 없다.
   await page.goto(`/diary/${day(-1)}`);
@@ -197,7 +202,9 @@ test("친구의 공개 일기: 팔로우한 사람만, 공개한 일기만 보�
   // 친구가 나를 차단하면 없는 주소다.
   await prisma.diaryEntry.updateMany({ where: { userId: friend.id }, data: { isPublic: true } });
   await prisma.block.create({ data: { blockerId: friend.id, blockedId: me.id } });
-  expect((await page.goto(`/feed/u/${friend.id}/diary`))?.status()).toBe(404);
+  await page.goto(`/feed/u/${friend.id}/diary`);
+  await expect(page.getByText("없는 주소예요")).toBeVisible();
+  await expect(page.getByText("친구가 공개한 일기")).toHaveCount(0);
 });
 
 test("일기는 계정을 지우면 함께 지워진다", async ({ page, emails }, testInfo) => {
