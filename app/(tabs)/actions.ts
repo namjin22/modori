@@ -68,7 +68,7 @@ export async function addTodo(formData: FormData): Promise<TodoAdd> {
   const date = readDay(readId(formData, "date"));
   if (!date) return { ok: false, message: t("dateUnreadable") };
   // 옮기기(moveTodo)와 같은 범위만 받는다. 날짜를 마음대로 바꿔 가며 하루 상한을 피해 무한히 쌓지 못하게 한다.
-  if (Math.abs(daysBetween(todayIn(user.timezone), date)) > MAX_SCHEDULED_DAYS) {
+  if (Math.abs(daysBetween(todayIn(user.timezone), date)) > LIMITS.todoDays) {
     return { ok: false, message: t("tooFar") };
   }
   const categoryId = readId(formData, "categoryId") || null;
@@ -320,9 +320,6 @@ export async function restoreTodo(snapshot: DeletedTodo): Promise<string | void>
   revalidatePath("/");
 }
 
-/** 이보다 먼 날로는 옮기지 않는다. 그 너머는 입력 실수이거나 조작된 요청이다. */
-const MAX_MOVE_DAYS = 366;
-
 export type TodoMove = { ok: true; message: string } | { ok: false; message: string };
 
 /**
@@ -336,8 +333,8 @@ export async function moveTodo(id: string, day: string): Promise<TodoMove> {
   const t = await getT(todoMessages);
   const date = readDay(day);
   if (!date) return { ok: false, message: t("pickMoveDate") };
-  if (Math.abs(daysBetween(todayIn(user.timezone), date)) > MAX_MOVE_DAYS) {
-    return { ok: false, message: t("withinYearMove") };
+  if (Math.abs(daysBetween(todayIn(user.timezone), date)) > LIMITS.todoDays) {
+    return { ok: false, message: t("moveTooFar") };
   }
 
   const todo = await prisma.todo.findFirst({
@@ -386,8 +383,8 @@ export async function repeatTodo(id: string, day: string): Promise<TodoMove> {
   const t = await getT(todoMessages);
   const date = readDay(day);
   if (!date) return { ok: false, message: t("pickDate") };
-  if (Math.abs(daysBetween(todayIn(user.timezone), date)) > MAX_MOVE_DAYS) {
-    return { ok: false, message: t("withinYearAgain") };
+  if (Math.abs(daysBetween(todayIn(user.timezone), date)) > LIMITS.todoDays) {
+    return { ok: false, message: t("againTooFar") };
   }
 
   const todo = await prisma.todo.findFirst({
