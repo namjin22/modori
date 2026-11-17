@@ -1914,3 +1914,17 @@ VM에 시험 DB(사용자 1000, 할 일 108만, 반응 24만, 280MB)를 만들�
 - **도리 기본 표정**(`components/dori.tsx`의 `SmileMouth`): 입꼬리를 올려 넓히고 볼에 연한 홍조(내가 더한 것)를 더했다. 이전·이후를 렌더링해 비교해 골랐다. 폰·앱에서 실제 모양은 못 봤다. 배포 뒤 릴리스 스크린샷(`npm run screenshots`)을 다시 찍어야 한다(도리·알림 화면·일기 화면).
 - **검증(로컬)**: 타입 검사 통과, 전체 린트 오류 0(경고 1개는 기존 `scripts/promo-edit.mjs`), 단위 시험 60개 파일·541개(시간대 3개) 통과. E2E: `diary`(5), `desktop-notify`·`web-push`·`app-icon-badge`·`app-badge`·`friend-done`·`preferences`·`layout`·`tutorial` 26개 통과(워커 1개). **전체 `npm run verify`는 로컬에서 돌리지 않았고 PR의 CI가 돈다.**
 - **못 한 것**: 폰·데스크톱 앱 안에서의 모양, 영어·일본어 화면, 실제 데스크톱 앱에서의 알림 허락·웹 푸시 수신(가짜 알림·가짜 푸시로만 확인), 먼 날짜(10년)에서 달력·통계 모양. `GEMINI_API_KEY`는 여전히 운영자가 넣어야 AI 도우미가 열린다.
+
+## 2026-11-17 — 일기 화면 다듬기, 기록을 마이페이지로, 설정 톱니 애니메이션 (브랜치 `feat/diary-v2`)
+
+일기를 배포한 직후 운영자가 쓰기 화면을 보고 여러 개를 요청했다(`docs/decisions.md` "일기 화면을 다듬는다"). 같은 날 앞서 나간 것: 일기·알림 스위치 합치기·도리 표정(PR #265, 수동 배포 `0d6d0dd`).
+
+- **기분은 캐릭터 표정**: 값은 반응과 같은 `"캐릭터id:표정"`(예: `dori:happy`), 그림은 `components/diary-mood.tsx`→`ReactionGlyph`. 고르는 창(`components/diary-editor.tsx`)에는 내 아바타 캐릭터(기본 도리)의 표정 열 개(`lib/diary.ts`의 `diaryMoodOptions`)와 "고르지 않음"이 있고, 서버는 반응에 있는 표정만 받는다(`isDiaryMood`). **마이그레이션 `20261117130000_diary_mood_characters`**가 저장돼 있던 이모지 12종을 도리 표정으로 옮긴다(값만 바꾼다. 시험 DB에 `migrate deploy`로 적용했고 운영 DB에는 배포가 적용한다). 이모지 넣기 단추·목록은 지웠다.
+- **다음날 단추**(`components/diary-next-day.tsx`): 오늘에서는 단추이고 누르면 `animate-nudge`(`app/globals.css`)만 나온다.
+- **홈의 일기 카드**(`components/diary-card.tsx`, 홈 서버 `app/(tabs)/page.tsx`가 받아 둔 기간의 맛보기를 `HomeData.diaries`로 넘긴다): "피드"는 하단 탭 이름이 "피드"인 홈이라 그 하루 화면에 둔다. 알약 "일기"는 목록(`/diary`)으로 간다. **친구의 소셜 피드(`/feed`)에 공개 일기를 섞는 것은 하지 않았다**(완료 시각 커서 쪽 나누기를 바꿔야 한다. 원하면 따로). 투두메이트의 피드 노출 방식은 앱스토어 설명 이상은 확인하지 못했다.
+- **기록을 마이페이지로**: 홈의 알약을 지우고 `app/(tabs)/settings/page.tsx`의 화면·언어 칸 밑에 줄을 뒀다. 기록 화면 뒤로가기=마이페이지, 하단 탭 활성=마이페이지(`components/bottom-nav.tsx`), 둘러보기에서 "기록" 단계 삭제(`lib/tutorial.ts`, 시험은 "할 일 줄" 끼우는 자리를 한 칸 앞으로).
+- **설정 톱니**: 올리면 90°(스프링 이징), 누르면 180°까지. **Tailwind v4의 `rotate-90`은 `transform`이 아니라 `rotate` 속성**이라 시험은 `getComputedStyle().rotate`를 본다. 바탕색은 그대로(11-02 요청).
+- **검증(로컬)**: 타입 검사 통과, 전체 린트 오류 0(경고 1개는 기존 `scripts/promo-edit.mjs`), 단위 60개 파일·541개(시간대 3개) 통과. E2E(워커 1개): `diary`·`preferences`·`stats`·`tutorial`·`layout`·`a11y` 27개 통과(둘러보기는 "할 일 줄"을 끼우는 자리가 한 칸 밀려 고친 뒤 통과), 홈과 맞닿은 `app-shell`·`tab-cache`·`home-month`·`mascot`·`locale`·`todo`·`calendar`·`friend-header`·`upcoming-events`·`notification-badge`·`account-deletion` 44개 중 43개 통과하고 `notification-badge` 1개는 아래 "알아 둘 것"의 기존 불안정이라 선택자를 좁혀 다시 돌려 통과. **전체 `npm run verify`는 로컬에서 돌리지 않았고 PR의 CI가 돈다.**
+- **알아 둘 것(기존 불안정)**: `notification-badge.spec`의 `/^알림/` 선택자가 닉네임이 "알림"으로 시작하는 **추천 친구** 링크까지 잡았다. 시험 DB에 2026-10-26부터 남은 옛 시험 계정(`e2e-remind-…@modori.test`, 닉네임 "알림38e34besr95", 옛 리마인더 시험의 찌꺼기)이 추천에 뜰 때만 실패해 CI에서도 우연히 걸릴 수 있었다. 선택자를 "알림"/"알림 N"으로 좁혔다(검사 동작은 그대로). 그 계정 자체는 지우지 않았다(시험 DB의 데이터라 허락 없이 지우지 않았다).
+- **못 한 것**: 폰·데스크톱 앱 안에서의 모양과 영어·일본어 화면, 캐릭터를 몽이·하루·펭이로 바꿨을 때의 기분 그림(자동 시험은 도리만), 새로 그린 자체 이모지(있는 표정만 썼다), 릴리스 스크린샷(`tests/screenshots`의 시드·촬영 목록에 일기·AI 도우미 화면을 더해 두었고 배포 뒤 `npm run screenshots`로 찍는다).
+- **수동 배포 기록**: 운영자가 요청해서 PR #265(`0d6d0dd`)를 검증 없이 올렸다(`docs/incidents.md`).

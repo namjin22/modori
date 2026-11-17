@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
 import { BackLink } from "@/components/back-link";
+import { DiaryMood } from "@/components/diary-mood";
 import { addDays, endOfMonthKST, formatKST, formatMonthKST, parseKSTMonth, startOfMonthKST, todayIn } from "@/lib/date";
 import { monthDayWithWeekday, yearMonth } from "@/lib/i18n/format";
 import { diary } from "@/lib/i18n/messages/diary";
@@ -99,11 +100,7 @@ export default async function FriendDiaryPage({
           {entries.map((entry) => (
             <li key={formatKST(entry.date)} className="flex flex-col gap-2 rounded-2xl bg-surface p-4">
               <p className="flex items-center gap-2 text-sm font-medium">
-                {entry.mood && (
-                  <span aria-hidden className="text-xl">
-                    {entry.mood}
-                  </span>
-                )}
+                {entry.mood && <DiaryMood value={entry.mood} size={36} />}
                 {monthDayWithWeekday(locale, entry.date.getUTCMonth() + 1, entry.date.getUTCDate(), entry.date.getUTCDay())}
               </p>
               <p className="whitespace-pre-wrap break-words text-[15px] leading-relaxed">{entry.content}</p>

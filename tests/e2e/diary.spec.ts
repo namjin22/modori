@@ -44,8 +44,10 @@ test("일기를 쓰고 고치고 지운다: 글·이모지·기분·친구 공�
   await signUp(page, emails.me, `일기${testInfo.testId.slice(-6)}${RUN_TAG}`);
   const me = await userByEmail(emails.me);
 
-  // 홈의 "일기" 버튼은 보고 있는 날의 일기로 간다.
+  // 홈의 "일기" 버튼은 일기 목록으로 간다(보고 있는 날의 일기는 홈의 카드에서 바로 본다).
   await page.getByRole("link", { name: "일기", exact: true }).click();
+  await expect(page).toHaveURL(/\/diary$/);
+  await page.getByRole("link", { name: "오늘 일기 쓰기" }).click();
   await expect(page).toHaveURL(new RegExp(`/diary/${TODAY}$`));
   await expect(page.getByRole("button", { name: "일기 지우기" })).toHaveCount(0);
 
@@ -54,30 +56,29 @@ test("일기를 쓰고 고치고 지운다: 글·이모지·기분·친구 공�
   await expect(save).toBeDisabled();
 
   const content = page.getByLabel("일기 내용");
-  await content.fill("오늘은 시험이 끝났다.");
-  await mood(page, "😊").click();
-  // 글 사이에 이모지를 끼운다: 커서가 있는 곳(글 끝)에 들어간다.
-  await page.locator("summary", { hasText: "이모지 넣기" }).click();
-  await page.getByRole("button", { name: "🎉", exact: true }).click();
-  await expect(content).toHaveValue("오늘은 시험이 끝났다.🎉");
+  // 기분은 내 캐릭터(도리)의 표정 열 개 중에서 고른다. 이모지를 끼우는 단추는 없앴다(2026-11-17 요청). 글자판의 이모지는 그대로 적을 수 있다.
+  await expect(page.getByText("이모지 넣기")).toHaveCount(0);
+  await expect(page.locator('input[name="mood"]')).toHaveCount(11);
+  await content.fill("오늘은 시험이 끝났다.🎉");
+  await mood(page, "dori:happy").click();
   await expect(save).toBeEnabled();
 
   await save.click();
   await expect(page.getByText("저장했어요.")).toBeVisible();
   // 기본은 나만 본다.
-  expect(await entryOf(me.id, TODAY)).toMatchObject({ content: "오늘은 시험이 끝났다.🎉", mood: "😊", isPublic: false });
+  expect(await entryOf(me.id, TODAY)).toMatchObject({ content: "오늘은 시험이 끝났다.🎉", mood: "dori:happy", isPublic: false });
 
   // 새로 열어도 그대로이고, 고쳐도 한 편이다.
   await page.reload();
   await expect(content).toHaveValue("오늘은 시험이 끝났다.🎉");
-  await expect(page.locator('input[name="mood"][value="😊"]')).toBeChecked();
+  await expect(page.locator('input[name="mood"][value="dori:happy"]')).toBeChecked();
   await content.fill("오늘은 시험이 끝났다.\n둘째 줄도 적었다.");
-  await mood(page, "🥳").click();
+  await mood(page, "dori:party").click();
   await page.getByRole("checkbox", { name: /친구에게 공개/ }).check();
   await save.click();
   await expect(page.getByText("저장했어요.")).toBeVisible();
   expect(await prisma.diaryEntry.count({ where: { userId: me.id } })).toBe(1);
-  expect(await entryOf(me.id, TODAY)).toMatchObject({ content: "오늘은 시험이 끝났다.\n둘째 줄도 적었다.", mood: "🥳", isPublic: true });
+  expect(await entryOf(me.id, TODAY)).toMatchObject({ content: "오늘은 시험이 끝났다.\n둘째 줄도 적었다.", mood: "dori:party", isPublic: true });
 
   // 기분을 "고르지 않음"으로 되돌릴 수 있다.
   await page.getByText("고르지 않음", { exact: true }).click();
@@ -102,9 +103,9 @@ test("목록은 달마다 최근 날부터 보이고, 공개 표시가 붙고, �
   const me = await userByEmail(emails.me);
   await prisma.diaryEntry.createMany({
     data: [
-      { userId: me.id, date: parseKSTDate(day(0)), content: "오늘 쓴 일기", mood: "😄", isPublic: true },
+      { userId: me.id, date: parseKSTDate(day(0)), content: "오늘 쓴 일기", mood: "dori:like", isPublic: true },
       { userId: me.id, date: parseKSTDate(day(-1)), content: "어제 쓴 일기\n둘째 줄", mood: null, isPublic: false },
-      { userId: me.id, date: parseKSTDate(day(-40)), content: "한 달도 더 전에 쓴 일기", mood: "😢", isPublic: false },
+      { userId: me.id, date: parseKSTDate(day(-40)), content: "한 달도 더 전에 쓴 일기", mood: "dori:sad", isPublic: false },
     ],
   });
 
@@ -136,6 +137,48 @@ test("목록은 달마다 최근 날부터 보이고, 공개 표시가 붙고, �
   await expect(page.getByRole("link", { name: "다음 달" })).toBeVisible();
 });
 
+test("홈의 하루 화면에서 그날의 일기를 바로 보고, 없으면 쓰러 가는 줄이 보인다(내일 이후에는 없다)", async ({ page, emails }, testInfo) => {
+  await signUp(page, emails.me, `피드${testInfo.testId.slice(-6)}${RUN_TAG}`);
+  const me = await userByEmail(emails.me);
+  const card = page.locator("[data-diary-card]");
+
+  // 쓴 일기가 없으면 오늘의 일기를 쓰러 가는 줄이 있고, 누르면 그 날의 쓰기 화면이 열린다.
+  await page.goto("/");
+  await expect(card).toHaveCount(1);
+  await expect(card).toContainText("오늘의 일기를 써 보세요");
+  await card.click();
+  await expect(page).toHaveURL(new RegExp(`/diary/${TODAY}$`));
+
+  // 저장하면 홈에서 바로 보인다: 기분 그림과 글의 앞부분, 친구 공개 표시.
+  await page.getByLabel("일기 내용").fill("홈에서 바로 보이는 일기\n둘째 줄은 이어서 붙는다");
+  await mood(page, "dori:cool").click();
+  await page.getByRole("checkbox", { name: /친구에게 공개/ }).check();
+  await page.getByRole("button", { name: "저장", exact: true }).click();
+  await expect(page.getByText("저장했어요.")).toBeVisible();
+  await page.goto("/");
+  await expect(card).toHaveCount(1);
+  await expect(card).toContainText("홈에서 바로 보이는 일기 둘째 줄은 이어서 붙는다");
+  await expect(card).toContainText("친구 공개");
+  await expect(card).not.toContainText("써 보세요");
+  await expect(card.locator("svg").first()).toBeVisible();
+
+  // 다른 날을 보면 그 날의 일기(또는 쓰러 가는 줄)가 보이고, 아직 오지 않은 날에는 카드가 없다.
+  await prisma.diaryEntry.create({ data: { userId: me.id, date: parseKSTDate(day(-1)), content: "어제 쓴 일기 맛보기" } });
+  await page.goto(`/?date=${day(-1)}`);
+  await expect(card).toContainText("어제 쓴 일기 맛보기");
+  await expect(card).not.toContainText("친구 공개");
+  await page.goto(`/?date=${day(-2)}`);
+  await expect(card).toContainText("이 날의 일기를 써 보세요");
+  await page.goto(`/?date=${day(1)}`);
+  await expect(card).toHaveCount(0);
+
+  // 카드를 누르면 그 날의 일기 화면이 열린다.
+  await page.goto(`/?date=${day(-1)}`);
+  await card.click();
+  await expect(page).toHaveURL(new RegExp(`/diary/${day(-1)}$`));
+  await expect(page.getByLabel("일기 내용")).toHaveValue("어제 쓴 일기 맛보기");
+});
+
 test("날짜 규칙: 아직 오지 않은 날은 오늘로, 없는 날짜는 없는 주소로, 글이 너무 길면 저장하지 않는다", async ({ page, emails }, testInfo) => {
   await signUp(page, emails.me, `규칙${testInfo.testId.slice(-6)}${RUN_TAG}`);
 
@@ -152,7 +195,20 @@ test("날짜 규칙: 아직 오지 않은 날은 오늘로, 없는 날짜는 없
   await expect(page.getByRole("link", { name: "다음날 일기" })).toBeVisible();
   await page.getByRole("link", { name: "다음날 일기" }).click();
   await expect(page).toHaveURL(new RegExp(`/diary/${TODAY}$`));
+  // 오늘에서도 다음날 단추는 있다(2026-11-17 요청). 누르면 아무 데도 가지 않고 단추만 움찔한다. 연달아 눌러도 그때마다 움직인다.
   await expect(page.getByRole("link", { name: "다음날 일기" })).toHaveCount(0);
+  const next = page.getByRole("button", { name: "다음날 일기" });
+  await expect(next).toBeVisible();
+  await expect(page.locator(".animate-nudge")).toHaveCount(0);
+  await page.getByLabel("일기 내용").fill("움찔해도 글은 그대로");
+  await next.click();
+  await expect(page.locator(".animate-nudge")).toHaveCount(1);
+  await expect(page).toHaveURL(new RegExp(`/diary/${TODAY}$`));
+  await expect(page.getByLabel("일기 내용")).toHaveValue("움찔해도 글은 그대로");
+  await next.click();
+  await expect(page.locator(".animate-nudge")).toHaveCount(1);
+  await expect(page).toHaveURL(new RegExp(`/diary/${TODAY}$`));
+  await page.getByLabel("일기 내용").fill("");
 
   // 5000자가 넘으면 센 글자 수가 빨개지고 저장할 수 없다(이모지도 한 글자).
   const content = page.getByLabel("일기 내용");
@@ -171,7 +227,7 @@ test("친구의 공개 일기: 팔로우한 사람만, 공개한 일기만 보�
   const friend = await prisma.user.create({ data: { email: emails.other, nickname: friendName, privacyAgreedAt: new Date() } });
   await prisma.diaryEntry.createMany({
     data: [
-      { userId: friend.id, date: parseKSTDate(TODAY), content: "친구가 공개한 일기", mood: "🥰", isPublic: true },
+      { userId: friend.id, date: parseKSTDate(TODAY), content: "친구가 공개한 일기", mood: "dori:love", isPublic: true },
       { userId: friend.id, date: parseKSTDate(day(-1)), content: "친구만 보는 비밀 일기", mood: null, isPublic: false },
     ],
   });

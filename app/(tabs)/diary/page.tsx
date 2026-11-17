@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { BackLink } from "@/components/back-link";
+import { DiaryMood } from "@/components/diary-mood";
 import { addDays, endOfMonthKST, formatKST, formatMonthKST, parseKSTMonth, startOfMonthKST, todayIn } from "@/lib/date";
 import { diaryExcerpt } from "@/lib/diary";
 import { monthDayWithWeekday, yearMonth } from "@/lib/i18n/format";
@@ -91,9 +92,7 @@ export default async function DiaryListPage({ searchParams }: { searchParams: Pr
             return (
               <li key={key}>
                 <Link prefetch={false} href={`/diary/${key}`} className="flex gap-3 rounded-2xl bg-surface p-4 hover:bg-surface-hover">
-                  <span aria-hidden className="flex size-10 shrink-0 items-center justify-center text-2xl">
-                    {entry.mood ?? "📔"}
-                  </span>
+                  <DiaryMood value={entry.mood} size={44} />
                   <span className="flex min-w-0 flex-1 flex-col gap-1">
                     <span className="flex items-center gap-2 text-sm font-medium">
                       {monthDayWithWeekday(locale, entry.date.getUTCMonth() + 1, entry.date.getUTCDate(), entry.date.getUTCDay())}

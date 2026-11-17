@@ -35,7 +35,9 @@ test("알림을 열었다가 링크로 돌아오면 아래 탭의 알림 수가 
   await expect(tabBadge).toHaveAttribute("aria-label", "안 읽은 알림 1개");
 
   // 새로 불러오지 않고 링크로만 오간다(실제로 쓰는 방식).
-  await page.getByRole("link", { name: /^알림/ }).click();
+  // 이름이 "알림"이나 "알림 N"인 링크만 고른다. /^알림/은 닉네임이 "알림"으로 시작하는 추천 친구의 링크까지 잡아, 시험 DB에 남은 옛 시험 계정이
+  // 추천에 뜨면 실패했다(2026-11-17 발견).
+  await page.getByRole("link", { name: /^알림( \d+)?$/ }).click();
   await expect(page.getByRole("heading", { name: "알림" })).toBeVisible();
   const item = page.getByRole("listitem").filter({ hasText: "나를 팔로우했어요" });
   await expect(item).toContainText("NEW");

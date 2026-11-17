@@ -4,7 +4,9 @@ import { notFound, redirect } from "next/navigation";
 
 import { BackLink } from "@/components/back-link";
 import { DiaryEditor } from "@/components/diary-editor";
+import { DiaryNextDay } from "@/components/diary-next-day";
 import { addDays, formatKST, parseKSTDate, todayIn } from "@/lib/date";
+import { DEFAULT_CHARACTER, isCharacterId } from "@/lib/characters";
 import { diaryDateProblem } from "@/lib/diary";
 import { dayHeading } from "@/lib/i18n/format";
 import { diary } from "@/lib/i18n/messages/diary";
@@ -58,16 +60,11 @@ export default async function DiaryDayPage({ params }: { params: Promise<{ date:
         <Link prefetch={false} href={`/diary/${formatKST(addDays(date, -1))}`} aria-label={t("prevDay")} className={navButton}>
           ‹
         </Link>
-        {hasNext ? (
-          <Link prefetch={false} href={`/diary/${formatKST(addDays(date, 1))}`} aria-label={t("nextDay")} className={navButton}>
-            ›
-          </Link>
-        ) : (
-          <span aria-hidden className="size-10" />
-        )}
+        {/* 오늘에서는 단추만 두고 누르면 움찔할 뿐 아무 데도 가지 않는다(내일의 일기는 쓸 수 없다, 2026-11-17 요청). */}
+        <DiaryNextDay href={hasNext ? `/diary/${formatKST(addDays(date, 1))}` : null} label={t("nextDay")} />
       </header>
 
-      <DiaryEditor key={key} date={key} initial={entry} />
+      <DiaryEditor key={key} date={key} initial={entry} character={isCharacterId(user.avatarCharacter) ? user.avatarCharacter : DEFAULT_CHARACTER} />
     </div>
   );
 }

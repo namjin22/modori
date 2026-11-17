@@ -40,7 +40,6 @@ const NEW_USER_STEPS = [
   { title: "달력", target: "calendar" },
   { title: "날짜 넘기기", target: "day-nav" },
   { title: "관리", target: "manage" },
-  { title: "기록", target: "stats" },
   { title: "일정", target: "events" },
   { title: "카테고리 칩", target: "category" },
   { title: "소셜", target: "tab-social" },
@@ -214,7 +213,8 @@ test.describe("설정에서 다시 보기", () => {
     await expect(dialog).toBeVisible();
 
     // 할 일이 있는 계정이라 "카테고리 칩" 다음에 "할 일 줄"이 끼어든다.
-    const withTodo = [...NEW_USER_STEPS.slice(0, 8), { title: "할 일 줄", target: "todo-row" }, ...NEW_USER_STEPS.slice(8)];
+    // 홈의 "기록" 단계를 마이페이지로 옮기면서 단계가 하나 줄어, "카테고리 칩"은 일곱 번째다(2026-11-17).
+    const withTodo = [...NEW_USER_STEPS.slice(0, 7), { title: "할 일 줄", target: "todo-row" }, ...NEW_USER_STEPS.slice(7)];
     await walkThrough(page, withTodo);
     await dialog.getByRole("button", { name: "끝내기" }).click();
 

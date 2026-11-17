@@ -3,7 +3,7 @@ import { defineMessages } from "@/lib/i18n";
 /** 기록(통계) 화면과 그 위의 도리 한마디. */
 export const stats = defineMessages({
   ko: {
-    toFeed: "피드로",
+    toMyPage: "마이페이지로",
     title: "기록",
     pickMonth: "달 고르기",
     prevMonth: "이전 달",
@@ -27,7 +27,7 @@ export const stats = defineMessages({
     moodGradual: "하나씩 해나가면 돼요",
   },
   en: {
-    toFeed: "To feed",
+    toMyPage: "To My page",
     title: "Stats",
     pickMonth: "Choose a month",
     prevMonth: "Previous month",
@@ -51,7 +51,7 @@ export const stats = defineMessages({
     moodGradual: "One step at a time",
   },
   ja: {
-    toFeed: "フィードへ",
+    toMyPage: "マイページへ",
     title: "記録",
     pickMonth: "月を選ぶ",
     prevMonth: "前の月",

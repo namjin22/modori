@@ -118,7 +118,11 @@ test("마이페이지의 설정은 제목 줄 오른쪽 톱니 버튼이고, 눌
   // 마우스를 올려도 바탕색이 달라지지 않는다(2026-11-02 요청: 눌렀을 때 색이 달라져 이상하다).
   const background = () => gear.evaluate((element) => getComputedStyle(element).backgroundColor);
   const before = await background();
+  // 톱니는 올리면 돌아 튀어 오른다(2026-11-17 요청: 호버·애니메이션이 너무 재미없다). 바탕색은 그대로다. Tailwind v4의 rotate-90은 rotate 속성이다.
+  const turn = () => gear.locator("svg").evaluate((element) => getComputedStyle(element).rotate);
+  expect(await turn()).toBe("none");
   await gear.hover();
+  await expect.poll(turn).not.toBe("none");
   expect(await background()).toBe(before);
 
   await gear.click();
@@ -126,3 +130,33 @@ test("마이페이지의 설정은 제목 줄 오른쪽 톱니 버튼이고, 눌
   await expect(page.getByRole("heading", { level: 1, name: "설정" })).toBeVisible();
 });
 
+test("기록은 마이페이지의 언어 칸 밑에 있고, 열면 마이페이지 탭이 고른 채로 남고 뒤로가기는 마이페이지다", async ({ page, email }, testInfo) => {
+  await page.goto("/login");
+  await page.getByLabel("테스트 이메일").fill(email);
+  await page.getByRole("button", { name: "테스트 로그인" }).click();
+  await page.getByPlaceholder("닉네임").fill(`기록${testInfo.testId.slice(-6)}${RUN_TAG}`);
+  await page.getByLabel("개인정보 수집·이용에 동의해요").check();
+  await page.getByRole("button", { name: "시작하기" }).click();
+  await expect(homeReady(page)).toBeVisible();
+
+  // 홈의 알약 줄에는 더 이상 없다.
+  await expect(page.getByRole("link", { name: "기록", exact: true })).toHaveCount(0);
+
+  await page.goto("/settings");
+  const stats = page.getByRole("link", { name: "기록", exact: true });
+  await expect(stats).toBeVisible();
+  // 화면(테마·언어) 칸 바로 아래, 로그아웃 위에 있다.
+  const language = await page.getByRole("heading", { level: 2, name: "화면" }).locator("xpath=..").boundingBox();
+  const row = await stats.boundingBox();
+  const logout = await page.getByRole("button", { name: "로그아웃" }).first().boundingBox();
+  if (!language || !row || !logout) throw new Error("자리를 잴 수 없다.");
+  expect(row.y).toBeGreaterThanOrEqual(language.y + language.height - 1);
+  expect(row.y + row.height).toBeLessThanOrEqual(logout.y + 1);
+
+  await stats.click();
+  await expect(page).toHaveURL(/\/stats$/);
+  await expect(page.getByRole("link", { name: "마이페이지", exact: true })).toHaveAttribute("aria-current", "page");
+  await expect(page.getByRole("link", { name: "피드", exact: true })).not.toHaveAttribute("aria-current", "page");
+  await page.getByRole("link", { name: "마이페이지로" }).click();
+  await expect(page).toHaveURL(/\/settings$/);
+});

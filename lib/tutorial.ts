@@ -12,7 +12,6 @@ export const TOUR_STEPS = [
   { id: "calendar", target: "calendar" },
   { id: "dayNav", target: "day-nav" },
   { id: "manage", target: "manage" },
-  { id: "stats", target: "stats" },
   { id: "events", target: "events" },
   { id: "category", target: "category" },
   { id: "todo", target: "todo-row" },
