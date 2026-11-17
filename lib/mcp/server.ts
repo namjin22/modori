@@ -2,6 +2,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ToolAnnotations } from "@modelcontextprotocol/sdk/types.js";
 
 import {
+  addTodoMemosInput,
   completeTodosInput,
   createEventsInput,
   createTodosInput,
@@ -29,7 +30,7 @@ import {
   updateSettingsInput,
   updateTodosInput,
 } from "@/lib/mcp/inputs-full";
-import { deleteEvents, deleteTodos, updateEvents, updateTodos } from "@/lib/mcp/edit-tools";
+import { addTodoMemos, deleteEvents, deleteTodos, updateEvents, updateTodos } from "@/lib/mcp/edit-tools";
 import { createCategory, createRoutine, deleteCategory, deleteRoutine, listRoutines, updateCategory, updateRoutine } from "@/lib/mcp/organize-tools";
 import {
   followUser,
@@ -145,7 +146,7 @@ export function createMcpServer(ctx: McpContext): McpServer {
 
   if (ctx.scope === "READ") return server;
 
-  // 만들기·끝내기·옮기기·되돌리기: 쓰기와 모든 권한.
+  // 만들기·끝내기·옮기기·메모 달기·되돌리기: 쓰기와 모든 권한.
   server.registerTool(
     "create_todos",
     {
@@ -165,6 +166,17 @@ export function createMcpServer(ctx: McpContext): McpServer {
     "move_todos",
     { title: "Move todos", description: "Move todos to another date.", inputSchema: moveTodosInput, annotations: CHANGES },
     (input) => moveTodos(ctx, input),
+  );
+  server.registerTool(
+    "add_todo_memos",
+    {
+      title: "Add notes to todos",
+      description:
+        "Add a private note (memo) to up to 20 existing todos. By default the note goes on a new line after the existing note; set replace=true to replace it. Notes you write are hidden from the user's followers. To put a note on a todo you are creating, use create_todos' memo field instead.",
+      inputSchema: addTodoMemosInput,
+      annotations: CHANGES,
+    },
+    (input) => addTodoMemos(ctx, input),
   );
   server.registerTool(
     "create_events",

@@ -4,6 +4,7 @@ import { isHexColor } from "@/lib/colors";
 import { firstOverfullDay } from "@/lib/event-limit";
 import { formatTime, parseTime } from "@/lib/event-time";
 import { LIMITS } from "@/lib/limits";
+import { MAX_MEMO_LENGTH } from "@/lib/memo";
 import { MCP_LIMITS } from "@/lib/mcp/inputs";
 import {
   BULK_TRANSACTION,
@@ -85,6 +86,29 @@ export async function updateTodos(ctx: McpContext, input: { updates: TodoUpdate[
   revalidatePath("/");
 
   return ok({ batchId: batch.id, updated: plan.map(({ row }) => row.id), undo: undoNote });
+}
+
+/**
+ * 이미 있는 할 일에 메모를 다는 도구(쓰기 토큰도 쓴다, 2026-11-17). 만들 때의 메모는 create_todos에 있지만, 있는 할 일에 메모를 다는 길은
+ * update_todos(모든 권한)뿐이라 쓰기 토큰의 AI는 "메모를 못 넣는다"고 답했다. 메모만 다루고 글·카테고리는 건드리지 않는다.
+ * 저장·되돌리기는 update_todos와 같은 길(snapshot)이다. 기본은 있던 메모 뒤에 줄을 바꿔 덧붙이고(사용자가 쓴 글을 덮지 않는다),
+ * AI가 쓴 메모는 만들 때처럼 팔로워에게 보이지 않게 둔다(memoPublic=false). 있던 메모가 공개였다면 그것도 비공개가 된다(사용자가 앱에서 다시 켠다).
+ */
+export async function addTodoMemos(ctx: McpContext, input: { memos: { id: string; memo: string }[]; replace?: boolean }): Promise<ToolResult> {
+  const ids = [...new Set(input.memos.map((item) => item.id))];
+  const rows = await prisma.todo.findMany({ where: { id: { in: ids }, userId: ctx.userId }, select: { id: true, memo: true } });
+  const current = new Map(rows.map((row) => [row.id, row.memo]));
+
+  const problems: string[] = [];
+  const updates = input.memos.map((item, index) => {
+    const existing = current.get(item.id);
+    const memo = !input.replace && existing ? `${existing}\n${item.memo}` : item.memo;
+    if (memo.length > MAX_MEMO_LENGTH) problems.push(`memos[${index}] would make the note ${memo.length} characters long; the limit is ${MAX_MEMO_LENGTH}. Shorten it or set replace=true.`);
+    return { id: item.id, memo, memoPublic: false };
+  });
+  if (problems.length > 0) return fail("Nothing was changed.", { problems });
+  // 없는 id·같은 id 두 번은 updateTodos가 같은 문장으로 막고, 요청 속도 제한도 거기서 센다.
+  return updateTodos(ctx, { updates });
 }
 
 const todoRow = (row: {

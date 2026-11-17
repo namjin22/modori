@@ -32,7 +32,7 @@ test.afterAll(async () => {
 const TODAY = formatKST(todayIn("Asia/Seoul"));
 const day = (offset: number) => formatKST(addDays(parseKSTDate(TODAY), offset));
 
-async function makeToken(userId: string, scope: "READ" | "WRITE", expiresAt = new Date(Date.now() + 30 * 86_400_000)) {
+async function makeToken(userId: string, scope: "READ" | "WRITE", expiresAt: Date | null = new Date(Date.now() + 30 * 86_400_000)) {
   const { token, hash, hint } = generateApiToken();
   const row = await prisma.apiToken.create({ data: { userId, name: "시험", scope, tokenHash: hash, hint, expiresAt } });
   return { token, id: row.id };
@@ -105,8 +105,9 @@ test("읽기 토큰에는 읽는 도구만 보이고 바꾸는 도구는 부를 
 test("쓰기 토큰: 한 번에 만들고, 읽고, 끝내고, 옮기고, 되돌린다", async ({ request, account }) => {
   const { token } = await makeToken(account.id, "WRITE");
   const list = await rpc(request, token, "tools/list");
-  // 만들기·끝내기·옮기기·되돌리기까지. 고치기·지우기 도구는 모든 권한 토큰에만 있다(tests/e2e/mcp-full.spec.ts).
+  // 만들기·끝내기·옮기기·메모 달기·되돌리기까지. 고치기·지우기 도구는 모든 권한 토큰에만 있다(tests/e2e/mcp-full.spec.ts).
   expect(list.body.result?.tools?.map((tool) => tool.name).sort()).toEqual([
+    "add_todo_memos",
     "complete_todos",
     "create_events",
     "create_todos",
@@ -278,10 +279,115 @@ test("만료된 토큰과 지운 토큰은 바로 막힌다", async ({ request, 
   const expired = await makeToken(account.id, "WRITE", new Date(Date.now() - 1000));
   expect((await rpc(request, expired.token, "tools/list")).status).toBe(401);
 
+  const forever = await makeToken(account.id, "WRITE", null);
+  expect((await rpc(request, forever.token, "tools/list")).status).toBe(200);
+
   const live = await makeToken(account.id, "WRITE");
   expect((await rpc(request, live.token, "tools/list")).status).toBe(200);
   await prisma.apiToken.delete({ where: { id: live.id } });
   expect((await rpc(request, live.token, "tools/list")).status).toBe(401);
+});
+
+test("쓰기 토큰은 이미 있는 할 일에 메모를 달 수 있다: 덧붙이기·바꾸기·되돌리기, 팔로워에게는 숨긴다", async ({ request, account }) => {
+  const read = await makeToken(account.id, "READ");
+  expect((await rpc(request, read.token, "tools/list")).body.result?.tools?.map((tool) => tool.name)).not.toContain("add_todo_memos");
+
+  const { token } = await makeToken(account.id, "WRITE");
+  const names = (await rpc(request, token, "tools/list")).body.result?.tools?.map((tool) => tool.name);
+  expect(names).toContain("add_todo_memos");
+  // 글·카테고리를 고치는 도구는 여전히 모든 권한 토큰에만 있다.
+  expect(names).not.toContain("update_todos");
+
+  const plain = await seedTodo(account.id, TODAY, "수학 숙제", 0);
+  const withMemo = await prisma.todo.create({ data: { userId: account.id, content: "영어 단어", date: parseKSTDate(TODAY), order: 1, memo: "Day 3", memoPublic: true } });
+  const memoOf = async (id: string) => prisma.todo.findUniqueOrThrow({ where: { id }, select: { content: true, memo: true, memoPublic: true } });
+
+  // 메모가 없던 것은 그대로 달리고, 있던 것은 뒤에 줄을 바꿔 덧붙는다. 둘 다 팔로워에게 보이지 않는다.
+  const added = await call(request, token, "add_todo_memos", { memos: [{ id: plain.id, memo: "p.30~45" }, { id: withMemo.id, memo: "틀린 것만" }] });
+  expect(added.failed).toBe(false);
+  expect(await memoOf(plain.id)).toEqual({ content: "수학 숙제", memo: "p.30~45", memoPublic: false });
+  expect(await memoOf(withMemo.id)).toEqual({ content: "영어 단어", memo: "Day 3\n틀린 것만", memoPublic: false });
+  const listed = await call(request, token, "list_todos", { from: TODAY, includeMemo: true });
+  expect((listed.data.todos as { content: string; memo?: string }[]).find((todo) => todo.content === "영어 단어")?.memo).toBe("Day 3\n틀린 것만");
+
+  // 되돌리면 메모도, 공개 여부도 달기 전으로 돌아간다.
+  expect((await call(request, token, "undo_batch", { batchId: added.data.batchId })).failed).toBe(false);
+  expect(await memoOf(plain.id)).toEqual({ content: "수학 숙제", memo: null, memoPublic: true });
+  expect(await memoOf(withMemo.id)).toEqual({ content: "영어 단어", memo: "Day 3", memoPublic: true });
+
+  // replace=true면 있던 메모를 바꾼다.
+  const replaced = await call(request, token, "add_todo_memos", { memos: [{ id: withMemo.id, memo: "새 메모" }], replace: true });
+  expect(replaced.failed).toBe(false);
+  expect((await memoOf(withMemo.id)).memo).toBe("새 메모");
+
+  // 덧붙이면 500자를 넘는 것, 없는 id, 같은 id 두 번은 전부 거절하고 아무것도 바꾸지 않는다.
+  await prisma.todo.update({ where: { id: plain.id }, data: { memo: "가".repeat(490) } });
+  const tooLong = await call(request, token, "add_todo_memos", { memos: [{ id: plain.id, memo: "나".repeat(20) }] });
+  expect(tooLong.failed).toBe(true);
+  expect((await memoOf(plain.id)).memo).toBe("가".repeat(490));
+  const missing = await call(request, token, "add_todo_memos", { memos: [{ id: withMemo.id, memo: "들어가면 안 됨" }, { id: "no-such-id", memo: "없는 할 일" }] });
+  expect(missing.failed).toBe(true);
+  expect((await memoOf(withMemo.id)).memo).toBe("새 메모");
+  const twice = await call(request, token, "add_todo_memos", { memos: [{ id: withMemo.id, memo: "하나" }, { id: withMemo.id, memo: "둘" }] });
+  expect(twice.failed).toBe(true);
+  expect((await memoOf(withMemo.id)).memo).toBe("새 메모");
+});
+
+test("남의 할 일에는 메모를 달 수 없다", async ({ request, account }, testInfo) => {
+  const email = `e2e-mcp-other-${testInfo.testId.slice(-6)}-${RUN_TAG}@modori.test`;
+  await prisma.user.deleteMany({ where: { email } });
+  const other = await prisma.user.create({ data: { email, nickname: `남${testInfo.testId.slice(-6)}${RUN_TAG}`, privacyAgreedAt: new Date() } });
+  try {
+    const theirs = await seedTodo(other.id, TODAY, "남의 할 일");
+    const { token } = await makeToken(account.id, "WRITE");
+    const result = await call(request, token, "add_todo_memos", { memos: [{ id: theirs.id, memo: "몰래" }] });
+    expect(result.failed).toBe(true);
+    expect((await prisma.todo.findUniqueOrThrow({ where: { id: theirs.id } })).memo).toBeNull();
+  } finally {
+    await prisma.user.deleteMany({ where: { email } });
+  }
+});
+
+test("만료 없는 토큰은 막히지 않고, 설정에서 만료 없음으로 만들 수 있다", async ({ page, request }, testInfo) => {
+  const email = `e2e-mcp-forever-${testInfo.testId.slice(-6)}-${RUN_TAG}@modori.test`;
+  await prisma.user.deleteMany({ where: { email } });
+  try {
+    await signUp(page, email, `무기한${testInfo.testId.slice(-6)}${RUN_TAG}`);
+    await page.goto("/settings/ai");
+
+    await page.getByLabel("이름 (어디에 쓰는지)").fill("오래 쓸 토큰");
+    // 만료 없음을 고르면 경고가 뜨고, 모든 권한이면 한 줄이 더 붙는다. 다른 기간으로 바꾸면 사라진다.
+    await expect(page.getByRole("note")).toHaveCount(0);
+    await page.getByLabel("유효 기간").selectOption({ label: "만료 없음" });
+    await expect(page.getByRole("note")).toContainText("직접 지우기 전까지");
+    await expect(page.getByRole("note")).not.toContainText("할 일·일정을 지울 수도");
+    await page.getByRole("radio", { name: /모든 권한/ }).check();
+    await expect(page.getByRole("note")).toContainText("할 일·일정을 지울 수도");
+    await page.getByRole("radio", { name: /읽기·쓰기/ }).check();
+    await expect(page.getByRole("note")).not.toContainText("할 일·일정을 지울 수도");
+    await page.getByLabel("유효 기간").selectOption("90");
+    await expect(page.getByRole("note")).toHaveCount(0);
+    await page.getByLabel("유효 기간").selectOption({ label: "만료 없음" });
+
+    await page.getByRole("button", { name: "토큰 만들기" }).click();
+    await expect(page.getByRole("heading", { name: "토큰이 만들어졌어요" })).toBeVisible();
+    const token = await page.getByLabel("접근 토큰", { exact: true }).inputValue();
+
+    // 만료 시각은 비어 있고, 그 토큰은 바로 쓸 수 있다.
+    const stored = await prisma.apiToken.findFirstOrThrow({ where: { user: { email } } });
+    expect(stored.expiresAt).toBeNull();
+    expect((await rpc(request, token, "tools/list")).status).toBe(200);
+
+    // 폼은 비워졌고(경고도 사라졌고), 목록에는 만료일 대신 "만료 없음"이 보인다.
+    await page.getByRole("button", { name: "복사했어요, 닫기" }).click();
+    await page.reload();
+    await expect(page.getByRole("note")).toHaveCount(0);
+    const row = page.getByRole("listitem").filter({ hasText: "오래 쓸 토큰" });
+    await expect(row).toContainText("만료 없음");
+    await expect(row).not.toContainText("만료됨");
+  } finally {
+    await prisma.user.deleteMany({ where: { email } });
+  }
 });
 
 test("토큰마다 바꾸는 요청의 속도를 제한한다", async ({ request, account }) => {

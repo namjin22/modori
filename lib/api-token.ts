@@ -15,8 +15,11 @@ export const MAX_API_TOKENS = 5;
 
 export const MAX_TOKEN_NAME_LENGTH = 40;
 
-/** 고를 수 있는 유효 기간(일). 영원히 살아 있는 토큰은 만들지 않는다. */
+/** 고를 수 있는 유효 기간(일). */
 export const API_TOKEN_EXPIRY_DAYS = [30, 90, 365] as const;
+
+/** 유효 기간 대신 고르는 "만료 없음"의 폼 값(2026-11-17, docs/decisions.md). DB에는 expiresAt이 빈 값으로 적힌다. */
+export const NO_EXPIRY = "never";
 
 /** 권한: READ 읽기만 / WRITE 만들기·끝내기·옮기기·되돌리기 / FULL 거기에 고치기·지우기·카테고리·루틴·프로필·설정·친구·반응(2026-11-16). */
 export const API_TOKEN_SCOPES = ["READ", "WRITE", "FULL"] as const;
@@ -30,12 +33,19 @@ export function readBearerToken(header: string | null): string | null {
   return BEARER.exec(header.trim())?.[1] ?? null;
 }
 
-/** 만료 전인지. */
-export function isTokenUsable(token: { expiresAt: Date }, now = new Date()): boolean {
-  return token.expiresAt.getTime() > now.getTime();
+/** 만료 전인지. 만료 시각이 비어 있으면(만료 없음) 지우기 전까지 쓸 수 있다. */
+export function isTokenUsable(token: { expiresAt: Date | null }, now = new Date()): boolean {
+  return token.expiresAt === null || token.expiresAt.getTime() > now.getTime();
 }
 
 /** 만료 시각: 만든 때부터 days일 뒤. */
 export function tokenExpiry(days: number, now = new Date()): Date {
   return new Date(now.getTime() + days * 86_400_000);
+}
+
+/** 폼의 "유효 기간" 값에서 만료 시각을 정한다. 만료 없음은 null, 허용한 일수는 그 날, 그 밖의 값은 undefined(잘못된 값). */
+export function readTokenExpiry(value: FormDataEntryValue | null, now = new Date()): Date | null | undefined {
+  if (value === NO_EXPIRY) return null;
+  const days = API_TOKEN_EXPIRY_DAYS.find((allowed) => allowed === Number(value));
+  return days === undefined ? undefined : tokenExpiry(days, now);
 }

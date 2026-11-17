@@ -56,6 +56,24 @@ export const moveTodosInput = {
   date: day.describe("Day to move them to, YYYY-MM-DD"),
 };
 
+/** 이미 있는 할 일에 메모를 다는 입력(쓰기 토큰도 쓴다). 새로 만들 때의 메모는 create_todos의 memo다. */
+export const addTodoMemosInput = {
+  memos: z
+    .array(
+      z.object({
+        id,
+        memo: z.string().trim().min(1).max(500).describe("The note to add, 1 to 500 characters"),
+      }),
+    )
+    .min(1)
+    .max(MCP_LIMITS.todosPerCall)
+    .describe(`1 to ${MCP_LIMITS.todosPerCall} existing todos (ids from list_todos or create_todos) and the note for each. All-or-nothing.`),
+  replace: z
+    .boolean()
+    .optional()
+    .describe("false (default): add the note on a new line after the todo's existing note, if any. true: replace the existing note. Existing notes are only returned by list_todos with includeMemo=true."),
+};
+
 export const listEventsInput = {
   from: day.describe("First day, YYYY-MM-DD"),
   to: day.optional().describe(`Last day, YYYY-MM-DD. Defaults to 'from'. At most ${MCP_LIMITS.listDays} days after 'from'.`),

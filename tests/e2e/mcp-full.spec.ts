@@ -11,7 +11,7 @@ import { call, day, deleteOther, makeOther, makeToken, seedTodo, test, toolNames
 // 핵심 도구(만들기·끝내기·옮기기)는 mcp.spec.ts가 시험한다.
 
 const READ = ["get_overview", "get_profile", "list_events", "list_people", "list_routines", "list_todos", "search_users"];
-const WRITE = [...READ, "complete_todos", "create_events", "create_todos", "move_todos", "undo_batch"];
+const WRITE = [...READ, "add_todo_memos", "complete_todos", "create_events", "create_todos", "move_todos", "undo_batch"];
 const FULL = [
   ...WRITE,
   "create_category",

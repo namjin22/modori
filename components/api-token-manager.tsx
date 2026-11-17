@@ -5,7 +5,7 @@ import { type FormEvent, useState, useSyncExternalStore, useTransition } from "r
 import { createApiToken, deleteApiToken } from "@/app/(tabs)/settings/ai/actions";
 import { useT } from "@/components/locale-provider";
 import { useSaveFailure } from "@/components/use-save-failure";
-import { API_TOKEN_EXPIRY_DAYS, MAX_API_TOKENS, MAX_TOKEN_NAME_LENGTH } from "@/lib/api-token";
+import { API_TOKEN_EXPIRY_DAYS, MAX_API_TOKENS, MAX_TOKEN_NAME_LENGTH, NO_EXPIRY } from "@/lib/api-token";
 import { ai } from "@/lib/i18n/messages/ai";
 import { common } from "@/lib/i18n/messages/common";
 
@@ -15,7 +15,8 @@ export type ApiTokenItem = {
   scope: "READ" | "WRITE" | "FULL";
   allowFriends: boolean;
   hint: string;
-  expiresOn: string;
+  /** 비어 있으면 만료 없음. */
+  expiresOn: string | null;
   expired: boolean;
   lastUsedOn: string | null;
 };
@@ -99,7 +100,7 @@ function TokenRow({ token }: { token: ApiTokenItem }) {
             {token.allowFriends && ` · ${t("tagFriends")}`}
           </span>
           <span className="text-xs text-muted">
-            {token.expired ? t("expired") : t("until", { date: token.expiresOn })} · {token.lastUsedOn ? t("lastUsed", { date: token.lastUsedOn }) : t("neverUsed")}
+            {token.expired ? t("expired") : token.expiresOn ? t("until", { date: token.expiresOn }) : t("noExpiry")} ·{token.lastUsedOn ? t("lastUsed", { date: token.lastUsedOn }) : t("neverUsed")}
           </span>
         </div>
         {!confirming && (
@@ -128,8 +129,17 @@ function TokenRow({ token }: { token: ApiTokenItem }) {
 function CreateForm({ onCreated }: { onCreated: (token: string) => void }) {
   const t = useT(ai);
   const [problem, setProblem] = useState("");
+  // "만료 없음"을 골랐는지, 그때 권한이 모든 권한인지. 값은 폼이 들고 있고 여기서는 경고를 보일지만 안다.
+  const [noExpiry, setNoExpiry] = useState(false);
+  const [full, setFull] = useState(false);
   const [pending, startTransition] = useTransition();
   const saveFailed = useSaveFailure();
+
+  function sync(event: FormEvent<HTMLFormElement>) {
+    const data = new FormData(event.currentTarget);
+    setNoExpiry(data.get("days") === NO_EXPIRY);
+    setFull(data.get("scope") === "FULL");
+  }
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -142,6 +152,8 @@ function CreateForm({ onCreated }: { onCreated: (token: string) => void }) {
         if (result.ok) {
           setProblem("");
           form.reset();
+          setNoExpiry(false);
+          setFull(false);
           onCreated(result.token);
         } else {
           setProblem(result.message);
@@ -155,7 +167,7 @@ function CreateForm({ onCreated }: { onCreated: (token: string) => void }) {
   const field = "h-12 rounded-xl bg-surface-hover px-4 text-[15px] text-foreground outline-none placeholder:text-muted focus:ring-2 focus:ring-brand";
 
   return (
-    <form onSubmit={submit} className="flex flex-col gap-4">
+    <form onSubmit={submit} onChange={sync} className="flex flex-col gap-4">
       <label className="flex flex-col gap-1.5 text-xs text-muted">
         {t("nameLabel")}
         <input name="name" required maxLength={MAX_TOKEN_NAME_LENGTH} placeholder={t("namePlaceholder")} className={field} />
@@ -203,8 +215,15 @@ function CreateForm({ onCreated }: { onCreated: (token: string) => void }) {
               {t("days", { days })}
             </option>
           ))}
+          <option value={NO_EXPIRY}>{t("noExpiry")}</option>
         </select>
       </label>
+      {noExpiry && (
+        <p role="note" className="-mt-2 text-xs leading-relaxed text-danger">
+          {t("noExpiryWarn")}
+          {full && ` ${t("noExpiryWarnFull")}`}
+        </p>
+      )}
 
       {problem && (
         <p role="alert" className="text-sm text-danger">

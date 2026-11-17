@@ -4,8 +4,10 @@ import {
   API_TOKEN_PREFIX,
   API_TOKEN_EXPIRY_DAYS,
   MAX_API_TOKENS,
+  NO_EXPIRY,
   isTokenUsable,
   readBearerToken,
+  readTokenExpiry,
   tokenExpiry,
 } from "@/lib/api-token";
 import { generateApiToken, hashApiToken } from "@/lib/api-token-secret";
@@ -67,14 +69,33 @@ describe("isTokenUsable / tokenExpiry", () => {
     expect(isTokenUsable({ expiresAt: new Date("2026-11-14T23:59:59Z") }, now)).toBe(false);
   });
 
+  it("만료 시각이 비어 있으면(만료 없음) 언제나 쓸 수 있다", () => {
+    expect(isTokenUsable({ expiresAt: null }, now)).toBe(true);
+    expect(isTokenUsable({ expiresAt: null }, new Date("2099-01-01T00:00:00Z"))).toBe(true);
+  });
+
   it("만료는 만든 때부터 정확히 days일 뒤", () => {
     expect(tokenExpiry(30, now).toISOString()).toBe("2026-12-15T00:00:00.000Z");
     expect(tokenExpiry(365, now).toISOString()).toBe("2027-11-15T00:00:00.000Z");
   });
 });
 
+describe("readTokenExpiry", () => {
+  const now = new Date("2026-11-15T00:00:00Z");
+
+  it("허용한 일수는 그 날, 만료 없음은 null", () => {
+    expect(readTokenExpiry("30", now)?.toISOString()).toBe("2026-12-15T00:00:00.000Z");
+    expect(readTokenExpiry("365", now)?.toISOString()).toBe("2027-11-15T00:00:00.000Z");
+    expect(readTokenExpiry(NO_EXPIRY, now)).toBeNull();
+  });
+
+  it("그 밖의 값은 잘못된 값(undefined)이다", () => {
+    for (const value of [null, "", "0", "7", "366", "-1", "abc", "NEVER", " never"]) expect(readTokenExpiry(value, now)).toBeUndefined();
+  });
+});
+
 describe("상한", () => {
-  it("유효 기간은 영원이 없고, 토큰은 다섯 개까지", () => {
+  it("고르는 일수는 365일 이하이고(만료 없음은 따로 고른다), 토큰은 다섯 개까지", () => {
     expect(API_TOKEN_EXPIRY_DAYS.every((days) => days > 0 && days <= 365)).toBe(true);
     expect(MAX_API_TOKENS).toBe(5);
   });
