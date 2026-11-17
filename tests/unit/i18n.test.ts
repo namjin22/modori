@@ -7,6 +7,7 @@ import { describe, expect, it } from "vitest";
 import { DEFAULT_LOCALE, LOCALES, isLocale, localeOrDefault, translate, translator, type MessageBundle } from "@/lib/i18n";
 import { ai } from "@/lib/i18n/messages/ai";
 import { aichat } from "@/lib/i18n/messages/aichat";
+import { diary } from "@/lib/i18n/messages/diary";
 import { alarms } from "@/lib/i18n/messages/alarms";
 import { auth } from "@/lib/i18n/messages/auth";
 import { categories, colorNames } from "@/lib/i18n/messages/categories";
@@ -34,6 +35,7 @@ import { tutorial } from "@/lib/i18n/messages/tutorial";
 const FILES: Record<string, Record<string, MessageBundle>> = {
   ai: { ai },
   aichat: { aichat },
+  diary: { diary },
   alarms: { alarms },
   auth: { auth },
   categories: { categories, colorNames },

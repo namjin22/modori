@@ -201,6 +201,14 @@ export function HomeView({ data }: { data: HomeData }) {
                   {t("aiHelper")}
                 </Link>
               )}
+              {/* 일기(2026-11-17): 보고 있는 날의 일기를 쓰러 간다. 아직 오지 않은 날이면 쓰기 화면이 오늘로 보낸다. */}
+              <Link
+                prefetch={false}
+                href={`/diary/${selected}`}
+                className="flex h-8 items-center rounded-full bg-surface px-3 text-sm text-muted hover:text-foreground min-[360px]:px-3.5"
+              >
+                {t("diary")}
+              </Link>
               <ManageMenu />
               <Link
                 prefetch={false}

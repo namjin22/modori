@@ -70,6 +70,7 @@ model User {
   webPushSubscriptions WebPushSubscription[]
   alarms               Alarm[]
   apiTokens            ApiToken[]
+  diaryEntries         DiaryEntry[]
   mcpBatches           McpBatch[]
   blocking             Block[]               @relation("blocker")
   blockedBy            Block[]               @relation("blocked")
@@ -274,6 +275,26 @@ model Event {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, startDate])
+}
+
+// 일기(2026-11-17 운영자 결정, docs/decisions.md). 하루 한 편, 날짜는 그 사람의 시간대 달력의 날이다(시각 없음).
+// 기본은 나만 보고, 쓴 사람이 일기마다 isPublic을 켜면 팔로워에게 보인다. 사진은 2단계라 아직 칸이 없다.
+// AI 연결(MCP)·AI 도우미에는 일기를 내보내지 않는다.
+model DiaryEntry {
+  id        String   @id @default(cuid())
+  userId    String
+  date      DateTime @db.Date
+  content   String
+  // 오늘의 기분: lib/diary.ts의 DIARY_MOODS 중 하나. 없으면 비어 있다.
+  mood      String?
+  isPublic  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+  @@index([userId, isPublic, date])
 }
 
 // 서버·브라우저에서 난 오류. instrumentation.ts와 /api/errors가 쌓고 /admin/errors에서 본다.
