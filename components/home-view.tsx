@@ -50,6 +50,8 @@ export type HomeData = {
   upcoming: DayEvent[];
   // 둘러보기를 띄울 때만(처음 가입한 뒤 first, 설정에서 다시 보기 replay). 아니면 null.
   tour: TourMode | null;
+  // 운영에 Gemini 키가 있을 때만 "AI 도우미" 버튼을 보인다(키가 없으면 "준비 중"인 막다른 화면으로 가게 된다).
+  aiReady: boolean;
 };
 
 function formatHeading(locale: Locale, key: string): string {
@@ -132,7 +134,8 @@ export function HomeView({ data }: { data: HomeData }) {
         {/* 넓은 화면에서 달력 칸은 제자리에 둔다. 시작 위치(pt-8)와 같은 top-8이라 스크롤을 시작해도 움직이지 않고,
             창이 달력보다 낮으면(노트북) 칸 안에서만 스크롤해 페이지 끝에서 밀려 올라가지 않는다. */}
         <div className="flex flex-col gap-4 lg:gap-6 lg:sticky lg:top-8 lg:max-h-[calc(100dvh-6rem)] lg:overflow-y-auto lg:scroll-stable">
-          <Link prefetch={false} href="/settings/profile" data-tour="profile" className="flex items-center gap-3">
+          {/* 프로필 수정 화면의 뒤로가기가 이 화면(피드)으로 돌아오게 from=feed를 붙인다(2026-11-16 신고: 마이페이지로 나갔다). */}
+          <Link prefetch={false} href="/settings/profile?from=feed" data-tour="profile" className="flex items-center gap-3">
             <Avatar src={data.profile.avatar} size={48} />
             <span className="min-w-0">
               <span className="block truncate font-bold">{data.profile.nickname}</span>
@@ -188,6 +191,16 @@ export function HomeView({ data }: { data: HomeData }) {
                 </Link>
               )}
               {/* 카테고리·일정·루틴은 메뉴 하나로 묶는다(2026-10-19 요청). 기록은 따로 둔다. */}
+              {/* AI 도우미(2026-11-17): 목표를 말하면 할 일·일정을 제안하는 대화 화면. */}
+              {data.aiReady && (
+                <Link
+                  prefetch={false}
+                  href="/ai"
+                  className="flex h-8 items-center rounded-full bg-surface px-3 text-sm text-muted hover:text-foreground min-[360px]:px-3.5"
+                >
+                  {t("aiHelper")}
+                </Link>
+              )}
               <ManageMenu />
               <Link
                 prefetch={false}

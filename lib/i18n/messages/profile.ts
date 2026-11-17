@@ -20,6 +20,7 @@ export const profile = defineMessages({
     photoUploadFailed: "사진을 올리지 못했어요. 다른 파일로 해보세요.",
     bioTooLong: "소개는 {max}자까지 쓸 수 있어요.",
     backToMyPage: "마이페이지로",
+    backToFeed: "피드로",
     title: "프로필",
   },
   en: {
@@ -40,6 +41,7 @@ export const profile = defineMessages({
     photoUploadFailed: "Couldn't upload the photo. Please try another file.",
     bioTooLong: "Your bio can be up to {max} characters.",
     backToMyPage: "To My page",
+    backToFeed: "To feed",
     title: "Profile",
   },
   ja: {
@@ -60,6 +62,7 @@ export const profile = defineMessages({
     photoUploadFailed: "写真をアップロードできませんでした。別のファイルでお試しください。",
     bioTooLong: "自己紹介は{max}文字まで書けます。",
     backToMyPage: "マイページへ",
+    backToFeed: "フィードへ",
     title: "プロフィール",
   },
 });

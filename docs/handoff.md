@@ -1890,3 +1890,16 @@ VM에 시험 DB(사용자 1000, 할 일 108만, 반응 24만, 280MB)를 만들�
 - **검증(로컬)**: 타입 검사·린트·단위 시험(시간대 3개, 파일 59개·시험 522개) 통과, E2E `mcp.spec`+`mcp-full.spec` 33개 통과(워커 1개). **전체 `npm run verify`는 돌리지 않았다.** 운영자가 "CI 기다리지 말고 바로 배포"를 지시해서 CI 결과가 나오기 전에 `deploy-gsmsv`를 손으로 돌렸다(`deploy/README.md` "급한 배포"). 배포 뒤 main의 `verify` 결과를 확인할 것 — 실패하면 아래 "알아 둘 것"을 보고 고친다.
 - **알아 둘 것**: ① 이 브랜치는 `origin/main`에서 따서 두 커밋(만료 없음, 메모)만 옮겼다. 작업 폴더의 `feat/ai-chat`에는 AI 도우미(E2E 아직 안 돌림)가 미커밋으로 있고 **이번 배포에 들어가지 않았다**. ② 배포 직전 돌고 있던 main CI(#261 병합분)는 옛 커밋을 자동 배포해 이번 배포를 덮어쓸 수 있어 취소했다. ③ 로컬 E2E와 CI는 같은 DB를 쓰므로 위 로컬 E2E는 main CI가 도는 중에 돌렸다(통과했지만 서로 영향을 줬을 수 있다).
 - **못 한 것**: 실제 Claude Code에 "할 일에 메모 입력해 줘"를 시켜 보기(도구 입력·결과는 MCP 요청을 직접 보내는 시험으로만 확인), 설정 화면의 경고 모양을 폰·앱·영어·일본어에서 보기, 전체 verify.
+
+## 2026-11-17 — AI 도우미(앱 안 대화형 일정 도우미) (브랜치 `feat/ai-chat`)
+
+운영자 요청: 앱 안에 AI 채팅 페이지(목표를 말하면 AI가 되묻고 일정·할 일을 정리해 제안). **CLAUDE.md 규칙 7을 운영자가 바꾸기로 결정**했다(`docs/decisions.md` "앱 안 AI 도우미", 규칙 7에 2026-11-17 줄을 더했다). 내가 먼저 "만들지 않고 AI 연결(MCP)로 해결"을 권했고, 운영자가 Google Gemini 무료 등급·대화+이번 달 할 일·일정 전체 전송·미리보기 후 확인해야 저장·건강 안내문 상시 표시와 극단적 계획 거절을 골랐다.
+
+- **구조**: 화면 `app/(tabs)/ai/page.tsx`+`components/ai-chat.tsx`(들어가는 길은 피드의 "AI 도우미" 버튼), 대화 `app/api/ai/chat/route.ts`(로그인·동의·키·한도·입력 검사 뒤 `lib/ai/gemini.ts`로 Google을 부른다), 답 검사·건강 안전망 `lib/ai/plan.ts`(`parseReply`, `hasUnsafeHealthPlan`, `buildContext`), 한도 `lib/ai/limit.ts`(짧은 시간 5번 + 12초에 1번, 하루 40번, **서버 메모리라 재시작하면 비워진다**), 저장 `app/(tabs)/ai/actions.ts`(AI 연결(MCP)의 `createTodos`/`createEvents`/`undoBatch`를 그대로 쓴다), 글 `lib/i18n/messages/aichat.ts`. 대화는 서버에 저장하지 않는다.
+- **환경**: **운영자가 `GEMINI_API_KEY`를 넣어야 열린다**(`.env.example`에 이름만 더했고 `deploy/set-secrets.sh`가 묻는다). 선택으로 `GEMINI_MODEL`(기본 `gemini-3.6-flash`). 키가 없으면 화면은 "준비 중"이고 아무것도 보내지 않는다. 나는 `.env`를 읽을 수 없어 키를 넣지 못한다.
+- **DB**: `User.aiChatConsentAt`(마이그레이션 `20261117100000_user_ai_chat_consent`, 칸 추가만). 시험 DB에 `migrate deploy`로 적용했고 운영 DB에는 배포가 적용한다. 동의 없이는 서버가 403으로 막는다.
+- **개인정보**: 방침(`lib/privacy.ts`, 시행일 2026-11-17)과 목록(`docs/privacy-inventory.md`)에 Google(Gemini API)로 나가는 것을 적었다. **무료 등급은 Google 문서에 "Content used to improve our products"라고 되어 있다(2026-11-17 확인).** 비공개 카테고리의 할 일도 운영자가 정한 대로 보낸다(메모·친구 정보·닉네임·이메일은 뺀다).
+- **시험**: 단위 `tests/unit/ai-plan.test.ts`(답 검사·안전망·한도), E2E `tests/e2e/ai-chat.spec.ts`(가짜 Gemini 서버를 포트 3199에 띄운다: 동의 전 막힘, 미리보기 후 저장, 되돌리기, 극단적 계획 거절 등). `tests/unit/i18n.test.ts`에는 새 사전 `aichat`를 올렸다(새 사전 등록). `playwright.config.ts`에 가짜 Gemini 주소·키를 더했다.
+- **검증**: 타입 검사·린트·단위 시험(522개×시간대 3개) 통과, 로컬 E2E `ai-chat`·`profile`·`layout`·`tutorial` 28개 통과(워커 1개). 전체 `npm run verify`는 로컬에서 안 돌렸고 PR의 CI가 돈다.
+- **못 한 것**: **진짜 Gemini 호출**(키가 없다. 문서가 새 `interactions` 방식을 권하는 중이라 기존 `generateContent`와 모델 이름이 맞는지는 첫 호출에서 드러난다 — 어긋나면 `lib/ai/gemini.ts`만 고치면 된다), 동의를 거두는 단추, 개인정보보호법상 제3자 제공·국외 이전 검토(법률 검토 안 함), 폰·앱·영어·일본어 화면, 건강 안전은 지시문과 단어 안전망뿐이라 AI가 어기는 것을 못 막는다.
+- **다음 작업(운영자 요청, 같은 날)**: **일기 기능**. 운영자가 규칙 7을 바꿔 만들기로 했고 범위를 골랐다: 1단계는 글+이모지(사진은 2단계, 저장소는 1단계 뒤에 정한다), 하루 한 편·날짜별, 기본은 나만 보기에 일기마다 친구 공개를 고르게. 새 브랜치에서 한다.

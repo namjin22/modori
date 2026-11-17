@@ -46,6 +46,10 @@ export default defineConfig({
       AUTH_TRUST_HOST: "true",
       VAPID_PUBLIC_KEY: vapid.publicKey,
       VAPID_PRIVATE_KEY: vapid.privateKey,
+      // AI 도우미(2026-11-17)는 시험에서 진짜 Google을 부르지 않는다. tests/e2e/ai-chat.spec.ts가 이 주소에 가짜 서버를 띄운다.
+      GEMINI_API_KEY: "e2e-fake-key",
+      GEMINI_API_BASE: "http://127.0.0.1:3199",
+      GEMINI_MODEL: "fake-model",
     },
   },
 });
