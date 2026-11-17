@@ -63,7 +63,7 @@ async function newFollower(meId: string) {
 
 test("설치한 앱에서는 창을 내려 두어도 알림이 오면 아이콘 숫자가 바뀌고, 알림 화면을 열면 지워진다", async ({ page }) => {
   await fakeBadgeApi(page, true);
-  // 아이콘 숫자는 이 기기에서 알림 띄우기를 켠 때만 뜬다(2026-10-28). 켠 기기로 둔다: 브라우저가 허락했고 이 계정이 켜 두었다.
+  // 아이콘 숫자는 이 컴퓨터의 알림을 켠 때만 뜬다(2026-10-28, 2026-11-17에 "친구가 할 일을 끝내면 알림" 스위치 하나로 합쳤다). 켠 기기로 둔다: 브라우저가 허락했고 이 계정이 켜 두었다.
   // 시험 브라우저는 알림 허용이 "거부됨"이라 허락한 것으로 보이는 가짜 Notification을 둔다.
   await page.addInitScript(() => {
     class FakeNotification {

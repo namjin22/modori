@@ -73,7 +73,7 @@ test("웹 푸시로 켜면 구독이 서버에 맡겨지고, 창의 알림은 �
   const mySubscriptions = () => prisma.webPushSubscription.count({ where: { userId: me.id, endpoint: ENDPOINT } });
 
   await page.goto("/feed/reactions");
-  const toggle = page.getByRole("checkbox", { name: /이 기기에서 알림 띄우기/ });
+  const toggle = page.getByRole("checkbox", { name: /친구가 할 일을 끝내면 알림/ });
   await toggle.check();
   await expect(toggle).toBeChecked();
   await expect(page.getByText("창을 닫아도 컴퓨터 알림으로 와요")).toBeVisible();
@@ -100,11 +100,15 @@ test("웹 푸시로 켜면 구독이 서버에 맡겨지고, 창의 알림은 �
   await page.goto("/feed/reactions");
   await toggle.uncheck();
   await expect.poll(mySubscriptions).toBe(0);
+  // 스위치가 하나라 서버의 친구 끝냄 알림 설정도 같이 꺼진다(2026-11-17).
+  const notifyFlag = async () => (await prisma.user.findUniqueOrThrow({ where: { id: me.id } })).notifyFriendDone;
+  await expect.poll(notifyFlag).toBe(false);
   await expect.poll(() => page.evaluate(() => sessionStorage.getItem("fake-push-subscription"))).toBeNull();
 
   // 다시 켜고 로그아웃하면 지운다. 학교 PC에서 다음 사람이 앞사람 알림을 받지 않는다.
   await toggle.check();
   await expect.poll(mySubscriptions).toBe(1);
+  await expect.poll(notifyFlag).toBe(true);
   await page.goto("/settings");
   await page.getByRole("button", { name: "로그아웃" }).click();
   await page.getByRole("dialog", { name: "로그아웃할까요?" }).getByRole("button", { name: "로그아웃" }).click();
