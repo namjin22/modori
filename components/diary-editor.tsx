@@ -1,32 +1,29 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useTransition, type FormEvent } from "react";
+import { useState, useTransition, type CSSProperties, type FormEvent } from "react";
 
 import { deleteDiary, saveDiary } from "@/app/(tabs)/diary/actions";
 import { LabeledSwitch } from "@/components/labeled-switch";
-import { useLocale, useT } from "@/components/locale-provider";
-import { ReactionGlyph } from "@/components/reaction-glyph";
+import { useT } from "@/components/locale-provider";
+import { MOOD_COLORS, MoodIcon } from "@/components/mood-icon";
 import { useSaveFailure } from "@/components/use-save-failure";
-import type { CharacterId } from "@/lib/characters";
-import { MAX_DIARY_LENGTH, diaryLength, diaryMoodOptions } from "@/lib/diary";
+import { DIARY_MOODS, MAX_DIARY_LENGTH, MOOD_LABEL_KEYS, diaryLength, isDiaryMood } from "@/lib/diary";
 import { diary } from "@/lib/i18n/messages/diary";
-import { labelOfReaction } from "@/lib/reactions";
 
 export type DiaryDraft = { content: string; mood: string | null; isPublic: boolean };
 
 /**
- * 하루치 일기를 쓰고 고치는 칸. 글과 오늘의 기분(내 캐릭터의 표정)을 적고, 기본은 나만 보며 일기마다 친구 공개를 켤 수 있다.
+ * 하루치 일기를 쓰고 고치는 칸. 글과 오늘의 기분("마음 날씨" 여섯 가지)을 적고, 기본은 나만 보며 일기마다 친구 공개를 켤 수 있다.
  * 저장해도 칸을 비우지 않는다(이어서 고친다). 날짜가 바뀌면 부른 쪽이 key로 새로 그린다.
  */
-export function DiaryEditor({ date, initial, character }: { date: string; initial: DiaryDraft | null; character: CharacterId }) {
+export function DiaryEditor({ date, initial }: { date: string; initial: DiaryDraft | null }) {
   const t = useT(diary);
-  const locale = useLocale();
   const router = useRouter();
   const saveFailed = useSaveFailure();
   const [content, setContent] = useState(initial?.content ?? "");
   // 기분과 공개 여부도 값을 쥐고 있는다. 기본값만 주고 두면 저장 뒤 router.refresh()가 서버 값을 다시 내려줄 때, 그 사이에 바꾼 선택이 되돌아간다.
-  const [mood, setMood] = useState(initial?.mood ?? "");
+  const [mood, setMood] = useState(initial?.mood && isDiaryMood(initial.mood) ? initial.mood : "");
   const [isPublic, setIsPublic] = useState(initial?.isPublic ?? false);
   const [exists, setExists] = useState(initial !== null);
   const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(null);
@@ -36,9 +33,6 @@ export function DiaryEditor({ date, initial, character }: { date: string; initia
   const length = diaryLength(content);
   const tooLong = length > MAX_DIARY_LENGTH;
   const empty = content.trim() === "";
-  // 지금 캐릭터의 표정 열 개. 예전에 다른 캐릭터로 고른 기분이 저장돼 있으면 그것도 맨 앞에 둬서 그대로 보이고 다시 고를 수 있다.
-  const options = diaryMoodOptions(character);
-  if (initial?.mood && !options.includes(initial.mood)) options.unshift(initial.mood);
 
   // 무엇이든 바꾸면 "저장했어요."는 지난 저장에 대한 말이라 지운다.
   const changeMood = (value: string) => {
@@ -79,39 +73,33 @@ export function DiaryEditor({ date, initial, character }: { date: string; initia
     });
   }
 
-  const faceBox =
-    "flex size-14 cursor-pointer items-center justify-center rounded-2xl bg-surface-hover transition-transform hover:scale-105 active:scale-95 peer-checked:bg-brand/25 peer-checked:ring-2 peer-checked:ring-brand peer-focus-visible:ring-2 peer-focus-visible:ring-foreground";
-
   return (
     <form onSubmit={submit} className="flex flex-col gap-5">
       <input type="hidden" name="date" value={date} />
 
-      <fieldset className="flex flex-col gap-2">
+      <fieldset className="flex flex-col gap-2.5">
         <legend className="mb-1 text-xs text-muted">{t("moodLabel")}</legend>
-        <div className="flex flex-wrap gap-2">
-          <label>
-            <input type="radio" name="mood" value="" checked={mood === ""} onChange={() => changeMood("")} className="peer sr-only" />
-            <span className="flex h-14 cursor-pointer items-center justify-center rounded-2xl bg-surface-hover px-3 text-sm text-muted transition-colors peer-checked:bg-brand peer-checked:text-brand-contrast peer-focus-visible:ring-2 peer-focus-visible:ring-foreground">
-              {t("moodNone")}
-            </span>
-          </label>
-          {options.map((option) => (
-            <label key={option}>
-              <input
-                type="radio"
-                name="mood"
-                value={option}
-                checked={mood === option}
-                onChange={() => changeMood(option)}
-                aria-label={labelOfReaction(option, locale)}
-                className="peer sr-only"
-              />
-              <span aria-hidden className={faceBox}>
-                <ReactionGlyph value={option} size={44} />
+        {/* 마음 날씨 여섯 가지. 칸마다 대표색을 옅게 깔고, 고르면 그 색 테두리가 둘러지며 살짝 떠올라 톡 튄다. */}
+        <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
+          {DIARY_MOODS.map((key) => (
+            <label key={key} className="block">
+              <input type="radio" name="mood" value={key} checked={mood === key} onChange={() => changeMood(key)} className="peer sr-only" />
+              <span
+                style={{ "--mood": MOOD_COLORS[key] } as CSSProperties}
+                className="flex cursor-pointer flex-col items-center gap-1 rounded-2xl bg-[color-mix(in_srgb,var(--mood)_14%,transparent)] px-1 pb-2.5 pt-3 text-xs text-muted ring-2 ring-transparent transition-all hover:-translate-y-0.5 active:scale-95 peer-checked:-translate-y-0.5 peer-checked:animate-pop peer-checked:font-semibold peer-checked:text-foreground peer-checked:ring-[color:var(--mood)] peer-focus-visible:ring-foreground"
+              >
+                <MoodIcon mood={key} size={56} />
+                {t(MOOD_LABEL_KEYS[key])}
               </span>
             </label>
           ))}
         </div>
+        <label className="self-start">
+          <input type="radio" name="mood" value="" checked={mood === ""} onChange={() => changeMood("")} className="peer sr-only" />
+          <span className="flex h-8 cursor-pointer items-center rounded-full bg-surface px-3 text-xs text-muted transition-colors hover:text-foreground peer-checked:bg-surface-hover peer-checked:font-semibold peer-checked:text-foreground peer-focus-visible:ring-2 peer-focus-visible:ring-foreground">
+            {t("moodNone")}
+          </span>
+        </label>
       </fieldset>
 
       <div className="flex flex-col gap-2">

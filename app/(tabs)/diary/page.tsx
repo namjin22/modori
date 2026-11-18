@@ -4,7 +4,7 @@ import Link from "next/link";
 import { BackLink } from "@/components/back-link";
 import { DiaryMood } from "@/components/diary-mood";
 import { addDays, endOfMonthKST, formatKST, formatMonthKST, parseKSTMonth, startOfMonthKST, todayIn } from "@/lib/date";
-import { diaryExcerpt } from "@/lib/diary";
+import { MOOD_LABEL_KEYS, diaryExcerpt, isDiaryMood } from "@/lib/diary";
 import { monthDayWithWeekday, yearMonth } from "@/lib/i18n/format";
 import { diary } from "@/lib/i18n/messages/diary";
 import { getLocale, getT } from "@/lib/i18n/server";
@@ -92,7 +92,7 @@ export default async function DiaryListPage({ searchParams }: { searchParams: Pr
             return (
               <li key={key}>
                 <Link prefetch={false} href={`/diary/${key}`} className="flex gap-3 rounded-2xl bg-surface p-4 hover:bg-surface-hover">
-                  <DiaryMood value={entry.mood} size={44} />
+                  <DiaryMood value={entry.mood} size={44} label={entry.mood && isDiaryMood(entry.mood) ? t(MOOD_LABEL_KEYS[entry.mood]) : undefined} />
                   <span className="flex min-w-0 flex-1 flex-col gap-1">
                     <span className="flex items-center gap-2 text-sm font-medium">
                       {monthDayWithWeekday(locale, entry.date.getUTCMonth() + 1, entry.date.getUTCDate(), entry.date.getUTCDay())}

@@ -1928,3 +1928,16 @@ VM에 시험 DB(사용자 1000, 할 일 108만, 반응 24만, 280MB)를 만들�
 - **알아 둘 것(기존 불안정)**: `notification-badge.spec`의 `/^알림/` 선택자가 닉네임이 "알림"으로 시작하는 **추천 친구** 링크까지 잡았다. 시험 DB에 2026-10-26부터 남은 옛 시험 계정(`e2e-remind-…@modori.test`, 닉네임 "알림38e34besr95", 옛 리마인더 시험의 찌꺼기)이 추천에 뜰 때만 실패해 CI에서도 우연히 걸릴 수 있었다. 선택자를 "알림"/"알림 N"으로 좁혔다(검사 동작은 그대로). 그 계정 자체는 지우지 않았다(시험 DB의 데이터라 허락 없이 지우지 않았다).
 - **못 한 것**: 폰·데스크톱 앱 안에서의 모양과 영어·일본어 화면, 캐릭터를 몽이·하루·펭이로 바꿨을 때의 기분 그림(자동 시험은 도리만), 새로 그린 자체 이모지(있는 표정만 썼다), 릴리스 스크린샷(`tests/screenshots`의 시드·촬영 목록에 일기·AI 도우미 화면을 더해 두었고 배포 뒤 `npm run screenshots`로 찍는다).
 - **수동 배포 기록**: 운영자가 요청해서 PR #265(`0d6d0dd`)를 검증 없이 올렸다(`docs/incidents.md`).
+
+## 2026-11-18 — 일기의 기분을 마음 날씨로, 일기 카드를 달력 밑으로 (브랜치 `feat/diary-mood-weather`)
+
+- **마음 날씨**(`docs/decisions.md` "일기의 기분을 마음 날씨로…"): 값은 `sun`·`partly`·`cloud`·`rain`·`storm`·`moon`(`lib/diary.ts`의 `DIARY_MOODS`), 그림 `components/mood-icon.tsx`(직접 그린 SVG, 대표색 `MOOD_COLORS`), 보이는 이름 `MOOD_LABEL_KEYS`→`lib/i18n/messages/diary.ts`. 고르는 창은 `components/diary-editor.tsx`, 목록·친구 일기·홈 카드는 `components/diary-mood.tsx`. **마이그레이션 `20261118100000_diary_mood_weather`**가 캐릭터 표정 값을 날씨로 옮긴다(시험 DB에 `migrate deploy`로 적용, 운영은 배포가 적용). 반응의 캐릭터 표정(`lib/reactions.ts`)은 일기에서 더 쓰지 않는다.
+- **달력 밑 일기 카드**: `components/month-calendar.tsx`의 `footer` 칸에 홈(`components/home-view.tsx`)이 `DiaryCard`를 넣는다. "이번 달 완료 N개" 글과 `datetime.monthDone`은 지웠다(친구 달력도 같은 컴포넌트라 거기서도 사라졌다).
+- **검증(로컬)**: 타입 검사·린트(오류 0)·단위 `diary.test.ts`·`i18n.test.ts` 통과. E2E(워커 1개) `diary`(6)·`calendar`·`tutorial`·`preferences`·`layout`·`a11y`·`home-month`·`upcoming-events`·`friend-header`·`locale` 44개 통과(처음 한 번은 **방침 문장의 따옴표 오류로 빌드가 실패**했다 — 큰따옴표 문자열 안에 `"마음 날씨"`를 이스케이프 없이 넣었다. 고친 뒤 통과. 방침·문자열을 고칠 때는 타입 검사부터 돌린다). 실제 렌더링은 `tests/screenshots`로 폰·데스크톱 촬영해 눈으로 확인했다(홈의 달력 밑 카드, 기분 고르는 창, 일기 목록). **전체 `npm run verify`는 로컬에서 돌리지 않았고 PR의 CI가 돈다.**
+- **못 한 것**: 폰·데스크톱 앱 안에서의 모양, 영어·일본어 글자 길이, 날씨 비유가 모두에게 통하는지.
+
+## 2026-11-18 — 운영자 추가(환경변수), Gemini 키 넣는 법 (브랜치 `feat/admin-extra-emails`)
+
+- **운영자 추가**: `lib/admin.ts`의 `adminEmails()`가 `PRIVACY_MANAGER.email`에 서버 환경변수 `ADMIN_EXTRA_EMAILS`(쉼표)를 더한다. 이메일은 공개 저장소에 적지 않는다. **운영 VM의 `/opt/modori/.env`에 `ADMIN_EXTRA_EMAILS='이남진 계정의 로그인 이메일'`을 넣고 앱을 다시 띄워야 적용된다**(`docker compose up -d app`). 코드가 배포되기 전에 넣어도 해가 없다. 방침 4항(운영자 = 책임자 + 책임자가 정한 운영 담당자)과 시행일(2026-11-18)을 고쳤다. "N 말고"의 뜻은 확인하지 못했다.
+- **Gemini 키**: 이 PC에는 운영 VM의 접속 열쇠가 없고(`ssh … Permission denied (publickey,password)`) 서버는 배포용 열쇠(셸 없음)와 운영자 본인의 접속만 받는다. 그래서 키는 운영자가 VM에서 직접 넣는다(`deploy/set-secrets.sh`의 `GEMINI_API_KEY`, 또는 `.env`에 한 줄). 기본 모델 `gemini-3.6-flash`가 Google 모델 문서(aistudio.google.com/docs/models)에 Stable로 있음은 2026-11-18에 확인했다. **무료 등급에서 쓸 수 있는지, 실제 `generateContent` 호출이 되는지는 키를 넣고 첫 호출을 해 봐야 안다**(막히면 `GEMINI_MODEL`로 `gemini-3.5-flash-lite` 같은 것을 시도).
+- **검증**: 타입 검사 통과, 단위 `admin-emails.test.ts` 3개 통과. 전체 verify는 PR의 CI가 돈다.

@@ -158,6 +158,8 @@ export function HomeView({ data }: { data: HomeData }) {
               monthHref={(month) => `/?date=${selected}&month=${month}`}
               onSelectDay={select}
               editableEvents
+              // 달력 바로 아래, 예전에 "이번 달 완료 N개"가 있던 자리(2026-11-18 요청). 그 글은 지웠다.
+              footer={<DiaryCard date={selected} today={data.today} entry={data.diaries.find((entry) => entry.date === selected) ?? null} />}
             />
           </div>
         </div>
@@ -216,9 +218,6 @@ export function HomeView({ data }: { data: HomeData }) {
             </nav>
 
             <EventSection events={dayEvents} upcoming={upcoming} date={selected} today={data.today} />
-
-            {/* 그날의 일기(2026-11-17 요청: 쓰면 피드에서 바로 확인할 수 있게). 누르면 그 날의 일기 화면이 열린다. */}
-            <DiaryCard date={selected} today={data.today} entry={data.diaries.find((entry) => entry.date === selected) ?? null} />
 
             {data.categories.length === 0 && (
               // 카테고리 칩이 곧 할 일을 적는 자리다. 하나도 없으면 적을 곳이 없어진다.
