@@ -1941,3 +1941,16 @@ VM에 시험 DB(사용자 1000, 할 일 108만, 반응 24만, 280MB)를 만들�
 - **운영자 추가**: `lib/admin.ts`의 `adminEmails()`가 `PRIVACY_MANAGER.email`에 서버 환경변수 `ADMIN_EXTRA_EMAILS`(쉼표)를 더한다. 이메일은 공개 저장소에 적지 않는다. **운영 VM의 `/opt/modori/.env`에 `ADMIN_EXTRA_EMAILS='이남진 계정의 로그인 이메일'`을 넣고 앱을 다시 띄워야 적용된다**(`docker compose up -d app`). 코드가 배포되기 전에 넣어도 해가 없다. 방침 4항(운영자 = 책임자 + 책임자가 정한 운영 담당자)과 시행일(2026-11-18)을 고쳤다. "N 말고"의 뜻은 확인하지 못했다.
 - **Gemini 키**: 이 PC에는 운영 VM의 접속 열쇠가 없고(`ssh … Permission denied (publickey,password)`) 서버는 배포용 열쇠(셸 없음)와 운영자 본인의 접속만 받는다. 그래서 키는 운영자가 VM에서 직접 넣는다(`deploy/set-secrets.sh`의 `GEMINI_API_KEY`, 또는 `.env`에 한 줄). 기본 모델 `gemini-3.6-flash`가 Google 모델 문서(aistudio.google.com/docs/models)에 Stable로 있음은 2026-11-18에 확인했다. **무료 등급에서 쓸 수 있는지, 실제 `generateContent` 호출이 되는지는 키를 넣고 첫 호출을 해 봐야 안다**(막히면 `GEMINI_MODEL`로 `gemini-3.5-flash-lite` 같은 것을 시도).
 - **검증**: 타입 검사 통과, 단위 `admin-emails.test.ts` 3개 통과. 전체 verify는 PR의 CI가 돈다.
+
+## 2026-11-18 — AI 도우미 오류 코드·대화 화면 새로 만들기·설정 톱니 틀 (브랜치 `feat/diary-mood-weather`)
+
+- **AI 도우미가 안 되는 원인은 아직 모른다.** 키를 넣고 컨테이너를 다시 만들었는데 모든 말에 "보내지 못했어요"가 나온다. 이 변경(`docs/decisions.md` "AI 도우미: 실패 이유를 화면에 보이고…")은 이유를 화면에 보이게 한 것이다. **배포 뒤 운영자에게 대화창의 "오류 코드: …"를 받아 아래 표로 원인을 좁힌다.** (이 PC에서는 VM 로그를 볼 수 없다.)
+  - `http-404-NOT_FOUND` → 모델 이름이 없다: VM `/opt/modori/.env`에 `GEMINI_MODEL='gemini-3.5-flash-lite'` 같은 줄을 직접 더해 본다(`deploy/set-secrets.sh`는 키와 운영자 이메일만 묻는다).
+  - `http-400-FAILED_PRECONDITION` → 보통 지역·무료 등급이 막힌 것이다(Google 문서에서 다시 확인한다).
+  - `http-400-INVALID_ARGUMENT`·`http-403-PERMISSION_DENIED`·`http-401-UNAUTHENTICATED` → 키가 틀렸거나 권한이 없다.
+  - `http-429` → 한도. `network-…` → VM에서 `generativelanguage.googleapis.com`으로 나가지 못한다. `empty-MAX_TOKENS` → 답이 `maxOutputTokens: 2048`에서 잘렸다(생각하는 모델이면 늘린다). `reply-not-plan` → Gemini가 약속한 JSON 모양으로 답하지 않았다(`lib/ai/plan.ts`의 `parseReply`). `server-…` → 라우트 안의 예외(서버 로그의 `[ai] 대화를 처리하지 못했다.`).
+  - 코드 없이 `http-502`·`http-504`가 나오면 앞단이 응답을 바꾼 것이니 그때 다시 본다.
+- **바뀐 파일**: `lib/ai/gemini.ts`(실패 `code`), `app/api/ai/chat/route.ts`(200+`ok:false`, try/catch, 로그인 없음 JSON, `ChatError`에 `login`·`server`), `components/ai-chat.tsx`(새 대화 화면), `lib/i18n/messages/aichat.ts`(`welcome`·`errorLogin`·`errorServer`·`errorCode`·`retry`), `app/(tabs)/settings/page.tsx`(톱니 틀), `tests/e2e/ai-chat.spec.ts`(코드·다시 보내기·200 시험 추가).
+- **입력창 자리**: 하단 탭(`components/bottom-nav.tsx`, 높이 56px)이 `sticky bottom-0`이라 입력창을 탭 위(`bottom-[calc(4rem+env(safe-area-inset-bottom,0px))]`)에 붙였다. 탭 높이를 바꾸면 이 값도 맞춘다.
+- **운영자 이남진**: 이 계정은 DataGSM 학교 이메일로 로그인한다(이메일은 공개 저장소라 문서에 적지 않는다). 운영자가 VM `/opt/modori/.env`에 `ADMIN_EXTRA_EMAILS='<그 이메일>'`을 직접 넣고 앱 컨테이너를 다시 만들었다. **읽는 코드는 PR #269였고 병합했다(main CI → 자동 배포)**; 배포 뒤 그 계정으로 로그인해 마이페이지 맨 아래에 "오류 기록·지표·사용자·신고"가 보이는지 확인해야 한다(못 하면 이메일 철자·대소문자와 컨테이너가 새 `.env`를 읽었는지 본다).
+- **검증**: 타입 검사·린트(오류 0)·단위 `i18n.test.ts`(113개) 통과. 로컬 E2E `ai-chat.spec.ts` 7개·`preferences.spec.ts` 4개 통과(main CI가 도는 중에 1 워커로 돌렸다). 폰 폭(390px) 라이트·다크 스크린샷으로 빈 화면·제안·오류 말풍선·톱니 틀을 눈으로 봤다. **전체 `npm run verify`는 PR CI가 돈다. 데스크톱·모바일 앱 안에서의 모양과 영어·일본어 글자 길이는 보지 못했다.**

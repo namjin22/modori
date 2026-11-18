@@ -40,7 +40,8 @@ export default async function SettingsPage() {
           aria-label={t("preferencesRow")}
           // 호버·눌림 애니메이션(2026-11-17 요청: 너무 재미없다): 톱니가 올리면 한 칸 돌아 튀어 오르고, 누르면 줄어들며 반 바퀴 더 돈다.
           // 바탕색은 그대로다(11-02 요청). 움직임을 줄인 기기(prefers-reduced-motion)에서는 돌지 않는다.
-          className="group -mr-2 flex size-10 shrink-0 items-center justify-center rounded-full text-foreground transition-transform duration-200 active:scale-90"
+          // 2026-11-18 요청: 톱니를 담는 틀을 하나 씌운다. 카드와 같은 면 색 + 얇은 테두리라 따로 튀지 않고, 틀의 색은 올려도 눌러도 그대로다(11-02 요청).
+          className="group flex size-10 shrink-0 items-center justify-center rounded-full bg-surface text-foreground ring-1 ring-inset ring-border transition-transform duration-200 active:scale-90"
         >
           <svg
             aria-hidden
