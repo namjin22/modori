@@ -60,7 +60,7 @@ test("일기를 쓰고 고치고 지운다: 글·이모지·기분·친구 공�
   await expect(page.getByText("이모지 넣기")).toHaveCount(0);
   await expect(page.locator('input[name="mood"]')).toHaveCount(7);
   // 기분마다 이름이 보이고(화면 읽기도 이 이름을 읽는다), 아무것도 고르지 않은 처음에는 "고르지 않음"이 골라져 있다.
-  for (const name of ["최고예요", "좋아요", "그저 그래요", "우울해요", "화났어요", "피곤해요"]) await expect(page.getByRole("radio", { name })).toHaveCount(0);
+  for (const name of ["최고예요", "좋아요", "그저 그래요", "우울해요", "화났어요", "피곤해요"]) await expect(page.getByRole("radio", { name })).toHaveCount(1);
   for (const name of ["최고예요", "좋아요", "그저 그래요", "우울해요", "화났어요", "피곤해요"]) await expect(page.getByText(name, { exact: true })).toBeVisible();
   await expect(page.locator('input[name="mood"][value=""]')).toBeChecked();
   await content.fill("오늘은 시험이 끝났다.🎉");
