@@ -31,12 +31,28 @@ test("웹 푸시를 받으면 알림을 띄우고, 모도리 밖 주소는 열�
       return (await registration.getNotifications()).map((n) => ({ title: n.title, body: n.body, tag: n.tag, url: n.data?.url }));
     });
 
-  await deliver({ title: "반응이 왔어요", body: "도리님이 내 할 일에 반응을 보냈어요", url: "/feed/reactions", tag: "reaction:t1" });
-  await expect.poll(shown).toEqual([
-    { title: "반응이 왔어요", body: "도리님이 내 할 일에 반응을 보냈어요", tag: "reaction:t1", url: "/feed/reactions" },
-  ]);
+  // 개발자 도구로 넣는 푸시는 서비스 워커가 바쁘면(부하가 걸린 CI) 유실될 수 있다. 2026-11-17에 CI가 연달아 실패했고, 로컬에서 워커 6개로 부하를
+  // 걸면 24번 중 3번 재현됐다. 그래서 알림이 뜰 때까지 같은 푸시를 다시 보낸다. 같은 tag의 알림은 하나로 합쳐지니 개수·내용 검사는 그대로다.
+  const reaction = { title: "반응이 왔어요", body: "도리님이 내 할 일에 반응을 보냈어요", url: "/feed/reactions", tag: "reaction:t1" };
+  await expect
+    .poll(
+      async () => {
+        await deliver(reaction);
+        return shown();
+      },
+      { timeout: 30_000 },
+    )
+    .toEqual([{ title: "반응이 왔어요", body: "도리님이 내 할 일에 반응을 보냈어요", tag: "reaction:t1", url: "/feed/reactions" }]);
 
   // 밖으로 나가는 주소가 오면 알림 화면을 연다.
-  await deliver({ title: "새 팔로워", body: "누군가 나를 팔로우했어요", url: "https://evil.example/", tag: "follow:x" });
-  await expect.poll(async () => (await shown()).find((n) => n.tag === "follow:x")?.url).toBe("/feed/reactions");
+  const outside = { title: "새 팔로워", body: "누군가 나를 팔로우했어요", url: "https://evil.example/", tag: "follow:x" };
+  await expect
+    .poll(
+      async () => {
+        await deliver(outside);
+        return (await shown()).find((n) => n.tag === "follow:x")?.url;
+      },
+      { timeout: 30_000 },
+    )
+    .toBe("/feed/reactions");
 });
