@@ -1970,3 +1970,32 @@ VM에 시험 DB(사용자 1000, 할 일 108만, 반응 24만, 280MB)를 만들�
 - **검증**: `tsc --noEmit`·eslint 통과, 단위 `i18n.test.ts` 113개 통과(작업 폴더를 **대문자 `C:/…`로** 열어야 vitest가 돈다), E2E `diary.spec.ts`+`layout.spec.ts` 11개 통과. 전체 `npm run verify`는 이 작업에서 돌리지 않았다(PR의 CI가 돌린다). 폰·앱 화면은 못 봤다.
 - **AI 도우미 403**: 운영자가 화면에서 `오류 코드: http-403-PERMISSION_DENIED`를 알렸다(수동 배포한 PR #270의 오류 코드가 처음 쓰인 것). Google이 이 키의 권한을 거절했다는 것까지만 안다. 이유는 서버 로그의 Google 응답 앞 200자에 있다: VM에서 `cd /opt/modori && docker compose logs --tail 300 app 2>&1 | grep "\[ai\]" | tail -5`(`lib/ai/gemini.ts`의 `[ai] Gemini가 요청을 거절했다.` 줄). 이 줄을 받기 전에 추측으로 고치지 않는다. 로그의 `reason`(예: `API_KEY_SERVICE_BLOCKED`)이나 메시지로 키 막힘·키의 API 제한·프로젝트의 API 꺼짐·모델 권한 중 무엇인지 정한다(모두 확인 못 한 후보).
 - **다음**: ① 운영자가 로그 줄을 알려 주면 원인을 정하고 고친다(`docs/incidents.md` INC-21의 '원인'·'재발 방지'를 채운다). ② 이 변경은 PR → CI → 병합 → 자동 배포로 간다(수동 배포는 운영자가 "배포해줘"라고 할 때만). ③ 앞 작업(커밋 12fb696)의 main verify(실행 44260736027)는 **성공**했다(전체 `npm run verify` 통과, 1시간 17분).
+
+## 2026-11-18 밤(이어서) — AI 도우미 403 원인, 무료 API 후보, Play 재신청
+
+- **AI 도우미 403 원인(확정)**: 컨테이너 안에서 같은 키로 `generateContent`를 직접 불러 받았다: `403 PERMISSION_DENIED`, "The Gemini API free tier is not available for this project … set up billing to upgrade to the paid tier". Google이 **이 프로젝트에 무료 등급을 안 준다**(키·코드 문제 아님). Google 문서(troubleshooting "project-unavailable"): 자격은 프로젝트 단위, 같은 프로젝트에서 새 키를 만들어도 안 풀림, 결제 연결이 유일한 공식 해결. 서버 로그엔 `[ai]` 줄이 없었다(자동 배포가 17:58 KST에 컨테이너를 새로 띄운 탓일 수 있으나 확인 못 함). `docs/incidents.md` INC-21에 원인·다음을 적었다.
+- **운영자 조건**: AI는 **무조건 무료 API**. 결제 연결은 길에서 뺀다.
+- **무료 후보(공식 문서로 확인, 2026-11-18)**:
+  - **Cloudflare Workers AI**(권장 후보): 하루 10,000 뉴런 무료(Workers Free 포함), 넘으면 00:00 UTC까지 실패. 100만 토큰당 뉴런(입력/출력): `@cf/qwen/qwen3-30b-a3b-fp8` 4,625/30,475, `@cf/openai/gpt-oss-20b` 18,182/27,273, `@cf/openai/gpt-oss-120b` 31,818/68,182. 요청당 입력 3,000·출력 500토큰이라는 **가정**으로 하루 약 340·150·77번(실제 프롬프트 크기는 재지 않았다. 한도는 전체 사용자 합산). 고객 내용을 학습에 안 쓴다고 Cloudflare 개인정보 페이지에 있다(검색 요약으로 확인, 원문 직접 읽지는 않음). 문서에 한국어 품질 정보가 없다.
+  - **Groq**: 개발자 플랜 기준 `openai/gpt-oss-120b` 분당 30·일 1,000·일 토큰 200K. **무료 플랜 숫자는 확인 못 함.** 추론 데이터는 기본 보관 안 함(악용 조사용 임시 로그 최대 30일, 끌 수 있음). 학습에 쓰는지는 문서에 없음.
+  - **Cerebras**: "Free Trial" 티어 `gpt-oss-120b` 분당 5·일 100만 토큰, `qwen-3.8-27b` 분당 300. 기간 제한인지·데이터 정책은 확인 못 함.
+  - **OpenRouter `:free`**: 분당 20·하루 50(10크레딧 이상 구매하면 1,000). 하루 50이라 제외. 학습하는 제공자를 거르는 계정 설정이 있다(무료·유료 따로).
+  - 안 본 것: Mistral, GitHub Models, Hugging Face.
+  - **Gemini 다른 계정**: 구글 포럼에 같은 오류 제보가 많고 새 프로젝트·새 키로 풀렸다는 확인된 사례가 없다. 제한이 계정 단위일 수 있다는 글이 있다. 시험은 공짜지만 보장은 없다.
+- **바꾼다면 할 일**: 외부로 나가는 곳은 `lib/ai/gemini.ts` 한 파일. ① 그 서비스 공식 문서로 API 형식을 먼저 확인(추측 금지) ② JSON으로 답받는 방식(`responseMimeType: application/json`)이 되는지, 한국어 품질을 시험 ③ 키는 `.env.example`에 이름만, VM은 `deploy/set-secrets.sh` ④ `docs/privacy-inventory.md`·`lib/privacy.ts`(91행 "무료 등급이라 Google이 입력 내용을 제품 개선에 쓸 수 있어요")·`docs/decisions.md`를 같은 커밋에서 고침(규칙 7·8, 다른 AI 서비스로 보내는 것은 승인 필요). 시험 서버는 가짜 주소(`GEMINI_API_BASE`)를 쓰므로 새 서비스에도 같은 길을 두어야 한다.
+- **Google Play**: 운영자가 프로덕션 액세스 신청이 또 "추가 테스트 필요"로 돌아왔다고 알렸다(스크린샷: 검토 화요일 오전 6:46, "검토일부터 12명 이상으로 14일 더, 현재 1일 동안 참여를 선택한 테스터 12명", 신청 버튼 잠김). 11/17 검토로 계산하면 재신청은 **12/1쯤**. 거절 이유는 구글이 안 알려 줘서 모른다. 구글 문서가 드는 이유는 참여 선택 12명 미만이었던 적이 있거나 참여가 부족한 경우. 테스터가 딱 12명이라 여유가 없다(`docs/tester-guide.md`가 14~15명을 권했다). 준비: 테스터 15~20명, 여러 날 실제로 쓰고 Play "테스트 의견"에 의견 남기기, 의견으로 고친 것을 비공개 트랙 새 버전으로 올리기(신청서 3단계가 변경 내용을 묻는다), 며칠에 한 번 참여 인원 확인. 이번 신청 날짜 기록은 없다.
+- **PR #272**(홈 일기 버튼 제거)는 PR verify가 성공해 병합했다(병합 커밋 01c1973). 그 main verify(실행 44288861711)와 자동 배포 결과는 이 항목을 쓸 때 아직 나오지 않았다.
+- **검증**: 문서만 고쳤다. 코드·시험은 건드리지 않았고 `npm run verify`는 이 PR의 CI가 돌린다.
+- **다음**: ① 운영자가 AI 방향(다른 계정 키 시험 / Cloudflare Workers AI로 교체 / 도우미 끄기)을 고른다. ② 위 main verify·자동 배포 결과를 확인해 적는다. ③ 12/1쯤 Play 재신청 전까지 테스터 수와 참여를 챙긴다.
+
+## 2026-11-18 밤(이어서 2) — 서버 복구 확인, 무료 AI 후보 재조사
+
+- **서버**: 운영자가 "돌아왔다"고 알렸다. `/api/health` 200(13:42 UTC)을 직접 확인했다. 장애 중 실패한 자동 배포(실행 44299496980, 커밋 01c1973 = PR #272 일기 버튼 제거)를 **재실행해 성공**했고 배포 뒤 health가 200이다. 구간·원인 확인 범위는 `docs/incidents.md` INC-22. DB가 무사한지는 못 봤다(VM 접속 열쇠 없음).
+- **운영자 요청**: "도우미 기능을 꼭 살리고 싶다", "조금 더 많은 무료 AI를 찾아봐". (결제 연결은 제외 — "무조건 무료")
+- **재조사로 뺀 것**(공식 문서 위주, 2026-11-18): GitHub Models(공식 문서: 2026-07-30 종료) / Cerebras(공식 가격 페이지: 영구 무료 없음, 결제 수단을 넣으면 일회성 $5·30일 만료·프로덕션용 아님. 앞에서 본 "Free Trial" 한도 표는 이것으로 보인다) / Mistral(무료 Experiment 요청을 학습에 쓸 수 있다고 공식 도움말에 있음) / SambaNova(공식: 무료 티어 모델별 분당 20·**일 20회**·일 토큰 200K) / OpenRouter `:free`(하루 50회) / Hugging Face(월 약 $0.10 수준, 2차 자료) / Cohere(비상업 전용, 2차 자료) / NVIDIA NIM(무료 엔드포인트 분당 40회·개발용이라는 포럼 글뿐, 공식 약관 못 찾음) / Upstage Solar(한국 회사. 공식 블로그에 가입 일회성 $10 크레딧, 영구 무료 아님, 현재 조건 못 확인) / Google AI Studio(우리 프로젝트는 403, 무료 등급은 입력을 제품 개선에 씀). OpenRouter 블로그의 비교표는 이미 끝난 서비스를 넣는 등 낡아서 참고만 했다.
+- **남은 두 개**: 둘 다 OpenAI 호환 `chat/completions` 형식이다.
+  - **Groq**: 무료 플랜(2차 자료 여러 곳이 일치, 공식 표는 "개발자 플랜 기본값"이라 적음) `openai/gpt-oss-120b`·`gpt-oss-20b`·`qwen/qwen3.8-27b` 분당 30·일 1,000·일 토큰 200K·**분당 토큰 8K(요청 하나가 8K를 넘으면 안 된다)**. 주소 `https://api.groq.com/openai/v1/chat/completions`, `response_format` json_schema·json_object 지원(공식). 추론 데이터는 기본 보관 안 함(악용 조사용 임시 로그 최대 30일, 끌 수 있음). **학습에 안 쓴다는 문구는 공식 문서에서 직접 못 찾았다**(커뮤니티 직원 답변·2차 요약뿐, DPA 원문은 못 읽음).
+  - **Cloudflare Workers AI**: 하루 10,000 뉴런, 넘으면 00:00 UTC까지 실패. 주소 `https://api.cloudflare.com/client/v4/accounts/{account_id}/ai/v1/chat/completions`, `Authorization: Bearer <API 토큰>`(권한 Workers AI Read·Edit). **학습에 안 쓴다는 문구가 공식 개인정보 페이지에 있다.** 공식 OpenAI 호환 문서에 `response_format` 지원 언급이 없고(JSON 모드 문서는 따로 있고 지원 모델이 라마 계열 위주), 모델별 컨텍스트 길이는 확인 못 했다.
+- **공통으로 걸리는 것**: 한도는 **전체 사용자 합산**이다. 한 사람이 하루 40번까지(`AI_LIMITS.perDay`) 보낼 수 있어 몇 명이 하루 몫을 다 쓸 수 있다. 요청 하나가 이번 달 할 일 300개·일정 100개까지 보낸다(최대 12K 토큰 안팎, 내 추정). Groq의 분당 8K에 걸릴 수 있어 줄이는 결정이 필요하다. 한국어 품질은 어느 쪽도 못 확인했다. 무료 티어는 SLA가 없어 한도·약관이 예고 없이 바뀐다(이번 Gemini, GitHub Models 종료가 그 예).
+- **제안(운영자 승인 대기)**: `lib/ai/gemini.ts`를 OpenAI 호환 형식 한 가지로 바꾸고(`AI_API_BASE`·`AI_API_KEY`·`AI_MODEL`), VM `.env` 세 값만 바꿔 Groq와 Cloudflare를 갈아 끼우며 한국어 품질을 직접 비교한다. 쓸 서비스가 정해질 때까지 개인정보 방침은 그 서비스 이름으로 고친다(규칙 7·8). 시험 서버의 가짜 Google 서버(`tests/e2e/ai-chat.spec.ts`, `playwright.config.ts`)는 새 형식으로 바꿔야 해서 **시험 코드가 바뀐다 — 규칙 1에 따라 먼저 이유를 설명하고 승인을 받는다.**
+- **다음**: ① 운영자가 위 제안(어느 서비스로 시작할지, 한 사람 하루 횟수와 보내는 양을 줄일지)에 답한다. ② 계정: Groq는 콘솔에서 API 키(카드 없음), Cloudflare는 Account ID + API 토큰. 키는 채팅에 붙이지 말고 VM `deploy/set-secrets.sh`로만 넣는다. ③ 이 문서 PR(#273) 병합.
