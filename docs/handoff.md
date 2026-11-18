@@ -1935,3 +1935,9 @@ VM에 시험 DB(사용자 1000, 할 일 108만, 반응 24만, 280MB)를 만들�
 - **달력 밑 일기 카드**: `components/month-calendar.tsx`의 `footer` 칸에 홈(`components/home-view.tsx`)이 `DiaryCard`를 넣는다. "이번 달 완료 N개" 글과 `datetime.monthDone`은 지웠다(친구 달력도 같은 컴포넌트라 거기서도 사라졌다).
 - **검증(로컬)**: 타입 검사·린트(오류 0)·단위 `diary.test.ts`·`i18n.test.ts` 통과. E2E(워커 1개) `diary`(6)·`calendar`·`tutorial`·`preferences`·`layout`·`a11y`·`home-month`·`upcoming-events`·`friend-header`·`locale` 44개 통과(처음 한 번은 **방침 문장의 따옴표 오류로 빌드가 실패**했다 — 큰따옴표 문자열 안에 `"마음 날씨"`를 이스케이프 없이 넣었다. 고친 뒤 통과. 방침·문자열을 고칠 때는 타입 검사부터 돌린다). 실제 렌더링은 `tests/screenshots`로 폰·데스크톱 촬영해 눈으로 확인했다(홈의 달력 밑 카드, 기분 고르는 창, 일기 목록). **전체 `npm run verify`는 로컬에서 돌리지 않았고 PR의 CI가 돈다.**
 - **못 한 것**: 폰·데스크톱 앱 안에서의 모양, 영어·일본어 글자 길이, 날씨 비유가 모두에게 통하는지.
+
+## 2026-11-18 — 운영자 추가(환경변수), Gemini 키 넣는 법 (브랜치 `feat/admin-extra-emails`)
+
+- **운영자 추가**: `lib/admin.ts`의 `adminEmails()`가 `PRIVACY_MANAGER.email`에 서버 환경변수 `ADMIN_EXTRA_EMAILS`(쉼표)를 더한다. 이메일은 공개 저장소에 적지 않는다. **운영 VM의 `/opt/modori/.env`에 `ADMIN_EXTRA_EMAILS='이남진 계정의 로그인 이메일'`을 넣고 앱을 다시 띄워야 적용된다**(`docker compose up -d app`). 코드가 배포되기 전에 넣어도 해가 없다. 방침 4항(운영자 = 책임자 + 책임자가 정한 운영 담당자)과 시행일(2026-11-18)을 고쳤다. "N 말고"의 뜻은 확인하지 못했다.
+- **Gemini 키**: 이 PC에는 운영 VM의 접속 열쇠가 없고(`ssh … Permission denied (publickey,password)`) 서버는 배포용 열쇠(셸 없음)와 운영자 본인의 접속만 받는다. 그래서 키는 운영자가 VM에서 직접 넣는다(`deploy/set-secrets.sh`의 `GEMINI_API_KEY`, 또는 `.env`에 한 줄). 기본 모델 `gemini-3.6-flash`가 Google 모델 문서(aistudio.google.com/docs/models)에 Stable로 있음은 2026-11-18에 확인했다. **무료 등급에서 쓸 수 있는지, 실제 `generateContent` 호출이 되는지는 키를 넣고 첫 호출을 해 봐야 안다**(막히면 `GEMINI_MODEL`로 `gemini-3.5-flash-lite` 같은 것을 시도).
+- **검증**: 타입 검사 통과, 단위 `admin-emails.test.ts` 3개 통과. 전체 verify는 PR의 CI가 돈다.
