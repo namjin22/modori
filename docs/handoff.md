@@ -1954,3 +1954,12 @@ VM에 시험 DB(사용자 1000, 할 일 108만, 반응 24만, 280MB)를 만들�
 - **입력창 자리**: 하단 탭(`components/bottom-nav.tsx`, 높이 56px)이 `sticky bottom-0`이라 입력창을 탭 위(`bottom-[calc(4rem+env(safe-area-inset-bottom,0px))]`)에 붙였다. 탭 높이를 바꾸면 이 값도 맞춘다.
 - **운영자 이남진**: 이 계정은 DataGSM 학교 이메일로 로그인한다(이메일은 공개 저장소라 문서에 적지 않는다). 운영자가 VM `/opt/modori/.env`에 `ADMIN_EXTRA_EMAILS='<그 이메일>'`을 직접 넣고 앱 컨테이너를 다시 만들었다. **읽는 코드는 PR #269였고 병합했다(main CI → 자동 배포)**; 배포 뒤 그 계정으로 로그인해 마이페이지 맨 아래에 "오류 기록·지표·사용자·신고"가 보이는지 확인해야 한다(못 하면 이메일 철자·대소문자와 컨테이너가 새 `.env`를 읽었는지 본다).
 - **검증**: 타입 검사·린트(오류 0)·단위 `i18n.test.ts`(113개) 통과. 로컬 E2E `ai-chat.spec.ts` 7개·`preferences.spec.ts` 4개 통과(main CI가 도는 중에 1 워커로 돌렸다). 폰 폭(390px) 라이트·다크 스크린샷으로 빈 화면·제안·오류 말풍선·톱니 틀을 눈으로 봤다. **전체 `npm run verify`는 PR CI가 돈다. 데스크톱·모바일 앱 안에서의 모양과 영어·일본어 글자 길이는 보지 못했다.**
+
+## 2026-11-18 저녁 — 수동 배포, 홈 스크롤 줄 숨김, 도리 인사 웃는 입
+
+- **배포**: PR #270(AI 도우미 오류 코드·대화 화면·톱니 틀)을 CI 없이 수동 배포했다(`docs/incidents.md` INC-21). 이어서 이 변경(스크롤 줄 숨김·도리 표정)도 같은 방식이다. 배포 직후 도는 main verify는 일부러 취소하지 않고 둔다(마지막 커밋이라 옛 커밋을 덮어쓰지 않는다).
+- **바뀐 파일**: `components/home-view.tsx`(왼쪽 칸에 `lg:scrollbar-hidden lg:overscroll-contain`, `lg:scroll-stable`은 뺌), `app/globals.css`(`@utility scrollbar-hidden`), `components/dori.tsx`(`hello`의 입을 `SmileMouth`로).
+- **일부러 안 한 것**: 친구 화면(`components/friend-view.tsx`)의 같은 칸은 그대로(낮은 창에서 줄이 보인다). `layout.spec.ts`의 "왼쪽 달력은 제자리에 있다"는 그대로 통과했다(고치지 않았다).
+- **검증**: `tsc --noEmit`·eslint 통과, `layout.spec.ts` 5개 통과, 임시 시험(창 520px)으로 칸 스크롤은 되고 줄 폭은 0px임을 확인 후 삭제. 전체 `npm run verify`는 이 작업에서 돌리지 않았다.
+- **확인 못 한 것**: 폰·데스크톱 앱에서의 모양, 영어·일본어 화면. 도리 인사 표정이 쓰이는 곳(온보딩, 로그아웃 확인 창, 할 일 없는 날, AI 도우미 첫 화면, 데스크톱 로그인)을 화면에서 하나씩 보지는 못했다. 홈의 빈 날 도리만 캡처로 봤다.
+- **다음**: ① 운영자가 AI 도우미에서 보내 "오류 코드: …"를 알려 주면 위 "AI 도우미 오류 코드" 표로 원인을 고친다. ② 화면이 바뀐 배포라 릴리스 스크린샷(`npm run screenshots`, README 릴리스 목록)이 밀려 있다. 사용자가 고친 `tests/screenshots/` 변경을 먼저 확인한다.
