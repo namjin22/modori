@@ -60,6 +60,7 @@ export function MonthCalendar({
   compact = false,
   onSelectDay,
   editableEvents = false,
+  footer,
   locale,
 }: {
   // 화면 언어. 서버 화면과 브라우저 화면 양쪽에서 그려져 훅을 쓸 수 없어 값으로 받는다.
@@ -68,6 +69,8 @@ export function MonthCalendar({
   onSelectDay?: (dateKey: string) => void;
   // 내 달력에서만 일정 이름표를 끌어 기간을 바꾼다.
   editableEvents?: boolean;
+  // 달력 바로 아래 칸. 예전에는 "이번 달 완료 N개" 글이 있던 자리인데 그 글은 지웠고(2026-11-18 요청), 홈은 이 자리에 그날의 일기 카드를 둔다.
+  footer?: ReactNode;
   // 친구 화면처럼 일정 이름이 들어가지 않는 곳에서는 칸을 낮춰 한눈에 보이게 한다.
   compact?: boolean;
   monthStart: Date;
@@ -84,10 +87,6 @@ export function MonthCalendar({
   const leadingBlanks = weekdayKST(monthStart);
   const days = Array.from({ length: daysInMonthKST(monthStart) }, (_, index) =>
     parseKSTDate(`${monthKey}-${String(index + 1).padStart(2, "0")}`),
-  );
-  const doneCount = days.reduce(
-    (sum, day) => sum + (summaries.get(formatKST(day))?.doneColors.length ?? 0),
-    0,
   );
   const isThisMonth = monthKey === formatMonthKST(today);
 
@@ -233,7 +232,7 @@ export function MonthCalendar({
         </SwapIn>
       </div>
 
-      <p className="text-center text-xs text-muted sm:text-sm">{t("monthDone", { count: doneCount })}</p>
+      {footer}
     </section>
   );
 }

@@ -46,7 +46,8 @@ test("완료한 할 일이 있는 날에 표시가 생긴다", async ({ page }) 
   await expect(
     page.getByRole("link", { name: `${dayNumber}일, 완료 있음`, exact: true }),
   ).toBeVisible();
-  await expect(page.getByText("이번 달 완료 1개")).toBeVisible();
+  // "이번 달 완료 N개" 글은 지웠다(2026-11-18 요청). 그 자리에는 그날의 일기 카드가 있다.
+  await expect(page.getByText(/이번 달 완료/)).toHaveCount(0);
 });
 
 test("할 일을 끝낼 때마다 그날 표시가 카테고리 색으로 한 칸씩 찬다", async ({ page }) => {
