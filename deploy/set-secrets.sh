@@ -38,6 +38,7 @@ ask OLD_NEON_URL "지금 쓰는 Neon 주소(데이터 옮길 때 한 번만 씀,
 ask BACKUP_DATABASE_URL "백업용 새 Neon 프로젝트 주소"
 ask FIREBASE_SERVICE_ACCOUNT "Firebase 서비스 계정 키(JSON을 base64로 바꾼 한 줄, 푸시 알림용)"
 ask GEMINI_API_KEY "Gemini API 키(AI 도우미용, 없으면 비워 두면 AI 도우미가 준비 중으로 보인다)"
+ask ADMIN_EXTRA_EMAILS "추가 운영자 로그인 이메일(쉼표로 여럿. 개인정보 보호책임자는 적지 않아도 늘 운영자다)"
 
 echo "저장했다: $ENV"
 cut -d= -f1 "$ENV" | sed 's/^/  - /'
