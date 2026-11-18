@@ -1987,3 +1987,15 @@ VM에 시험 DB(사용자 1000, 할 일 108만, 반응 24만, 280MB)를 만들�
 - **PR #272**(홈 일기 버튼 제거)는 PR verify가 성공해 병합했다(병합 커밋 01c1973). 그 main verify(실행 44288861711)와 자동 배포 결과는 이 항목을 쓸 때 아직 나오지 않았다.
 - **검증**: 문서만 고쳤다. 코드·시험은 건드리지 않았고 `npm run verify`는 이 PR의 CI가 돌린다.
 - **다음**: ① 운영자가 AI 방향(다른 계정 키 시험 / Cloudflare Workers AI로 교체 / 도우미 끄기)을 고른다. ② 위 main verify·자동 배포 결과를 확인해 적는다. ③ 12/1쯤 Play 재신청 전까지 테스터 수와 참여를 챙긴다.
+
+## 2026-11-18 밤(이어서 2) — 서버 복구 확인, 무료 AI 후보 재조사
+
+- **서버**: 운영자가 "돌아왔다"고 알렸다. `/api/health` 200(13:42 UTC)을 직접 확인했다. 장애 중 실패한 자동 배포(실행 44299496980, 커밋 01c1973 = PR #272 일기 버튼 제거)를 **재실행해 성공**했고 배포 뒤 health가 200이다. 구간·원인 확인 범위는 `docs/incidents.md` INC-22. DB가 무사한지는 못 봤다(VM 접속 열쇠 없음).
+- **운영자 요청**: "도우미 기능을 꼭 살리고 싶다", "조금 더 많은 무료 AI를 찾아봐". (결제 연결은 제외 — "무조건 무료")
+- **재조사로 뺀 것**(공식 문서 위주, 2026-11-18): GitHub Models(공식 문서: 2026-07-30 종료) / Cerebras(공식 가격 페이지: 영구 무료 없음, 결제 수단을 넣으면 일회성 $5·30일 만료·프로덕션용 아님. 앞에서 본 "Free Trial" 한도 표는 이것으로 보인다) / Mistral(무료 Experiment 요청을 학습에 쓸 수 있다고 공식 도움말에 있음) / SambaNova(공식: 무료 티어 모델별 분당 20·**일 20회**·일 토큰 200K) / OpenRouter `:free`(하루 50회) / Hugging Face(월 약 $0.10 수준, 2차 자료) / Cohere(비상업 전용, 2차 자료) / NVIDIA NIM(무료 엔드포인트 분당 40회·개발용이라는 포럼 글뿐, 공식 약관 못 찾음) / Upstage Solar(한국 회사. 공식 블로그에 가입 일회성 $10 크레딧, 영구 무료 아님, 현재 조건 못 확인) / Google AI Studio(우리 프로젝트는 403, 무료 등급은 입력을 제품 개선에 씀). OpenRouter 블로그의 비교표는 이미 끝난 서비스를 넣는 등 낡아서 참고만 했다.
+- **남은 두 개**: 둘 다 OpenAI 호환 `chat/completions` 형식이다.
+  - **Groq**: 무료 플랜(2차 자료 여러 곳이 일치, 공식 표는 "개발자 플랜 기본값"이라 적음) `openai/gpt-oss-120b`·`gpt-oss-20b`·`qwen/qwen3.8-27b` 분당 30·일 1,000·일 토큰 200K·**분당 토큰 8K(요청 하나가 8K를 넘으면 안 된다)**. 주소 `https://api.groq.com/openai/v1/chat/completions`, `response_format` json_schema·json_object 지원(공식). 추론 데이터는 기본 보관 안 함(악용 조사용 임시 로그 최대 30일, 끌 수 있음). **학습에 안 쓴다는 문구는 공식 문서에서 직접 못 찾았다**(커뮤니티 직원 답변·2차 요약뿐, DPA 원문은 못 읽음).
+  - **Cloudflare Workers AI**: 하루 10,000 뉴런, 넘으면 00:00 UTC까지 실패. 주소 `https://api.cloudflare.com/client/v4/accounts/{account_id}/ai/v1/chat/completions`, `Authorization: Bearer <API 토큰>`(권한 Workers AI Read·Edit). **학습에 안 쓴다는 문구가 공식 개인정보 페이지에 있다.** 공식 OpenAI 호환 문서에 `response_format` 지원 언급이 없고(JSON 모드 문서는 따로 있고 지원 모델이 라마 계열 위주), 모델별 컨텍스트 길이는 확인 못 했다.
+- **공통으로 걸리는 것**: 한도는 **전체 사용자 합산**이다. 한 사람이 하루 40번까지(`AI_LIMITS.perDay`) 보낼 수 있어 몇 명이 하루 몫을 다 쓸 수 있다. 요청 하나가 이번 달 할 일 300개·일정 100개까지 보낸다(최대 12K 토큰 안팎, 내 추정). Groq의 분당 8K에 걸릴 수 있어 줄이는 결정이 필요하다. 한국어 품질은 어느 쪽도 못 확인했다. 무료 티어는 SLA가 없어 한도·약관이 예고 없이 바뀐다(이번 Gemini, GitHub Models 종료가 그 예).
+- **제안(운영자 승인 대기)**: `lib/ai/gemini.ts`를 OpenAI 호환 형식 한 가지로 바꾸고(`AI_API_BASE`·`AI_API_KEY`·`AI_MODEL`), VM `.env` 세 값만 바꿔 Groq와 Cloudflare를 갈아 끼우며 한국어 품질을 직접 비교한다. 쓸 서비스가 정해질 때까지 개인정보 방침은 그 서비스 이름으로 고친다(규칙 7·8). 시험 서버의 가짜 Google 서버(`tests/e2e/ai-chat.spec.ts`, `playwright.config.ts`)는 새 형식으로 바꿔야 해서 **시험 코드가 바뀐다 — 규칙 1에 따라 먼저 이유를 설명하고 승인을 받는다.**
+- **다음**: ① 운영자가 위 제안(어느 서비스로 시작할지, 한 사람 하루 횟수와 보내는 양을 줄일지)에 답한다. ② 계정: Groq는 콘솔에서 API 키(카드 없음), Cloudflare는 Account ID + API 토큰. 키는 채팅에 붙이지 말고 VM `deploy/set-secrets.sh`로만 넣는다. ③ 이 문서 PR(#273) 병합.
