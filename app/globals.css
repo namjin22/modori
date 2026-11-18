@@ -130,6 +130,14 @@ html {
   scrollbar-width: thin;
 }
 
+/* 스크롤은 되지만 줄은 보이지 않게 한다(홈의 왼쪽 달력 칸). 줄이 없어서 칸이 더 있는지 눈으로는 알 수 없다. */
+@utility scrollbar-hidden {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 /* 앱은 화면이 상태 막대(시계·노치) 뒤까지 그려진다(iOS: capacitor.config.json contentInset: never, 안드로이드 15+: 화면 끝까지 그리기).
    내용이 가려지지 않게 그만큼 위를 띄운다. 아래는 하단 탭이 env(safe-area-inset-bottom)만큼 띄운다. data-app은 app/layout.tsx의
    머리 스크립트가 붙인다. 상태 막대 뒤까지 그리지 않는 기기에서는 이 값이 0이다. */
