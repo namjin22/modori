@@ -4,7 +4,7 @@ import { take, type RateRule } from "@/lib/rate-limit";
 
 /**
  * AI 도우미의 사용 한도. 두 겹이다: 짧은 시간에 몰리지 않게(토큰 버킷)와 하루 총량(그 사람 시간대의 하루).
- * 무료 등급은 프로젝트 전체의 분당·일일 한도를 모두가 나눠 쓰므로, 한 사람이 다 쓰지 못하게 막는다.
+ * 무료 한도는 계정 전체의 일일 한도를 모두가 나눠 쓰므로, 한 사람이 다 쓰지 못하게 막는다.
  * 서버가 한 대·프로세스 하나라 메모리에 센다(lib/rate-limit.ts와 같다). 재시작하면 비워진다.
  */
 const BURST_RULE: RateRule = { capacity: 5, refillPerSecond: 1 / 12 };

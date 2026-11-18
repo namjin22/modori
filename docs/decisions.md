@@ -2997,3 +2997,24 @@ DB 표(`Post`·`PostPhoto`·`PostReaction`, `Report.postId`)는 **두 번에 나
 **대가.** 홈에서 일기 목록(달마다 모아 보기)으로 가는 입구가 없어졌다. 지금은 카드 → 쓰는 화면 → "일기 목록으로"를 거쳐야 한다(친구의 공개 일기 입구는 친구 화면에 따로 있다). 홈이나 마이페이지에 다른 입구는 두지 않았다. 목록으로 바로 가는 길이 필요해지면 마이페이지에 줄을 더하는 것을 다시 묻는다.
 
 **시험.** `tests/e2e/diary.spec.ts`가 홈의 "일기" 버튼을 눌러 목록으로 갔으므로, 운영자 승인을 받아 그 세 줄을 "버튼이 없음을 확인하고 `/diary` 주소로 들어간다"로 바꿨다. 나머지 시험은 고치지 않았다.
+
+### AI 도우미가 말과 데이터를 보내는 곳을 Google Gemini에서 Cloudflare Workers AI로 바꾼다 (2026-11-19, 운영자 결정)
+
+**상황.** AI 도우미가 운영에서 모든 말에 `http-403-PERMISSION_DENIED`로 실패했다. 컨테이너 안에서 같은 키로 직접 불러 보니 Google이 "이 프로젝트는 Gemini API 무료 등급을 쓸 수 없다, 결제를 연결해 유료로 올려라"고 답했다(`docs/incidents.md` INC-21). 운영자는 "AI는 무조건 무료 API", "도우미 기능은 꼭 살리고 싶다"고 했고, 내가 무료 후보를 공식 문서로 조사해 두 곳(Groq, Cloudflare Workers AI)만 남긴 뒤 "한 가지로 정해 달라"고 했다.
+
+**선택지.** 서비스: (1) **Cloudflare Workers AI** (2) Groq (3) 다른 Google 계정의 Gemini 키로 시험(같은 프로젝트 자격 문제가 계정 단위일 수 있고 풀린 사례가 확인되지 않았다) (4) 결제 연결(운영자가 제외) (5) 도우미를 끈다. 탈락한 후보와 이유(GitHub Models 종료, Cerebras 영구 무료 없음, Mistral 무료 입력 학습, SambaNova·OpenRouter 일일 횟수, Upstage 일회성 크레딧 등)는 `docs/handoff.md` 2026-11-18 밤. 호출 형식: 서비스별 형식 / **OpenAI 호환 `chat/completions` 하나**. 한 사람 하루 횟수: 40번 유지 / **10번**.
+
+**선택.** (1) Cloudflare Workers AI, OpenAI 호환 형식, 하루 10번.
+- 외부 호출은 `lib/ai/gemini.ts`가 아니라 **`lib/ai/llm.ts` 한 곳**(`askModel`, `isAiConfigured`). 주소·키·모델은 환경변수 `AI_API_BASE`(`…/accounts/<계정 ID>/ai/v1`)·`AI_API_KEY`·`AI_MODEL`(기본 `@cf/openai/gpt-oss-120b`). 키나 주소가 없으면 도우미는 "준비 중"으로만 보인다. 새 의존성은 없다(`fetch`).
+- **문서에 없는 칸은 보내지 않는다**: Cloudflare 호환 문서(2026-11-19 확인)는 주소·`Authorization: Bearer`·`model`·`messages`만 밝히고 `max_tokens`·`response_format`·응답 모양·`usage`는 적지 않았다. 그래서 `response_format`은 보내지 않고(JSON은 지시문이 요구하고 `parseReply`가 울타리를 벗기고 다시 검사한다), `max_tokens`는 OpenAI 표준 칸이라 보내고(4096, 생각하는 모델의 출력 토큰 몫), 응답은 OpenAI 표준 모양으로 읽는다.
+- **오류 코드는 서비스가 준 본문을 읽지 않는다**: Cloudflare의 오류 본문 모양을 확인하지 못해서, 코드는 `http-<상태 숫자>-<우리가 붙인 이름>`(400 BAD_REQUEST, 401 UNAUTHORIZED, 403 FORBIDDEN, 404 NOT_FOUND)이고 429는 busy, 그 밖은 `http-<숫자>`다. 본문 앞 200자는 서버 로그에만 남는다. 그 밖의 코드: `empty-<finish_reason>`(예: `empty-length`), `blocked-content-filter`, `no-choices`, `response-not-json`, `network-<오류 이름>`.
+- **한도를 재려고 토큰 수를 로그에 한 줄 남긴다**(`[ai] 토큰 입력 N, 출력 M`, 서비스가 `usage`를 주면). 글은 남기지 않는다. 보내는 양(할 일 300개·일정 100개)을 줄일지는 이 숫자를 본 뒤에 정한다.
+- 하루 횟수 `AI_LIMITS.perDay`를 40에서 **10**으로 줄였다.
+- 동의 화면(세 언어)과 개인정보 방침(5번 "Cloudflare(Workers AI, 해외 서버)", 시행일 2026-11-19)·개인정보 목록을 새 받는 곳으로 고쳤다. Cloudflare 문서(developers.cloudflare.com/workers-ai/platform/data-usage)는 "Cloudflare does not use Customer Content processed by Workers AI to train AI models"이고 일반 추론 요청의 입력·출력은 처리에 필요한 뒤 보관하지 않는다고 한다.
+- 규칙 7: CLAUDE.md에 이 결정 한 줄을 더했다. **다른 AI 서비스로 보내는 것, 동의 없이 보내는 것은 여전히 다시 묻는다.**
+
+**이유.** 같은 모델(gpt-oss-120b)로 하루 호출 수가 Cloudflare가 더 많고(내 추정 약 77회 대 Groq 약 57회), 요청 하나의 크기 제한(Groq는 분당 토큰 8K)이 없고, 학습에 쓰지 않는다는 문구가 공식 문서에 있고(Groq는 공식 문서에서 못 찾았다), 이미 접속을 맡기고 있는 회사의 계정이라 새 업체가 늘지 않는다. 호출 형식을 OpenAI 호환 하나로 둬서 서비스를 바꿀 때 코드 대신 환경변수 세 개를 바꾸면 되게 했다.
+
+**대가.** (1) **실제 Cloudflare를 한 번도 불러 보지 못했다.** 호환 엔드포인트가 `max_tokens`를 받는지, 응답이 `choices[0].message.content`인지는 문서에 없어 가정이다. 어긋나면 첫 호출이 실패하고 대화창에 오류 코드가 나온다(Gemini 때의 교훈, INC-21). 한국어 답 품질과 JSON 안정성도 미확인이다. (2) **한도는 전체 사용자 합산이다.** 하루 뉴런 10,000개는 요청 하나를 입력 3,000·출력 500토큰으로 가정하면 gpt-oss-120b 약 77회, gpt-oss-20b 약 147회, qwen3-30b-a3b 약 340회뿐이다(추정, 실측 전. 생각하는 모델은 생각한 글도 출력으로 센다). 넘으면 그날 도우미가 멈추고 00:00 UTC(한국 09:00)에 풀린다. 사용자가 늘면 유료(Workers Paid)나 보내는 양 축소가 필요하다. 결제는 운영자가 제외했다. (3) 무료 한도·약관은 예고 없이 바뀐다(Gemini 건, GitHub Models 종료). (4) **이미 Google 문구로 동의한 사람은 다시 동의받지 않는다.** 도우미는 운영에서 한 번도 답하지 못했고 지금 동의한 사람이 운영자뿐인지는 확인하지 못했다. 다시 받으려면 동의 시각 기준일을 코드에 두는 몇 줄이 필요해 운영자에게 물었다. (5) 서비스를 바꿀 때 환경변수만으로는 부족하다: 동의 화면과 방침에 "Cloudflare"가 적혀 있어 문구도 고쳐야 한다. (6) 오류 코드에 서비스가 준 이유가 없어서, 원인이 모호하면(예: 400) VM에서 서버 로그나 컨테이너 안 직접 호출로 봐야 한다(이 PC에는 VM 접속 열쇠가 없다). (7) 한 사람 하루 10번은 활발한 사용에 모자랄 수 있다. 실측 후 다시 정한다. (8) Gemini 호출 코드는 지웠다(필요하면 git 기록에서 되살린다). (9) 운영자가 VM `.env`에 `AI_API_BASE`·`AI_API_KEY`(·`AI_MODEL`)를 넣고 앱을 다시 만들어야 열린다. 옛 `GEMINI_API_KEY`는 안 쓰지만 `.env`에 남아 있어도 해롭지 않다.
+
+**시험을 바꾼 것.** 운영자 승인을 받았다(2026-11-19, 두 번). (1) `playwright.config.ts`의 시험 서버 환경변수를 `AI_API_KEY`·`AI_API_BASE`·`AI_MODEL`로, 가짜 서버(`ai-chat.spec.ts`)를 OpenAI 호환 요청·응답 모양으로 바꿨다(받은 요청은 예전 기록 모양으로 옮겨 적어서 대화 역할·system 내용·메모 미노출·오류 코드 검사는 한 줄도 바꾸지 않았다). (2) 보내는 곳이 바뀐 것을 따라 검사 문장 4곳: 동의 화면의 "Cloudflare의 Workers AI로 전송돼요"와 "AI 모델 학습에 쓰지 않고, 처리가 끝나면 보관하지 않는다고 밝혀요"(예전: Google 문구 둘), 요청 확인을 `url`이 `/ai/v1/chat/completions`와 같고 `model`이 `fake-model`인 것으로(예전: 주소에 `/models/fake-model:generateContent` 포함, 같거나 더 엄격하다), 시험 이름·주석의 "Google이"를 "AI 서비스가"로. **새 단위 시험** `tests/unit/ai-llm.test.ts`(11개)가 요청 모양(주소·`Bearer`·`system`/`assistant` 역할·`max_tokens`·`response_format` 없음)과 실패 코드 전부를 네트워크 없이 확인한다.

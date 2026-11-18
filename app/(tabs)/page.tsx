@@ -1,7 +1,7 @@
 import { headers } from "next/headers";
 
 import { HomeView, type HomeData } from "@/components/home-view";
-import { isGeminiConfigured } from "@/lib/ai/gemini";
+import { isAiConfigured } from "@/lib/ai/llm";
 import { diaryExcerpt } from "@/lib/diary";
 import { avatarUrl } from "@/lib/avatar";
 import {
@@ -177,7 +177,7 @@ export default async function FeedPage({
     events: [...events, ...expandEventRoutines(eventRoutines, eventSkips, from, to)],
     upcoming,
     tour,
-    aiReady: isGeminiConfigured(),
+    aiReady: isAiConfigured(),
     diaries: diaryRows.map((row) => ({ date: formatKST(row.date), mood: row.mood, excerpt: diaryExcerpt(row.content, 120), isPublic: row.isPublic })),
   };
 

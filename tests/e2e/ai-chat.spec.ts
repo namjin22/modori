@@ -8,25 +8,28 @@ import { prisma } from "@/lib/prisma";
 import { RUN_TAG } from "./run-tag";
 
 // AI 도우미(2026-11-17, docs/decisions.md): 목표를 말하면 AI가 되묻고 할 일·일정을 제안하고, 사용자가 미리보기를 확인해야 저장된다.
-// 시험은 진짜 Google을 부르지 않는다. playwright.config.ts가 시험 서버의 GEMINI_API_BASE를 이 가짜 서버(3199번)로 돌려 두었다.
+// 시험은 진짜 AI 서비스를 부르지 않는다. playwright.config.ts가 시험 서버의 AI_API_BASE를 이 가짜 서버(3199번, OpenAI 호환 chat/completions 모양)로 돌려 두었다.
 // 이 파일 안의 시험은 차례대로 돈다(가짜 서버와 보낸 내용 기록을 같이 쓴다).
 const PORT = 3199;
 const TODAY = formatKST(todayIn("Asia/Seoul"));
 const day = (offset: number) => formatKST(addDays(parseKSTDate(TODAY), offset));
 
-type Seen = { url: string; key: string | undefined; system: string; contents: { role: string; parts: { text: string }[] }[] };
+// 가짜 서버는 받은 요청(OpenAI 호환 messages)을 예전 기록 모양(system·contents, AI의 말은 role "model")으로 옮겨 적는다. 아래 검사들은 이 모양을 그대로 읽는다.
+type Seen = { url: string; model: string; key: string | undefined; system: string; contents: { role: string; parts: { text: string }[] }[] };
+type ChatRequest = { model?: string; messages?: { role: string; content: string }[] };
 const seen: Seen[] = [];
 let server: Server;
 
 /** 보낸 말 속의 표시([질문] 등)로 가짜 답을 고른다. */
 function answerFor(lastUser: string): { status: number; body: unknown } {
-  const wrap = (object: unknown) => ({ status: 200, body: { candidates: [{ content: { parts: [{ text: JSON.stringify(object) }] }, finishReason: "STOP" }] } });
+  const completion = (content: string | null, finishReason: string) => ({ status: 200, body: { choices: [{ index: 0, message: { role: "assistant", content }, finish_reason: finishReason }] } });
+  const wrap = (object: unknown) => completion(JSON.stringify(object), "stop");
   if (lastUser.includes("[429]")) return { status: 429, body: { error: { message: "quota" } } };
   if (lastUser.includes("[500]")) return { status: 500, body: { error: { message: "boom" } } };
-  // Google이 모델 이름을 못 찾을 때의 모양. message는 코드에 들어가면 안 된다(우리가 보낸 말을 되풀이할 수 있다).
-  if (lastUser.includes("[404]")) return { status: 404, body: { error: { code: 404, status: "NOT_FOUND", message: "models/비밀모델 is not found" } } };
-  if (lastUser.includes("[막힘]")) return { status: 200, body: { promptFeedback: { blockReason: "SAFETY" } } };
-  if (lastUser.includes("[깨짐]")) return { status: 200, body: { candidates: [{ content: { parts: [{ text: "그냥 글이에요" }] }, finishReason: "STOP" }] } };
+  // AI 서비스가 모델 이름을 못 찾을 때의 모양. message는 코드에 들어가면 안 된다(우리가 보낸 말을 되풀이할 수 있다).
+  if (lastUser.includes("[404]")) return { status: 404, body: { error: { type: "invalid_request_error", code: "model_not_found", message: "The model `비밀모델` does not exist" } } };
+  if (lastUser.includes("[막힘]")) return completion(null, "content_filter");
+  if (lastUser.includes("[깨짐]")) return completion("그냥 글이에요", "stop");
   if (lastUser.includes("[질문]")) return wrap({ reply: "시험이 언제인가요? 하루에 몇 시간 공부할 수 있나요?", todos: [], events: [] });
   if (lastUser.includes("[위험]")) return wrap({ reply: "이렇게 해 봐요", todos: [{ content: "3일 단식하기", date: day(1), category: null }], events: [] });
   if (lastUser.includes("[거절]")) return wrap({ reply: "그 목표는 몸에 부담이 커서 계획을 짜지 않을게요. 한 달에 2~4kg 정도로 다시 이야기해요.", declined: true, todos: [], events: [] });
@@ -50,14 +53,18 @@ test.beforeAll(async () => {
     const chunks: Buffer[] = [];
     request.on("data", (chunk: Buffer) => chunks.push(chunk));
     request.on("end", () => {
-      const body = JSON.parse(Buffer.concat(chunks).toString("utf-8") || "{}") as { systemInstruction?: { parts: { text: string }[] }; contents?: Seen["contents"] };
+      const body = JSON.parse(Buffer.concat(chunks).toString("utf-8") || "{}") as ChatRequest;
+      const messages = body.messages ?? [];
       seen.push({
         url: request.url ?? "",
-        key: request.headers["x-goog-api-key"] as string | undefined,
-        system: body.systemInstruction?.parts.map((part) => part.text).join("") ?? "",
-        contents: body.contents ?? [],
+        model: body.model ?? "",
+        key: request.headers.authorization?.replace(/^Bearer /, ""),
+        system: messages.filter((message) => message.role === "system").map((message) => message.content).join(""),
+        contents: messages
+          .filter((message) => message.role !== "system")
+          .map((message) => ({ role: message.role === "assistant" ? "model" : message.role, parts: [{ text: message.content }] })),
       });
-      const last = body.contents?.at(-1)?.parts.map((part) => part.text).join("") ?? "";
+      const last = messages.at(-1)?.content ?? "";
       const answer = answerFor(last);
       response.writeHead(answer.status, { "content-type": "application/json" });
       response.end(JSON.stringify(answer.body));
@@ -114,8 +121,8 @@ test("동의하기 전에는 대화창이 열리지 않고 내 데이터가 나�
 
   // 무엇이 어디로 가는지 먼저 보이고, 동의해야 시작할 수 있다.
   await expect(page.getByRole("heading", { name: "시작하기 전에 알려 드려요" })).toBeVisible();
-  await expect(page.getByText("Google의 Gemini API로 전송돼요")).toBeVisible();
-  await expect(page.getByText("Google이 입력 내용을 제품 개선에 쓸 수 있어요")).toBeVisible();
+  await expect(page.getByText("Cloudflare의 Workers AI로 전송돼요")).toBeVisible();
+  await expect(page.getByText("AI 모델 학습에 쓰지 않고, 처리가 끝나면 보관하지 않는다고 밝혀요")).toBeVisible();
   await expect(page.getByText("메모와 친구 정보는 보내지 않아요")).toBeVisible();
   await expect(input(page)).toHaveCount(0);
   const start = page.getByRole("button", { name: "동의하고 시작하기" });
@@ -162,7 +169,8 @@ test("목표를 말하면 제안이 미리보기로 뜨고, 골라서 넣으면 
   // AI에게 간 것: 키·모델, 이번 달 내 데이터, 같은 말. 메모·남의 데이터는 없다. 비공개 카테고리의 할 일은 운영자가 정한 대로 들어간다.
   const sent = seen.at(-1);
   expect(sent?.key).toBe("e2e-fake-key");
-  expect(sent?.url).toContain("/models/fake-model:generateContent");
+  expect(sent?.url).toBe("/ai/v1/chat/completions");
+  expect(sent?.model).toBe("fake-model");
   expect(sent?.system).toContain(`오늘은 ${TODAY}(Asia/Seoul)`);
   expect(sent?.system).toContain("수학 문제집 3장");
   expect(sent?.system).toContain("동아리 모임");
@@ -282,12 +290,12 @@ test("서버는 제안을 다시 검사한다: 하루 50개를 넘으면 아무�
   expect((await page.request.post("/api/ai/chat", { data: { messages: [{ role: "user", text: "가".repeat(90_000) }] } })).status()).toBe(413);
 });
 
-test("Google이 거절하면 원인 코드가 보이고(서버는 502가 아니라 200으로 알린다), 다시 보내기는 내 말을 두 번 쌓지 않는다", async ({ page }) => {
+test("AI 서비스가 거절하면 원인 코드가 보이고(서버는 502가 아니라 200으로 알린다), 다시 보내기는 내 말을 두 번 쌓지 않는다", async ({ page }) => {
   await makeUser(page, "code");
   await page.goto("/ai");
 
   await say(page, "[404] 모델 없음");
-  // Google이 준 영문 상태 이름만 코드에 들어간다. 오류 본문의 message(보낸 말을 되풀이할 수 있다)는 들어가지 않는다.
+  // 상태 숫자와 우리가 붙인 영문 상태 이름만 코드에 들어간다. 오류 본문의 message(보낸 말을 되풀이할 수 있다)는 들어가지 않는다.
   await expect(page.getByText("오류 코드: http-404-NOT_FOUND")).toBeVisible();
   await expect(page.getByText("비밀모델")).toHaveCount(0);
   await expect(page.getByText("AI 서비스에 연결하지 못했어요")).toBeVisible();
