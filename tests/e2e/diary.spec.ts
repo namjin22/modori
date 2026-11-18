@@ -44,8 +44,9 @@ test("일기를 쓰고 고치고 지운다: 글·이모지·기분·친구 공�
   await signUp(page, emails.me, `일기${testInfo.testId.slice(-6)}${RUN_TAG}`);
   const me = await userByEmail(emails.me);
 
-  // 홈의 "일기" 버튼은 일기 목록으로 간다(보고 있는 날의 일기는 홈의 카드에서 바로 본다).
-  await page.getByRole("link", { name: "일기", exact: true }).click();
+  // 홈의 "일기" 버튼은 없앴다(2026-11-18 요청). 목록은 주소로 들어간다(보고 있는 날의 일기는 홈의 카드에서 바로 본다).
+  await expect(page.getByRole("link", { name: "일기", exact: true })).toHaveCount(0);
+  await page.goto("/diary");
   await expect(page).toHaveURL(/\/diary$/);
   await page.getByRole("link", { name: "오늘 일기 쓰기" }).click();
   await expect(page).toHaveURL(new RegExp(`/diary/${TODAY}$`));
