@@ -207,14 +207,7 @@ export function HomeView({ data }: { data: HomeData }) {
                   {t("aiHelper")}
                 </Link>
               )}
-              {/* 일기(2026-11-17): 일기 목록으로 간다. 보고 있는 날의 일기는 아래 카드에서 바로 보고 쓴다. */}
-              <Link
-                prefetch={false}
-                href="/diary"
-                className="flex h-8 items-center rounded-full bg-surface px-3 text-sm text-muted hover:text-foreground min-[360px]:px-3.5"
-              >
-                {t("diary")}
-              </Link>
+              {/* 일기 버튼은 뺐다(2026-11-18 요청). 보고 있는 날의 일기는 달력 밑 카드에서 보고 쓰고, 목록은 쓰는 화면의 "일기 목록으로"로 간다. */}
               <ManageMenu />
             </nav>
 
