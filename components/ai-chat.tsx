@@ -14,7 +14,7 @@ import type { PlanEvent, PlanTodo } from "@/lib/ai/plan";
 
 type Proposal = { todos: PlanTodo[]; events: PlanEvent[] };
 type Applied = { state: "idle" } | { state: "adding" } | { state: "added"; todos: number; events: number; batchIds: string[] } | { state: "undone" } | { state: "failed"; message: string };
-type Message = { id: number; role: "user" | "assistant"; text: string; proposal?: Proposal; applied?: Applied; isError?: boolean };
+type Message = { id: number; role: "user" | "assistant"; text: string; proposal?: Proposal; applied?: Applied; isError?: boolean; code?: string; canRetry?: boolean };
 
 /**
  * AI 도우미 대화 화면(2026-11-17, docs/decisions.md). 대화는 이 화면의 상태에만 있고 서버에 저장하지 않는다(새로 고치면 사라진다).
@@ -26,8 +26,13 @@ export function AiChat({ consented, configured }: { consented: boolean; configur
   if (!configured) return <p role="note" className="rounded-2xl bg-surface p-5 text-sm leading-relaxed text-muted">{t("notConfigured")}</p>;
   return (
     <div className="flex flex-col gap-4">
-      <p role="note" className="rounded-2xl bg-surface-hover px-4 py-3 text-[13px] leading-relaxed text-muted">
-        {t("disclaimer")}
+      {/* 건강·정확성 안내는 늘 보이되 작게 둔다(상자로 크게 두면 대화창을 밀어낸다). */}
+      <p role="note" className="flex items-start gap-2 px-1 text-xs leading-relaxed text-muted">
+        <svg aria-hidden width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="mt-0.5 shrink-0">
+          <circle cx={12} cy={12} r={9} />
+          <path d="M12 11v5 M12 8h.01" />
+        </svg>
+        <span>{t("disclaimer")}</span>
       </p>
       {consented ? <Conversation /> : <Consent />}
     </div>
@@ -73,6 +78,15 @@ function Consent() {
   );
 }
 
+/** 도우미 얼굴. 말풍선 왼쪽과 "생각하는 중" 옆에 둔다. */
+function AssistantFace() {
+  return (
+    <span aria-hidden className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full bg-brand-subtle">
+      <Dori avatar size={32} mood="happy" />
+    </span>
+  );
+}
+
 function Conversation() {
   const t = useT(aichat);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -80,39 +94,51 @@ function Conversation() {
   const [pending, setPending] = useState(false);
   const nextId = useRef(1);
   const end = useRef<HTMLDivElement>(null);
+  const field = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     end.current?.scrollIntoView({ block: "end" });
   }, [messages.length, pending]);
 
-  function errorText(response: Extract<ChatResponse, { ok: false }>): string {
+  // 입력창은 쓴 만큼 늘어난다(여섯 줄쯤에서 멈추고 안에서 스크롤한다).
+  useEffect(() => {
+    const element = field.current;
+    if (!element) return;
+    element.style.height = "auto";
+    element.style.height = `${Math.min(element.scrollHeight, 144)}px`;
+  }, [input]);
+
+  function errorMessage(response: Extract<ChatResponse, { ok: false }>): { text: string; canRetry: boolean } {
     switch (response.error) {
       case "busy":
-        return t("errorBusy");
+        return { text: t("errorBusy"), canRetry: true };
       case "limit-burst":
-        return t("errorBurst", { seconds: response.retryAfter ?? 10 });
+        return { text: t("errorBurst", { seconds: response.retryAfter ?? 10 }), canRetry: true };
       case "limit-day":
-        return t("errorDay");
+        return { text: t("errorDay"), canRetry: false };
       case "blocked":
-        return t("errorBlocked");
+        return { text: t("errorBlocked"), canRetry: false };
       case "unavailable":
-        return t("errorUnavailable");
+        return { text: t("errorUnavailable"), canRetry: true };
       case "format":
-        return t("errorFormat");
+        return { text: t("errorFormat"), canRetry: true };
       case "not-configured":
-        return t("notConfigured");
+        return { text: t("notConfigured"), canRetry: false };
+      case "login":
+        return { text: t("errorLogin"), canRetry: false };
+      case "server":
+        return { text: t("errorServer"), canRetry: true };
       default:
-        return t("errorGeneric");
+        return { text: t("errorGeneric"), canRetry: true };
     }
   }
 
-  async function send(text: string) {
-    const trimmed = text.trim();
-    if (!trimmed || pending) return;
-    const user: Message = { id: nextId.current++, role: "user", text: trimmed };
-    const history = [...messages, user];
-    setMessages(history);
-    setInput("");
+  function addError(text: string, code: string | undefined, canRetry: boolean) {
+    setMessages((current) => [...current, { id: nextId.current++, role: "assistant", text, isError: true, code, canRetry }]);
+  }
+
+  /** `history`의 맨 끝은 내 말이다. 서버는 이 대화를 저장하지 않고 그때그때 받는다. */
+  async function ask(history: Message[]) {
     setPending(true);
     try {
       const response = await fetch("/api/ai/chat", {
@@ -121,20 +147,43 @@ function Conversation() {
         // 오류 말풍선은 AI가 한 말이 아니므로 대화에 싣지 않는다.
         body: JSON.stringify({ messages: history.filter((message) => !message.isError).map((message) => ({ role: message.role, text: message.text })) }),
       });
+      // JSON이 아닌 답(앞단이 오류 화면으로 바꾼 것 등)이면 HTTP 상태를 코드로 보여 원인을 좁힐 수 있게 한다.
       const data = (await response.json().catch(() => null)) as ChatResponse | null;
       if (data?.ok) {
         const proposal = data.todos.length > 0 || data.events.length > 0 ? { todos: data.todos, events: data.events } : undefined;
         setMessages((current) => [...current, { id: nextId.current++, role: "assistant", text: data.reply, proposal, applied: proposal ? { state: "idle" } : undefined }]);
+      } else if (data && typeof data.error === "string") {
+        const failed = errorMessage(data);
+        addError(failed.text, data.code, failed.canRetry);
       } else {
-        const text = data && !data.ok ? errorText(data) : t("errorGeneric");
-        setMessages((current) => [...current, { id: nextId.current++, role: "assistant", text, isError: true }]);
+        addError(t("errorGeneric"), `http-${response.status}`, true);
       }
     } catch (error) {
-      console.error("[ai] 대화를 보내지 못했다.", error instanceof Error ? error.name : error);
-      setMessages((current) => [...current, { id: nextId.current++, role: "assistant", text: t("errorGeneric"), isError: true }]);
+      const name = error instanceof Error ? error.name : "unknown";
+      console.error("[ai] 대화를 보내지 못했다.", name);
+      addError(t("errorGeneric"), `network-${name}`, true);
     } finally {
       setPending(false);
     }
+  }
+
+  async function send(text: string) {
+    const trimmed = text.trim();
+    if (!trimmed || pending) return;
+    const history = [...messages, { id: nextId.current++, role: "user" as const, text: trimmed }];
+    setMessages(history);
+    setInput("");
+    await ask(history);
+  }
+
+  /** 맨 끝의 오류 말풍선을 치우고 마지막 내 말을 그대로 다시 보낸다(내 말이 두 번 쌓이지 않는다). */
+  function retry() {
+    if (pending) return;
+    const kept = [...messages];
+    while (kept.length > 0 && kept[kept.length - 1].isError) kept.pop();
+    if (kept.length === 0 || kept[kept.length - 1].role !== "user") return;
+    setMessages(kept);
+    void ask(kept);
   }
 
   function onSubmit(event: FormEvent<HTMLFormElement>) {
@@ -146,46 +195,92 @@ function Conversation() {
     setMessages((current) => current.map((message) => (message.id === id ? { ...message, applied } : message)));
   }
 
+  const lastId = messages.length > 0 ? messages[messages.length - 1].id : null;
+
   return (
     <div className="flex flex-col gap-4">
       {messages.length === 0 ? (
-        <div className="flex flex-col items-center gap-3 py-2 text-center">
-          <Dori mood="hello" size={80} />
-          <p className="text-sm leading-relaxed text-muted">{t("intro")}</p>
-          <p className="text-xs text-muted">{t("suggestionsLabel")}</p>
-          <ul className="flex w-full flex-col gap-2">
-            {(["suggestion1", "suggestion2", "suggestion3"] as const).map((key) => (
-              <li key={key}>
-                <button type="button" onClick={() => void send(t(key))} className="w-full rounded-2xl bg-surface px-4 py-3 text-left text-sm leading-relaxed">
-                  {t(key)}
-                </button>
-              </li>
-            ))}
-          </ul>
+        <div className="flex flex-col gap-5">
+          <div className="flex flex-col items-center gap-2 pt-1 text-center">
+            <Dori mood="hello" size={88} />
+            <h2 className="text-lg font-bold">{t("welcome")}</h2>
+            <p className="text-sm leading-relaxed text-muted">{t("intro")}</p>
+          </div>
+          <div className="flex flex-col gap-2">
+            <p className="px-1 text-xs font-semibold text-muted">{t("suggestionsLabel")}</p>
+            <ul className="flex flex-col gap-2">
+              {(["suggestion1", "suggestion2", "suggestion3"] as const).map((key) => (
+                <li key={key}>
+                  <button
+                    type="button"
+                    onClick={() => void send(t(key))}
+                    className="flex w-full items-center gap-3 rounded-2xl bg-surface px-4 py-3.5 text-left text-sm leading-relaxed transition-transform active:scale-[0.98]"
+                  >
+                    <span className="flex-1">{t(key)}</span>
+                    <svg aria-hidden width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-muted">
+                      <path d="M9 5 L16 12 L9 19" />
+                    </svg>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
       ) : (
-        <div role="log" aria-label={t("conversation")} aria-live="polite" className="flex flex-col gap-3">
-          {messages.map((message) => (
-            <Bubble key={message.id} message={message} onApplied={(applied) => setApplied(message.id, applied)} />
-          ))}
-          {pending && (
-            <p role="status" className="px-1 text-sm text-muted">
-              {t("thinking")}…
-            </p>
-          )}
-          <div ref={end} />
-        </div>
+        <>
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={() => setMessages([])}
+              disabled={pending}
+              className="flex h-9 items-center gap-1.5 rounded-full bg-surface px-3.5 text-xs font-semibold text-muted transition-transform active:scale-95 disabled:opacity-50"
+            >
+              <svg aria-hidden width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 5v14 M5 12h14" />
+              </svg>
+              {t("newChat")}
+            </button>
+          </div>
+          <div role="log" aria-label={t("conversation")} aria-live="polite" className="flex flex-col gap-4">
+            {messages.map((message) => (
+              <Bubble
+                key={message.id}
+                message={message}
+                onApplied={(applied) => setApplied(message.id, applied)}
+                onRetry={message.isError && message.canRetry && message.id === lastId && !pending ? retry : undefined}
+              />
+            ))}
+            {pending && (
+              <div role="status" className="flex items-start gap-2">
+                <AssistantFace />
+                <span className="flex h-10 items-center gap-1.5 rounded-2xl rounded-tl-md bg-surface px-4">
+                  {[0, 1, 2].map((index) => (
+                    <span key={index} aria-hidden className="size-1.5 animate-bounce rounded-full bg-muted motion-reduce:animate-none" style={{ animationDelay: `${index * 150}ms` }} />
+                  ))}
+                </span>
+                <span className="sr-only">{t("thinking")}…</span>
+              </div>
+            )}
+            {/* 아래 입력창과 하단 탭에 가리지 않도록 끝을 더 위로 맞춘다. */}
+            <div ref={end} className="scroll-mb-40" />
+          </div>
+        </>
       )}
 
-      <form onSubmit={onSubmit} className="sticky bottom-2 flex flex-col gap-2 rounded-2xl bg-surface p-3 shadow-lg">
+      {/* 하단 탭(높이 56px+테두리)이 같은 아래 끝에 붙어 있어서, 입력창은 탭 위에 붙인다. 예전에는 탭 뒤로 가려졌다. */}
+      <form
+        onSubmit={onSubmit}
+        className="sticky bottom-[calc(4rem+env(safe-area-inset-bottom,0px))] z-10 flex items-end gap-2 rounded-3xl bg-surface p-2 shadow-lg ring-1 ring-border focus-within:ring-2 focus-within:ring-brand"
+      >
         <label className="sr-only" htmlFor="ai-input">
           {t("inputLabel")}
         </label>
         <textarea
+          ref={field}
           id="ai-input"
           value={input}
           maxLength={2000}
-          rows={2}
+          rows={1}
           disabled={pending}
           placeholder={t("inputPlaceholder")}
           onChange={(event) => setInput(event.target.value)}
@@ -196,39 +291,55 @@ function Conversation() {
               void send(input);
             }
           }}
-          className="w-full resize-none rounded-xl bg-surface-hover px-3 py-2 text-[15px] outline-none placeholder:text-muted focus:ring-2 focus:ring-brand"
+          className="min-h-10 flex-1 resize-none bg-transparent px-3 py-2 text-[15px] leading-6 outline-none placeholder:text-muted"
         />
-        <div className="flex items-center justify-between gap-2">
-          {messages.length > 0 ? (
-            <button type="button" onClick={() => setMessages([])} disabled={pending} className="h-10 rounded-lg px-3 text-sm text-muted">
-              {t("newChat")}
-            </button>
-          ) : (
-            <span />
-          )}
-          <button type="submit" disabled={pending || input.trim() === ""} className="h-10 rounded-xl bg-brand px-5 text-sm font-semibold text-brand-contrast disabled:opacity-50">
-            {t("send")}
-          </button>
-        </div>
+        <button
+          type="submit"
+          aria-label={t("send")}
+          disabled={pending || input.trim() === ""}
+          className="flex size-10 shrink-0 items-center justify-center rounded-full bg-brand text-brand-contrast transition-transform active:scale-90 disabled:opacity-40"
+        >
+          <svg aria-hidden width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 19V5 M5 12l7-7 7 7" />
+          </svg>
+        </button>
       </form>
     </div>
   );
 }
 
-function Bubble({ message, onApplied }: { message: Message; onApplied: (applied: Applied) => void }) {
+function Bubble({ message, onApplied, onRetry }: { message: Message; onApplied: (applied: Applied) => void; onRetry?: () => void }) {
   const t = useT(aichat);
-  const mine = message.role === "user";
+  if (message.role === "user") {
+    return (
+      <div role="group" aria-label={t("you")} className="flex animate-rise justify-end">
+        <p className="max-w-[85%] whitespace-pre-line rounded-2xl rounded-br-md bg-brand px-4 py-2.5 text-[15px] leading-relaxed text-brand-contrast">{message.text}</p>
+      </div>
+    );
+  }
   return (
-    <div className={`flex flex-col gap-2 ${mine ? "items-end" : "items-start"}`}>
-      <span className="px-1 text-xs text-muted">{mine ? t("you") : t("assistant")}</span>
-      <p
-        className={`max-w-[88%] whitespace-pre-line rounded-2xl px-4 py-3 text-[15px] leading-relaxed ${
-          mine ? "bg-brand text-brand-contrast" : message.isError ? "bg-surface text-danger" : "bg-surface"
-        }`}
-      >
-        {message.text}
-      </p>
-      {message.proposal && message.applied && <ProposalCard proposal={message.proposal} applied={message.applied} onApplied={onApplied} />}
+    <div role="group" aria-label={t("assistant")} className="flex animate-rise items-start gap-2">
+      <AssistantFace />
+      <div className="flex min-w-0 flex-1 flex-col items-start gap-2">
+        <p
+          className={`max-w-[92%] whitespace-pre-line rounded-2xl rounded-tl-md px-4 py-2.5 text-[15px] leading-relaxed ${
+            message.isError ? "bg-danger/10 text-danger" : "bg-surface"
+          }`}
+        >
+          {message.text}
+        </p>
+        {message.isError && (message.code || onRetry) && (
+          <div className="flex flex-wrap items-center gap-2 px-1">
+            {onRetry && (
+              <button type="button" onClick={onRetry} className="h-9 rounded-full bg-surface px-4 text-xs font-semibold transition-transform active:scale-95">
+                {t("retry")}
+              </button>
+            )}
+            {message.code && <span className="text-[11px] text-muted">{t("errorCode", { code: message.code })}</span>}
+          </div>
+        )}
+        {message.proposal && message.applied && <ProposalCard proposal={message.proposal} applied={message.applied} onApplied={onApplied} />}
+      </div>
     </div>
   );
 }

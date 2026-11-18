@@ -21,8 +21,9 @@ const bodySchema = z.object({
     .max(60),
 });
 
-export type ChatError = "bad-request" | "consent" | "not-configured" | "busy" | "limit-burst" | "limit-day" | "blocked" | "unavailable" | "format";
-export type ChatResponse = ({ ok: true } & AiPlan) | { ok: false; error: ChatError; retryAfter?: number };
+export type ChatError = "login" | "bad-request" | "consent" | "not-configured" | "busy" | "limit-burst" | "limit-day" | "blocked" | "unavailable" | "format" | "server";
+/** `code`는 원인을 가리키는 짧은 영문 표시(예: http-404-NOT_FOUND)로, 대화창에 그대로 보인다. 키·보낸 말은 들어 있지 않다. */
+export type ChatResponse = ({ ok: true } & AiPlan) | { ok: false; error: ChatError; code?: string; retryAfter?: number };
 
 function reply(body: ChatResponse, status = 200): Response {
   return Response.json(body, { status, headers: { "Cache-Control": "no-store" } });
@@ -35,13 +36,26 @@ function reply(body: ChatResponse, status = 200): Response {
  * 쿠키 세션은 SameSite=Lax라 다른 사이트에서 이 POST를 대신 보낼 수 없다.
  */
 export async function POST(request: Request): Promise<Response> {
+  try {
+    return await handle(request);
+  } catch (error) {
+    // 예상하지 못한 오류도 JSON으로 돌려 화면이 이유를 보이게 한다(예전에는 HTML 오류 쪽이 가서 "보내지 못했어요"만 나왔다).
+    const name = error instanceof Error ? error.name : "unknown";
+    console.error("[ai] 대화를 처리하지 못했다.", name, error instanceof Error ? error.message.slice(0, 200) : "");
+    return reply({ ok: false, error: "server", code: `server-${name}` });
+  }
+}
+
+async function handle(request: Request): Promise<Response> {
   const user = await getCurrentUser();
-  if (!user?.nickname) return new Response(null, { status: 401 });
+  if (!user?.nickname) return reply({ ok: false, error: "login" }, 401);
 
   // 동의 없이는 내 데이터가 나가지 않는다.
   const consent = await prisma.user.findUnique({ where: { id: user.id }, select: { aiChatConsentAt: true } });
   if (!consent?.aiChatConsentAt) return reply({ ok: false, error: "consent" }, 403);
-  if (!isGeminiConfigured()) return reply({ ok: false, error: "not-configured" }, 503);
+  // 아래 "서비스 쪽 실패"(설정 안 됨·AI 연결 실패·답 형식 불량)는 502·503이 아니라 200에 ok:false로 돌려준다. 앞단(Cloudflare)은
+  // 원서버의 502·504 본문을 자기 오류 화면으로 바꿔 버릴 수 있고, 그러면 브라우저가 이유(JSON)를 읽지 못해 "보내지 못했어요"만 보인다.
+  if (!isGeminiConfigured()) return reply({ ok: false, error: "not-configured", code: "no-key" });
 
   const raw = await request.text();
   if (raw.length > MAX_BODY_CHARS) return reply({ ok: false, error: "bad-request" }, 413);
@@ -100,13 +114,13 @@ export async function POST(request: Request): Promise<Response> {
 
   const answer = await askGemini({ system, messages: contents });
   if (!answer.ok) {
-    if (answer.kind === "busy") return reply({ ok: false, error: "busy" }, 429);
-    if (answer.kind === "blocked") return reply({ ok: false, error: "blocked" });
-    return reply({ ok: false, error: "unavailable" }, 502);
+    if (answer.kind === "busy") return reply({ ok: false, error: "busy", code: answer.code }, 429);
+    if (answer.kind === "blocked") return reply({ ok: false, error: "blocked", code: answer.code });
+    return reply({ ok: false, error: "unavailable", code: answer.code });
   }
 
   const plan = parseReply(answer.text, { today, categories: categoryNames });
-  if (!plan) return reply({ ok: false, error: "format" }, 502);
+  if (!plan) return reply({ ok: false, error: "format", code: "reply-not-plan" });
 
   // 마지막 안전망: 몸에 해로운 표현이 제안 글에 있으면 제안을 통째로 버리고 고정 안내로 바꾼다.
   if (hasUnsafeHealthPlan(plan)) {

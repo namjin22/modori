@@ -23,6 +23,8 @@ function answerFor(lastUser: string): { status: number; body: unknown } {
   const wrap = (object: unknown) => ({ status: 200, body: { candidates: [{ content: { parts: [{ text: JSON.stringify(object) }] }, finishReason: "STOP" }] } });
   if (lastUser.includes("[429]")) return { status: 429, body: { error: { message: "quota" } } };
   if (lastUser.includes("[500]")) return { status: 500, body: { error: { message: "boom" } } };
+  // Google이 모델 이름을 못 찾을 때의 모양. message는 코드에 들어가면 안 된다(우리가 보낸 말을 되풀이할 수 있다).
+  if (lastUser.includes("[404]")) return { status: 404, body: { error: { code: 404, status: "NOT_FOUND", message: "models/비밀모델 is not found" } } };
   if (lastUser.includes("[막힘]")) return { status: 200, body: { promptFeedback: { blockReason: "SAFETY" } } };
   if (lastUser.includes("[깨짐]")) return { status: 200, body: { candidates: [{ content: { parts: [{ text: "그냥 글이에요" }] }, finishReason: "STOP" }] } };
   if (lastUser.includes("[질문]")) return wrap({ reply: "시험이 언제인가요? 하루에 몇 시간 공부할 수 있나요?", todos: [], events: [] });
@@ -237,6 +239,9 @@ test("AI 서비스가 막히거나 실패하면 이유를 알려 주고, 저장�
     await say(page, `${mark} 안녕`);
     await expect(page.getByText(message)).toBeVisible();
   }
+  // 원인을 가리키는 코드가 같이 보인다(2026-11-18: 키를 넣고도 "보내지 못했어요"만 나와 이유를 알 수 없었다).
+  await expect(page.getByText("오류 코드: http-500")).toBeVisible();
+  await expect(page.getByText("오류 코드: http-429")).toBeVisible();
   // 오류 말풍선은 대화로 다시 보내지 않는다(AI가 한 말이 아니다).
   await say(page, "[질문] 다시");
   const last = seen.at(-1)?.contents.map((message) => message.parts[0].text) ?? [];
@@ -275,4 +280,28 @@ test("서버는 제안을 다시 검사한다: 하루 50개를 넘으면 아무�
   expect((await page.request.post("/api/ai/chat", { data: { messages: [{ role: "model", text: "x" }] } })).status()).toBe(400);
   expect((await page.request.post("/api/ai/chat", { data: "이건 JSON이 아니다", headers: { "content-type": "text/plain" } })).status()).toBe(400);
   expect((await page.request.post("/api/ai/chat", { data: { messages: [{ role: "user", text: "가".repeat(90_000) }] } })).status()).toBe(413);
+});
+
+test("Google이 거절하면 원인 코드가 보이고(서버는 502가 아니라 200으로 알린다), 다시 보내기는 내 말을 두 번 쌓지 않는다", async ({ page }) => {
+  await makeUser(page, "code");
+  await page.goto("/ai");
+
+  await say(page, "[404] 모델 없음");
+  // Google이 준 영문 상태 이름만 코드에 들어간다. 오류 본문의 message(보낸 말을 되풀이할 수 있다)는 들어가지 않는다.
+  await expect(page.getByText("오류 코드: http-404-NOT_FOUND")).toBeVisible();
+  await expect(page.getByText("비밀모델")).toHaveCount(0);
+  await expect(page.getByText("AI 서비스에 연결하지 못했어요")).toBeVisible();
+
+  // 다시 보내기: 오류 말풍선을 치우고 같은 말을 다시 보낸다. 내 말은 한 번만 보인다.
+  const before = seen.length;
+  await page.getByRole("button", { name: "다시 보내기" }).click();
+  await expect(page.getByText("오류 코드: http-404-NOT_FOUND")).toBeVisible();
+  expect(seen.length - before).toBe(1);
+  await expect(page.getByText("[404] 모델 없음", { exact: true })).toHaveCount(1);
+  expect(seen.at(-1)?.contents.map((message) => message.role)).toEqual(["user"]);
+
+  // 앞단(Cloudflare)이 502·504의 본문을 바꿔 버려도 이유가 보이도록, 서비스 쪽 실패는 200에 JSON으로 돌려준다.
+  const direct = await page.request.post("/api/ai/chat", { data: { messages: [{ role: "user", text: "[404] 직접" }] } });
+  expect(direct.status()).toBe(200);
+  expect(await direct.json()).toEqual({ ok: false, error: "unavailable", code: "http-404-NOT_FOUND" });
 });
