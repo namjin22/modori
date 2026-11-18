@@ -1,6 +1,3 @@
-import { moodsOf, type CharacterId } from "@/lib/characters";
-import { characterMoodOf } from "@/lib/reactions";
-
 /**
  * 일기(2026-11-17 운영자 결정, docs/decisions.md "일기"): 하루 한 편, 글과 기분. 사진은 2단계라 여기에 없다.
  * 날짜는 그 사람의 시간대 달력의 날이다(CLAUDE.md 규칙 2). 서버 액션과 화면이 같은 규칙을 쓰도록 모아 둔다.
@@ -13,17 +10,26 @@ export const MAX_DIARY_LENGTH = 5000;
 const EARLIEST_DAY = Date.UTC(2000, 0, 1);
 
 /**
- * "오늘의 기분"은 캐릭터의 표정이다(2026-11-17 요청: 기본 이모지가 별로라 도리·펭이 같은 캐릭터로). 저장하는 값은 반응과 같은 "캐릭터id:표정"
- * (예: "dori:happy", "peng:nap")이라 그림은 ReactionGlyph가 그린다. 고르는 창에는 내가 고른 캐릭터의 표정 열 개를 보이고,
- * 캐릭터를 바꿔도 예전 일기는 그때 고른 캐릭터로 남는다.
+ * "오늘의 기분"은 일기 전용으로 그린 "마음 날씨" 그림 여섯 가지 중 하나다(components/mood-icon.tsx, 2026-11-18 요청: 반응에서 쓰는 캐릭터
+ * 표정은 어색하다). 저장하는 값은 아래 이름이고, 처음에는 이모지였다가 캐릭터 표정("dori:happy")이었다(마이그레이션이 옮겼다).
+ * 기분 좋음에서 나쁨 순서이고 마지막은 졸림이다.
  */
-export function diaryMoodOptions(character: CharacterId): string[] {
-  return moodsOf(character).map((mood) => `${character}:${mood}`);
-}
+export const DIARY_MOODS = ["sun", "partly", "cloud", "rain", "storm", "moon"] as const;
+export type DiaryMoodKey = (typeof DIARY_MOODS)[number];
 
-/** 서버가 받아도 되는 기분 값인지. 어느 캐릭터의 표정이든 반응에 있는 것만 받는다. */
-export function isDiaryMood(value: unknown): value is string {
-  return typeof value === "string" && characterMoodOf(value) !== null;
+/** 기분마다 화면에 보이는 이름의 번역 열쇠(lib/i18n/messages/diary.ts). */
+export const MOOD_LABEL_KEYS = {
+  sun: "moodSun",
+  partly: "moodPartly",
+  cloud: "moodCloud",
+  rain: "moodRain",
+  storm: "moodStorm",
+  moon: "moodMoon",
+} as const satisfies Record<DiaryMoodKey, string>;
+
+/** 서버가 받아도 되는 기분 값인지. 위 여섯 가지만 받는다. */
+export function isDiaryMood(value: unknown): value is DiaryMoodKey {
+  return typeof value === "string" && (DIARY_MOODS as readonly string[]).includes(value);
 }
 
 /** 글자 수. 이모지처럼 두 칸을 차지하는 글자도 하나로 센다. */
@@ -42,7 +48,7 @@ export function readDiaryContent(value: unknown): DiaryContent {
 }
 
 /** 폼의 기분. 빈 값은 "고르지 않음"(null), 목록에 없는 값은 잘못된 값(undefined). */
-export function readDiaryMood(value: unknown): string | null | undefined {
+export function readDiaryMood(value: unknown): DiaryMoodKey | null | undefined {
   if (value === null || value === undefined || value === "") return null;
   return isDiaryMood(value) ? value : undefined;
 }

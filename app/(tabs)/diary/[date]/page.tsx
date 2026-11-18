@@ -6,7 +6,6 @@ import { BackLink } from "@/components/back-link";
 import { DiaryEditor } from "@/components/diary-editor";
 import { DiaryNextDay } from "@/components/diary-next-day";
 import { addDays, formatKST, parseKSTDate, todayIn } from "@/lib/date";
-import { DEFAULT_CHARACTER, isCharacterId } from "@/lib/characters";
 import { diaryDateProblem } from "@/lib/diary";
 import { dayHeading } from "@/lib/i18n/format";
 import { diary } from "@/lib/i18n/messages/diary";
@@ -64,7 +63,7 @@ export default async function DiaryDayPage({ params }: { params: Promise<{ date:
         <DiaryNextDay href={hasNext ? `/diary/${formatKST(addDays(date, 1))}` : null} label={t("nextDay")} />
       </header>
 
-      <DiaryEditor key={key} date={key} initial={entry} character={isCharacterId(user.avatarCharacter) ? user.avatarCharacter : DEFAULT_CHARACTER} />
+      <DiaryEditor key={key} date={key} initial={entry} />
     </div>
   );
 }
