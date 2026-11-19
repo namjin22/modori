@@ -1,6 +1,6 @@
 "use client";
 
-import { type FormEvent, useEffect, useOptimistic, useRef, useState, useTransition } from "react";
+import { type FormEvent, useOptimistic, useState, useTransition } from "react";
 
 import { addTodo } from "@/app/(tabs)/actions";
 import { addSubGoal, deleteGoal, deleteSubGoal, restoreGoal, setGoalDone } from "@/app/(tabs)/goals/actions";
@@ -8,7 +8,6 @@ import { ChoicePicker } from "@/components/choice-picker";
 import { DatePicker } from "@/components/date-picker";
 import { GoalForm } from "@/components/goal-form";
 import { useT } from "@/components/locale-provider";
-import { NEW_GOAL_EVENT } from "@/components/manage-menu";
 import { Modal } from "@/components/modal";
 import { UndoableDeleteButton } from "@/components/undoable-delete-button";
 import { useSaveFailure } from "@/components/use-save-failure";
@@ -36,34 +35,24 @@ function applyPatch(state: GoalView[], patch: Patch): GoalView[] {
 }
 
 /**
- * 홈 위쪽의 목표 칸(2026-11-19 운영자 결정, docs/decisions.md). 일정 칸처럼 하루 화면 위에 뜬다. 날짜를 넘겨도 그대로다(목표는 날짜가 없다).
+ * 홈의 목표 칸(2026-11-19 운영자 결정, docs/decisions.md). 날짜를 넘겨도 그대로다(목표는 날짜가 없다). 넓은 화면에서는 달력 아래(왼쪽 칸),
+ * 폰에서는 그 날의 할 일 아래에 있다(2026-11-19: 오른쪽 칸이 너무 빽빽하다는 요청으로 옮겼다). 관리 메뉴에는 항목이 없고 이 칸의 "+ 추가"로 만든다.
  * 카드에는 이름·기한(D-day)·진행(세부 목표 n/m)이 보이고, 누르면 펼쳐져 세부 목표를 바로 체크하고 더한다. 고치기·지우기는 창에서 한다.
  * 처음에는 3개까지만 보이고 나머지는 "더 보기"다.
  */
 export function GoalSection({ goals, today }: { goals: GoalView[]; today: string }) {
   const t = useT(goalMessages);
-  const sectionRef = useRef<HTMLElement>(null);
   const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState<GoalView | null>(null);
   const [showAll, setShowAll] = useState(false);
   const [shown, patch] = useOptimistic(goals, applyPatch);
-
-  // 관리 메뉴의 "목표"를 누르면 만들기 칸을 열고 이 칸으로 내린다(components/manage-menu.tsx).
-  useEffect(() => {
-    function open() {
-      setCreating(true);
-      sectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-    }
-    window.addEventListener(NEW_GOAL_EVENT, open);
-    return () => window.removeEventListener(NEW_GOAL_EVENT, open);
-  }, []);
 
   const sorted = sortGoals(shown);
   const visible = showAll ? sorted : sorted.slice(0, VISIBLE);
   const canAdd = goals.length < LIMITS.goals;
 
   return (
-    <section ref={sectionRef} aria-label={t("section")} data-tour="goals" className="flex scroll-mt-4 flex-col gap-3">
+    <section aria-label={t("section")} data-tour="goals" className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
         <button
           type="button"
