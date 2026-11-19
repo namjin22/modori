@@ -43,6 +43,8 @@ test("D-day를 끈 일정은 다가오는 일정 목록에서 빠진다", async 
 
   await page.reload();
   const section = page.getByRole("region", { name: "일정" });
+  // 다가오는 일정은 제목 옆 토글을 눌러야 펼쳐진다(2026-11-19).
+  await section.getByRole("button", { name: /다가오는 일정 \d+개 펼치기/ }).click();
   await expect(section.getByRole("button", { name: /기말고사/ })).toContainText("D-5");
   await expect(section.getByRole("button", { name: /동아리 회의/ })).toBeVisible();
 
