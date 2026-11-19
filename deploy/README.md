@@ -112,3 +112,34 @@ cd $T && docker compose down -v; docker rmi modoritest:latest modoritest:previou
 
 재부팅 시험(2026-09-27 06:00): 재부팅 명령 뒤 33초 만에 `https://modori.site/api/health` 200.
 docker·cloudflared·백업 타이머 모두 자동 시작, 앱·DB는 `restart: unless-stopped`로 다시 뜬다.
+
+## 서버가 죽었을 때 보이는 오류 화면 (2026-11-19)
+
+사용자가 보는 오류 화면은 **누가 응답하느냐**에 따라 다르다.
+
+| 상황 | 응답하는 곳 | 화면 |
+|---|---|---|
+| 앱은 살아 있고 주소가 없다 | 앱 | 모도리 화면, 큰 **404** (배포하면 바로) |
+| 앱 안에서 오류가 났다 | 앱 | 모도리 화면, 큰 **500**과 문의용 번호(있을 때) (배포하면 바로) |
+| 앱 컨테이너·VM·터널이 죽었다(1033·530·502·522 …) | **Cloudflare** | Cloudflare 기본 화면. 2026-11-18 정전 때 이것을 봤다(INC-22) |
+
+앱이 안 돌 때는 앱 안의 화면을 쓸 수 없다. 마지막 줄의 화면을 모도리 모양으로 바꾸는 길은 Cloudflare 공식 문서(2026-11-19 확인) 기준으로 이렇다.
+
+- **대시보드의 Error Pages**: Pro 이상 유료 플랜만(무료 불가). 원서버 오류용 Origin Error Pages는 Enterprise 전용.
+- **Custom Error Rules**: 유료 플랜만(무료 0개).
+- **Cloudflare Worker**(`error-worker.mjs`): 무료 플랜에서 된다. 아래.
+
+### Worker로 켜기(무료)
+
+`deploy/error-worker.mjs`는 모든 요청을 원래 서버로 넘기다가, **화면(HTML) 요청**의 응답이 502·503·504·520~530이면 그 응답 대신 모도리 오류 화면(큰 오류 번호, 안내, 20초마다 자동 새로고침, Cloudflare 요청 번호)을 같은 상태 번호로 돌려준다. 정상 응답과 앱이 직접 낸 404·500, 화면이 아닌 요청(API·이미지)은 건드리지 않는다. 화면은 한국어·영어·일본어(쿠키 `locale` → 브라우저 언어 순)이고 바깥 글꼴·이미지를 쓰지 않는다.
+
+1. Cloudflare 대시보드 **Workers & Pages**에서 새 Worker를 만들고 `deploy/error-worker.mjs` 내용을 붙여 넣어 배포한다(Worker 만드는 화면 이름은 확인하지 못했다).
+2. 먼저 Worker 주소(`…workers.dev`)로 `/__error-preview?code=530`을 열어 모양을 본다. 원서버를 건드리지 않는다. `code`는 502·503·504·520~530.
+3. 켜기(공식 문서 순서): **Workers & Pages → Overview → 그 Worker → Settings → Domains & Routes → Add → Route**, 구역 `modori.site`, 패턴 `modori.site/*`. 도메인의 DNS 기록이 프록시(주황 구름) 상태여야 Worker가 불린다.
+4. 끄기: 그 Route를 지우면 바로 원래대로 돌아간다.
+
+### 알아 둘 한계
+
+- **실제 장애(터널이 끊긴 1033)에서 Worker가 그 응답을 받아 바꿔 주는지는 확인하지 못했다.** 모양은 미리보기와 단위 시험(`tests/unit/error-worker.test.ts`)으로만 봤다. 확인하려면 `systemctl stop cloudflared`로 터널을 잠깐 끊어야 하는데 그동안 서비스가 멈추므로 사람이 정해서 한다.
+- **모든 요청이 Worker를 지난다**(수 ms 늘 수 있다). 무료 플랜은 하루 100,000건, 요청당 CPU 10ms다. 하루 한도를 넘으면 Route가 fail closed일 때 Cloudflare가 1027 오류를 낸다. 문서는 Route를 fail open(Worker를 건너뜀)으로 둘 수 있다고만 하고 기본값과 위치는 밝히지 않아서, 켠 뒤 Route 설정에서 fail open인지 꼭 확인한다.
+- VM 전체가 꺼져도 Cloudflare 쪽 Worker는 살아 있어서 화면은 뜬다. 정전처럼 인터넷이 끊기는 것은 Cloudflare가 아니라 사용자 쪽 문제라 이 화면도 못 본다.
