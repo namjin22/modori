@@ -12,6 +12,8 @@ import { DiaryCard, type HomeDiary } from "@/components/diary-card";
 import { ManageMenu } from "@/components/manage-menu";
 import { Dori } from "@/components/dori";
 import { type DayEvent, EventSection } from "@/components/event-section";
+import { GoalSection } from "@/components/goal-section";
+import type { GoalView } from "@/lib/goals";
 import { FirstTodoButton } from "@/components/first-todo-button";
 import { MonthCalendar } from "@/components/month-calendar";
 import { DayNavLink, isModifiedClick, useMonthDay } from "@/components/month-day";
@@ -53,6 +55,7 @@ export type HomeData = {
   tour: TourMode | null;
   // 운영에 AI 키(AI_API_KEY)가 있을 때만 "AI 도우미" 버튼을 보인다(키가 없으면 "준비 중"인 막다른 화면으로 가게 된다).
   aiReady: boolean;
+  goals: GoalView[];
   // 받아 둔 기간의 일기 맛보기(2026-11-17). 하루 화면에 그날 것을 보인다.
   diaries: (HomeDiary & { date: string })[];
 };
@@ -210,6 +213,8 @@ export function HomeView({ data }: { data: HomeData }) {
               {/* 일기 버튼은 뺐다(2026-11-18 요청). 보고 있는 날의 일기는 달력 밑 카드에서 보고 쓰고, 목록은 쓰는 화면의 "일기 목록으로"로 간다. */}
               <ManageMenu />
             </nav>
+
+            <GoalSection goals={data.goals} today={data.today} />
 
             <EventSection events={dayEvents} upcoming={upcoming} date={selected} today={data.today} />
 
