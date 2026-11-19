@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { daysBetween, formatKST, parseKSTDate } from "@/lib/date";
+import { LIMITS } from "@/lib/limits";
 import { MCP_LIMITS } from "@/lib/mcp/inputs";
 
 /**
@@ -24,8 +25,11 @@ export const AI_LIMITS = {
    * 요청 하나가 모델에 따라 수십~백 몇십 뉴런이라(2026-11-19 추정) 전체로 하루 수십~수백 번뿐이다. 한 사람이 다 쓰지 못하게 40에서 10으로 줄였다.
    */
   perDay: 10,
-  /** 제안한 날짜가 오늘에서 이 범위 안일 때만 받는다(서버 액션 addTodo와 같다). */
-  daysFromToday: 366,
+  /**
+   * 제안한 날짜가 오늘에서 이 범위(10년) 안일 때만 받는다. 서버 액션 addTodo·AI 연결과 같은 범위다(lib/limits.ts).
+   * 넘는 항목은 버리되 몇 개였는지 AiPlan.tooFar로 알려 화면이 안내 문구를 띄운다(2026-11-19, 예전에는 366일이었고 조용히 버렸다).
+   */
+  daysFromToday: LIMITS.todoDays,
 } as const;
 
 const day = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
@@ -44,7 +48,8 @@ const replySchema = z.object({
 
 export type PlanTodo = { content: string; date: string; category: string | null };
 export type PlanEvent = { title: string; startDate: string; endDate: string; startTime: string | null; endTime: string | null };
-export type AiPlan = { reply: string; declined: boolean; todos: PlanTodo[]; events: PlanEvent[] };
+/** `tooFar`는 오늘에서 10년이 넘는 날짜라 버린 할 일·일정의 개수다(없으면 버린 것이 없다). */
+export type AiPlan = { reply: string; declined: boolean; todos: PlanTodo[]; events: PlanEvent[]; tooFar?: number };
 
 /** 모델이 JSON을 ```json 울타리로 감싸 보내는 일이 있다. */
 function stripFence(raw: string): string {
@@ -83,10 +88,15 @@ export function parseReply(raw: string, context: { today: Date; categories: stri
   const known = new Map(context.categories.map((name) => [name.trim().toLowerCase(), name]));
   const inRange = (date: Date) => Math.abs(daysBetween(context.today, date)) <= AI_LIMITS.daysFromToday;
 
+  let tooFar = 0;
   const todos: PlanTodo[] = [];
   for (const item of parsed.data.todos ?? []) {
     const date = realDay(item.date);
-    if (!date || !inRange(date)) continue;
+    if (!date) continue;
+    if (!inRange(date)) {
+      tooFar += 1;
+      continue;
+    }
     todos.push({
       content: item.content.trim().slice(0, 200),
       date: formatKST(date),
@@ -99,7 +109,12 @@ export function parseReply(raw: string, context: { today: Date; categories: stri
   for (const item of parsed.data.events ?? []) {
     const start = realDay(item.startDate);
     const end = item.endDate ? realDay(item.endDate) : start;
-    if (!start || !end || !inRange(start) || daysBetween(start, end) < 0 || daysBetween(start, end) > 366) continue;
+    if (!start || !end) continue;
+    if (!inRange(start)) {
+      tooFar += 1;
+      continue;
+    }
+    if (daysBetween(start, end) < 0 || daysBetween(start, end) > 366) continue;
     const startTime = item.startTime ?? null;
     const endTime = startTime ? (item.endTime ?? null) : null;
     // 같은 날이면 끝 시각이 시작보다 빠를 수 없다(서버 액션 createEvent와 같다).
@@ -113,6 +128,7 @@ export function parseReply(raw: string, context: { today: Date; categories: stri
     declined: parsed.data.declined === true,
     todos: todos.filter((todo) => todo.content.length > 0),
     events: events.filter((event) => event.title.length > 0),
+    ...(tooFar > 0 ? { tooFar } : {}),
   };
 }
 
@@ -167,7 +183,7 @@ export function buildSystemPrompt(input: { today: string; timezone: string; cont
     '{"reply": "사용자에게 보일 말", "declined": false, "todos": [{"content": "할 일", "date": "YYYY-MM-DD", "category": "카테고리 이름 또는 null"}], "events": [{"title": "일정", "startDate": "YYYY-MM-DD", "endDate": "YYYY-MM-DD", "startTime": "HH:MM 또는 null", "endTime": "HH:MM 또는 null"}]}',
     "",
     "규칙:",
-    `- 한 번의 답에 할 일은 ${MCP_LIMITS.todosPerCall}개, 일정은 ${MCP_LIMITS.eventsPerCall}개까지만 제안한다. 하루에 할 일 50개·일정 5개를 넘기지 않는다. 날짜는 오늘부터 60일 안으로 잡는다.`,
+    `- 한 번의 답에 할 일은 ${MCP_LIMITS.todosPerCall}개, 일정은 ${MCP_LIMITS.eventsPerCall}개까지만 제안한다. 하루에 할 일 50개·일정 5개를 넘기지 않는다. 날짜는 오늘에서 앞뒤 ${LIMITS.todoDays}일(10년) 안으로만 잡는다.`,
     "- category는 아래 [카테고리]에 있는 이름만 쓰고, 맞는 것이 없으면 null로 둔다. 새 카테고리를 만들지 않는다.",
     "- 이미 있는 일정·할 일과 겹치거나 같은 것을 또 제안하지 않는다.",
     "- 정보가 모자라면 todos와 events를 비우고 reply에 질문만 한다. 질문은 한 번에 두 개까지만 한다.",

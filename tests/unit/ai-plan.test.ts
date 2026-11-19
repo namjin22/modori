@@ -51,7 +51,7 @@ describe("parseReply", () => {
         reply: "네",
         todos: [
           { content: "2월 30일", date: "2026-02-30" },
-          { content: "먼 훗날", date: "2028-01-01" },
+          { content: "먼 훗날", date: "2040-01-01" },
           { content: "정상", date: "2026-11-20" },
         ],
       }),

@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { aiConsentState } from "@/lib/ai/consent";
 import { takeAiChat } from "@/lib/ai/limit";
 import { askModel, isAiConfigured, type AiMessage } from "@/lib/ai/llm";
 import { AI_LIMITS, buildContext, buildSystemPrompt, hasUnsafeHealthPlan, parseReply, recentMessages, type AiPlan } from "@/lib/ai/plan";
@@ -52,7 +53,8 @@ async function handle(request: Request): Promise<Response> {
 
   // 동의 없이는 내 데이터가 나가지 않는다.
   const consent = await prisma.user.findUnique({ where: { id: user.id }, select: { aiChatConsentAt: true } });
-  if (!consent?.aiChatConsentAt) return reply({ ok: false, error: "consent" }, 403);
+  // 받는 곳이 바뀌기 전 문구에 한 동의(stale)도 막는다(lib/ai/consent.ts).
+  if (aiConsentState(consent?.aiChatConsentAt) !== "valid") return reply({ ok: false, error: "consent" }, 403);
   // 아래 "서비스 쪽 실패"(설정 안 됨·AI 연결 실패·답 형식 불량)는 502·503이 아니라 200에 ok:false로 돌려준다. 앞단(Cloudflare)은
   // 원서버의 502·504 본문을 자기 오류 화면으로 바꿔 버릴 수 있고, 그러면 브라우저가 이유(JSON)를 읽지 못해 "보내지 못했어요"만 보인다.
   if (!isAiConfigured()) return reply({ ok: false, error: "not-configured", code: "no-key" });
