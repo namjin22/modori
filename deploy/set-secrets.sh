@@ -26,6 +26,14 @@ ask() {
   set_value "$key" "$value"
 }
 
+# 주소·모델 이름은 비밀이 아니고 길어서 틀리기 쉬우니 입력이 보이게 받는다.
+ask_plain() {
+  local key=$1 label=$2 value
+  read -rp "$label: " value
+  if [ -z "$value" ]; then echo "  비워 두면 그대로 둔다"; return; fi
+  set_value "$key" "$value"
+}
+
 grep -q '^POSTGRES_PASSWORD=' "$ENV" || set_value POSTGRES_PASSWORD "$(openssl rand -hex 24)"
 grep -q '^AUTH_SECRET=' "$ENV" || set_value AUTH_SECRET "$(openssl rand -base64 33)"
 set_value AUTH_URL "https://modori.site"
@@ -37,7 +45,9 @@ ask DATAGSM_CLIENT_SECRET "DataGSM Client Secret"
 ask OLD_NEON_URL "지금 쓰는 Neon 주소(데이터 옮길 때 한 번만 씀, DIRECT_URL 값)"
 ask BACKUP_DATABASE_URL "백업용 새 Neon 프로젝트 주소"
 ask FIREBASE_SERVICE_ACCOUNT "Firebase 서비스 계정 키(JSON을 base64로 바꾼 한 줄, 푸시 알림용)"
-ask GEMINI_API_KEY "Gemini API 키(AI 도우미용, 없으면 비워 두면 AI 도우미가 준비 중으로 보인다)"
+ask_plain AI_API_BASE "AI 도우미 주소(Cloudflare는 https://api.cloudflare.com/client/v4/accounts/<계정 ID>/ai/v1. 주소나 키가 없으면 AI 도우미가 준비 중으로 보인다)"
+ask AI_API_KEY "AI 도우미 API 토큰(Cloudflare Workers AI 권한)"
+ask_plain AI_MODEL "AI 도우미 모델 이름(선택. 처음에는 @cf/openai/gpt-oss-120b)"
 ask ADMIN_EXTRA_EMAILS "추가 운영자 로그인 이메일(쉼표로 여럿. 개인정보 보호책임자는 적지 않아도 늘 운영자다)"
 
 echo "저장했다: $ENV"

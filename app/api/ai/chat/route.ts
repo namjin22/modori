@@ -1,7 +1,7 @@
 import { z } from "zod";
 
-import { askGemini, isGeminiConfigured, type GeminiMessage } from "@/lib/ai/gemini";
 import { takeAiChat } from "@/lib/ai/limit";
+import { askModel, isAiConfigured, type AiMessage } from "@/lib/ai/llm";
 import { AI_LIMITS, buildContext, buildSystemPrompt, hasUnsafeHealthPlan, parseReply, recentMessages, type AiPlan } from "@/lib/ai/plan";
 import { endOfMonthKST, formatKST, startOfMonthKST, todayIn } from "@/lib/date";
 import { formatTime } from "@/lib/event-time";
@@ -31,7 +31,7 @@ function reply(body: ChatResponse, status = 200): Response {
 
 /**
  * AI 도우미의 대화 한 번(2026-11-17, docs/decisions.md). 브라우저가 지금까지의 대화를 보내면(서버는 대화를 저장하지 않는다),
- * 내 이번 달 할 일·일정(제목·날짜·시각·카테고리 이름, 메모 제외)과 함께 Google Gemini에 보내 답과 제안을 받는다. 제안은 저장하지 않는다:
+ * 내 이번 달 할 일·일정(제목·날짜·시각·카테고리 이름, 메모 제외)과 함께 AI 서비스(Cloudflare Workers AI, lib/ai/llm.ts)에 보내 답과 제안을 받는다. 제안은 저장하지 않는다:
  * 사용자가 미리보기를 확인하고 누르면 서버 액션(app/(tabs)/ai/actions.ts)이 규칙을 다시 검사해 저장한다.
  * 쿠키 세션은 SameSite=Lax라 다른 사이트에서 이 POST를 대신 보낼 수 없다.
  */
@@ -55,7 +55,7 @@ async function handle(request: Request): Promise<Response> {
   if (!consent?.aiChatConsentAt) return reply({ ok: false, error: "consent" }, 403);
   // 아래 "서비스 쪽 실패"(설정 안 됨·AI 연결 실패·답 형식 불량)는 502·503이 아니라 200에 ok:false로 돌려준다. 앞단(Cloudflare)은
   // 원서버의 502·504 본문을 자기 오류 화면으로 바꿔 버릴 수 있고, 그러면 브라우저가 이유(JSON)를 읽지 못해 "보내지 못했어요"만 보인다.
-  if (!isGeminiConfigured()) return reply({ ok: false, error: "not-configured", code: "no-key" });
+  if (!isAiConfigured()) return reply({ ok: false, error: "not-configured", code: "no-key" });
 
   const raw = await request.text();
   if (raw.length > MAX_BODY_CHARS) return reply({ ok: false, error: "bad-request" }, 413);
@@ -110,9 +110,9 @@ async function handle(request: Request): Promise<Response> {
       })),
     }),
   });
-  const contents: GeminiMessage[] = messages.map((message) => ({ role: message.role === "user" ? "user" : "model", text: message.text }));
+  const contents: AiMessage[] = messages.map((message) => ({ role: message.role, text: message.text }));
 
-  const answer = await askGemini({ system, messages: contents });
+  const answer = await askModel({ system, messages: contents });
   if (!answer.ok) {
     if (answer.kind === "busy") return reply({ ok: false, error: "busy", code: answer.code }, 429);
     if (answer.kind === "blocked") return reply({ ok: false, error: "blocked", code: answer.code });

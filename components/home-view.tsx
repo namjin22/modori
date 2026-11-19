@@ -51,7 +51,7 @@ export type HomeData = {
   upcoming: DayEvent[];
   // 둘러보기를 띄울 때만(처음 가입한 뒤 first, 설정에서 다시 보기 replay). 아니면 null.
   tour: TourMode | null;
-  // 운영에 Gemini 키가 있을 때만 "AI 도우미" 버튼을 보인다(키가 없으면 "준비 중"인 막다른 화면으로 가게 된다).
+  // 운영에 AI 키(AI_API_KEY)가 있을 때만 "AI 도우미" 버튼을 보인다(키가 없으면 "준비 중"인 막다른 화면으로 가게 된다).
   aiReady: boolean;
   // 받아 둔 기간의 일기 맛보기(2026-11-17). 하루 화면에 그날 것을 보인다.
   diaries: (HomeDiary & { date: string })[];
