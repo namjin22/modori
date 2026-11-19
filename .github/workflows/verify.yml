@@ -5,8 +5,8 @@ on:
     branches: [main]
   pull_request:
 
-# E2E가 테스트 DB 하나를 같이 쓰지만, 계정 이름에 실행마다 다른 꼬리표가 붙어(tests/e2e/run-tag.ts) 실행끼리 겹쳐도
-# 서로의 계정을 지우지 않는다. 그래서 main 검증과 PR 검증을 다른 줄에 세운다.
+# 계정 이름에 실행마다 다른 꼬리표가 붙고(tests/e2e/run-tag.ts) E2E는 작업마다 자기만의 DB를 쓴다(아래 e2e의 services). 그래서 main 검증과
+# PR 검증을 다른 줄에 세운다.
 #
 # 한 줄로 세우면 GitHub가 기다리는 실행을 하나만 남기고 새 실행이 오면 앞의 대기를 취소한다. main에 합친 직후 PR을 열면
 # 기다리던 main 검증이 취소되어, 검증에 묶인 운영 배포(deploy.yml)가 그 커밋에서 빠졌다(2026-09-29).
@@ -16,9 +16,65 @@ concurrency:
   group: ${{ github.event_name == 'push' && 'verify-main' || format('verify-pr-{0}', github.head_ref) }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
+# 2026-11-19: 한 작업이 67분(그중 E2E가 62분)이라 둘로 쪼갰다(docs/decisions.md "CI를 쪼개고 DB를 러너 안으로").
+# - static: 타입·린트·단위 시험(DB 없음). E2E와 동시에 돈다.
+# - e2e: 시험을 4조각(--shard)으로 나눠 동시에 돌린다. 조각마다 운영과 같은 Postgres 18 컨테이너를 같은 머신에 띄워 쓴다.
+#   예전에는 미국 러너에서 싱가포르의 공용 시험 DB(Neon)로 질의마다 오가느라 시험 하나가 평균 10초였다.
+# deploy.yml은 이 워크플로(verify)가 통째로 성공해야 배포한다. 작업이 여럿이어도 하나라도 실패하면 배포하지 않는다.
 jobs:
-  verify:
+  static:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    # 단위 시험은 DB에 닿지 않는다. 클라이언트가 주소 모양만 요구해서 값만 넣는다.
+    env:
+      DATABASE_URL: postgresql://modori:modori@localhost:5432/modori
+      DIRECT_URL: postgresql://modori:modori@localhost:5432/modori
+      AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      # lock 파일 그대로 설치한다. 버전이 어긋나 배포가 깨진 적이 있다.
+      - run: npm ci
+      - run: npx tsc --noEmit
+      - run: npm run lint
+      - run: npm run test:tz
+
+  e2e:
+    name: e2e (${{ matrix.shard }}/4)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      # 한 조각이 깨져도 나머지 결과를 끝까지 본다(어느 시험이 깨졌는지 한 번에 알려고).
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+
+    # 운영(deploy/docker-compose.yml)과 같은 이미지. 조각마다 따로 떠서 서로의 데이터를 건드리지 않는다.
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: modori
+          POSTGRES_PASSWORD: modori
+          POSTGRES_DB: modori
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U modori -d modori"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+
+    env:
+      DATABASE_URL: postgresql://modori:modori@localhost:5432/modori
+      DIRECT_URL: postgresql://modori:modori@localhost:5432/modori
+      AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
 
     steps:
       - uses: actions/checkout@v4
@@ -34,14 +90,18 @@ jobs:
       # Electron 44는 npm ci만으로 바이너리를 내려받지 않는다. 명시적으로 설치한다.
       - run: npm exec --prefix desktop -- install-electron
 
+      # 브라우저 내려받기(약 4분)를 건너뛴다. 시스템 라이브러리 설치(--with-deps)는 캐시와 상관없이 매번 한다.
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
       - run: npx playwright install --with-deps chromium
       - run: sudo apt-get install -y xvfb
 
       # Electron 설치 스크립트가 막히면 테스트가 건너뛰므로 먼저 명시적으로 실패시킨다.
       - run: test -s desktop/node_modules/electron/path.txt && test -x desktop/node_modules/electron/dist/electron
 
-      - run: xvfb-run -a npm run verify
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          DIRECT_URL: ${{ secrets.DIRECT_URL }}
-          AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
+      # 빈 DB에 마이그레이션을 처음부터 적용한다(운영 DB를 만들 때와 같은 방식).
+      - run: npx prisma migrate deploy
+
+      - run: xvfb-run -a npx playwright test --shard=${{ matrix.shard }}/4
