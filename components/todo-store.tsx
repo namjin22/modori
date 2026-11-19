@@ -14,6 +14,8 @@ export type HomeTodo = {
   memo: string | null;
   // 메모를 팔로워에게 보일지(2026-10-17). 적는 중인 할 일 등은 비워 둔다(비공개).
   memoPublic?: boolean;
+  // 연결된 목표 또는 세부 목표(2026-11-19). 없으면 null.
+  goalId?: string | null;
   // 끝낸 시각(ms). 달력 칸이 끝낸 차례대로 차도록 정렬하는 데만 쓴다.
   doneAt: number | null;
   category: { id: string; name: string; color: string } | null;
@@ -23,7 +25,7 @@ export type HomeTodo = {
 /** 서버 응답 전에 화면에 먼저 반영할 바뀜. */
 export type TodoChange =
   | { type: "add"; todo: HomeTodo }
-  | { type: "patch"; id: string; patch: Partial<Pick<HomeTodo, "content" | "memo" | "memoPublic" | "done" | "doneAt" | "date" | "category" | "color">> }
+  | { type: "patch"; id: string; patch: Partial<Pick<HomeTodo, "content" | "memo" | "memoPublic" | "goalId" | "done" | "doneAt" | "date" | "category" | "color">> }
   | { type: "remove"; id: string }
   // 지난 날의 안 끝낸 일을 모두 오늘로.
   | { type: "moveUndone"; from: string; to: string };

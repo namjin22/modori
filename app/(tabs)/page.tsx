@@ -4,7 +4,7 @@ import { HomeView, type HomeData } from "@/components/home-view";
 import { isAiConfigured } from "@/lib/ai/llm";
 import { diaryExcerpt } from "@/lib/diary";
 import { avatarUrl } from "@/lib/avatar";
-import { toGoalView } from "@/lib/goals";
+import { countLinked, toGoalView } from "@/lib/goals";
 import {
   daysBetween,
   endOfMonthKST,
@@ -97,7 +97,7 @@ export default async function FeedPage({
   // 이 날짜를 여는 순간 루틴 할 일이 없으면 만든다. 미래 날짜에는 만들지 않는다.
   await ensureRoutineTodos(user, date);
 
-  const [todos, categories, routines, events, upcoming, eventRoutines, eventSkips, diaryRows, goalRows] = await Promise.all([
+  const [todos, categories, routines, events, upcoming, eventRoutines, eventSkips, diaryRows, goalRows, linkRows] = await Promise.all([
     prisma.todo.findMany({
       where: { userId: user.id, date: { gte: from, lte: to } },
       orderBy: { order: "asc" },
@@ -110,6 +110,8 @@ export default async function FeedPage({
         color: true,
         memo: true,
         memoPublic: true,
+        // 연결된 목표(2026-11-19). 이름은 화면이 목표 목록에서 찾는다.
+        goalId: true,
         category: { select: { id: true, name: true, color: true } },
         // 친구가 보낸 반응. 할 일 밑에 투두메이트처럼 보여준다(내가 내 일에 보낼 수는 없다).
         reactions: {
@@ -167,7 +169,10 @@ export default async function FeedPage({
         children: { orderBy: { createdAt: "asc" }, select: { id: true, title: true, doneAt: true } },
       },
     }),
+    // 목표에 연결된 내 할 일의 개수(끝낸 것과 아닌 것). 날짜와 상관없이 전부 센다.
+    prisma.todo.groupBy({ by: ["goalId", "done"], where: { userId: user.id, goalId: { not: null } }, _count: { _all: true } }),
   ]);
+  const linked = countLinked(linkRows);
 
   const data: HomeData = {
     profile: { nickname: user.nickname, bio: user.bio, avatar: avatarUrl(user) },
@@ -192,7 +197,7 @@ export default async function FeedPage({
     upcoming,
     tour,
     aiReady: isAiConfigured(),
-    goals: goalRows.map(toGoalView),
+    goals: goalRows.map((row) => toGoalView(row, linked)),
     diaries: diaryRows.map((row) => ({ date: formatKST(row.date), mood: row.mood, excerpt: diaryExcerpt(row.content, 120), isPublic: row.isPublic })),
   };
 
