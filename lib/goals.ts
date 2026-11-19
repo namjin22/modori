@@ -6,7 +6,10 @@ import { daysBetween, formatKST, parseKSTDate } from "@/lib/date";
  */
 export const GOAL_TITLE_MAX = 100;
 
-export type SubGoalView = { id: string; title: string; done: boolean };
+/** 이 목표(또는 세부 목표)로 연결된 내 할 일의 개수와 그중 끝낸 개수(2026-11-19). 참고로만 보여 주고 진행(세부 목표 체크)에는 쓰지 않는다. */
+export type LinkedCount = { total: number; done: number };
+
+export type SubGoalView = { id: string; title: string; done: boolean; linked?: LinkedCount };
 
 export type GoalView = {
   id: string;
@@ -17,7 +20,22 @@ export type GoalView = {
   /** 직접 체크한 값. 세부 목표가 있으면 뜻이 없다(항상 false로 저장한다). */
   done: boolean;
   children: SubGoalView[];
+  /** 목표와 세부 목표에 연결된 할 일을 모두 센 값. 내 화면에서만 채운다(친구 화면에는 보내지 않는다). */
+  linked?: LinkedCount;
 };
+
+/** 연결된 할 일 수를 목표 id별로 센다. 목표 자신과 그 세부 목표에 달린 것은 `toGoalView`가 합친다. */
+export function countLinked(rows: { goalId: string | null; done: boolean; _count: { _all: number } }[]): Map<string, LinkedCount> {
+  const counts = new Map<string, LinkedCount>();
+  for (const row of rows) {
+    if (!row.goalId) continue;
+    const entry = counts.get(row.goalId) ?? { total: 0, done: 0 };
+    entry.total += row._count._all;
+    if (row.done) entry.done += row._count._all;
+    counts.set(row.goalId, entry);
+  }
+  return counts;
+}
 
 /** DB에서 읽은 목표(와 세부 목표)를 화면이 쓰는 모양으로 바꾼다. 날짜는 "YYYY-MM-DD" 문자열이 된다. */
 export function toGoalView(row: {
@@ -27,15 +45,47 @@ export function toGoalView(row: {
   doneAt: Date | null;
   isPublic: boolean;
   children: { id: string; title: string; doneAt: Date | null }[];
-}): GoalView {
+}, counts?: Map<string, LinkedCount>): GoalView {
+  const own = counts?.get(row.id);
+  const childLinked = row.children.map((child) => counts?.get(child.id));
   return {
     id: row.id,
     title: row.title,
     dueDate: row.dueDate ? formatKST(row.dueDate) : null,
     isPublic: row.isPublic,
     done: row.doneAt !== null,
-    children: row.children.map((child) => ({ id: child.id, title: child.title, done: child.doneAt !== null })),
+    children: row.children.map((child, index) => ({ id: child.id, title: child.title, done: child.doneAt !== null, ...(counts && { linked: childLinked[index] ?? { total: 0, done: 0 } }) })),
+    ...(counts && {
+      linked: {
+        total: (own?.total ?? 0) + childLinked.reduce((sum, item) => sum + (item?.total ?? 0), 0),
+        done: (own?.done ?? 0) + childLinked.reduce((sum, item) => sum + (item?.done ?? 0), 0),
+      },
+    }),
   };
+}
+
+export type GoalChoice = { value: string; label: string };
+
+/** 할 일 수정 창의 "목표" 고르기 목록: 연결 안 함, 목표, 그리고 "목표 › 세부 목표". */
+export function goalChoices(goals: Pick<GoalView, "id" | "title" | "children">[], noneLabel: string): GoalChoice[] {
+  return [
+    { value: "", label: noneLabel },
+    ...goals.flatMap((goal) => [
+      { value: goal.id, label: goal.title },
+      ...goal.children.map((child) => ({ value: child.id, label: `${goal.title} › ${child.title}` })),
+    ]),
+  ];
+}
+
+/** 할 일 줄에 보이는 연결된 목표 이름. 세부 목표면 "목표 › 세부 목표", 목표가 없어졌으면 null. */
+export function goalLabel(goals: Pick<GoalView, "id" | "title" | "children">[], id: string | null | undefined): string | null {
+  if (!id) return null;
+  for (const goal of goals) {
+    if (goal.id === id) return goal.title;
+    const child = goal.children.find((item) => item.id === id);
+    if (child) return `${goal.title} › ${child.title}`;
+  }
+  return null;
 }
 
 export type GoalProgress = { total: number; done: number; complete: boolean; hasChildren: boolean };

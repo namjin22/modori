@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { startTransition, useEffect } from "react";
 
 import { Dori } from "@/components/dori";
+import { ErrorScreen } from "@/components/error-screen";
 import { useT } from "@/components/locale-provider";
 import { errors } from "@/lib/i18n/messages/errors";
 import { isLoadFailure, reloadOnce } from "@/lib/reload-guard";
@@ -34,13 +35,14 @@ export default function Error({
   }, [error]);
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-sm flex-col items-center justify-center gap-6 px-6 text-center">
-      <div>
-        <Dori mood="sad" size={110} className="mx-auto" />
-        <h1 className="mt-3 text-xl font-bold">{t("errorTitle")}</h1>
-        <p className="mt-2 text-sm text-muted">{t("errorBody")}</p>
-      </div>
-
+    <ErrorScreen
+      code="500"
+      title={t("errorTitle")}
+      body={t("errorBody")}
+      // 서버가 붙여 준 번호가 있으면 알려 달라고 한다(서버 기록에서 찾는 데 쓴다).
+      reference={error.digest ? t("errorRef", { ref: error.digest }) : undefined}
+      mascot={<Dori mood="sad" size={110} className="mx-auto" />}
+    >
       <button
         type="button"
         onClick={() => {
@@ -54,6 +56,6 @@ export default function Error({
       >
         {t("retry")}
       </button>
-    </main>
+    </ErrorScreen>
   );
 }

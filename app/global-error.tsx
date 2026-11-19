@@ -2,6 +2,7 @@
 
 import { useEffect, useSyncExternalStore } from "react";
 
+import { ErrorScreen } from "@/components/error-screen";
 import { DEFAULT_LOCALE, translator } from "@/lib/i18n";
 import { subscribeNothing } from "@/lib/device-timezone";
 import { cookieLocale } from "@/lib/i18n/client";
@@ -33,11 +34,13 @@ export default function GlobalError({ error }: { error: Error & { digest?: strin
 
   return (
     <html lang={locale}>
-      <body className="flex min-h-screen flex-col items-center justify-center gap-6 bg-background px-6 text-center text-foreground">
-        <div>
-          <h1 className="text-xl font-bold">{t("globalTitle")}</h1>
-          <p className="mt-2 text-sm text-muted">{t("globalBody")}</p>
-        </div>
+      <body className="bg-background text-foreground">
+        <ErrorScreen
+          code="500"
+          title={t("globalTitle")}
+          body={t("globalBody")}
+          reference={error.digest ? t("errorRef", { ref: error.digest }) : undefined}
+        >
         <div className="flex w-full max-w-xs flex-col gap-2">
           <button
             type="button"
@@ -55,6 +58,7 @@ export default function GlobalError({ error }: { error: Error & { digest?: strin
             {t("toStart")}
           </button>
         </div>
+        </ErrorScreen>
       </body>
     </html>
   );

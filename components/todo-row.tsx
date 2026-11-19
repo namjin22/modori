@@ -16,6 +16,7 @@ import { useToast } from "@/components/toast";
 import { UndoableDeleteButton } from "@/components/undoable-delete-button";
 import { useSaveFailure } from "@/components/use-save-failure";
 import { addDays, formatKST, parseKSTDate } from "@/lib/date";
+import { type GoalView, goalChoices, goalLabel } from "@/lib/goals";
 import { MAX_MEMO_LENGTH } from "@/lib/memo";
 import { common } from "@/lib/i18n/messages/common";
 import { todos as todoMessages } from "@/lib/i18n/messages/todos";
@@ -28,6 +29,8 @@ type Todo = {
   color: string | null;
   memo: string | null;
   memoPublic?: boolean;
+  // 연결된 목표 또는 세부 목표(2026-11-19).
+  goalId?: string | null;
   category: { id?: string; name: string; color: string } | null;
 };
 
@@ -44,6 +47,7 @@ export function TodoRow({
   received = [],
   saving = false,
   categories,
+  goals,
 }: {
   todo: Todo;
   // 이 할 일의 날짜("YYYY-MM-DD"). "다른 날에 하기"의 처음 값(다음 날)을 여기서 정한다.
@@ -56,6 +60,8 @@ export function TodoRow({
   saving?: boolean;
   // 옮길 수 있는 카테고리(보관하지 않은 것). 주면 창에서 카테고리를 고를 수 있다. 폰에서는 끌어 옮기기가 어려워 이 길을 둔다.
   categories?: CategoryOption[];
+  // 내 목표와 세부 목표(2026-11-19). 주면 줄에 연결된 목표 이름이 보이고, 창에서 목표를 고를 수 있다. 없거나 비어 있으면 목표 칸은 없다.
+  goals?: Pick<GoalView, "id" | "title" | "children">[];
 }) {
   const t = useT(todoMessages);
   const tc = useT(common);
@@ -69,6 +75,7 @@ export function TodoRow({
   const toast = useToast();
   const saveFailed = useSaveFailure();
   const store = useTodoStore();
+  const goalName = goalLabel(goals ?? [], todo.goalId);
 
   return (
     // 방금 적은 할 일은 살짝 떠오르며 들어온다(저장이 끝나 진짜 줄로 바뀔 때는 움직이지 않는다).
@@ -79,24 +86,33 @@ export function TodoRow({
           <TodoCheckbox id={todo.id} done={todo.done} color={todo.color ?? todo.category?.color} />
         </div>
 
-        <button
-          type="button"
-          onClick={() => {
-            setPlan(null);
-            setPlanMessage(null);
-            setOpen(true);
-          }}
-          className="flex min-w-0 flex-1 flex-col text-left"
-        >
-          <span className={`truncate transition-colors ${todo.done ? "text-muted line-through" : ""}`}>
-            {todo.content}
-          </span>
-          {todo.memo && (
-            <span className="line-clamp-3 whitespace-pre-line wrap-break-word text-[13px] text-muted">
-              {todo.memo}
+        <div className="flex min-w-0 flex-1 flex-col">
+          <button
+            type="button"
+            onClick={() => {
+              setPlan(null);
+              setPlanMessage(null);
+              setOpen(true);
+            }}
+            className="flex min-w-0 flex-col text-left"
+          >
+            <span className={`truncate transition-colors ${todo.done ? "text-muted line-through" : ""}`}>
+              {todo.content}
+            </span>
+            {todo.memo && (
+              <span className="line-clamp-3 whitespace-pre-line wrap-break-word text-[13px] text-muted">
+                {todo.memo}
+              </span>
+            )}
+          </button>
+          {/* 연결된 목표(2026-11-19). 버튼 밖에 둬서 줄을 누르는 단추의 이름(할 일 글자)이 그대로다. 친구 화면에는 나오지 않는다. */}
+          {goalName && (
+            <span className="mt-0.5 flex min-w-0 items-center gap-1 text-xs text-brand">
+              <span aria-hidden>🎯</span>
+              <span className="truncate">{goalName}</span>
             </span>
           )}
-        </button>
+        </div>
 
         {/* 친구가 보낸 반응(줄 오른쪽 끝에 겹친 그림과 개수). 반응이 많아도 줄이 길어지지 않는다. 누르면 누가 보냈는지 보인다. */}
         <ReceivedReactions received={received} />
@@ -132,6 +148,7 @@ export function TodoRow({
                     content: edited.content.trim(),
                     memo: memo || null,
                     memoPublic: formData.get("memoPrivate") !== "on",
+                    ...(formData.get("goalField") === "1" && { goalId: String(formData.get("goalId") ?? "") || null }),
                     ...(moved && { category, color: null }),
                   },
                 });
@@ -183,6 +200,16 @@ export function TodoRow({
                   defaultValue={todo.category.id}
                   options={categories.map((option) => ({ value: option.id, label: option.name, color: option.color }))}
                 />
+              </div>
+            </div>
+          )}
+          {/* 목표가 하나라도 있으면 이 할 일이 향하는 목표(또는 세부 목표)를 고를 수 있다(2026-11-19). "연결 안 함"이 연결을 끊는다. */}
+          {goals && goals.length > 0 && (
+            <div className="flex items-center gap-3 text-sm">
+              <input type="hidden" name="goalField" value="1" />
+              <span className="shrink-0 text-muted">{t("goalLabel")}</span>
+              <div className="min-w-0 flex-1">
+                <ChoicePicker label={t("goalPicker")} name="goalId" defaultValue={todo.goalId ?? ""} options={goalChoices(goals, t("noGoal"))} />
               </div>
             </div>
           )}

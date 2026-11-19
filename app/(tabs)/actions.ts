@@ -57,6 +57,16 @@ function readDay(value: string): Date | null {
   }
 }
 
+/**
+ * 폼에서 온 목표 id를 내 목표(또는 세부 목표)일 때만 돌려준다(2026-11-19). 비어 있거나 남의 것·없는 것이면 null.
+ * 브라우저가 남의 목표 id를 끼워 넣어도 연결되지 않는다.
+ */
+async function ownedGoalId(userId: string, raw: unknown): Promise<string | null> {
+  if (typeof raw !== "string" || !isId(raw)) return null;
+  const goal = await prisma.goal.findFirst({ where: { id: raw, userId }, select: { id: true } });
+  return goal?.id ?? null;
+}
+
 export type TodoAdd = { ok: true } | { ok: false; message: string };
 
 export async function addTodo(formData: FormData): Promise<TodoAdd> {
@@ -88,6 +98,9 @@ export async function addTodo(formData: FormData): Promise<TodoAdd> {
     return { ok: false, message: t("perDay", { max: LIMITS.todosPerDay }) };
   }
 
+  // 목표 칸에서 "할 일 넣기"로 적을 때만 목표 id가 온다(빠른 입력 칸에는 없다, 2026-11-19).
+  const goalId = await ownedGoalId(user.id, formData.get("goalId"));
+
   const last = await prisma.todo.findFirst({
     where: { userId: user.id, date },
     orderBy: { order: "desc" },
@@ -100,6 +113,7 @@ export async function addTodo(formData: FormData): Promise<TodoAdd> {
       content,
       date,
       categoryId,
+      ...(goalId && { goalId }),
       order: (last?.order ?? -1) + 1,
     },
   });
@@ -161,6 +175,9 @@ export async function updateTodo(formData: FormData) {
   // 카테고리는 폼에 있을 때만 바꾼다(폰에서 끌지 않고 옮기는 길). 끌어서 옮길 때(moveTodoToCategory)처럼 따로 고른 색은 버린다.
   // 보관했거나 남의 카테고리면 카테고리는 그대로 두고 글자·메모만 저장한다.
   const rawCategory = formData.get("categoryId");
+  // 목표는 폼에 그 칸이 있을 때만 바꾼다. 빈 값은 연결을 끊고, 남의 것이거나 없는 목표면 그대로 둔다(2026-11-19).
+  const rawGoal = formData.get("goalId");
+  const goalId = formData.get("goalField") === "1" ? (rawGoal === "" ? null : ((await ownedGoalId(user.id, rawGoal)) ?? undefined)) : undefined;
   const [todo, category] = await Promise.all([
     prisma.todo.findFirst({ where: { id, userId: user.id }, select: { categoryId: true } }),
     typeof rawCategory === "string" && rawCategory
@@ -175,6 +192,7 @@ export async function updateTodo(formData: FormData) {
       content,
       ...(memo !== undefined && { memo }),
       ...(memoPublic !== undefined && { memoPublic }),
+      ...(goalId !== undefined && { goalId }),
       ...(moved && { categoryId: category.id, color: null }),
     },
   });
@@ -195,6 +213,8 @@ export type DeletedTodo = {
   routineId: string | null;
   memo: string | null;
   memoPublic?: boolean;
+  // 연결된 목표(2026-11-19). 되살릴 때 그 목표가 아직 내 것으로 있으면 다시 잇는다.
+  goalId?: string | null;
   createdAt: string;
 };
 
@@ -235,6 +255,7 @@ export async function deleteTodo(id: string): Promise<DeletedTodo | null> {
     routineId: todo.routineId,
     memo: todo.memo,
     memoPublic: todo.memoPublic,
+    goalId: todo.goalId,
     createdAt: todo.createdAt.toISOString(),
   };
 }
@@ -275,6 +296,8 @@ export async function restoreTodo(snapshot: DeletedTodo): Promise<string | void>
       : null,
   ]);
 
+  const goalId = await ownedGoalId(user.id, snapshot.goalId);
+
   try {
     await prisma.$transaction([
       ...(routine
@@ -301,6 +324,7 @@ export async function restoreTodo(snapshot: DeletedTodo): Promise<string | void>
           routineId: routine?.id ?? null,
           memo: readMemo(snapshot.memo) ?? null,
           memoPublic: snapshot.memoPublic === true,
+          goalId,
           createdAt: readInstant(snapshot.createdAt, new Date()),
         },
       }),
@@ -389,7 +413,7 @@ export async function repeatTodo(id: string, day: string): Promise<TodoMove> {
 
   const todo = await prisma.todo.findFirst({
     where: { id, userId: user.id },
-    select: { date: true, done: true, content: true, memo: true, memoPublic: true, color: true, category: { select: { id: true, archivedAt: true } } },
+    select: { date: true, done: true, content: true, memo: true, memoPublic: true, color: true, goalId: true, category: { select: { id: true, archivedAt: true } } },
   });
   if (!todo) return { ok: false, message: t("todoNotFound") };
   if (!todo.done) return { ok: false, message: t("onlyDone") };
@@ -413,6 +437,8 @@ export async function repeatTodo(id: string, day: string): Promise<TodoMove> {
       memo: todo.memo,
       memoPublic: todo.memoPublic,
       color: todo.color,
+      // 같은 목표로 한 번 더 한다(목표를 지웠으면 이미 비어 있다).
+      goalId: todo.goalId,
       // 보관한 카테고리에는 새로 적지 않는다. 그때는 카테고리 없음으로 둔다.
       categoryId: todo.category && !todo.category.archivedAt ? todo.category.id : null,
       order: (last?.order ?? -1) + 1,

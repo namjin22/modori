@@ -207,7 +207,8 @@ export default async function FriendDayPage({
       ...events.map(({ memo, memoPublic, ...event }) => ({ ...event, memo: memoPublic ? memo : null })),
       ...expandEventRoutines(eventRoutines, eventSkips, from, to, locale).map((event) => ({ ...event, memo: null })),
     ],
-    goals: goalRows.map(toGoalView),
+    // 연결된 할 일 수는 내 화면에서만 센다(친구 화면에는 보내지 않는다).
+    goals: goalRows.map((row) => toGoalView(row)),
   };
 
   return (

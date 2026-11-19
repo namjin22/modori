@@ -29,27 +29,26 @@ async function signUp(page: Page, email: string, nickname: string) {
   await expect(homeReady(page)).toBeVisible();
 }
 
-test("관리 메뉴를 누르면 카테고리·목표·루틴이 나오고(일정 항목은 없다), 목표는 목표 칸의 만들기 칸을 열며, 일정은 일정 영역에서 바로 만든다", async ({ page, email }, testInfo) => {
+test("관리 메뉴를 누르면 카테고리·루틴이 나오고(일정·목표 항목은 없다), 목표와 일정은 각 영역에서 바로 만든다", async ({ page, email }, testInfo) => {
   await signUp(page, email, `메뉴${testInfo.testId.slice(-6)}${RUN_TAG}`);
   const menuButton = page.getByRole("button", { name: "관리 메뉴" });
   await expect(page.getByRole("menu")).toHaveCount(0);
   await menuButton.click();
   await expect(menuButton).toHaveAttribute("aria-expanded", "true");
   const menu = page.getByRole("menu", { name: "관리 메뉴" });
-  await expect(menu.getByRole("menuitem")).toHaveCount(3);
-  for (const name of ["카테고리", "목표", "루틴"]) await expect(menu.getByRole("menuitem", { name })).toBeVisible();
+  await expect(menu.getByRole("menuitem")).toHaveCount(2);
+  for (const name of ["카테고리", "루틴"]) await expect(menu.getByRole("menuitem", { name })).toBeVisible();
   // 일정은 메뉴에 없다(2026-11-19 요청). 일정 영역의 추가 상자가 만들기 칸을 연다.
   await expect(menu.getByRole("menuitem", { name: "일정" })).toHaveCount(0);
+  await expect(menu.getByRole("menuitem", { name: "목표" })).toHaveCount(0);
 
   // Esc로 닫힌다.
   await page.keyboard.press("Escape");
   await expect(page.getByRole("menu")).toHaveCount(0);
 
-  // 목표는 이 화면 위쪽 목표 칸의 만들기 칸을 연다(2026-11-19).
-  await menuButton.click();
-  await page.getByRole("menuitem", { name: "목표" }).click();
+  // 목표는 목표 영역의 점선 상자가 만들기 칸을 연다(2026-11-19).
+  await page.getByRole("button", { name: "이루고 싶은 큰 목표 적어두기" }).click();
   await expect(page.getByLabel("새 목표 이름")).toBeVisible();
-  await expect(page.getByRole("menu")).toHaveCount(0);
 
   await page.getByRole("button", { name: "시험이나 행사 적어두기" }).click();
   await expect(page.getByLabel("새 일정 이름")).toBeVisible();

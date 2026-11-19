@@ -73,6 +73,10 @@ test("이 기기에서 알림을 끄면 아이콘 숫자가 없어지고 켜면 
   const toggle = page.getByRole("checkbox", { name: /친구가 할 일을 끝내면 알림/ });
   await toggle.check();
   await expect(toggle).toBeChecked();
+  // 스위치를 켜면 앱이 이 기기 설정(localStorage)과 서버 설정을 비동기로 적고 화면을 다시 그린다. 끝나기 전에 아래에서 DB에 행을 만들고 이동하면
+  // 설정이 사라지거나 새 팔로우가 읽은 것으로 쳐진다. 시험 DB가 같은 머신에 있는 CI(2026-11-19)에서 순서가 뒤집혀 드러났다(예전에는 느린 DB가 시간을 벌어 줬다).
+  await expect.poll(() => page.evaluate(() => localStorage.getItem("modori-desktop-notify"))).toMatch(/^(on|push):/);
+  await page.waitForLoadState("networkidle");
   const second = await prisma.user.create({ data: { email: SECOND, nickname: `아둘${RUN_TAG}`, privacyAgreedAt: new Date() } });
   await prisma.follow.create({ data: { followerId: second.id, followingId: me.id } });
   await page.goto("/feed");
@@ -82,6 +86,10 @@ test("이 기기에서 알림을 끄면 아이콘 숫자가 없어지고 켜면 
   await page.goto("/feed/reactions");
   await toggle.uncheck();
   await expect(toggle).not.toBeChecked();
+  // 끈 뒤에도 같다: 이 기기 설정이 지워지고 서버 설정이 꺼질 때까지 기다린다.
+  await expect.poll(() => page.evaluate(() => localStorage.getItem("modori-desktop-notify"))).toBeNull();
+  await expect.poll(async () => (await prisma.user.findUniqueOrThrow({ where: { id: me.id } })).notifyFriendDone).toBe(false);
+  await page.waitForLoadState("networkidle");
   const third = await prisma.user.create({ data: { email: THIRD, nickname: `아셋${RUN_TAG}`, privacyAgreedAt: new Date() } });
   await prisma.follow.create({ data: { followerId: third.id, followingId: me.id } });
   await page.goto("/feed");

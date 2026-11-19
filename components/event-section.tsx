@@ -15,7 +15,6 @@ import { formatKST, parseKSTDate } from "@/lib/date";
 import { ddayLabel, isSoonDday } from "@/lib/dday";
 import { describeEventWhen, formatTime } from "@/lib/event-time";
 import type { Locale } from "@/lib/i18n";
-import { formatMonthDay } from "@/lib/i18n/format";
 import { common } from "@/lib/i18n/messages/common";
 import { events as eventMessages } from "@/lib/i18n/messages/events";
 import { LIMITS } from "@/lib/limits";
@@ -52,17 +51,14 @@ export type DayEvent = {
  */
 export function EventSection({
   events,
-  upcoming,
   date,
   today,
 }: {
   events: DayEvent[];
-  upcoming: DayEvent[];
   date: string;
   today: string;
 }) {
   const t = useT(eventMessages);
-  const locale = useLocale();
   const [creating, setCreating] = useState(false);
   const blurOutside = useBlurOutside((container) => {
     const title = container.querySelector<HTMLInputElement>('input[name="title"]');
@@ -166,77 +162,49 @@ export function EventSection({
         </p>
       )}
 
-      {upcoming.length > 0 && (
-        <ul className="flex flex-col gap-1">
-          {upcoming.map((event) => {
-            const dday = ddayLabel(event.startDate, event.endDate, todayDate, locale);
-
-            return (
-              <li key={event.id}>
-                <button
-                  type="button"
-                  onClick={() => setEditing(event)}
-                  className="flex w-full items-center gap-2.5 rounded-xl px-1 py-1.5 text-left text-sm text-muted hover:bg-surface"
-                >
-                  <span
-                    aria-hidden
-                    className="color-edge size-2 shrink-0 rounded-full"
-                    style={{ backgroundColor: event.color }}
-                  />
-                  <span className="min-w-0 flex-1 truncate">{event.title}</span>
-                  <span className="shrink-0 text-xs">
-                    {formatMonthDay(locale, event.startDate)}
-                    {event.startTime !== null && ` ${formatTime(event.startTime)}`}
-                  </span>
-                  {dday && <Dday label={dday} locale={locale} />}
-                </button>
-              </li>
-            );
-          })}
-        </ul>
-      )}
-
-      <Modal
-        open={editing !== null}
-        onClose={() => setEditing(null)}
-        title={t("section")}
-      >
-        {editing && (
-          <>
-            <EventForm
-              defaultDate={date}
-              event={{
-                id: editing.id,
-                title: editing.title,
-                startDate: formatKST(editing.startDate),
-                endDate: formatKST(editing.endDate),
-                startTime: editing.startTime === null ? "" : formatTime(editing.startTime),
-                endTime: editing.endTime === null ? "" : formatTime(editing.endTime),
-                memo: editing.memo ?? "",
-                isPublic: editing.isPublic ?? false,
-                memoPublic: editing.memoPublic ?? false,
-                dday: editing.dday,
-                color: editing.color,
-              }}
-              onSaved={() => setEditing(null)}
-              onCancel={() => setEditing(null)}
-              deleteButton={
-                <UndoableDeleteButton
-                  id={editing.id}
-                  remove={deleteEvent}
-                  restore={restoreEvent}
-                  message={t("eventDeleted")}
-                  onDone={() => setEditing(null)}
-                  className="-ml-2 h-11 rounded-xl px-2 text-sm font-medium text-danger"
-                />
-              }
-            />
-          </>
-        )}
-      </Modal>
+      <EventEditModal event={editing} date={date} onClose={() => setEditing(null)} />
 
       <RepeatModal event={repeatOpen} onClose={() => setRepeatOpen(null)} />
     </section>
+  );
+}
+
+/** 일정을 고치는 떠 있는 창. 그 날의 일정 카드와 "다가오는 일정" 줄이 같이 쓴다(2026-11-19). */
+export function EventEditModal({ event, date, onClose }: { event: DayEvent | null; date: string; onClose: () => void }) {
+  const t = useT(eventMessages);
+  return (
+    <Modal open={event !== null} onClose={onClose} title={t("section")}>
+      {event && (
+        <EventForm
+          defaultDate={date}
+          event={{
+            id: event.id,
+            title: event.title,
+            startDate: formatKST(event.startDate),
+            endDate: formatKST(event.endDate),
+            startTime: event.startTime === null ? "" : formatTime(event.startTime),
+            endTime: event.endTime === null ? "" : formatTime(event.endTime),
+            memo: event.memo ?? "",
+            isPublic: event.isPublic ?? false,
+            memoPublic: event.memoPublic ?? false,
+            dday: event.dday,
+            color: event.color,
+          }}
+          onSaved={onClose}
+          onCancel={onClose}
+          deleteButton={
+            <UndoableDeleteButton
+              id={event.id}
+              remove={deleteEvent}
+              restore={restoreEvent}
+              message={t("eventDeleted")}
+              onDone={onClose}
+              className="-ml-2 h-11 rounded-xl px-2 text-sm font-medium text-danger"
+            />
+          }
+        />
+      )}
+    </Modal>
   );
 }
 
@@ -328,7 +296,7 @@ function EventCard({ event, todayDate, onOpen }: { event: DayEvent; todayDate: D
 }
 
 /** 오늘과 그 앞뒤는 눈에 띄어야 하고, 먼 일정은 조용해야 한다. */
-function Dday({ label, locale }: { label: string; locale: Locale }) {
+export function Dday({ label, locale }: { label: string; locale: Locale }) {
   const soon = isSoonDday(label, locale);
 
   return (

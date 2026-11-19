@@ -39,10 +39,8 @@ test("관리 메뉴의 목표로 만들면 기본은 공개이고, 세부 목표
   await signUp(page, emails.me, `나목${testInfo.testId.slice(-6)}${RUN_TAG}`);
   const me = await prisma.user.findUniqueOrThrow({ where: { email: emails.me } });
 
-  // 목표가 없으면 점선 상자가 보이고, 관리 메뉴의 "목표"로도 만들기 칸이 열린다.
-  await expect(section(page).getByRole("button", { name: "이루고 싶은 큰 목표 적어두기" })).toBeVisible();
-  await page.getByRole("button", { name: "관리 메뉴" }).click();
-  await page.getByRole("menuitem", { name: "목표" }).click();
+  // 목표가 없으면 점선 상자가 보이고, 누르면 만들기 칸이 열린다(관리 메뉴에는 목표 항목이 없다, 2026-11-19).
+  await section(page).getByRole("button", { name: "이루고 싶은 큰 목표 적어두기" }).click();
   await page.getByLabel("새 목표 이름").fill("토익 900점");
   await page.getByRole("button", { name: "저장", exact: true }).click();
   const card = page.getByRole("button", { name: "토익 900점 펼치기" });
@@ -201,10 +199,9 @@ test("처음에는 3개까지만 보이고 나머지는 더 보기로 펼친다.
   await prisma.goal.createMany({ data: Array.from({ length: LIMITS.goals - 5 }, (_, index) => ({ userId: me.id, title: `채움 ${index + 1}` })) });
   await page.reload();
   expect(await prisma.goal.count({ where: { userId: me.id, parentId: null } })).toBe(LIMITS.goals);
-  // 20개가 차면 제목 줄의 "+ 추가"가 없다. 관리 메뉴로는 열리지만 서버가 막는다.
+  // 20개가 차면 제목 줄의 "+ 추가"가 없다. 제목을 눌러 열 수는 있지만 서버가 막는다.
   await expect(section(page).getByRole("button", { name: "목표 더 넣기" })).toHaveCount(0);
-  await page.getByRole("button", { name: "관리 메뉴" }).click();
-  await page.getByRole("menuitem", { name: "목표" }).click();
+  await section(page).getByRole("button", { name: "목표", exact: true }).click();
   await page.getByLabel("새 목표 이름").fill("스물한 번째");
   await page.getByRole("button", { name: "저장", exact: true }).click();
   await expect(page.getByRole("alert").filter({ hasText: "목표는 20개까지 만들 수 있어요." })).toBeVisible();

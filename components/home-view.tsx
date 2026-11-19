@@ -13,6 +13,7 @@ import { ManageMenu } from "@/components/manage-menu";
 import { Dori } from "@/components/dori";
 import { type DayEvent, EventSection } from "@/components/event-section";
 import { GoalSection } from "@/components/goal-section";
+import { UpcomingEvents } from "@/components/upcoming-events";
 import type { GoalView } from "@/lib/goals";
 import { FirstTodoButton } from "@/components/first-todo-button";
 import { MonthCalendar } from "@/components/month-calendar";
@@ -140,9 +141,11 @@ export function HomeView({ data }: { data: HomeData }) {
         {/* 넓은 화면에서 달력 칸은 제자리에 두고 오른쪽 목록과 따로 스크롤한다. 시작 위치(pt-8)와 같은 top-8이라 스크롤을 시작해도 움직이지 않고,
             창이 달력보다 낮으면(일기 카드까지 합치면 큰 화면에서도) 칸 안에서만 스크롤한다. 화면 가운데에 스크롤 줄이 보이는 게 어색하다는
             요청(2026-11-18)으로 줄은 숨기고 휠·터치로만 내린다. overscroll-contain은 이 칸 끝에서 페이지가 따라 움직이지 않게 한다. */}
-        <div className="flex flex-col gap-4 lg:gap-6 lg:sticky lg:top-8 lg:max-h-[calc(100dvh-6rem)] lg:overflow-y-auto lg:overscroll-contain lg:scrollbar-hidden">
+        {/* 폰(한 칸)에서는 이 칸이 contents라 안의 것들이 바깥 줄에 섞여 order로 놓인다: 프로필·달력(1) → 그 날(2) → 목표·다가오는 일정(3).
+            넓은 화면(lg)에서는 이 칸 하나가 달력 칸이다. */}
+        <div className="contents lg:flex lg:flex-col lg:gap-6 lg:sticky lg:top-8 lg:max-h-[calc(100dvh-6rem)] lg:overflow-y-auto lg:overscroll-contain lg:scrollbar-hidden">
           {/* 프로필 수정 화면의 뒤로가기가 이 화면(피드)으로 돌아오게 from=feed를 붙인다(2026-11-16 신고: 마이페이지로 나갔다). */}
-          <Link prefetch={false} href="/settings/profile?from=feed" data-tour="profile" className="flex items-center gap-3">
+          <Link prefetch={false} href="/settings/profile?from=feed" data-tour="profile" className="order-1 flex items-center gap-3 lg:order-none">
             <Avatar src={data.profile.avatar} size={48} />
             <span className="min-w-0">
               <span className="block truncate font-bold">{data.profile.nickname}</span>
@@ -150,7 +153,7 @@ export function HomeView({ data }: { data: HomeData }) {
             </span>
           </Link>
 
-          <div data-tour="calendar">
+          <div data-tour="calendar" className="order-1 lg:order-none">
             <MonthCalendar
               monthStart={monthStart}
               selected={date}
@@ -166,10 +169,17 @@ export function HomeView({ data }: { data: HomeData }) {
               footer={<DiaryCard date={selected} today={data.today} entry={data.diaries.find((entry) => entry.date === selected) ?? null} />}
             />
           </div>
+
+          {/* 날짜와 상관없는 것(목표, 다가오는 일정)은 달력 아래에 둔다(2026-11-19 요청: 오른쪽 칸이 너무 빽빽하다). 폰은 한 칸이라 그 날의 할 일 아래로 내린다. */}
+          <div className="order-3 flex flex-col gap-6 lg:order-none">
+            {/* 짧은 D-day 목록이 먼저다. 접힌 목표 카드 밑으로 밀리면 화면 아래로 가려져 잘 안 보였다. */}
+            <UpcomingEvents events={upcoming} date={selected} today={data.today} />
+            <GoalSection goals={data.goals} today={data.today} />
+          </div>
         </div>
 
         {/* 아래 여백을 이 칸에 둔다(PageFrame은 두 칸 화면에서 빼 준다). 달력 칸이 머물 수 있는 줄 높이가 페이지 끝까지 닿게. */}
-        <div id="day-list" tabIndex={-1} className="flex flex-col gap-6 outline-none lg:pb-12">
+        <div id="day-list" tabIndex={-1} className="order-2 flex flex-col gap-6 outline-none lg:order-none lg:pb-12">
           <header data-tour="day-nav" className="flex items-center justify-between">
             {dayNav(formatKST(addDays(date, -1)), t("prevDay"), "‹")}
             {/* 날짜를 넘기면 제목과 아래 목록이 넘긴 쪽에서 미끄러져 들어온다. ‹ › 버튼은 제자리에 둔다(연달아 누를 때 움직이면 빗나간다). */}
@@ -214,9 +224,7 @@ export function HomeView({ data }: { data: HomeData }) {
               <ManageMenu />
             </nav>
 
-            <GoalSection goals={data.goals} today={data.today} />
-
-            <EventSection events={dayEvents} upcoming={upcoming} date={selected} today={data.today} />
+            <EventSection events={dayEvents} date={selected} today={data.today} />
 
             {data.categories.length === 0 && (
               // 카테고리 칩이 곧 할 일을 적는 자리다. 하나도 없으면 적을 곳이 없어진다.
@@ -272,6 +280,7 @@ export function HomeView({ data }: { data: HomeData }) {
                         received={todo.received}
                         saving={todo.id.startsWith(PENDING_PREFIX)}
                         categories={data.categories}
+                        goals={data.goals}
                       />
                     ),
                   })),

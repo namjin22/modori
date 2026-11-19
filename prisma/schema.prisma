@@ -187,6 +187,8 @@ model Todo {
   doneAt     DateTime?
   order      Int       @default(0)
   routineId  String? // 루틴이 생성한 인스턴스면 채워진다
+  // 이 할 일이 향하는 목표(또는 세부 목표). 선택이고 본인에게만 보인다(친구 화면은 읽지 않는다). 목표를 지우면 비운다(2026-11-19).
+  goalId     String?
   color      String? // 비어 있으면 카테고리 색을 쓴다
   memo       String? // 기본은 본인만 본다. memoPublic을 켜면 친구 화면에 보인다(2026-10-17)
   // 메모를 팔로워에게 보일지. 할 일 자체는 카테고리 공개 여부를 따르고, 메모는 이 스위치를 따로 따른다.
@@ -196,6 +198,7 @@ model Todo {
   user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   category  Category?  @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   routine   Routine?   @relation(fields: [routineId], references: [id], onDelete: SetNull)
+  goal      Goal?      @relation(fields: [goalId], references: [id], onDelete: SetNull)
   reactions Reaction[]
 
   // 루틴 중복 생성을 DB가 막는다.
@@ -204,6 +207,7 @@ model Todo {
   @@unique([routineId, date])
   @@index([userId, date])
   @@index([userId, done, doneAt]) // 피드 조회용
+  @@index([goalId])
 }
 
 enum RoutineFreq {
@@ -316,6 +320,7 @@ model Goal {
   user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   parent   Goal?  @relation("GoalChildren", fields: [parentId], references: [id], onDelete: Cascade)
   children Goal[] @relation("GoalChildren")
+  todos    Todo[]
 
   @@index([userId, parentId])
 }

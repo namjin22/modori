@@ -13,6 +13,7 @@ export const errors = defineMessages({
     notFoundTitle: "없는 주소예요",
     notFoundBody: "주소가 바뀌었거나 지워진 화면이에요.",
     toToday: "오늘 화면으로",
+    errorRef: "문의할 때 이 번호를 알려 주세요: {ref}",
   },
   en: {
     errorTitle: "Something went wrong",
@@ -25,6 +26,7 @@ export const errors = defineMessages({
     notFoundTitle: "Page not found",
     notFoundBody: "This page has moved or been removed.",
     toToday: "Go to today",
+    errorRef: "If you contact us, please share this reference: {ref}",
   },
   ja: {
     errorTitle: "問題が発生しました",
@@ -37,5 +39,6 @@ export const errors = defineMessages({
     notFoundTitle: "ページが見つかりません",
     notFoundBody: "アドレスが変わったか、削除された画面です。",
     toToday: "今日の画面へ",
+    errorRef: "お問い合わせの際はこの番号をお知らせください: {ref}",
   },
 });
