@@ -13,7 +13,6 @@ import { ManageMenu } from "@/components/manage-menu";
 import { Dori } from "@/components/dori";
 import { type DayEvent, EventSection } from "@/components/event-section";
 import { GoalSection } from "@/components/goal-section";
-import { UpcomingEvents } from "@/components/upcoming-events";
 import type { GoalView } from "@/lib/goals";
 import { FirstTodoButton } from "@/components/first-todo-button";
 import { MonthCalendar } from "@/components/month-calendar";
@@ -107,8 +106,8 @@ export function HomeView({ data }: { data: HomeData }) {
   const todos = allTodos.filter((todo) => todo.date === selected);
   const scheduled = data.scheduled[selected] ?? [];
   const dayEvents = data.events.filter((event) => overlaps(event, date));
-  // 고른 날과 겹치는 일정은 빼고 셋. 서버는 넉넉히 보내고 여기서 자른다.
-  const upcoming = data.upcoming.filter((event) => !overlaps(event, date)).slice(0, 3);
+  // 고른 날과 겹치는 일정은 뺀다. 서버는 넉넉히(20개) 보내고 여기서 자른다. 제목 옆 토글로 펼치니 자리 걱정이 없어 셋에서 열 개로 늘렸다(2026-11-19).
+  const upcoming = data.upcoming.filter((event) => !overlaps(event, date)).slice(0, 10);
 
   // 투두메이트처럼 카테고리마다 칩과 +를 두고, 할 일이 없는 카테고리도 보여준다.
   // 끝낸 일은 묶음 아래로 내린다(남은 일이 위에 모인다). 같은 쪽 안에서는 원래 순서를 지킨다(sort는 안정 정렬).
@@ -170,10 +169,9 @@ export function HomeView({ data }: { data: HomeData }) {
             />
           </div>
 
-          {/* 날짜와 상관없는 것(목표, 다가오는 일정)은 달력 아래에 둔다(2026-11-19 요청: 오른쪽 칸이 너무 빽빽하다). 폰은 한 칸이라 그 날의 할 일 아래로 내린다. */}
+          {/* 날짜와 상관없는 목표는 달력 아래에 둔다(2026-11-19 요청: 오른쪽 칸이 너무 빽빽하다). 폰은 한 칸이라 그 날의 할 일 아래로 내린다.
+              다가오는 일정은 일정 칸의 제목 옆 토글로 옮겼다. */}
           <div className="order-3 flex flex-col gap-6 lg:order-none">
-            {/* 짧은 D-day 목록이 먼저다. 접힌 목표 카드 밑으로 밀리면 화면 아래로 가려져 잘 안 보였다. */}
-            <UpcomingEvents events={upcoming} date={selected} today={data.today} />
             <GoalSection goals={data.goals} today={data.today} />
           </div>
         </div>
@@ -224,7 +222,7 @@ export function HomeView({ data }: { data: HomeData }) {
               <ManageMenu />
             </nav>
 
-            <EventSection events={dayEvents} date={selected} today={data.today} />
+            <EventSection events={dayEvents} upcoming={upcoming} date={selected} today={data.today} />
 
             {data.categories.length === 0 && (
               // 카테고리 칩이 곧 할 일을 적는 자리다. 하나도 없으면 적을 곳이 없어진다.

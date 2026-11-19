@@ -54,6 +54,8 @@ test("고른 날의 일정 다섯 개가 다가오는 일정 세 개를 가리�
 
   await page.goto(`/?date=${formatKST(selected)}`);
   const section = page.getByRole("region", { name: "일정" });
+  // 다가오는 일정은 제목 옆 토글을 눌러야 펼쳐진다(2026-11-19).
+  await section.getByRole("button", { name: /다가오는 일정 \d+개 펼치기/ }).click();
   for (let index = 1; index <= 5; index += 1) {
     await expect(section.getByRole("button", { name: new RegExp(`^고른 날 ${index}(?:\\s|$)`) })).toBeVisible();
   }

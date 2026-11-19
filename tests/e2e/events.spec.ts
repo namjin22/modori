@@ -109,23 +109,28 @@ test("일정을 지우면 되돌릴 수 있다", async ({ page, email }, testInf
   await expect(page.getByRole("listitem").filter({ hasText: "동아리 발표" })).toBeVisible();
 });
 
-test("일정 만들기 칸은 이름을 비운 채 다른 곳을 누르면 닫힌다", async ({ page, email }, testInfo) => {
+test("일정 만들기는 팝업으로 열리고 입력칸에 바로 포커스가 가며, 취소나 Esc로 닫으면 쓴 내용이 지워진다", async ({ page, email }, testInfo) => {
   await signInAndOnboard(page, email, `빈일정${testInfo.testId.slice(-6)}${RUN_TAG}`);
   const title = page.getByLabel("새 일정 이름");
+  const dialog = page.getByRole("dialog", { name: "새 일정" });
 
   await page.getByRole("button", { name: "일정", exact: true }).click();
+  await expect(dialog).toBeVisible();
   await expect(title).toBeFocused();
-  // 날짜 칸으로 옮겨 가는 것은 같은 칸 안이라 닫히지 않는다.
+  // 날짜 칸으로 옮겨 가도 팝업은 그대로다.
   await page.getByRole("button", { name: /^새 일정 시작일:/ }).focus();
   await expect(title).toBeVisible();
 
-  await page.getByRole("heading", { level: 1 }).click();
-  await expect(title).toBeHidden();
-
-  await page.getByRole("button", { name: "일정", exact: true }).click();
+  // 쓰다가 취소로 닫으면 쓴 내용이 지워진다.
   await title.fill("동아리 발표");
-  await page.getByRole("heading", { level: 1 }).click();
-  await expect(title).toHaveValue("동아리 발표");
+  await dialog.getByRole("button", { name: "취소" }).click();
+  await expect(dialog).toBeHidden();
+
+  // 다시 열면 비어 있고, Esc로도 닫힌다.
+  await page.getByRole("button", { name: "일정", exact: true }).click();
+  await expect(title).toHaveValue("");
+  await page.keyboard.press("Escape");
+  await expect(dialog).toBeHidden();
 });
 
 test("하루에 일정을 다섯 개까지 연달아 넣고, 여섯째는 막는다", async ({ page, email }, testInfo) => {

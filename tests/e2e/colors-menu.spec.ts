@@ -52,6 +52,8 @@ test("관리 메뉴를 누르면 카테고리·루틴이 나오고(일정·목�
 
   await page.getByRole("button", { name: "시험이나 행사 적어두기" }).click();
   await expect(page.getByLabel("새 일정 이름")).toBeVisible();
+  // 일정 만들기는 팝업이라 다음 단계(관리 메뉴)로 가기 전에 닫는다(2026-11-19).
+  await page.keyboard.press("Escape");
 
   await menuButton.click();
   await page.getByRole("menuitem", { name: "카테고리" }).click();

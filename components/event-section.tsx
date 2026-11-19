@@ -10,11 +10,11 @@ import { SortableList } from "@/components/sortable-list";
 import { useToast } from "@/components/toast";
 import { UndoableDeleteButton } from "@/components/undoable-delete-button";
 import { useSaveFailure } from "@/components/use-save-failure";
-import { useBlurOutside } from "@/components/use-blur-outside";
 import { formatKST, parseKSTDate } from "@/lib/date";
 import { ddayLabel, isSoonDday } from "@/lib/dday";
 import { describeEventWhen, formatTime } from "@/lib/event-time";
 import type { Locale } from "@/lib/i18n";
+import { formatMonthDay } from "@/lib/i18n/format";
 import { common } from "@/lib/i18n/messages/common";
 import { events as eventMessages } from "@/lib/i18n/messages/events";
 import { LIMITS } from "@/lib/limits";
@@ -51,19 +51,20 @@ export type DayEvent = {
  */
 export function EventSection({
   events,
+  upcoming,
   date,
   today,
 }: {
   events: DayEvent[];
+  // 아직 오지 않은 일정(보고 있는 날과 겹치는 것은 뺀 것). 제목 옆 토글을 눌러야 펼쳐진다(2026-11-19).
+  upcoming: DayEvent[];
   date: string;
   today: string;
 }) {
   const t = useT(eventMessages);
+  // 일정 만들기는 일정을 고칠 때와 같이 떠 있는 창(팝업)에서 한다(2026-11-19 요청, 예전에는 이 칸 안에 입력 카드가 열렸다).
   const [creating, setCreating] = useState(false);
-  const blurOutside = useBlurOutside((container) => {
-    const title = container.querySelector<HTMLInputElement>('input[name="title"]');
-    if (title && title.value.trim() === "") setCreating(false);
-  });
+  const [showUpcoming, setShowUpcoming] = useState(false);
   const [editing, setEditing] = useState<DayEvent | null>(null);
   const [repeatOpen, setRepeatOpen] = useState<DayEvent | null>(null);
   // 하루 상한·순서 바꾸기는 그 날에만 있는 일정끼리. 반복 일정은 따로 둔다.
@@ -73,21 +74,46 @@ export function EventSection({
 
   return (
     <section aria-label={t("section")} data-tour="events" className="flex flex-col gap-3">
-      <div className="flex items-center justify-between">
-        <button
-          type="button"
-          aria-expanded={creating}
-          onClick={() => setCreating((value) => !value)}
-          // 열린 채로 다시 누르면 입력칸이 먼저 포커스를 잃어 닫혔다가 클릭으로 다시 열린다.
-          onMouseDown={(event) => {
-            if (creating) event.preventDefault();
-          }}
-          className="-mx-1.5 -my-1.5 w-fit px-1.5 py-1.5 text-sm font-semibold text-foreground"
-        >
-          {t("section")}
-        </button>
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex min-w-0 items-center gap-2">
+          <button
+            type="button"
+            aria-haspopup="dialog"
+            onClick={() => setCreating(true)}
+            className="-mx-1.5 -my-1.5 w-fit px-1.5 py-1.5 text-sm font-semibold text-foreground"
+          >
+            {t("section")}
+          </button>
+          {/* 다가오는 일정(D-day)은 평소에는 접어 두고 이 작은 토글로 한꺼번에 펼친다(2026-11-19 요청). 없으면 토글도 없다. */}
+          {upcoming.length > 0 && (
+            <button
+              type="button"
+              aria-expanded={showUpcoming}
+              aria-controls="upcoming-events"
+              aria-label={t(showUpcoming ? "upcomingHide" : "upcomingShow", { count: upcoming.length })}
+              onClick={() => setShowUpcoming((value) => !value)}
+              className="flex h-7 shrink-0 items-center gap-1 rounded-full bg-surface px-2.5 text-xs font-medium text-muted hover:text-foreground"
+            >
+              <span aria-hidden>{t("upcomingToggle", { count: upcoming.length })}</span>
+              <svg
+                aria-hidden
+                width={12}
+                height={12}
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2.4}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className={`transition-transform ${showUpcoming ? "rotate-180" : ""}`}
+              >
+                <path d="M6 9l6 6 6-6" />
+              </svg>
+            </button>
+          )}
+        </div>
         {/* 일정이 이미 있으면 더 넣는 버튼은 제목 줄 오른쪽에 작게 둔다. 예전에는 카드 아래에 폭 전체를 쓰는 점선 상자였다(2026-10-20). */}
-        {!creating && single.length > 0 && single.length < LIMITS.eventsPerDay && (
+        {single.length > 0 && single.length < LIMITS.eventsPerDay && (
           <button
             type="button"
             onClick={() => setCreating(true)}
@@ -99,19 +125,7 @@ export function EventSection({
         )}
       </div>
 
-      {creating && (
-        <div
-          // 이름을 비운 채 다른 곳을 누르면 닫는다. 날짜 칸으로 옮겨 가는 것은 이 안이라 그대로 둔다(Safari 대응은 use-blur-outside).
-          {...blurOutside}
-          className="rounded-2xl bg-surface p-4"
-        >
-          <EventForm
-            defaultDate={date}
-            onSaved={() => setCreating(false)}
-            onCancel={() => setCreating(false)}
-          />
-        </div>
-      )}
+      {showUpcoming && upcoming.length > 0 && <UpcomingEvents id="upcoming-events" events={upcoming} date={date} today={today} />}
 
       {single.length > 0 &&
         (() => {
@@ -147,7 +161,7 @@ export function EventSection({
       )}
 
       {/* 제목("일정")만 있으면 누를 수 있는 곳인지 모른다. 비어 있을 때는 이 상자, 하나라도 있으면 제목 줄의 "+ 추가"로 더 넣는다. */}
-      {!creating && single.length === 0 && (
+      {single.length === 0 && (
         <button
           type="button"
           onClick={() => setCreating(true)}
@@ -156,16 +170,62 @@ export function EventSection({
           {t("addPlaceholder")}
         </button>
       )}
-      {!creating && single.length >= LIMITS.eventsPerDay && (
+      {single.length >= LIMITS.eventsPerDay && (
         <p className="text-center text-xs text-muted">
           {t("perDayLimit", { max: LIMITS.eventsPerDay })}
         </p>
       )}
 
+      {/* 일정 만들기 창. 닫을 때 안의 입력도 사라지게 열려 있을 때만 폼을 그린다. */}
+      <Modal open={creating} onClose={() => setCreating(false)} title={t("newEventLabel")}>
+        {creating && <EventForm defaultDate={date} onSaved={() => setCreating(false)} onCancel={() => setCreating(false)} />}
+      </Modal>
+
       <EventEditModal event={editing} date={date} onClose={() => setEditing(null)} />
 
       <RepeatModal event={repeatOpen} onClose={() => setRepeatOpen(null)} />
     </section>
+  );
+}
+
+/**
+ * 아직 오지 않은 일정(D-day). 보고 있는 날이 아니라 오늘을 기준으로 센다. 그 날짜를 열어보지 않아도 시험이 며칠 남았는지 알 수 있어야 한다.
+ * 일정 칸의 제목 옆 토글을 누르면 이 목록이 펼쳐진다(2026-11-19 요청, 예전에는 늘 보였고 한때 달력 칸 아래에 있었다).
+ * 줄을 누르면 일정을 고치는 창이 뜬다. 보고 있는 날과 겹치는 일정은 홈이 이미 빼고 넘긴다(그 날의 일정 칸에 있다).
+ */
+function UpcomingEvents({ id, events, date, today }: { id: string; events: DayEvent[]; date: string; today: string }) {
+  const t = useT(eventMessages);
+  const locale = useLocale();
+  const [editing, setEditing] = useState<DayEvent | null>(null);
+  const todayDate = parseKSTDate(today);
+
+  return (
+    <div id={id} className="flex animate-rise flex-col gap-1 rounded-2xl bg-surface px-3 py-2">
+      <ul aria-label={t("upcomingTitle")} className="flex flex-col">
+        {events.map((event) => {
+          const dday = ddayLabel(event.startDate, event.endDate, todayDate, locale);
+
+          return (
+            <li key={event.id}>
+              <button
+                type="button"
+                onClick={() => setEditing(event)}
+                className="flex w-full items-center gap-2.5 rounded-xl px-1 py-1.5 text-left text-sm text-muted hover:bg-surface-hover"
+              >
+                <span aria-hidden className="color-edge size-2 shrink-0 rounded-full" style={{ backgroundColor: event.color }} />
+                <span className="min-w-0 flex-1 truncate">{event.title}</span>
+                <span className="shrink-0 text-xs">
+                  {formatMonthDay(locale, event.startDate)}
+                  {event.startTime !== null && ` ${formatTime(event.startTime)}`}
+                </span>
+                {dday && <Dday label={dday} locale={locale} />}
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+      <EventEditModal event={editing} date={date} onClose={() => setEditing(null)} />
+    </div>
   );
 }
 
