@@ -71,6 +71,7 @@ model User {
   alarms               Alarm[]
   apiTokens            ApiToken[]
   diaryEntries         DiaryEntry[]
+  goals                Goal[]
   mcpBatches           McpBatch[]
   blocking             Block[]               @relation("blocker")
   blockedBy            Block[]               @relation("blocked")
@@ -295,6 +296,28 @@ model DiaryEntry {
 
   @@unique([userId, date])
   @@index([userId, isPublic, date])
+}
+
+// 목표(2026-11-19 운영자 결정, docs/decisions.md). 2단계다: parentId가 없으면 목표, 있으면 그 목표의 세부 목표(세부 목표 아래는 없다).
+// 달성은 직접 체크한다. 세부 목표가 있는 목표는 달성 여부를 칸에 저장하지 않고 세부 목표를 센 값으로 보인다(lib/goals.ts).
+model Goal {
+  id        String    @id @default(cuid())
+  userId    String
+  parentId  String?
+  title     String
+  // 기한(선택). 시각 없는 달력의 날이다. 할 일 날짜 범위(10년)와 별개로 제한이 없다.
+  dueDate   DateTime? @db.Date
+  // 달성한 시각. 비어 있으면 아직이다. 세부 목표가 있는 목표는 항상 비워 둔다.
+  doneAt    DateTime?
+  // 팔로워에게 보일지. 기본은 공개, 화면은 "비공개" 스위치다(2026-11-19). 세부 목표는 상위 목표를 따르므로 이 칸은 목표에만 뜻이 있다.
+  isPublic  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent   Goal?  @relation("GoalChildren", fields: [parentId], references: [id], onDelete: Cascade)
+  children Goal[] @relation("GoalChildren")
+
+  @@index([userId, parentId])
 }
 
 // 서버·브라우저에서 난 오류. instrumentation.ts와 /api/errors가 쌓고 /admin/errors에서 본다.
