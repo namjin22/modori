@@ -272,6 +272,7 @@ export function HomeView({ data }: { data: HomeData }) {
                         received={todo.received}
                         saving={todo.id.startsWith(PENDING_PREFIX)}
                         categories={data.categories}
+                        goals={data.goals}
                       />
                     ),
                   })),

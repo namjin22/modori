@@ -2,14 +2,17 @@
 
 import { type FormEvent, useEffect, useOptimistic, useRef, useState, useTransition } from "react";
 
+import { addTodo } from "@/app/(tabs)/actions";
 import { addSubGoal, deleteGoal, deleteSubGoal, restoreGoal, setGoalDone } from "@/app/(tabs)/goals/actions";
+import { ChoicePicker } from "@/components/choice-picker";
+import { DatePicker } from "@/components/date-picker";
 import { GoalForm } from "@/components/goal-form";
 import { useT } from "@/components/locale-provider";
 import { NEW_GOAL_EVENT } from "@/components/manage-menu";
 import { Modal } from "@/components/modal";
 import { UndoableDeleteButton } from "@/components/undoable-delete-button";
 import { useSaveFailure } from "@/components/use-save-failure";
-import { dueLabel, GOAL_TITLE_MAX, type GoalView, goalProgress, sortGoals } from "@/lib/goals";
+import { dueLabel, GOAL_TITLE_MAX, type GoalView, goalChoices, goalProgress, sortGoals } from "@/lib/goals";
 import { goals as goalMessages } from "@/lib/i18n/messages/goals";
 import { LIMITS } from "@/lib/limits";
 
@@ -210,19 +213,47 @@ function GoalCard({ goal, today, patch, onEdit }: { goal: GoalView; today: strin
         </button>
       </div>
 
-      {open && <GoalPanel goal={goal} patch={patch} onEdit={onEdit} />}
+      {open && <GoalPanel goal={goal} today={today} patch={patch} onEdit={onEdit} />}
     </li>
   );
 }
 
 /** 펼친 카드 안: 세부 목표 체크 목록, 세부 목표 더하기, 고치기. */
-function GoalPanel({ goal, patch, onEdit }: { goal: GoalView; patch: (action: Patch) => void; onEdit: () => void }) {
+function GoalPanel({ goal, today, patch, onEdit }: { goal: GoalView; today: string; patch: (action: Patch) => void; onEdit: () => void }) {
   const t = useT(goalMessages);
   const [draft, setDraft] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const saveFailed = useSaveFailure();
   const full = goal.children.length >= LIMITS.subGoalsPerGoal;
+  // "할 일 넣기": 이 목표(또는 고른 세부 목표)로 연결된 할 일을 바로 적는다(2026-11-19).
+  const [todoDraft, setTodoDraft] = useState("");
+  const [todoDate, setTodoDate] = useState(today);
+  const [todoTarget, setTodoTarget] = useState(goal.id);
+  const [todoMessage, setTodoMessage] = useState<{ ok: boolean; text: string } | null>(null);
+  const [todoPending, startTodoTransition] = useTransition();
+
+  function addLinkedTodo(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (todoPending || !todoDraft.trim()) return;
+    startTodoTransition(async () => {
+      try {
+        const formData = new FormData();
+        formData.set("content", todoDraft);
+        formData.set("date", todoDate);
+        formData.set("goalId", goal.children.some((child) => child.id === todoTarget) ? todoTarget : goal.id);
+        const result = await addTodo(formData);
+        if (result.ok) {
+          setTodoDraft("");
+          setTodoMessage({ ok: true, text: t("todoAdded") });
+        } else {
+          setTodoMessage({ ok: false, text: result.message });
+        }
+      } catch (failure) {
+        saveFailed(failure);
+      }
+    });
+  }
 
   function toggle(id: string, done: boolean) {
     startTransition(async () => {
@@ -276,6 +307,11 @@ function GoalPanel({ goal, patch, onEdit }: { goal: GoalView; patch: (action: Pa
             <li key={child.id} className="flex items-center gap-1">
               <CheckButton checked={child.done} label={t("check", { title: child.title })} onClick={() => toggle(child.id, !child.done)} />
               <span className={`min-w-0 flex-1 break-words py-2 text-[15px] ${child.done ? "text-muted line-through" : ""}`}>{child.title}</span>
+              {child.linked && child.linked.total > 0 && (
+                <span aria-label={t("linkedCount", { done: child.linked.done, total: child.linked.total })} className="shrink-0 text-xs tabular-nums text-muted">
+                  {child.linked.done}/{child.linked.total}
+                </span>
+              )}
               <button
                 type="button"
                 onClick={() => remove(child.id)}
@@ -316,6 +352,43 @@ function GoalPanel({ goal, patch, onEdit }: { goal: GoalView; patch: (action: Pa
           {error}
         </p>
       )}
+
+      <div className="flex flex-col gap-2 border-t border-border pt-3">
+        <p className="text-xs font-semibold text-muted">{t("addTodoTitle")}</p>
+        <form onSubmit={addLinkedTodo} className="flex flex-col gap-2">
+          <input
+            value={todoDraft}
+            onChange={(event) => setTodoDraft(event.target.value)}
+            maxLength={200}
+            placeholder={t("addTodoPlaceholder")}
+            aria-label={t("addTodoInputLabel", { title: goal.title })}
+            className="h-10 w-full rounded-xl bg-surface-hover px-3 text-sm outline-none placeholder:text-muted focus:ring-2 focus:ring-brand"
+          />
+          <div className="flex flex-wrap items-center gap-2">
+            {goal.children.length > 0 && (
+              <div className="min-w-0 flex-1">
+                <ChoicePicker label={t("addTodoTargetLabel", { title: goal.title })} options={goalChoices([goal], "").slice(1)} value={todoTarget} onChange={setTodoTarget} />
+              </div>
+            )}
+            <DatePicker label={t("addTodoDateLabel", { title: goal.title })} value={todoDate} onChange={setTodoDate} short />
+            <button
+              type="submit"
+              disabled={todoPending || !todoDraft.trim()}
+              className="ml-auto h-10 shrink-0 rounded-xl bg-brand px-4 text-sm font-semibold text-brand-contrast disabled:opacity-50"
+            >
+              {t("addTodoButton")}
+            </button>
+          </div>
+        </form>
+        {todoMessage && (
+          <p role={todoMessage.ok ? "status" : "alert"} className={`text-sm ${todoMessage.ok ? "text-muted" : "text-danger"}`}>
+            {todoMessage.text}
+          </p>
+        )}
+        {goal.linked && goal.linked.total > 0 && (
+          <p className="text-xs text-muted">{t("linkedCount", { done: goal.linked.done, total: goal.linked.total })}</p>
+        )}
+      </div>
 
       <button type="button" onClick={onEdit} className="h-9 self-end rounded-full px-3 text-xs font-medium text-muted hover:bg-surface-hover hover:text-foreground">
         {t("edit")}
