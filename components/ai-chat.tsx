@@ -14,7 +14,7 @@ import type { PlanEvent, PlanTodo } from "@/lib/ai/plan";
 
 type Proposal = { todos: PlanTodo[]; events: PlanEvent[] };
 type Applied = { state: "idle" } | { state: "adding" } | { state: "added"; todos: number; events: number; batchIds: string[] } | { state: "undone" } | { state: "failed"; message: string };
-type Message = { id: number; role: "user" | "assistant"; text: string; proposal?: Proposal; applied?: Applied; isError?: boolean; code?: string; canRetry?: boolean };
+type Message = { id: number; role: "user" | "assistant"; text: string; proposal?: Proposal; applied?: Applied; isError?: boolean; code?: string; canRetry?: boolean; tooFar?: number };
 
 /**
  * AI 도우미 대화 화면(2026-11-17, docs/decisions.md). 대화는 이 화면의 상태에만 있고 서버에 저장하지 않는다(새로 고치면 사라진다).
@@ -151,7 +151,7 @@ function Conversation() {
       const data = (await response.json().catch(() => null)) as ChatResponse | null;
       if (data?.ok) {
         const proposal = data.todos.length > 0 || data.events.length > 0 ? { todos: data.todos, events: data.events } : undefined;
-        setMessages((current) => [...current, { id: nextId.current++, role: "assistant", text: data.reply, proposal, applied: proposal ? { state: "idle" } : undefined }]);
+        setMessages((current) => [...current, { id: nextId.current++, role: "assistant", text: data.reply, proposal, applied: proposal ? { state: "idle" } : undefined, tooFar: data.tooFar }]);
       } else if (data && typeof data.error === "string") {
         const failed = errorMessage(data);
         addError(failed.text, data.code, failed.canRetry);
@@ -328,6 +328,12 @@ function Bubble({ message, onApplied, onRetry }: { message: Message; onApplied: 
         >
           {message.text}
         </p>
+        {/* 10년이 넘는 날짜라 뺀 것이 있으면 조용히 넘어가지 않고 알린다(2026-11-19). */}
+        {message.tooFar ? (
+          <p role="status" className="max-w-[92%] px-1 text-xs leading-relaxed text-muted">
+            {t("tooFar", { count: message.tooFar })}
+          </p>
+        ) : null}
         {message.isError && (message.code || onRetry) && (
           <div className="flex flex-wrap items-center gap-2 px-1">
             {onRetry && (
