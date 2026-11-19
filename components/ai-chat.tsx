@@ -21,7 +21,7 @@ type Message = { id: number; role: "user" | "assistant"; text: string; proposal?
  * AI가 제안한 할 일·일정은 미리보기로 보이고, 사용자가 골라서 "모도리에 넣기"를 눌러야 저장된다.
  * 동의하지 않은 사람에게는 무엇이 어디로 전송되는지 먼저 보이고, 동의해야 대화창이 열린다.
  */
-export function AiChat({ consented, configured }: { consented: boolean; configured: boolean }) {
+export function AiChat({ consented, reconsent, configured }: { consented: boolean; reconsent: boolean; configured: boolean }) {
   const t = useT(aichat);
   if (!configured) return <p role="note" className="rounded-2xl bg-surface p-5 text-sm leading-relaxed text-muted">{t("notConfigured")}</p>;
   return (
@@ -34,12 +34,13 @@ export function AiChat({ consented, configured }: { consented: boolean; configur
         </svg>
         <span>{t("disclaimer")}</span>
       </p>
-      {consented ? <Conversation /> : <Consent />}
+      {consented ? <Conversation /> : <Consent reconsent={reconsent} />}
     </div>
   );
 }
 
-function Consent() {
+/** `reconsent`는 받는 곳이 바뀌기 전(Google) 문구에 동의했던 사람이다(lib/ai/consent.ts). 무엇이 바뀌었는지 먼저 알리고 다시 동의를 받는다. */
+function Consent({ reconsent }: { reconsent: boolean }) {
   const t = useT(aichat);
   const router = useRouter();
   const [checked, setChecked] = useState(false);
@@ -54,6 +55,12 @@ function Consent() {
 
   return (
     <section aria-labelledby="ai-consent-title" className="flex flex-col gap-4 rounded-2xl bg-surface p-5">
+      {reconsent && (
+        <div role="note" className="flex flex-col gap-1 rounded-xl bg-brand-subtle p-3.5">
+          <p className="text-sm font-bold">{t("reconsentTitle")}</p>
+          <p className="text-sm leading-relaxed">{t("reconsentBody")}</p>
+        </div>
+      )}
       <h2 id="ai-consent-title" className="text-base font-bold">
         {t("consentTitle")}
       </h2>

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
+import { AI_CONSENT_VALID_FROM } from "@/lib/ai/consent";
 import { MCP_LIMITS } from "@/lib/mcp/inputs";
 import { type McpContext } from "@/lib/mcp/shared";
 import { createEvents, createTodos, undoBatch } from "@/lib/mcp/tools";
@@ -17,8 +18,11 @@ import { requireUser } from "@/lib/session";
  */
 export async function acceptAiChatConsent(): Promise<void> {
   const user = await requireUser();
-  // 이미 동의한 사람의 시각은 덮어쓰지 않는다.
-  await prisma.user.updateMany({ where: { id: user.id, aiChatConsentAt: null }, data: { aiChatConsentAt: new Date() } });
+  // 지금 문구에 이미 동의한 사람의 시각은 덮어쓰지 않는다. 받는 곳이 바뀌기 전(AI_CONSENT_VALID_FROM 전)의 동의는 새로 받는다.
+  await prisma.user.updateMany({
+    where: { id: user.id, OR: [{ aiChatConsentAt: null }, { aiChatConsentAt: { lt: AI_CONSENT_VALID_FROM } }] },
+    data: { aiChatConsentAt: new Date() },
+  });
   revalidatePath("/ai");
 }
 

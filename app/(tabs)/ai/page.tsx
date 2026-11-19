@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 
 import { AiChat } from "@/components/ai-chat";
 import { BackLink } from "@/components/back-link";
+import { aiConsentState } from "@/lib/ai/consent";
 import { isAiConfigured } from "@/lib/ai/llm";
 import { aichat } from "@/lib/i18n/messages/aichat";
 import { getT } from "@/lib/i18n/server";
@@ -20,6 +21,8 @@ export default async function AiPage() {
   const user = await requireUser();
   const t = await getT(aichat);
   const row = await prisma.user.findUnique({ where: { id: user.id }, select: { aiChatConsentAt: true } });
+  // 옛 문구(받는 곳이 Google이던 때)에 동의한 사람은 "다시 동의"로 안내한다(lib/ai/consent.ts).
+  const consent = aiConsentState(row?.aiChatConsentAt);
 
   return (
     <div className="flex flex-col gap-5">
@@ -27,7 +30,7 @@ export default async function AiPage() {
         <BackLink href="/" label={t("toFeed")} />
         <h1 className="text-2xl font-bold">{t("heading")}</h1>
       </header>
-      <AiChat consented={row?.aiChatConsentAt != null} configured={isAiConfigured()} />
+      <AiChat consented={consent === "valid"} reconsent={consent === "stale"} configured={isAiConfigured()} />
     </div>
   );
 }
