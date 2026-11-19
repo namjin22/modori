@@ -4,6 +4,7 @@ import { HomeView, type HomeData } from "@/components/home-view";
 import { isAiConfigured } from "@/lib/ai/llm";
 import { diaryExcerpt } from "@/lib/diary";
 import { avatarUrl } from "@/lib/avatar";
+import { toGoalView } from "@/lib/goals";
 import {
   daysBetween,
   endOfMonthKST,
@@ -96,7 +97,7 @@ export default async function FeedPage({
   // 이 날짜를 여는 순간 루틴 할 일이 없으면 만든다. 미래 날짜에는 만들지 않는다.
   await ensureRoutineTodos(user, date);
 
-  const [todos, categories, routines, events, upcoming, eventRoutines, eventSkips, diaryRows] = await Promise.all([
+  const [todos, categories, routines, events, upcoming, eventRoutines, eventSkips, diaryRows, goalRows] = await Promise.all([
     prisma.todo.findMany({
       where: { userId: user.id, date: { gte: from, lte: to } },
       orderBy: { order: "asc" },
@@ -153,6 +154,19 @@ export default async function FeedPage({
       where: { userId: user.id, date: { gte: from, lte: to } },
       select: { date: true, content: true, mood: true, isPublic: true },
     }),
+    // 홈 위쪽 목표 칸(2026-11-19). 날짜와 상관없이 내 목표 전부(상한 20개)와 그 세부 목표.
+    prisma.goal.findMany({
+      where: { userId: user.id, parentId: null },
+      orderBy: { createdAt: "asc" },
+      select: {
+        id: true,
+        title: true,
+        dueDate: true,
+        doneAt: true,
+        isPublic: true,
+        children: { orderBy: { createdAt: "asc" }, select: { id: true, title: true, doneAt: true } },
+      },
+    }),
   ]);
 
   const data: HomeData = {
@@ -178,6 +192,7 @@ export default async function FeedPage({
     upcoming,
     tour,
     aiReady: isAiConfigured(),
+    goals: goalRows.map(toGoalView),
     diaries: diaryRows.map((row) => ({ date: formatKST(row.date), mood: row.mood, excerpt: diaryExcerpt(row.content, 120), isPublic: row.isPublic })),
   };
 

@@ -18,6 +18,7 @@ import { Avatar } from "@/components/avatar";
 import { BlockedProfile } from "@/components/blocked-profile";
 import { FriendView, type FriendData } from "@/components/friend-view";
 import { expandEventRoutines } from "@/lib/event-routine";
+import { toGoalView } from "@/lib/goals";
 import { SafetyMenu } from "@/components/safety-menu";
 import { BackLink } from "@/components/back-link";
 import { LockedProfile } from "@/components/locked-profile";
@@ -138,7 +139,7 @@ export default async function FriendDayPage({
   const to = daysBetween(monthEnd, date) > 0 ? date : monthEnd;
   const basePath = `/feed/u/${friend.id}`;
 
-  const [todos, events, eventRoutines, eventSkips] = await Promise.all([
+  const [todos, events, eventRoutines, eventSkips, goalRows] = await Promise.all([
     prisma.todo.findMany({
       where: { category: { isPublic: true }, userId: friend.id, date: { gte: from, lte: to } },
       orderBy: { order: "asc" },
@@ -173,6 +174,19 @@ export default async function FriendDayPage({
       where: { date: { gte: from, lte: to }, eventRoutine: { userId: friend.id, isPublic: true } },
       select: { eventRoutineId: true, date: true },
     }),
+    // 친구가 "비공개"를 켜지 않은 목표만(2026-11-19). 세부 목표는 상위 목표를 따라 함께 나간다.
+    prisma.goal.findMany({
+      where: { userId: friend.id, parentId: null, isPublic: true },
+      orderBy: { createdAt: "asc" },
+      select: {
+        id: true,
+        title: true,
+        dueDate: true,
+        doneAt: true,
+        isPublic: true,
+        children: { orderBy: { createdAt: "asc" }, select: { id: true, title: true, doneAt: true } },
+      },
+    }),
   ]);
 
   const data: FriendData = {
@@ -193,6 +207,7 @@ export default async function FriendDayPage({
       ...events.map(({ memo, memoPublic, ...event }) => ({ ...event, memo: memoPublic ? memo : null })),
       ...expandEventRoutines(eventRoutines, eventSkips, from, to, locale).map((event) => ({ ...event, memo: null })),
     ],
+    goals: goalRows.map(toGoalView),
   };
 
   return (

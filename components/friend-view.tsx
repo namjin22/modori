@@ -13,8 +13,10 @@ import { SwapIn } from "@/components/swap-in";
 import { spreadEvents } from "@/lib/calendar-events";
 import { addDays, endOfMonthKST, formatKST, parseKSTDate, parseKSTMonth, weekdayKST } from "@/lib/date";
 import { describeEventWhen } from "@/lib/event-time";
+import { dueLabel, type GoalView, goalProgress, sortGoals } from "@/lib/goals";
 import type { Locale } from "@/lib/i18n";
 import { dayHeading } from "@/lib/i18n/format";
+import { goals as goalMessages } from "@/lib/i18n/messages/goals";
 import { social } from "@/lib/i18n/messages/social";
 import { summarizeByDate } from "@/lib/day-summary";
 import { groupByCategory } from "@/lib/group-by-category";
@@ -57,6 +59,8 @@ export type FriendData = {
   to: string;
   todos: FriendTodo[];
   events: FriendEvent[];
+  // 친구가 공개로 둔 목표(와 세부 목표). 날짜와 상관없어 달·날짜를 넘겨도 그대로다.
+  goals: GoalView[];
 };
 
 function formatHeading(locale: Locale, key: string): string {
@@ -142,6 +146,8 @@ export function FriendView({ profile, data }: { profile: ReactNode; data: Friend
           </Link>
         )}
 
+        {data.goals.length > 0 && <FriendGoals goals={data.goals} today={data.today} />}
+
         <SwapIn swapKey={selected} className="flex flex-col gap-6">
           {dayEvents.length > 0 && <FriendEvents events={dayEvents} />}
           {todos.length === 0 ? (
@@ -171,6 +177,80 @@ export function FriendView({ profile, data }: { profile: ReactNode; data: Friend
         </SwapIn>
       </div>
     </div>
+  );
+}
+
+/** 친구가 공개로 둔 목표. 보기만 한다(체크·고치기는 친구 화면에서 하지 않는다). 세부 목표가 있으면 눌러서 펼친다. */
+function FriendGoals({ goals, today }: { goals: GoalView[]; today: string }) {
+  const t = useT(goalMessages);
+  return (
+    <section aria-label={t("friendGoals")} className="flex flex-col gap-2">
+      <p className="text-sm font-semibold">{t("friendGoals")}</p>
+      <ul className="flex flex-col gap-2">
+        {sortGoals(goals).map((goal) => {
+          const progress = goalProgress(goal);
+          const due = goal.dueDate ? dueLabel(goal.dueDate, today) : null;
+          const head = (
+            <span className="flex min-w-0 flex-col gap-2">
+              <span className="flex min-w-0 items-center gap-2">
+                <span className={`min-w-0 flex-1 truncate font-medium ${progress.complete ? "text-muted line-through" : ""}`}>{goal.title}</span>
+                {progress.complete ? (
+                  <span className="shrink-0 rounded-full bg-brand px-2 py-0.5 text-[11px] font-bold text-brand-contrast">{t("complete")}</span>
+                ) : (
+                  due && (
+                    <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-bold ${due.soon ? "bg-brand text-brand-contrast" : "bg-surface-hover text-muted"}`}>
+                      {due.text}
+                    </span>
+                  )
+                )}
+              </span>
+              {progress.hasChildren && (
+                <span className="flex items-center gap-2">
+                  <span
+                    role="progressbar"
+                    aria-valuemin={0}
+                    aria-valuemax={progress.total}
+                    aria-valuenow={progress.done}
+                    aria-label={t("progressLabel", { total: progress.total, done: progress.done })}
+                    className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-surface-hover"
+                  >
+                    <span className="block h-full rounded-full bg-brand" style={{ width: `${Math.round((progress.done / progress.total) * 100)}%` }} />
+                  </span>
+                  <span className="shrink-0 text-xs tabular-nums text-muted">
+                    {progress.done}/{progress.total}
+                  </span>
+                </span>
+              )}
+            </span>
+          );
+          return (
+            <li key={goal.id} className="rounded-2xl bg-surface">
+              {goal.children.length > 0 ? (
+                <details>
+                  <summary className="cursor-pointer list-none px-4 py-3 [&::-webkit-details-marker]:hidden">{head}</summary>
+                  <ul className="flex flex-col gap-1.5 border-t border-border px-4 py-3">
+                    {goal.children.map((child) => (
+                      <li key={child.id} className="flex items-center gap-2 text-sm">
+                        <span aria-hidden className={`flex size-4 shrink-0 items-center justify-center rounded-full border-2 ${child.done ? "border-brand bg-brand text-brand-contrast" : "border-border"}`}>
+                          {child.done && (
+                            <svg width={10} height={10} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={4} strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M5 12.5l4.5 4.5L19 7.5" />
+                            </svg>
+                          )}
+                        </span>
+                        <span className={`min-w-0 break-words ${child.done ? "text-muted line-through" : ""}`}>{child.title}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </details>
+              ) : (
+                <div className="px-4 py-3">{head}</div>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+    </section>
   );
 }
 

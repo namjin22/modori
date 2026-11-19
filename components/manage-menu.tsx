@@ -6,9 +6,13 @@ import { useEffect, useRef, useState } from "react";
 import { useT } from "@/components/locale-provider";
 import { todos as todoMessages } from "@/lib/i18n/messages/todos";
 
+/** 홈의 목표 칸이 들으면 만들기 칸을 열고 그곳으로 내려간다(components/goal-section.tsx). */
+export const NEW_GOAL_EVENT = "modori:new-goal";
+
 /**
- * 카테고리·루틴으로 가는 메뉴(2026-10-19 요청). 버튼 하나를 누르면 항목이 튀어나온다. 예전에는 알약 버튼이 따로 늘어서 있었다.
+ * 카테고리·목표·루틴으로 가는 메뉴(2026-10-19 요청). 버튼 하나를 누르면 항목이 튀어나온다. 예전에는 알약 버튼이 따로 늘어서 있었다.
  * 일정 항목은 뺐다(2026-11-19 요청): 홈의 일정 영역에서 바로 "+ 추가"로 만들 수 있어서 메뉴에 둘 이유가 없다.
+ * 목표는 다른 화면으로 가지 않고 홈 위쪽 목표 칸의 만들기 칸을 연다.
  */
 export function ManageMenu() {
   const t = useT(todoMessages);
@@ -63,12 +67,25 @@ export function ManageMenu() {
             <Glyph>🏷️</Glyph>
             {t("categories")}
           </Link>
+          <button
+            type="button"
+            role="menuitem"
+            className={item}
+            style={{ animationDelay: "120ms" }}
+            onClick={() => {
+              setOpen(false);
+              window.dispatchEvent(new Event(NEW_GOAL_EVENT));
+            }}
+          >
+            <Glyph>🎯</Glyph>
+            {t("goals")}
+          </button>
           <Link
             prefetch={false}
             href="/routines"
             role="menuitem"
             className={item}
-            style={{ animationDelay: "120ms" }}
+            style={{ animationDelay: "180ms" }}
             onClick={() => setOpen(false)}
           >
             <Glyph>🔁</Glyph>
