@@ -6,12 +6,9 @@ import { useEffect, useRef, useState } from "react";
 import { useT } from "@/components/locale-provider";
 import { todos as todoMessages } from "@/lib/i18n/messages/todos";
 
-/** 홈의 일정 칸이 들으면 만들기 칸을 연다(components/event-section.tsx). */
-export const NEW_EVENT_EVENT = "modori:new-event";
-
 /**
- * 카테고리·일정·루틴으로 가는 메뉴(2026-10-19 요청). 버튼 하나를 누르면 세 가지가 튀어나온다.
- * 예전에는 알약 버튼이 따로 늘어서 있었다. 일정은 다른 화면으로 가지 않고 이 화면의 일정 만들기 칸을 연다.
+ * 카테고리·루틴으로 가는 메뉴(2026-10-19 요청). 버튼 하나를 누르면 항목이 튀어나온다. 예전에는 알약 버튼이 따로 늘어서 있었다.
+ * 일정 항목은 뺐다(2026-11-19 요청): 홈의 일정 영역에서 바로 "+ 추가"로 만들 수 있어서 메뉴에 둘 이유가 없다.
  */
 export function ManageMenu() {
   const t = useT(todoMessages);
@@ -66,25 +63,12 @@ export function ManageMenu() {
             <Glyph>🏷️</Glyph>
             {t("categories")}
           </Link>
-          <button
-            type="button"
-            role="menuitem"
-            className={item}
-            style={{ animationDelay: "120ms" }}
-            onClick={() => {
-              setOpen(false);
-              window.dispatchEvent(new Event(NEW_EVENT_EVENT));
-            }}
-          >
-            <Glyph>📅</Glyph>
-            {t("events")}
-          </button>
           <Link
             prefetch={false}
             href="/routines"
             role="menuitem"
             className={item}
-            style={{ animationDelay: "180ms" }}
+            style={{ animationDelay: "120ms" }}
             onClick={() => setOpen(false)}
           >
             <Glyph>🔁</Glyph>

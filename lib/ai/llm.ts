@@ -4,6 +4,9 @@
  *   AI_API_BASE  `/chat/completions` 앞까지의 주소. Cloudflare: https://api.cloudflare.com/client/v4/accounts/<계정 ID>/ai/v1
  *   AI_API_KEY   그 서비스의 API 토큰(Authorization: Bearer). 서버 환경변수에만 있고 브라우저로 나가지 않는다
  *   AI_MODEL     모델 이름(선택, 기본 DEFAULT_MODEL)
+ *   AI_REASONING_EFFORT  생각하는 정도(선택, low·medium·high). 비우면 보내지 않아 모델 기본값(gpt-oss는 medium)을 쓴다. 줄이면 빨라진다.
+ *                        Cloudflare 모델 문서(2026-11-19)는 단계만 밝히고 요청 칸 이름을 적지 않았다. OpenAI 형식 이름(reasoning_effort)을 가정했고
+ *                        **실제로 먹히는지 확인하지 못했다**: 400이 나오면 비운다.
  * 시험은 AI_API_BASE를 가짜 서버로 돌린다. 보낸 말·받은 답은 로그에 남기지 않는다(상태 숫자와 종류만).
  *
  * Cloudflare 문서(2026-11-19 확인)가 밝히는 것은 주소·Authorization 머리글·model·messages뿐이다. **밝히지 않는 것**: max_tokens, response_format, 응답 모양, usage.
@@ -42,8 +45,10 @@ export async function askModel(input: { system: string; messages: AiMessage[] })
   const base = process.env.AI_API_BASE?.replace(/\/+$/, "");
   if (!key || !base) return { ok: false, kind: "rejected", code: "no-key" };
   const model = process.env.AI_MODEL || DEFAULT_MODEL;
+  const effort = reasoningEffort();
 
   let response: Response;
+  const started = Date.now();
   try {
     response = await fetch(`${base}/chat/completions`, {
       method: "POST",
@@ -52,6 +57,7 @@ export async function askModel(input: { system: string; messages: AiMessage[] })
         model,
         messages: [{ role: "system", content: input.system }, ...input.messages.map((message) => ({ role: message.role, content: message.text }))],
         max_tokens: MAX_OUTPUT_TOKENS,
+        ...(effort ? { reasoning_effort: effort } : {}),
       }),
       signal: AbortSignal.timeout(TIMEOUT_MS),
       cache: "no-store",
@@ -81,6 +87,8 @@ export async function askModel(input: { system: string; messages: AiMessage[] })
     console.error("[ai] AI 서비스 응답이 JSON이 아니다.", error instanceof Error ? error.name : error);
     return { ok: false, kind: "unavailable", code: "response-not-json" };
   }
+  // 느린지 숫자로 보려는 것이다(요청을 보내고 답 본문을 다 받기까지, 글은 남기지 않는다).
+  console.info(`[ai] 걸린 시간 ${Date.now() - started}ms (${model}${effort ? `, 생각 ${effort}` : ""})`);
   const choice = data.choices?.[0];
   if (!choice) {
     console.error("[ai] AI 서비스 응답에 choices가 없다.", Object.keys(data).slice(0, 10).join(","));
@@ -99,6 +107,12 @@ export async function askModel(input: { system: string; messages: AiMessage[] })
     return finish === "content_filter" ? { ok: false, kind: "blocked", code: "blocked-content-filter" } : { ok: false, kind: "unavailable", code: `empty-${finish ?? "none"}` };
   }
   return { ok: true, text };
+}
+
+/** AI_REASONING_EFFORT가 low·medium·high 중 하나일 때만 값을 돌려준다(그 밖의 값은 보내지 않는다). */
+function reasoningEffort(): "low" | "medium" | "high" | undefined {
+  const value = process.env.AI_REASONING_EFFORT?.trim().toLowerCase();
+  return value === "low" || value === "medium" || value === "high" ? value : undefined;
 }
 
 /** 화면에 보여도 되는 짧은 영문 낱말(예: length, content_filter)만 통과시킨다. */
