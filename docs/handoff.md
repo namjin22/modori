@@ -2102,3 +2102,11 @@ VM에 시험 DB(사용자 1000, 할 일 108만, 반응 24만, 280MB)를 만들�
 - **확인한 것**: `prisma validate`·`generate`, `tsc` 통과, 린트 오류 0, 단위 592개 ×3 시간대. **하지 않은 것**: 시험 DB에 마이그레이션 적용(그 DB가 시험용임을 이 환경에서 확인할 수 없어 일부러 안 했다), 로컬 E2E(CI가 빈 DB에서 처음부터 적용하며 돈다).
 - **다음 할 일**: PR B의 CI가 통과하면 병합 → 자동 배포 → 건강 확인. 그 뒤 화면이 바뀐 릴리스 스크린샷(`npm run screenshots`, 사용자의 미커밋 `tests/screenshots/*`는 건드리지 않는다). 운영자에게 물을 것: 세부 할 일을 AI 도우미 대화로 짜 주는 연동을 할지(규칙 7·동의·방침), 튜토리얼에 소개를 넣을지, 루틴 할 일에도 세부 할 일을 허용할지(지금은 못 단다).
 - **주의**: 한 번 `.env`를 읽는 명령(`grep` 대상)을 잘못 만들었다가 도구가 막아 실행되지 않았다. 읽은 것은 없다.
+
+## 2026-11-20(이어서 12) — AI 연결(MCP)에 세부 할 일
+
+- **브랜치**: `feat/mcp-sub-todos`(`chore/drop-goals` 위에 쌓음. PR #284가 먼저 병합돼야 깔끔하다). 내용·대가는 `docs/decisions.md` 2026-11-20 "AI 연결(MCP)에 세부 할 일을 더한다", 도구 설명은 `docs/mcp.md`.
+- **바뀐 것**: `create_todos`의 `parentId`, `list_todos`의 `parentId`, `move_todos`·`update_todos`·`delete_todos`·`undo_batch`(생성 되돌리기·삭제 되돌리기)가 세부 할 일을 앱과 같은 규칙으로 다룬다(`lib/mcp/tools.ts`, `edit-tools.ts`, `undo.ts`, `snapshot.ts`, `inputs.ts`).
+- **확인한 것**: `tsc`, 린트 오류 0, 새 단위·E2E 통과, 기존 MCP 단위 시험 통과. 기존 MCP E2E(`mcp.spec.ts`·`mcp-full.spec.ts`) 34개도 통과했다.
+- **못 한 것**: 실제 Claude 같은 MCP 클라이언트로 붙여 본 것(JSON-RPC 시험만 했다). 친구가 쓰던 환경에서 `create_todos`의 `parentId`가 보이는지는 배포 뒤 확인이 필요하다.
+- **알아 둘 것**: 큰 할 일과 세부 할 일을 한 번에 못 만든다(두 번 호출). 친구 읽기(`list_friend_todos`)는 세부 할 일을 평평하게 내보낸다. AI 도우미(`/ai`)는 세부 할 일을 만들지 않는다(운영자에게 묻기).

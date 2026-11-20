@@ -24,7 +24,7 @@ import {
 import { snapshotSchema } from "@/lib/mcp/snapshot";
 import { restoreSnapshot } from "@/lib/mcp/undo";
 import { prisma } from "@/lib/prisma";
-import { settleSubTodos } from "@/lib/sub-todos";
+import { canHaveSubTodos, settleSubTodos } from "@/lib/sub-todos";
 
 /**
  * MCP 핵심 도구(읽기, 만들기, 끝내기, 옮기기, 되돌리기)가 하는 일. 서버 액션(app/(tabs)/actions.ts, events/actions.ts)과 같은 규칙(소유자 확인, 하루 상한,
@@ -36,6 +36,7 @@ import { settleSubTodos } from "@/lib/sub-todos";
 
 /** 한 번에 완료해도 친구에게 보내는 "끝냈어요" 알림은 이만큼까지만 보낸다. AI가 수십 개를 한꺼번에 끝내도 친구 폰이 울리지 않게 한다. */
 const MAX_DONE_NOTIFICATIONS = 5;
+const SUB_TODO_MOVE_NOTE = "Sub-todos cannot be moved on their own. Move the parent todo instead: its unfinished sub-todos go with it, finished ones stay on their day.";
 
 export async function getOverview(ctx: McpContext): Promise<ToolResult> {
   const categories = await prisma.category.findMany({
@@ -79,7 +80,7 @@ export async function listTodos(ctx: McpContext, input: { from: string; to?: str
     where: { userId: ctx.userId, date: { gte: from, lte: to } },
     orderBy: [{ date: "asc" }, { order: "asc" }],
     take: MCP_LIMITS.listRows + 1,
-    select: { id: true, date: true, content: true, done: true, memo: true, category: { select: { id: true, name: true } } },
+    select: { id: true, date: true, content: true, done: true, memo: true, parentId: true, category: { select: { id: true, name: true } } },
   });
   const truncated = rows.length > MCP_LIMITS.listRows;
   return ok({
@@ -93,12 +94,14 @@ export async function listTodos(ctx: McpContext, input: { from: string; to?: str
       content: todo.content,
       done: todo.done,
       category: todo.category ? { id: todo.category.id, name: todo.category.name } : null,
+      // 세부 할 일이면 그 밑에 달린 큰 할 일의 id(2026-11-20).
+      ...(todo.parentId ? { parentId: todo.parentId } : {}),
       ...(input.includeMemo && todo.memo ? { memo: todo.memo } : {}),
     })),
   });
 }
 
-type NewTodo = { content: string; date: string; category?: string; memo?: string };
+type NewTodo = { content: string; date?: string; category?: string; memo?: string; parentId?: string };
 
 export async function createTodos(ctx: McpContext, input: { todos: NewTodo[] }): Promise<ToolResult> {
   const limited = writeLimited(ctx);
@@ -112,12 +115,33 @@ export async function createTodos(ctx: McpContext, input: { todos: NewTodo[] }):
   const byId = new Map(categories.map((category) => [category.id, category]));
   const byName = new Map(categories.map((category) => [category.name.trim().toLowerCase(), category]));
 
+  // 세부 할 일(2026-11-20): 큰 할 일은 내 것이어야 하고, 세부 할 일이나 루틴 할 일에는 달 수 없다(서버 액션 addTodo와 같다).
+  const parentIds = [...new Set(input.todos.flatMap((item) => (item.parentId ? [item.parentId] : [])))];
+  const parents = new Map(
+    (await prisma.todo.findMany({ where: { id: { in: parentIds }, userId: ctx.userId }, select: { id: true, date: true, categoryId: true, parentId: true, routineId: true } })).map((row) => [row.id, row]),
+  );
+
   const problems: string[] = [];
-  const rows: { content: string; date: Date; categoryId: string | null; memo: string | null }[] = [];
+  const rows: { content: string; date: Date; categoryId: string | null; memo: string | null; parentId: string | null }[] = [];
   input.todos.forEach((item, index) => {
-    const date = parseDay(item.date);
+    const parent = item.parentId ? parents.get(item.parentId) : undefined;
+    if (item.parentId) {
+      if (!parent) {
+        problems.push(`todos[${index}].parentId "${item.parentId}" was not found.`);
+        return;
+      }
+      if (!canHaveSubTodos(parent)) {
+        problems.push(`todos[${index}].parentId "${item.parentId}" cannot have sub-todos: it is already a sub-todo or was made by a routine. Only two levels are allowed.`);
+        return;
+      }
+    }
+    const date = parent ? parent.date : parseDay(item.date ?? "");
     if (!date) {
       problems.push(`todos[${index}].date is not a real date (YYYY-MM-DD).`);
+      return;
+    }
+    if (parent && item.date !== undefined && parseDay(item.date)?.getTime() !== parent.date.getTime()) {
+      problems.push(`todos[${index}].date must equal the parent's date (${dayText(parent.date)}) or be omitted: a sub-todo stays on the same day as its parent.`);
       return;
     }
     if (Math.abs(daysBetween(today, date)) > MAX_DAYS_FROM_TODAY) {
@@ -133,7 +157,14 @@ export async function createTodos(ctx: McpContext, input: { todos: NewTodo[] }):
       }
       categoryId = found.id;
     }
-    rows.push({ content: item.content, date, categoryId, memo: item.memo ? item.memo : null });
+    if (parent) {
+      if (item.category && categoryId !== parent.categoryId) {
+        problems.push(`todos[${index}].category must be the parent's category or be omitted: a sub-todo always uses its parent's category.`);
+        return;
+      }
+      categoryId = parent.categoryId;
+    }
+    rows.push({ content: item.content, date, categoryId, memo: item.memo ? item.memo : null, parentId: parent?.id ?? null });
   });
   if (problems.length > 0) return fail("Nothing was created.", { problems });
 
@@ -158,7 +189,7 @@ export async function createTodos(ctx: McpContext, input: { todos: NewTodo[] }):
 
   const nextOrder = new Map(days.map((day) => [day, (have.get(day)?._max.order ?? -1) + 1]));
   const { made, batch } = await prisma.$transaction(async (tx) => {
-    const made: { id: string; date: Date; content: string }[] = [];
+    const made: { id: string; date: Date; content: string; parentId: string | null }[] = [];
     for (const row of rows) {
       const day = dayText(row.date);
       const order = nextOrder.get(day) ?? 0;
@@ -166,8 +197,8 @@ export async function createTodos(ctx: McpContext, input: { todos: NewTodo[] }):
       made.push(
         // 메모는 AI가 쓴 것이라 팔로워에게 보이지 않게 둔다(memoPublic=false). 사용자가 앱에서 켜면 보인다.
         await tx.todo.create({
-          data: { userId: ctx.userId, content: row.content, date: row.date, categoryId: row.categoryId, memo: row.memo, memoPublic: false, order },
-          select: { id: true, date: true, content: true },
+          data: { userId: ctx.userId, content: row.content, date: row.date, categoryId: row.categoryId, memo: row.memo, memoPublic: false, order, ...(row.parentId && { parentId: row.parentId }) },
+          select: { id: true, date: true, content: true, parentId: true },
         }),
       );
     }
@@ -179,7 +210,7 @@ export async function createTodos(ctx: McpContext, input: { todos: NewTodo[] }):
 
   return ok({
     batchId: batch.id,
-    created: made.map((todo) => ({ id: todo.id, date: dayText(todo.date), content: todo.content })),
+    created: made.map((todo) => ({ id: todo.id, date: dayText(todo.date), content: todo.content, ...(todo.parentId ? { parentId: todo.parentId } : {}) })),
     undo: `Call undo_batch with this batchId within ${MCP_LIMITS.undoHours} hours to remove everything this call created (todos already marked done are kept).`,
   });
 }
@@ -223,16 +254,19 @@ export async function moveTodos(ctx: McpContext, input: { ids: string[]; date: s
   if (Math.abs(daysBetween(todayIn(ctx.timezone), date)) > MAX_DAYS_FROM_TODAY) return fail(`'date' must be within ${MAX_DAYS_FROM_TODAY} days of today.`);
 
   const ids = [...new Set(input.ids)];
-  const owned = await prisma.todo.findMany({ where: { id: { in: ids }, userId: ctx.userId }, select: { id: true, date: true, routineId: true } });
+  const owned = await prisma.todo.findMany({ where: { id: { in: ids }, userId: ctx.userId }, select: { id: true, date: true, routineId: true, parentId: true } });
   const ownedIds = new Set(owned.map((todo) => todo.id));
-  const moving = owned.filter((todo) => !isSameKSTDate(todo.date, date));
+  // 세부 할 일은 큰 할 일과 같은 날에 있어야 해서 따로 옮기지 못한다(서버 액션 moveTodo와 같다, 2026-11-20). 큰 할 일을 옮기면 안 끝낸 세부 할 일이 따라간다.
+  const subTodoIds = owned.filter((todo) => todo.parentId).map((todo) => todo.id);
+  const moving = owned.filter((todo) => !todo.parentId && !isSameKSTDate(todo.date, date));
   if (moving.length === 0) {
-    return ok({ moved: 0, alreadyThere: owned.length, notFound: ids.filter((id) => !ownedIds.has(id)) });
+    return ok({ moved: 0, alreadyThere: owned.length - subTodoIds.length, notFound: ids.filter((id) => !ownedIds.has(id)), ...(subTodoIds.length > 0 ? { subTodosNotMoved: subTodoIds, note: SUB_TODO_MOVE_NOTE } : {}) });
   }
 
+  const following = await prisma.todo.count({ where: { parentId: { in: moving.map((todo) => todo.id) }, userId: ctx.userId, done: false } });
   const count = await prisma.todo.count({ where: { userId: ctx.userId, date } });
-  if (count + moving.length > LIMITS.todosPerDay) {
-    return fail(`${dayText(date)} has ${count} todos; moving ${moving.length} more would exceed the limit of ${LIMITS.todosPerDay} per day.`);
+  if (count + moving.length + following > LIMITS.todosPerDay) {
+    return fail(`${dayText(date)} has ${count} todos; moving ${moving.length} more${following > 0 ? ` (plus ${following} unfinished sub-todos that go with them)` : ""} would exceed the limit of ${LIMITS.todosPerDay} per day.`);
   }
   const last = await prisma.todo.findFirst({ where: { userId: ctx.userId, date }, orderBy: { order: "desc" }, select: { order: true } });
   let order = (last?.order ?? -1) + 1;
@@ -247,7 +281,14 @@ export async function moveTodos(ctx: McpContext, input: { ids: string[]; date: s
   await settleSubTodos(ctx.userId, moving.map((todo) => todo.id));
   revalidatePath("/");
 
-  return ok({ moved: moving.length, to: dayText(date), alreadyThere: owned.length - moving.length, notFound: ids.filter((id) => !ownedIds.has(id)) });
+  return ok({
+    moved: moving.length,
+    to: dayText(date),
+    alreadyThere: owned.length - subTodoIds.length - moving.length,
+    notFound: ids.filter((id) => !ownedIds.has(id)),
+    ...(following > 0 ? { subTodosMovedAlong: following } : {}),
+    ...(subTodoIds.length > 0 ? { subTodosNotMoved: subTodoIds, note: SUB_TODO_MOVE_NOTE } : {}),
+  });
 }
 
 export async function listEvents(ctx: McpContext, input: { from: string; to?: string }): Promise<ToolResult> {
@@ -401,13 +442,16 @@ export async function undoBatch(ctx: McpContext, input: { batchId: string }): Pr
     return restored;
   }
 
-  // 사용자가 그 사이 끝낸 할 일은 사용자가 손댄 것이라 지우지 않는다.
+  // 사용자가 그 사이 끝낸 할 일은 사용자가 손댄 것이라 지우지 않는다. 지우는 큰 할 일 밑에 아직 안 끝낸 세부 할 일이 있으면(나중에 달았을 수 있다)
+  // 앱에서 큰 할 일을 지울 때처럼 함께 지운다. 끝낸 세부 할 일은 기록이라 남는다(큰 할 일과의 연결만 끊긴다).
   const [todos, events] = await prisma.$transaction([
-    prisma.todo.deleteMany({ where: { id: { in: batch.todoIds }, userId: ctx.userId, done: false } }),
+    prisma.todo.deleteMany({
+      where: { userId: ctx.userId, OR: [{ id: { in: batch.todoIds }, done: false }, { done: false, parent: { id: { in: batch.todoIds }, done: false } }] },
+    }),
     prisma.event.deleteMany({ where: { id: { in: batch.eventIds }, userId: ctx.userId } }),
     prisma.mcpBatch.delete({ where: { id: batch.id } }),
   ]);
   revalidatePath("/");
 
-  return ok({ deletedTodos: todos.count, deletedEvents: events.count, keptBecauseDone: batch.todoIds.length - todos.count });
+  return ok({ deletedTodos: todos.count, deletedEvents: events.count, keptBecauseDone: Math.max(0, batch.todoIds.length - todos.count) });
 }
