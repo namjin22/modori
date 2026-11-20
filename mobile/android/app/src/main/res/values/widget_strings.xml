@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 홈 화면 위젯 글. 기본은 한국어, 영어·일본어는 values-en·values-ja. 기기 언어를 따른다(마이페이지에서 고른 화면 언어가 아니다). -->
+<resources>
+    <string name="widget_name">오늘 남은 할 일</string>
+    <string name="widget_description">오늘 남은 할 일을 홈 화면에서 봐요</string>
+    <string name="widget_title">오늘 남은 할 일 %1$d개</string>
+    <string name="widget_none">오늘 남은 할 일이 없어요</string>
+    <string name="widget_more">외 %1$d개</string>
+    <string name="widget_loading">불러오는 중이에요</string>
+    <string name="widget_need_login">앱을 열어 로그인해 주세요</string>
+    <string name="widget_error">할 일을 불러오지 못했어요. 새로 고침을 눌러 다시 해 보세요</string>
+    <string name="widget_stale">새로 못 받음</string>
+    <string name="widget_refresh">새로 고침</string>
+</resources>

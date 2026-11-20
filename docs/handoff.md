@@ -2138,3 +2138,12 @@ VM에 시험 DB(사용자 1000, 할 일 108만, 반응 24만, 280MB)를 만들�
 - **바뀐 것**: `lib/ai-reference.ts`(글 만들기), `components/copy-for-ai.tsx`(단추. 복사하면 단추 글자가 잠깐 "복사했어요"로 바뀌고, 막히면 오류와 글을 보여 준다), 할 일 창(`components/todo-row.tsx`, 세부 할 일 창 포함)과 일정 고치기 창(`components/event-section.tsx`)의 맨 밑, 문구는 `lib/i18n/messages/common.ts` 세 언어.
 - **확인한 것**: `tsc`·린트 통과, 새 단위 시험(`ai-reference`)과 `i18n` 통과, 새 E2E 4개(`copy-for-ai.spec.ts`) 통과, 기존 `memo.spec.ts`·`events.spec.ts` 통과(한 번 `memo.spec.ts`가 30초 제한에 걸렸다가 다시 돌리니 통과 — 이 PC가 느릴 때의 시간 초과로 보이지만 CI에서 다시 본다).
 - **못 한 것**: 실기기(앱 웹뷰·iOS)에서의 클립보드, 320px 폭, 릴리스 스크린샷(화면이 조금 바뀌었다. 위젯 작업 뒤에 한꺼번에 찍는다).
+
+## 2026-11-20(이어서 17) — Android 홈 화면 위젯(오늘 남은 할 일)
+
+- **병합·배포**: PR #290(AI용으로 복사)은 CI 통과 후 병합했다(6a79304). 자동 배포는 이 줄을 쓴 시점에 확인하지 못했다.
+- **브랜치**: `feat/android-widget`(PR 있음). 근거·대가·못 한 것은 `docs/decisions.md` 2026-11-20 "Android 홈 화면 위젯", 사용법은 `mobile/README.md` "홈 화면 위젯".
+- **바뀐 것**: 서버 `GET /api/widget`(`app/api/widget/route.ts`, `lib/widget.ts`), Android `ModoriWidgetProvider.java`·`widget_todos.xml` 등 리소스·`AndroidManifest.xml`의 receiver·`MainActivity.onPause`(쿠키 flush + 2초 뒤 위젯 새로 고침). 개인정보 목록·방침에 "위젯의 마지막 목록" 추가.
+- **확인한 것**: 서버 API는 `tsc`·린트·단위(`widget.test.ts` 9개)·E2E(`widget-api.spec.ts` 4개) 통과. Android는 `android` 워크플로의 `assembleDebug`가 빌드되는지만 봤다: 첫 빌드는 XML 주석의 `--`(리소스 병합), 둘째는 `MainActivity.onPause`를 `protected`로 덮어써서(`BridgeActivity.onPause`가 public) 실패했고, 고친 뒤 셋째(실행 44691607763)가 통과했다. APK 파일은 그 실행의 결과물 `modori-android-debug`다.
+- **못 한 것(중요)**: **위젯이 실제 폰에서 그려지는지, 위젯이 웹뷰 로그인 쿠키를 읽는지는 한 번도 못 봤다.** 이 PC에 Android SDK·에뮬레이터가 없다. 쿠키를 못 읽으면 위젯이 늘 "앱을 열어 로그인해 주세요"로 나온다 → 그때는 위젯용 토큰 방식으로 바꿔야 한다. iPhone·맥 위젯은 만들지 않았다(Xcode·Apple 계정).
+- **운영자 몫**: 새 APK를 `android` 워크플로(Actions → android → Run workflow, 결과물 `modori-android-debug`)로 받아 폰에 설치하고, 홈 화면을 길게 눌러 위젯 → 모도리 → "오늘 남은 할 일"을 놓아 본다. 로그인한 앱에서 할 일을 체크하고 앱을 떠난 뒤 2초 안에 위젯이 바뀌는지 본다. 스토어에 올리려면 새 AAB가 필요하다.

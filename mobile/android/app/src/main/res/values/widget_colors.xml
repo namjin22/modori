@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 위젯 색. 웹의 라이트 토큰(app/globals.css의 surface·foreground·muted)과 같다. 다크는 values-night. -->
+<resources>
+    <color name="widget_background">#FFFFFF</color>
+    <color name="widget_text">#191F28</color>
+    <color name="widget_muted">#667080</color>
+</resources>
