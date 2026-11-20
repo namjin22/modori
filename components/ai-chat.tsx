@@ -13,7 +13,7 @@ import { aichat } from "@/lib/i18n/messages/aichat";
 import type { PlanEvent, PlanTodo } from "@/lib/ai/plan";
 
 type Proposal = { todos: PlanTodo[]; events: PlanEvent[] };
-type Applied = { state: "idle" } | { state: "adding" } | { state: "added"; todos: number; events: number; batchIds: string[] } | { state: "undone" } | { state: "failed"; message: string };
+type Applied = { state: "idle" } | { state: "adding" } | { state: "added"; todos: number; subTodos: number; events: number; batchIds: string[] } | { state: "undone" } | { state: "failed"; message: string };
 type Message = { id: number; role: "user" | "assistant"; text: string; proposal?: Proposal; applied?: Applied; isError?: boolean; code?: string; canRetry?: boolean; tooFar?: number };
 
 /**
@@ -368,7 +368,8 @@ function ProposalCard({ proposal, applied, onApplied }: { proposal: Proposal; ap
     todos: proposal.todos.filter((_, index) => !off.has(`t${index}`)),
     events: proposal.events.filter((_, index) => !off.has(`e${index}`)),
   };
-  const count = picked.todos.length + picked.events.length;
+  // 세부 할 일은 큰 할 일을 고르면 같이 들어간다(따로 고르지 않는다). 개수에도 센다.
+  const count = picked.todos.reduce((sum, todo) => sum + 1 + (todo.subTodos?.length ?? 0), 0) + picked.events.length;
 
   const when = (value: string) => {
     const date = parseKSTDate(value);
@@ -393,7 +394,7 @@ function ProposalCard({ proposal, applied, onApplied }: { proposal: Proposal; ap
     startTransition(async () => {
       try {
         const result = await applyAiPlan(picked);
-        if (result.ok) onApplied({ state: "added", todos: result.todos, events: result.events, batchIds: result.batchIds });
+        if (result.ok) onApplied({ state: "added", todos: result.todos + result.subTodos, subTodos: result.subTodos, events: result.events, batchIds: result.batchIds });
         else onApplied({ state: "failed", message: result.reason === "partial" ? t("addPartial") : result.reason === "invalid" ? t("addInvalid") : t("addRejected") });
       } catch (error) {
         console.error("[ai] 제안을 저장하지 못했다.", error instanceof Error ? error.name : error);
@@ -430,6 +431,16 @@ function ProposalCard({ proposal, applied, onApplied }: { proposal: Proposal; ap
                     <span className="text-xs text-muted"> · {todo.category ?? t("uncategorized")}</span>
                   </span>
                 </label>
+                {/* 세부 할 일은 큰 할 일 밑에 들여 보인다. 따로 고르지 않고 큰 할 일과 함께 들어간다. */}
+                {todo.subTodos && todo.subTodos.length > 0 && (
+                  <ul aria-label={t("subTodosLabel")} className={`ml-2.5 flex flex-col border-l-2 border-border pb-1 pl-[1.15rem] text-sm leading-relaxed ${off.has(`t${index}`) ? "opacity-50" : ""}`}>
+                    {todo.subTodos.map((title, subIndex) => (
+                      <li key={subIndex} className="py-0.5">
+                        {title}
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </li>
             ))}
           </ul>
@@ -467,7 +478,7 @@ function ProposalCard({ proposal, applied, onApplied }: { proposal: Proposal; ap
       {applied.state === "added" && (
         <div className="flex flex-col gap-2">
           <p role="status" className="text-sm font-medium">
-            {t("added", { todos: applied.todos, events: applied.events })}
+            {applied.subTodos > 0 ? t("addedWithSubs", { todos: applied.todos, subTodos: applied.subTodos, events: applied.events }) : t("added", { todos: applied.todos, events: applied.events })}
           </p>
           <button type="button" onClick={() => undo(applied.batchIds)} disabled={pending} className="h-10 self-start rounded-xl bg-surface-hover px-4 text-sm font-semibold disabled:opacity-60">
             {t("undo")}

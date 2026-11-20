@@ -33,6 +33,17 @@ function answerFor(lastUser: string): { status: number; body: unknown } {
   if (lastUser.includes("[질문]")) return wrap({ reply: "시험이 언제인가요? 하루에 몇 시간 공부할 수 있나요?", todos: [], events: [] });
   if (lastUser.includes("[위험]")) return wrap({ reply: "이렇게 해 봐요", todos: [{ content: "3일 단식하기", date: day(1), category: null }], events: [] });
   if (lastUser.includes("[거절]")) return wrap({ reply: "그 목표는 몸에 부담이 커서 계획을 짜지 않을게요. 한 달에 2~4kg 정도로 다시 이야기해요.", declined: true, todos: [], events: [] });
+  // 세부 할 일(2026-11-20): 큰 할 일 하나에 세부 할 일 셋, 쪼갤 필요 없는 할 일 하나.
+  if (lastUser.includes("[세부]")) {
+    return wrap({
+      reply: "큰 일 밑에 쪼개 봤어요",
+      todos: [
+        { content: "포트폴리오 완성", date: day(1), category: "공부", subTodos: ["메인 페이지 디자인", "프로젝트 설명 쓰기", "배포하기"] },
+        { content: "장보기", date: day(1), category: null },
+      ],
+      events: [],
+    });
+  }
   if (lastUser.includes("[꽉참]")) return wrap({ reply: "하나 더 넣어 볼게요", todos: [{ content: "한도 넘는 할 일", date: TODAY, category: null }], events: [] });
   // 기본: 계획 제안(카테고리 "공부" 하나와 없는 카테고리 하나, 일정 하나)
   return wrap({
@@ -312,4 +323,58 @@ test("AI 서비스가 거절하면 원인 코드가 보이고(서버는 502가 �
   const direct = await page.request.post("/api/ai/chat", { data: { messages: [{ role: "user", text: "[404] 직접" }] } });
   expect(direct.status()).toBe(200);
   expect(await direct.json()).toEqual({ ok: false, error: "unavailable", code: "http-404-NOT_FOUND" });
+});
+
+test("AI가 세부 할 일까지 제안하면 미리보기에 큰 할 일 밑으로 보이고, 넣으면 같은 날·카테고리에 달리며, 되돌리면 함께 사라진다. 세부 관계는 AI에게 제목만 간다", async ({ page }) => {
+  const { user, study } = await makeUser(page, "sub");
+  // 이번 달에 이미 세부 할 일이 하나 있다: AI에게는 위 할 일의 제목만 같이 간다(메모는 가지 않는다).
+  const big = await prisma.todo.create({ data: { userId: user.id, content: "기존 큰 일", date: parseKSTDate(TODAY), categoryId: study.id, order: 0, memo: "큰일비밀메모" } });
+  await prisma.todo.create({ data: { userId: user.id, content: "기존 세부 일", date: parseKSTDate(TODAY), categoryId: study.id, order: 1, parentId: big.id, memo: "세부비밀메모" } });
+
+  await page.goto("/ai");
+  await say(page, "[세부] 포트폴리오 쪼개 줘");
+  const card = page.getByRole("region", { name: "이렇게 넣을까요?" });
+  await expect(card).toBeVisible();
+  // 고르는 칸은 큰 할 일 둘뿐이고, 세부 할 일 셋은 큰 할 일 밑에 들여 보인다.
+  await expect(card.getByRole("checkbox")).toHaveCount(2);
+  const subs = card.getByRole("list", { name: "세부 할 일" });
+  await expect(subs.getByRole("listitem")).toHaveText(["메인 페이지 디자인", "프로젝트 설명 쓰기", "배포하기"]);
+  await expect(card.getByRole("button", { name: "모도리에 넣기 (5)" })).toBeVisible();
+  expect(await prisma.todo.count({ where: { userId: user.id, content: "메인 페이지 디자인" } })).toBe(0);
+
+  const sent = seen.at(-1);
+  expect(sent?.system).toContain("기존 세부 일 [공부] (세부 할 일, 위 할 일: 기존 큰 일)");
+  expect(sent?.system).not.toContain("큰일비밀메모");
+  expect(sent?.system).not.toContain("세부비밀메모");
+  expect(sent?.system).toContain("subTodos");
+
+  await card.getByRole("button", { name: "모도리에 넣기 (5)" }).click();
+  await expect(card.getByRole("status")).toContainText("할 일 5개(세부 할 일 3개 포함), 일정 0개를 넣었어요.");
+
+  const parent = await prisma.todo.findFirstOrThrow({ where: { userId: user.id, content: "포트폴리오 완성" } });
+  const kids = await prisma.todo.findMany({ where: { userId: user.id, parentId: parent.id }, orderBy: { order: "asc" } });
+  expect(kids.map((kid) => kid.content)).toEqual(["메인 페이지 디자인", "프로젝트 설명 쓰기", "배포하기"]);
+  for (const kid of kids) {
+    expect(kid.categoryId).toBe(study.id);
+    expect(kid.date.getTime()).toBe(parent.date.getTime());
+  }
+  expect((await prisma.todo.findFirstOrThrow({ where: { userId: user.id, content: "장보기" } })).parentId).toBeNull();
+
+  // 되돌리면 큰 할 일과 세부 할 일이 함께 사라진다(처음부터 있던 두 개만 남는다).
+  await card.getByRole("button", { name: "되돌리기" }).click();
+  await expect(card.getByText("되돌렸어요.")).toBeVisible();
+  expect(await prisma.todo.count({ where: { userId: user.id } })).toBe(2);
+});
+
+test("세부 할 일까지 넣으면 하루 상한(50개)을 넘을 때는 큰 할 일도 남기지 않고 아무것도 넣지 않는다", async ({ page }) => {
+  const { user } = await makeUser(page, "subfull");
+  // 내일이 47개: 큰 할 일 둘(49개)은 들어가도 세부 할 일 셋(52개)은 안 들어간다.
+  await prisma.todo.createMany({ data: Array.from({ length: 47 }, (_, index) => ({ userId: user.id, content: `채움 ${index}`, date: parseKSTDate(day(1)), order: index })) });
+  await page.goto("/ai");
+  await say(page, "[세부] 상한 시험");
+  const card = page.getByRole("region", { name: "이렇게 넣을까요?" });
+  await card.getByRole("button", { name: "모도리에 넣기 (5)" }).click();
+  await expect(card.getByRole("alert")).toContainText("넣지 못했어요");
+  await expect.poll(() => prisma.todo.count({ where: { userId: user.id } })).toBe(47);
+  expect(await prisma.todo.count({ where: { userId: user.id, content: "포트폴리오 완성" } })).toBe(0);
 });
