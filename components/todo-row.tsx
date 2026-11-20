@@ -30,8 +30,6 @@ type Todo = {
   memoPublic?: boolean;
   // 세부 할 일이면 큰 할 일의 id(2026-11-20).
   parentId?: string | null;
-  // 루틴이 만든 할 일에는 세부 할 일을 달 수 없다(루틴을 고치면 카테고리가 따로 바뀐다).
-  isRoutine?: boolean;
   category: { id?: string; name: string; color: string } | null;
 };
 
@@ -82,7 +80,7 @@ export function TodoRow({
   const toast = useToast();
   const saveFailed = useSaveFailure();
   const store = useTodoStore();
-  const canAddSub = !child && !saving && !todo.isRoutine;
+  const canAddSub = !child && !saving;
   const subDone = subTodos.filter((sub) => sub.done).length;
 
   return (

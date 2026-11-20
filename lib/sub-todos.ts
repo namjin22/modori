@@ -7,9 +7,12 @@ import { prisma } from "@/lib/prisma";
  * 부모를 옮기거나 카테고리를 바꾸는 모든 길이 끝에 settleSubTodos를 불러 이 약속을 맞춘다.
  */
 
-/** 세부 할 일을 달 수 있는 큰 할 일인지. 루틴이 만든 할 일은 루틴을 고칠 때 카테고리가 따로 바뀌어서 세부 할 일을 달지 못한다. */
-export function canHaveSubTodos(todo: { parentId: string | null; routineId: string | null }): boolean {
-  return todo.parentId === null && todo.routineId === null;
+/**
+ * 세부 할 일을 달 수 있는 큰 할 일인지: 이미 세부 할 일이 아니면 된다(두 단계). 루틴이 만든 할 일에도 달 수 있다(2026-11-20 운영자 결정).
+ * 루틴을 고쳐 그 할 일의 카테고리가 바뀌면 세부 할 일도 따라가게 고치는 쪽(updateRoutine)이 settleSubTodos를 부른다.
+ */
+export function canHaveSubTodos(todo: { parentId: string | null }): boolean {
+  return todo.parentId === null;
 }
 
 type Row = { id: string; parentId: string | null; date: Date; categoryId: string | null; done: boolean };

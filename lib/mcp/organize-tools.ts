@@ -10,6 +10,7 @@ import { normalizeRule, ruleProblem } from "@/lib/mcp/routine-rule";
 import { BULK_TRANSACTION, dayText, fail, ok, parseDay, pruneBatches, writeLimited, type McpContext, type ToolResult } from "@/lib/mcp/shared";
 import type { Snapshot } from "@/lib/mcp/snapshot";
 import { prisma } from "@/lib/prisma";
+import { settleSubTodos } from "@/lib/sub-todos";
 
 /**
  * 모든 권한(FULL) 토큰의 카테고리·루틴(할 일 루틴과 반복 일정) 도구. 서버 액션(app/(tabs)/categories/actions.ts, routines/actions.ts,
@@ -274,6 +275,11 @@ async function updateTodoRoutine(
   const content = input.title ?? row.content;
   const pausedAt = input.paused === undefined ? row.pausedAt : input.paused ? (row.pausedAt ?? new Date()) : null;
   const today = todayIn(ctx.timezone);
+  // 세부 할 일이 달린 루틴 할 일은 카테고리가 바뀌면 세부 할 일도 따라가야 한다(lib/sub-todos.ts, 2026-11-20).
+  const withSubs =
+    input.title !== undefined || input.category !== undefined
+      ? await prisma.todo.findMany({ where: { routineId: row.id, userId: ctx.userId, done: false, date: { gte: today }, children: { some: {} } }, select: { id: true } })
+      : [];
   await prisma.$transaction([
     prisma.routine.update({ where: { id: row.id }, data: { content, categoryId, pausedAt, ...(rule ?? {}) } }),
     // 서버 액션 updateRoutine과 같다: 오늘 이후의 아직 안 끝낸 할 일도 새 내용·카테고리로 바꾼다. 지난 날과 끝낸 일은 기록이라 그대로 둔다.
@@ -281,6 +287,7 @@ async function updateTodoRoutine(
       ? [prisma.todo.updateMany({ where: { routineId: row.id, userId: ctx.userId, done: false, date: { gte: today } }, data: { content, categoryId, ...(categoryId !== row.categoryId && { color: null }) } })]
       : []),
   ]);
+  await settleSubTodos(ctx.userId, withSubs.map((todo) => todo.id));
   refresh();
   return ok({
     id: row.id,

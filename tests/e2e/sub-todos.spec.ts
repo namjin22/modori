@@ -172,3 +172,39 @@ test("친구 화면에서도 큰 할 일 밑에 세부 할 일이 들여 보이�
     await prisma.user.deleteMany({ where: { id: owner.id } });
   }
 });
+
+test("루틴이 만든 할 일에도 세부 할 일을 달 수 있고, 루틴의 카테고리를 고치면 세부 할 일도 따라간다", async ({ page, email }, testInfo) => {
+  await signUp(page, email, `루틴${testInfo.testId.slice(-6)}${RUN_TAG}`);
+  const me = await prisma.user.findUniqueOrThrow({ where: { email } });
+  const first = await prisma.category.findFirstOrThrow({ where: { userId: me.id }, orderBy: { order: "asc" } });
+  const exercise = await prisma.category.create({ data: { userId: me.id, name: "운동", color: "#dc2626", order: 5 } });
+  const routine = await prisma.routine.create({ data: { userId: me.id, content: "물 마시기", freq: "DAILY", startDate: todayKST(), categoryId: first.id } });
+
+  // 오늘 화면을 열면 루틴 할 일이 만들어진다. 그 할 일 창에서 세부 할 일을 단다.
+  await page.reload();
+  await expect(homeReady(page)).toBeVisible();
+  await openTodo(page, "물 마시기");
+  const input = page.getByLabel("물 마시기의 세부 할 일 이름");
+  await input.fill("아침 한 컵");
+  await input.press("Enter");
+  await expect(input).toHaveValue("");
+  await page.keyboard.press("Escape");
+  await expect(page.locator("[aria-busy=true]")).toHaveCount(0);
+
+  const parent = await prisma.todo.findFirstOrThrow({ where: { userId: me.id, routineId: routine.id, date: todayKST() } });
+  const child = await prisma.todo.findFirstOrThrow({ where: { userId: me.id, parentId: parent.id } });
+  expect(child.categoryId).toBe(first.id);
+
+  // 루틴을 고쳐 카테고리를 옮기면 오늘의 루틴 할 일과 그 세부 할 일이 함께 옮겨 간다.
+  await page.goto("/routines");
+  await page.getByRole("listitem").filter({ hasText: "물 마시기" }).getByRole("button", { name: "고치기" }).click();
+  const dialog = page.getByRole("dialog", { name: "루틴 고치기" });
+  await dialog.getByRole("button", { name: "루틴 카테고리 수정" }).click();
+  await page.getByRole("dialog", { name: "루틴 카테고리 수정" }).getByRole("radio", { name: "운동" }).click();
+  await dialog.getByRole("button", { name: "저장" }).click();
+  await expect(dialog).toBeHidden();
+
+  await expect.poll(async () => (await prisma.todo.findUniqueOrThrow({ where: { id: parent.id } })).categoryId).toBe(exercise.id);
+  await expect.poll(async () => (await prisma.todo.findUniqueOrThrow({ where: { id: child.id } })).categoryId).toBe(exercise.id);
+  expect((await prisma.todo.findUniqueOrThrow({ where: { id: child.id } })).parentId).toBe(parent.id);
+});

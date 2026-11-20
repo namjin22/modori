@@ -69,7 +69,7 @@ export async function addTodo(formData: FormData): Promise<TodoAdd> {
   // 세부 할 일(2026-11-20)은 큰 할 일과 같은 날·같은 카테고리에 붙는다. 폼의 날짜·카테고리는 무시한다.
   const parentId = readId(formData, "parentId");
   const parent = parentId
-    ? await prisma.todo.findFirst({ where: { id: parentId, userId: user.id }, select: { id: true, date: true, categoryId: true, parentId: true, routineId: true } })
+    ? await prisma.todo.findFirst({ where: { id: parentId, userId: user.id }, select: { id: true, date: true, categoryId: true, parentId: true } })
     : null;
   if (parentId && !parent) return { ok: false, message: t("noParent") };
   if (parent && !canHaveSubTodos(parent)) return { ok: false, message: t("subNotAllowed") };
@@ -291,7 +291,7 @@ export async function restoreTodo(snapshot: DeletedTodo): Promise<string | void>
   // 세부 할 일을 되살릴 때 큰 할 일이 아직 있으면 다시 단다(날짜·카테고리는 큰 할 일을 따른다). 없으면 보통 할 일로 되살린다.
   const parent =
     isId(snapshot.parentId)
-      ? await prisma.todo.findFirst({ where: { id: snapshot.parentId, userId: user.id, parentId: null, routineId: null }, select: { id: true, date: true, categoryId: true } })
+      ? await prisma.todo.findFirst({ where: { id: snapshot.parentId, userId: user.id, parentId: null }, select: { id: true, date: true, categoryId: true } })
       : null;
   const date = parent ? parent.date : readDay(snapshot.date);
   if (!date) return;

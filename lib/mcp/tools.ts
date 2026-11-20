@@ -115,10 +115,10 @@ export async function createTodos(ctx: McpContext, input: { todos: NewTodo[] }):
   const byId = new Map(categories.map((category) => [category.id, category]));
   const byName = new Map(categories.map((category) => [category.name.trim().toLowerCase(), category]));
 
-  // 세부 할 일(2026-11-20): 큰 할 일은 내 것이어야 하고, 세부 할 일이나 루틴 할 일에는 달 수 없다(서버 액션 addTodo와 같다).
+  // 세부 할 일(2026-11-20): 큰 할 일은 내 것이어야 하고, 세부 할 일 밑에는 달 수 없다(서버 액션 addTodo와 같다).
   const parentIds = [...new Set(input.todos.flatMap((item) => (item.parentId ? [item.parentId] : [])))];
   const parents = new Map(
-    (await prisma.todo.findMany({ where: { id: { in: parentIds }, userId: ctx.userId }, select: { id: true, date: true, categoryId: true, parentId: true, routineId: true } })).map((row) => [row.id, row]),
+    (await prisma.todo.findMany({ where: { id: { in: parentIds }, userId: ctx.userId }, select: { id: true, date: true, categoryId: true, parentId: true } })).map((row) => [row.id, row]),
   );
 
   const problems: string[] = [];
@@ -131,7 +131,7 @@ export async function createTodos(ctx: McpContext, input: { todos: NewTodo[] }):
         return;
       }
       if (!canHaveSubTodos(parent)) {
-        problems.push(`todos[${index}].parentId "${item.parentId}" cannot have sub-todos: it is already a sub-todo or was made by a routine. Only two levels are allowed.`);
+        problems.push(`todos[${index}].parentId "${item.parentId}" cannot have sub-todos: it is already a sub-todo. Only two levels are allowed.`);
         return;
       }
     }

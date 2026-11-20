@@ -16,8 +16,6 @@ export type HomeTodo = {
   memoPublic?: boolean;
   // 세부 할 일이면 큰 할 일의 id(2026-11-20). 큰 할 일이거나 보통 할 일이면 비어 있다.
   parentId?: string | null;
-  // 루틴이 만든 할 일이면 true. 세부 할 일을 달 수 없다.
-  isRoutine?: boolean;
   // 끝낸 시각(ms). 달력 칸이 끝낸 차례대로 차도록 정렬하는 데만 쓴다.
   doneAt: number | null;
   category: { id: string; name: string; color: string } | null;
