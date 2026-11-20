@@ -6,6 +6,7 @@ import { LIMITS } from "@/lib/limits";
 import { BULK_TRANSACTION, dayText, fail, ok, type McpContext, type ToolResult } from "@/lib/mcp/shared";
 import type { Snapshot } from "@/lib/mcp/snapshot";
 import { prisma } from "@/lib/prisma";
+import { settleSubTodos } from "@/lib/sub-todos";
 
 /**
  * 지우거나 고치기 전의 모습(Snapshot)으로 되돌린다. 서버 액션의 되돌리기(restoreTodo, restoreEvent, undoDeleteCategory, restoreRoutine,
@@ -119,6 +120,7 @@ async function revertTodos(ctx: McpContext, rows: Rows<"todos-updated">): Promis
     ),
   );
   const restored = results.reduce((sum, result) => sum + result.count, 0);
+  await settleSubTodos(ctx.userId, rows.map((row) => row.id));
   refresh();
   return ok({ revertedTodos: restored, notFound: rows.filter((_row, index) => results[index].count === 0).map((row) => row.id) });
 }

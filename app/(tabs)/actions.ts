@@ -17,6 +17,7 @@ import { prisma } from "@/lib/prisma";
 import { notifyFollowersOfDone } from "@/lib/friend-done";
 import { matchesRule } from "@/lib/routine";
 import { requireUser } from "@/lib/session";
+import { canHaveSubTodos, type Detached, settleSubTodos } from "@/lib/sub-todos";
 
 const MAX_CONTENT_LENGTH = 200;
 
@@ -57,16 +58,6 @@ function readDay(value: string): Date | null {
   }
 }
 
-/**
- * 폼에서 온 목표 id를 내 목표(또는 세부 목표)일 때만 돌려준다(2026-11-19). 비어 있거나 남의 것·없는 것이면 null.
- * 브라우저가 남의 목표 id를 끼워 넣어도 연결되지 않는다.
- */
-async function ownedGoalId(userId: string, raw: unknown): Promise<string | null> {
-  if (typeof raw !== "string" || !isId(raw)) return null;
-  const goal = await prisma.goal.findFirst({ where: { id: raw, userId }, select: { id: true } });
-  return goal?.id ?? null;
-}
-
 export type TodoAdd = { ok: true } | { ok: false; message: string };
 
 export async function addTodo(formData: FormData): Promise<TodoAdd> {
@@ -75,17 +66,25 @@ export async function addTodo(formData: FormData): Promise<TodoAdd> {
   const content = readContent(formData);
   if (!content) return { ok: false, message: t("writeTodo") };
 
-  const date = readDay(readId(formData, "date"));
+  // 세부 할 일(2026-11-20)은 큰 할 일과 같은 날·같은 카테고리에 붙는다. 폼의 날짜·카테고리는 무시한다.
+  const parentId = readId(formData, "parentId");
+  const parent = parentId
+    ? await prisma.todo.findFirst({ where: { id: parentId, userId: user.id }, select: { id: true, date: true, categoryId: true, parentId: true, routineId: true } })
+    : null;
+  if (parentId && !parent) return { ok: false, message: t("noParent") };
+  if (parent && !canHaveSubTodos(parent)) return { ok: false, message: t("subNotAllowed") };
+
+  const date = parent ? parent.date : readDay(readId(formData, "date"));
   if (!date) return { ok: false, message: t("dateUnreadable") };
   // 옮기기(moveTodo)와 같은 범위만 받는다. 날짜를 마음대로 바꿔 가며 하루 상한을 피해 무한히 쌓지 못하게 한다.
   if (Math.abs(daysBetween(todayIn(user.timezone), date)) > LIMITS.todoDays) {
     return { ok: false, message: t("tooFar") };
   }
-  const categoryId = readId(formData, "categoryId") || null;
+  const categoryId = parent ? parent.categoryId : readId(formData, "categoryId") || null;
 
   // 남의 카테고리 id를 끼워 넣어도 붙지 않게 한다. 보관한 카테고리에도 새로 적지 않는다.
   // 다른 탭에서 보관하기 전에 열어 둔 입력칸이 남아 있을 수 있다.
-  if (categoryId) {
+  if (!parent && categoryId) {
     const owned = await prisma.category.findFirst({
       where: { id: categoryId, userId: user.id, archivedAt: null },
       select: { id: true },
@@ -97,9 +96,6 @@ export async function addTodo(formData: FormData): Promise<TodoAdd> {
   if (count >= LIMITS.todosPerDay) {
     return { ok: false, message: t("perDay", { max: LIMITS.todosPerDay }) };
   }
-
-  // 목표 칸에서 "할 일 넣기"로 적을 때만 목표 id가 온다(빠른 입력 칸에는 없다, 2026-11-19).
-  const goalId = await ownedGoalId(user.id, formData.get("goalId"));
 
   const last = await prisma.todo.findFirst({
     where: { userId: user.id, date },
@@ -113,11 +109,10 @@ export async function addTodo(formData: FormData): Promise<TodoAdd> {
       content,
       date,
       categoryId,
-      ...(goalId && { goalId }),
+      ...(parent && { parentId: parent.id }),
       order: (last?.order ?? -1) + 1,
     },
   });
-
 
   revalidatePath("/");
   return { ok: true };
@@ -175,33 +170,31 @@ export async function updateTodo(formData: FormData) {
   // 카테고리는 폼에 있을 때만 바꾼다(폰에서 끌지 않고 옮기는 길). 끌어서 옮길 때(moveTodoToCategory)처럼 따로 고른 색은 버린다.
   // 보관했거나 남의 카테고리면 카테고리는 그대로 두고 글자·메모만 저장한다.
   const rawCategory = formData.get("categoryId");
-  // 목표는 폼에 그 칸이 있을 때만 바꾼다. 빈 값은 연결을 끊고, 남의 것이거나 없는 목표면 그대로 둔다(2026-11-19).
-  const rawGoal = formData.get("goalId");
-  const goalId = formData.get("goalField") === "1" ? (rawGoal === "" ? null : ((await ownedGoalId(user.id, rawGoal)) ?? undefined)) : undefined;
   const [todo, category] = await Promise.all([
-    prisma.todo.findFirst({ where: { id, userId: user.id }, select: { categoryId: true } }),
+    prisma.todo.findFirst({ where: { id, userId: user.id }, select: { categoryId: true, parentId: true } }),
     typeof rawCategory === "string" && rawCategory
       ? prisma.category.findFirst({ where: { id: rawCategory, userId: user.id, archivedAt: null }, select: { id: true } })
       : null,
   ]);
   if (!todo) return;
-  const moved = category !== null && category.id !== todo.categoryId;
+  // 세부 할 일의 카테고리는 큰 할 일을 따른다(화면에도 고르는 칸이 없다). 큰 할 일의 카테고리가 바뀌면 세부 할 일도 따라간다.
+  const moved = category !== null && category.id !== todo.categoryId && todo.parentId === null;
   await prisma.todo.updateMany({
     where: { id, userId: user.id },
     data: {
       content,
       ...(memo !== undefined && { memo }),
       ...(memoPublic !== undefined && { memoPublic }),
-      ...(goalId !== undefined && { goalId }),
       ...(moved && { categoryId: category.id, color: null }),
     },
   });
+  if (moved) await settleSubTodos(user.id, [id]);
 
   revalidatePath("/");
 }
 
-/** 지운 할 일을 되돌릴 때 필요한 값. 날짜는 전부 문자열로 주고받는다. */
-export type DeletedTodo = {
+/** 지운 할 일 한 줄을 되돌릴 때 필요한 값. 날짜는 전부 문자열로 주고받는다. */
+type DeletedRow = {
   id: string;
   content: string;
   date: string;
@@ -213,10 +206,45 @@ export type DeletedTodo = {
   routineId: string | null;
   memo: string | null;
   memoPublic?: boolean;
-  // 연결된 목표(2026-11-19). 되살릴 때 그 목표가 아직 내 것으로 있으면 다시 잇는다.
-  goalId?: string | null;
+  // 세부 할 일이었으면 큰 할 일의 id(2026-11-20). 되살릴 때 그 할 일이 아직 있으면 다시 단다.
+  parentId?: string | null;
   createdAt: string;
 };
+
+/** 큰 할 일을 지우면 세부 할 일도 같이 지우므로, 되돌릴 때도 같이 돌려놓는다. */
+export type DeletedTodo = DeletedRow & { children?: DeletedRow[] };
+
+function snapshotOf(todo: {
+  id: string;
+  content: string;
+  date: Date;
+  done: boolean;
+  doneAt: Date | null;
+  order: number;
+  categoryId: string | null;
+  color: string | null;
+  routineId: string | null;
+  memo: string | null;
+  memoPublic: boolean;
+  parentId: string | null;
+  createdAt: Date;
+}): DeletedRow {
+  return {
+    id: todo.id,
+    content: todo.content,
+    date: formatKST(todo.date),
+    done: todo.done,
+    doneAt: todo.doneAt?.toISOString() ?? null,
+    order: todo.order,
+    categoryId: todo.categoryId,
+    color: todo.color,
+    routineId: todo.routineId,
+    memo: todo.memo,
+    memoPublic: todo.memoPublic,
+    parentId: todo.parentId,
+    createdAt: todo.createdAt.toISOString(),
+  };
+}
 
 /**
  * 확인창 없이 바로 지운다. 대신 지운 내용을 돌려줘서 화면이 "되돌리기"를 띄운다.
@@ -226,10 +254,12 @@ export type DeletedTodo = {
 export async function deleteTodo(id: string): Promise<DeletedTodo | null> {
   const user = await requireUser();
 
-  const todo = await prisma.todo.findFirst({ where: { id, userId: user.id } });
+  const todo = await prisma.todo.findFirst({ where: { id, userId: user.id }, include: { children: { orderBy: { order: "asc" } } } });
   if (!todo) return null;
 
   await prisma.$transaction([
+    // 세부 할 일은 큰 할 일과 같이 지운다(되돌리기가 함께 되살린다).
+    prisma.todo.deleteMany({ where: { parentId: todo.id, userId: user.id } }),
     prisma.todo.delete({ where: { id: todo.id } }),
     ...(todo.routineId
       ? [
@@ -243,21 +273,7 @@ export async function deleteTodo(id: string): Promise<DeletedTodo | null> {
 
   revalidatePath("/");
 
-  return {
-    id: todo.id,
-    content: todo.content,
-    date: formatKST(todo.date),
-    done: todo.done,
-    doneAt: todo.doneAt?.toISOString() ?? null,
-    order: todo.order,
-    categoryId: todo.categoryId,
-    color: todo.color,
-    routineId: todo.routineId,
-    memo: todo.memo,
-    memoPublic: todo.memoPublic,
-    goalId: todo.goalId,
-    createdAt: todo.createdAt.toISOString(),
-  };
+  return { ...snapshotOf(todo), ...(todo.children.length > 0 && { children: todo.children.map(snapshotOf) }) };
 }
 
 /**
@@ -272,16 +288,24 @@ export async function restoreTodo(snapshot: DeletedTodo): Promise<string | void>
   const content = snapshot.content.trim().slice(0, MAX_CONTENT_LENGTH);
   if (!content) return;
 
-  const date = readDay(snapshot.date);
+  // 세부 할 일을 되살릴 때 큰 할 일이 아직 있으면 다시 단다(날짜·카테고리는 큰 할 일을 따른다). 없으면 보통 할 일로 되살린다.
+  const parent =
+    isId(snapshot.parentId)
+      ? await prisma.todo.findFirst({ where: { id: snapshot.parentId, userId: user.id, parentId: null, routineId: null }, select: { id: true, date: true, categoryId: true } })
+      : null;
+  const date = parent ? parent.date : readDay(snapshot.date);
   if (!date) return;
+
+  // 세부 할 일은 큰 할 일을 되살릴 때만 같이 돌아온다(브라우저가 준 값이라 모양을 다시 확인한다).
+  const kids = parent || !Array.isArray(snapshot.children) ? [] : snapshot.children.slice(0, LIMITS.todosPerDay).filter((kid) => isId(kid.id) && typeof kid.content === "string" && kid.content.trim() !== "");
 
   // 되돌리기도 새로 만드는 것과 같은 상한을 지킨다. 지우고 그 사이 다른 걸 적어 꽉 찼을 수 있다.
   const count = await prisma.todo.count({ where: { userId: user.id, date } });
-  if (count >= LIMITS.todosPerDay) {
+  if (count + 1 + kids.length > LIMITS.todosPerDay) {
     return (await getT(todoMessages))("perDay", { max: LIMITS.todosPerDay });
   }
 
-  const [category, routine] = await Promise.all([
+  const [ownedCategory, routine] = await Promise.all([
     snapshot.categoryId
       ? prisma.category.findFirst({
           where: { id: snapshot.categoryId, userId: user.id },
@@ -296,7 +320,7 @@ export async function restoreTodo(snapshot: DeletedTodo): Promise<string | void>
       : null,
   ]);
 
-  const goalId = await ownedGoalId(user.id, snapshot.goalId);
+  const category = parent ? { id: parent.categoryId } : ownedCategory;
 
   try {
     await prisma.$transaction([
@@ -324,10 +348,31 @@ export async function restoreTodo(snapshot: DeletedTodo): Promise<string | void>
           routineId: routine?.id ?? null,
           memo: readMemo(snapshot.memo) ?? null,
           memoPublic: snapshot.memoPublic === true,
-          goalId,
+          ...(parent && { parentId: parent.id }),
           createdAt: readInstant(snapshot.createdAt, new Date()),
         },
       }),
+      ...(kids.length > 0
+        ? [
+            prisma.todo.createMany({
+              data: kids.map((kid) => ({
+                id: kid.id,
+                userId: user.id,
+                parentId: snapshot.id,
+                content: kid.content.trim().slice(0, MAX_CONTENT_LENGTH),
+                date,
+                done: kid.done === true,
+                doneAt: kid.done === true ? readInstant(kid.doneAt, new Date()) : null,
+                order: Number.isInteger(kid.order) ? kid.order : 0,
+                categoryId: category?.id ?? null,
+                memo: readMemo(kid.memo) ?? null,
+                memoPublic: kid.memoPublic === true,
+                createdAt: readInstant(kid.createdAt, new Date()),
+              })),
+              skipDuplicates: true,
+            }),
+          ]
+        : []),
     ]);
   } catch (error) {
     // 두 번 눌렀거나 이미 되살아난 경우. 같은 할 일을 둘로 만들지 않는다.
@@ -363,13 +408,17 @@ export async function moveTodo(id: string, day: string): Promise<TodoMove> {
 
   const todo = await prisma.todo.findFirst({
     where: { id, userId: user.id },
-    select: { date: true, routineId: true },
+    select: { date: true, routineId: true, parentId: true },
   });
   if (!todo) return { ok: false, message: t("todoNotFound") };
+  // 세부 할 일은 큰 할 일과 같은 날에 있어야 해서 따로 옮기지 못한다(화면에도 옮기는 칸이 없다, 2026-11-20).
+  if (todo.parentId) return { ok: false, message: t("childNoMove") };
   if (isSameKSTDate(todo.date, date)) return { ok: false, message: t("sameDayMove") };
 
+  // 안 끝낸 세부 할 일은 큰 할 일을 따라가므로 그 자리도 있어야 한다. 끝낸 세부 할 일은 그 날의 기록이라 남는다.
+  const following = await prisma.todo.count({ where: { parentId: id, userId: user.id, done: false } });
   const count = await prisma.todo.count({ where: { userId: user.id, date } });
-  if (count >= LIMITS.todosPerDay) {
+  if (count + 1 + following > LIMITS.todosPerDay) {
     return { ok: false, message: t("dayFull", { max: LIMITS.todosPerDay }) };
   }
   const last = await prisma.todo.findFirst({
@@ -392,6 +441,7 @@ export async function moveTodo(id: string, day: string): Promise<TodoMove> {
         ]
       : []),
   ]);
+  await settleSubTodos(user.id, [id]);
 
   revalidatePath("/");
   return { ok: true, message: t("movedTo", { date: formatMonthDay(await getLocale(), date) }) };
@@ -413,9 +463,11 @@ export async function repeatTodo(id: string, day: string): Promise<TodoMove> {
 
   const todo = await prisma.todo.findFirst({
     where: { id, userId: user.id },
-    select: { date: true, done: true, content: true, memo: true, memoPublic: true, color: true, goalId: true, category: { select: { id: true, archivedAt: true } } },
+    select: { date: true, done: true, content: true, memo: true, memoPublic: true, color: true, parentId: true, category: { select: { id: true, archivedAt: true } } },
   });
   if (!todo) return { ok: false, message: t("todoNotFound") };
+  // 끝낸 세부 할 일만 따로 다른 날에 또 하는 것은 꼬리를 잃은 할 일이 된다. 큰 할 일을 또 한다(2026-11-20).
+  if (todo.parentId) return { ok: false, message: t("childNoMove") };
   if (!todo.done) return { ok: false, message: t("onlyDone") };
   if (isSameKSTDate(todo.date, date)) return { ok: false, message: t("sameDayAgain") };
 
@@ -437,8 +489,6 @@ export async function repeatTodo(id: string, day: string): Promise<TodoMove> {
       memo: todo.memo,
       memoPublic: todo.memoPublic,
       color: todo.color,
-      // 같은 목표로 한 번 더 한다(목표를 지웠으면 이미 비어 있다).
-      goalId: todo.goalId,
       // 보관한 카테고리에는 새로 적지 않는다. 그때는 카테고리 없음으로 둔다.
       categoryId: todo.category && !todo.category.archivedAt ? todo.category.id : null,
       order: (last?.order ?? -1) + 1,
@@ -450,7 +500,13 @@ export async function repeatTodo(id: string, day: string): Promise<TodoMove> {
 }
 
 /** 한꺼번에 옮긴 할 일을 되돌릴 때 필요한 값. 옮기기 전의 날·순서·루틴 연결. */
-export type UndoneSnapshot = { from: string; to: string; todos: { id: string; order: number; routineId: string | null }[] };
+// parentId는 옮기기 전의 큰 할 일(세부 할 일이 혼자 옮겨 가며 연결이 끊긴 경우 되돌릴 때 다시 잇는다), detached는 큰 할 일이 떠나며 남은 끝낸 세부 할 일의 끊긴 연결이다(2026-11-20).
+export type UndoneSnapshot = {
+  from: string;
+  to: string;
+  todos: { id: string; order: number; routineId: string | null; parentId?: string | null }[];
+  detached?: Detached[];
+};
 export type UndoneMove = { ok: boolean; message: string; undo?: UndoneSnapshot };
 
 /**
@@ -479,7 +535,7 @@ async function moveUndone(fromDay: string, to: "today" | "tomorrow"): Promise<Un
     prisma.todo.findMany({
       where: { userId: user.id, date: from, done: false },
       orderBy: { order: "asc" },
-      select: { id: true, routineId: true, order: true },
+      select: { id: true, routineId: true, order: true, parentId: true },
     }),
     prisma.todo.count({ where: { userId: user.id, date: today } }),
     prisma.todo.findFirst({ where: { userId: user.id, date: today }, orderBy: { order: "desc" }, select: { order: true } }),
@@ -487,8 +543,19 @@ async function moveUndone(fromDay: string, to: "today" | "tomorrow"): Promise<Un
   if (undone.length === 0) return { ok: false, message: t("nothingToMove") };
 
   const room = Math.max(0, LIMITS.todosPerDay - todayCount);
-  if (room === 0) return { ok: false, message: t(to === "today" ? "todayFull" : "tomorrowFull", { max: LIMITS.todosPerDay }) };
-  const moving = undone.slice(0, room);
+  // 큰 할 일과 그 밑의 안 끝낸 세부 할 일은 한 덩어리로 옮긴다. 큰 할 일이 이미 끝나서 남는 세부 할 일은 혼자 옮겨 가며 연결이 끊긴다(2026-11-20).
+  const undoneIds = new Set(undone.map((todo) => todo.id));
+  const kidsOf = new Map<string, typeof undone>();
+  for (const todo of undone) {
+    if (todo.parentId && undoneIds.has(todo.parentId)) kidsOf.set(todo.parentId, [...(kidsOf.get(todo.parentId) ?? []), todo]);
+  }
+  const moving: typeof undone = [];
+  for (const head of undone.filter((todo) => !todo.parentId || !undoneIds.has(todo.parentId))) {
+    const group = [head, ...(kidsOf.get(head.id) ?? [])];
+    if (moving.length + group.length <= room) moving.push(...group);
+  }
+  if (moving.length === 0) return { ok: false, message: t(to === "today" ? "todayFull" : "tomorrowFull", { max: LIMITS.todosPerDay }) };
+  const movingIds = new Set(moving.map((todo) => todo.id));
   const start = (last?.order ?? -1) + 1;
 
   await prisma.$transaction([
@@ -496,7 +563,7 @@ async function moveUndone(fromDay: string, to: "today" | "tomorrow"): Promise<Un
       prisma.todo.updateMany({
         // 그 사이 다른 탭에서 끝냈거나 옮긴 할 일은 건드리지 않는다.
         where: { id: todo.id, userId: user.id, date: from, done: false },
-        data: { date: today, order: start + index, routineId: null },
+        data: { date: today, order: start + index, routineId: null, ...(todo.parentId && !movingIds.has(todo.parentId) && { parentId: null }) },
       }),
     ),
     prisma.routineSkip.createMany({
@@ -504,13 +571,15 @@ async function moveUndone(fromDay: string, to: "today" | "tomorrow"): Promise<Un
       skipDuplicates: true,
     }),
   ]);
+  // 큰 할 일이 떠나면 그 날에 남는 끝낸 세부 할 일은 기록이라 연결만 끊는다.
+  const detached = await settleSubTodos(user.id, [...movingIds]);
 
   revalidatePath("/");
   const left = undone.length - moving.length;
   return {
     ok: true,
     // 버튼 한 번에 바로 옮기므로 잘못 눌렀을 때 알림에서 되돌린다(restoreUndone).
-    undo: { from: formatKST(from), to: formatKST(today), todos: moving },
+    undo: { from: formatKST(from), to: formatKST(today), todos: moving, detached },
     message:
       left > 0
         ? t(to === "today" ? "movedSomeToday" : "movedSomeTomorrow", { moved: moving.length, left })
@@ -529,20 +598,36 @@ export async function restoreUndone(snapshot: UndoneSnapshot): Promise<string | 
   if (!from || !to || !Array.isArray(snapshot.todos)) return;
   const todos = snapshot.todos
     .slice(0, LIMITS.todosPerDay)
-    .filter((todo) => isId(todo.id) && Number.isInteger(todo.order) && (todo.routineId === null || isId(todo.routineId)));
+    .filter((todo) => isId(todo.id) && Number.isInteger(todo.order) && (todo.routineId === null || isId(todo.routineId)) && (todo.parentId == null || isId(todo.parentId)));
+  const detached = (Array.isArray(snapshot.detached) ? snapshot.detached : []).slice(0, LIMITS.todosPerDay).filter((item) => isId(item.id) && isId(item.parentId));
   const routineIds = todos.flatMap((todo) => (todo.routineId ? [todo.routineId] : []));
-  const owned = new Set(
-    (await prisma.routine.findMany({ where: { id: { in: routineIds }, userId: user.id }, select: { id: true } })).map((routine) => routine.id),
-  );
+  const parentIds = [...new Set([...todos.flatMap((todo) => (todo.parentId ? [todo.parentId] : [])), ...detached.map((item) => item.parentId)])];
+  const [routines, parents] = await Promise.all([
+    prisma.routine.findMany({ where: { id: { in: routineIds }, userId: user.id }, select: { id: true } }),
+    // 다시 이을 큰 할 일은 내 것이고 그 자신이 세부 할 일이 아닐 때만 받는다(브라우저가 준 id를 믿지 않는다).
+    prisma.todo.findMany({ where: { id: { in: parentIds }, userId: user.id, parentId: null }, select: { id: true } }),
+  ]);
+  const owned = new Set(routines.map((routine) => routine.id));
+  const ownedParents = new Set(parents.map((parent) => parent.id));
   await prisma.$transaction([
     prisma.routineSkip.deleteMany({ where: { routineId: { in: [...owned] }, date: from } }),
     ...todos.map((todo) =>
       prisma.todo.updateMany({
         where: { id: todo.id, userId: user.id, date: to, done: false },
-        data: { date: from, order: todo.order, routineId: todo.routineId && owned.has(todo.routineId) ? todo.routineId : null },
+        data: {
+          date: from,
+          order: todo.order,
+          routineId: todo.routineId && owned.has(todo.routineId) ? todo.routineId : null,
+          parentId: todo.parentId && ownedParents.has(todo.parentId) ? todo.parentId : null,
+        },
       }),
     ),
+    // 큰 할 일이 떠나며 끊겼던 끝낸 세부 할 일을 다시 잇는다(그 사이 연결이 바뀐 것은 건드리지 않는다).
+    ...detached
+      .filter((item) => ownedParents.has(item.parentId))
+      .map((item) => prisma.todo.updateMany({ where: { id: item.id, userId: user.id, parentId: null, date: from }, data: { parentId: item.parentId } })),
   ]);
+  await settleSubTodos(user.id, [...todos.map((todo) => todo.id), ...detached.map((item) => item.parentId)]);
   revalidatePath("/");
 }
 
@@ -681,9 +766,11 @@ export async function moveTodoToCategory(
 
   const owned = await prisma.todo.findMany({
     where: { userId: user.id, date: day, id: { in: orderedIds } },
-    select: { id: true, order: true },
+    select: { id: true, order: true, parentId: true },
   });
   if (owned.length !== orderedIds.length) return;
+  // 세부 할 일은 판의 줄이 아니라 큰 할 일 밑에 달려 있어 끌어 옮기지 않는다(2026-11-20).
+  if (owned.some((todo) => todo.parentId)) return;
 
   // 옮긴 할 일이 원래 차지하던 자리도 이 묶음의 자리에 섞어 다시 배정한다. 원래 묶음의 나머지 자리는 그대로다.
   const slots = owned.map((todo) => todo.order).sort((a, b) => a - b);
@@ -697,6 +784,8 @@ export async function moveTodoToCategory(
       prisma.todo.updateMany({ where: { id: todoId, userId: user.id }, data: { order: slots[index] } }),
     ),
   ]);
+  // 큰 할 일의 카테고리가 바뀌었으니 세부 할 일도 따라간다.
+  await settleSubTodos(user.id, [id]);
 
   revalidatePath("/");
 }

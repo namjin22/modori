@@ -17,7 +17,6 @@ import { datetime } from "@/lib/i18n/messages/datetime";
 import { desktop } from "@/lib/i18n/messages/desktop";
 import { errors } from "@/lib/i18n/messages/errors";
 import { events } from "@/lib/i18n/messages/events";
-import { goals } from "@/lib/i18n/messages/goals";
 import { language } from "@/lib/i18n/messages/language";
 import { legal } from "@/lib/i18n/messages/legal";
 import { nav } from "@/lib/i18n/messages/nav";
@@ -46,7 +45,6 @@ const FILES: Record<string, Record<string, MessageBundle>> = {
   desktop: { desktop },
   errors: { errors },
   events: { events },
-  goals: { goals },
   language: { language },
   legal: { legal },
   nav: { nav },

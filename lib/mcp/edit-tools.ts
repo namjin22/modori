@@ -20,6 +20,7 @@ import {
 } from "@/lib/mcp/shared";
 import type { EventSnapshotRow, Snapshot, TodoSnapshotRow } from "@/lib/mcp/snapshot";
 import { prisma } from "@/lib/prisma";
+import { settleSubTodos } from "@/lib/sub-todos";
 
 /**
  * 모든 권한(FULL) 토큰의 고치기·지우기 도구(할 일·일정). 서버 액션(updateTodo, deleteTodo, updateEvent, deleteEvent)과 같은 규칙이고,
@@ -82,6 +83,8 @@ export async function updateTodos(ctx: McpContext, input: { updates: TodoUpdate[
     for (const { row, data } of plan) await tx.todo.updateMany({ where: { id: row.id, userId: ctx.userId }, data });
     return tx.mcpBatch.create({ data: { userId: ctx.userId, snapshot }, select: { id: true } });
   }, BULK_TRANSACTION);
+  // 카테고리를 옮긴 큰 할 일의 세부 할 일도 따라간다(세부 할 일은 큰 할 일과 같은 카테고리여야 친구에게 새지 않는다).
+  await settleSubTodos(ctx.userId, plan.flatMap(({ row, data }) => ("categoryId" in data && data.categoryId !== row.categoryId ? [row.id] : [])));
   await pruneBatches(ctx.userId);
   revalidatePath("/");
 

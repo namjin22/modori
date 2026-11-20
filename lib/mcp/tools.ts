@@ -24,6 +24,7 @@ import {
 import { snapshotSchema } from "@/lib/mcp/snapshot";
 import { restoreSnapshot } from "@/lib/mcp/undo";
 import { prisma } from "@/lib/prisma";
+import { settleSubTodos } from "@/lib/sub-todos";
 
 /**
  * MCP 핵심 도구(읽기, 만들기, 끝내기, 옮기기, 되돌리기)가 하는 일. 서버 액션(app/(tabs)/actions.ts, events/actions.ts)과 같은 규칙(소유자 확인, 하루 상한,
@@ -242,6 +243,8 @@ export async function moveTodos(ctx: McpContext, input: { ids: string[]; date: s
     ...moving.map((todo) => prisma.todo.updateMany({ where: { id: todo.id, userId: ctx.userId }, data: { date, order: order++, routineId: null } })),
     ...(routineSkips.length > 0 ? [prisma.routineSkip.createMany({ data: routineSkips, skipDuplicates: true })] : []),
   ]);
+  // 큰 할 일을 옮겼으면 안 끝낸 세부 할 일이 따라가고, 세부 할 일만 옮겼으면 연결이 끊긴다(lib/sub-todos.ts).
+  await settleSubTodos(ctx.userId, moving.map((todo) => todo.id));
   revalidatePath("/");
 
   return ok({ moved: moving.length, to: dayText(date), alreadyThere: owned.length - moving.length, notFound: ids.filter((id) => !ownedIds.has(id)) });

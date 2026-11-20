@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 
-import { deleteTodo, moveTodo, repeatTodo, restoreTodo, updateTodo } from "@/app/(tabs)/actions";
+import { addTodo, deleteTodo, moveTodo, repeatTodo, restoreTodo, updateTodo } from "@/app/(tabs)/actions";
 import { ChoicePicker } from "@/components/choice-picker";
 import { DatePicker } from "@/components/date-picker";
 import { useT } from "@/components/locale-provider";
@@ -11,12 +11,11 @@ import { Modal } from "@/components/modal";
 import { ReceivedReactions } from "@/components/received-reactions";
 import { SubmitButton } from "@/components/submit-button";
 import { TodoCheckbox } from "@/components/todo-checkbox";
-import { PENDING_PREFIX, useTodoStore } from "@/components/todo-store";
+import { type HomeTodo, PENDING_PREFIX, useTodoStore } from "@/components/todo-store";
 import { useToast } from "@/components/toast";
 import { UndoableDeleteButton } from "@/components/undoable-delete-button";
 import { useSaveFailure } from "@/components/use-save-failure";
 import { addDays, formatKST, parseKSTDate } from "@/lib/date";
-import { type GoalView, goalChoices, goalLabel } from "@/lib/goals";
 import { MAX_MEMO_LENGTH } from "@/lib/memo";
 import { common } from "@/lib/i18n/messages/common";
 import { todos as todoMessages } from "@/lib/i18n/messages/todos";
@@ -29,8 +28,10 @@ type Todo = {
   color: string | null;
   memo: string | null;
   memoPublic?: boolean;
-  // 연결된 목표 또는 세부 목표(2026-11-19).
-  goalId?: string | null;
+  // 세부 할 일이면 큰 할 일의 id(2026-11-20).
+  parentId?: string | null;
+  // 루틴이 만든 할 일에는 세부 할 일을 달 수 없다(루틴을 고치면 카테고리가 따로 바뀐다).
+  isRoutine?: boolean;
   category: { id?: string; name: string; color: string } | null;
 };
 
@@ -39,6 +40,9 @@ type CategoryOption = { id: string; name: string; color: string };
 /**
  * 할 일 한 줄. 글자를 누르면 창이 떠서 글자와 메모를 고치고, 다른 날로 옮기거나 지운다.
  * 메모는 글자 밑에 몇 줄만 보여준다. 색은 카테고리를 따라가므로 여기서 고르지 않는다.
+ *
+ * 큰 할 일 밑에는 세부 할 일이 꼬리처럼 달린다(2026-11-20). 세부 할 일은 이 컴포넌트를 child로 다시 그린 것이고,
+ * 큰 할 일의 오른쪽에 끝낸 개수(1/3)가 보인다. 큰 할 일을 끌면 세부 할 일도 같이 움직인다(한 줄 안에 들어 있다).
  */
 export function TodoRow({
   todo,
@@ -47,7 +51,8 @@ export function TodoRow({
   received = [],
   saving = false,
   categories,
-  goals,
+  subTodos = [],
+  child = false,
 }: {
   todo: Todo;
   // 이 할 일의 날짜("YYYY-MM-DD"). "다른 날에 하기"의 처음 값(다음 날)을 여기서 정한다.
@@ -60,8 +65,10 @@ export function TodoRow({
   saving?: boolean;
   // 옮길 수 있는 카테고리(보관하지 않은 것). 주면 창에서 카테고리를 고를 수 있다. 폰에서는 끌어 옮기기가 어려워 이 길을 둔다.
   categories?: CategoryOption[];
-  // 내 목표와 세부 목표(2026-11-19). 주면 줄에 연결된 목표 이름이 보이고, 창에서 목표를 고를 수 있다. 없거나 비어 있으면 목표 칸은 없다.
-  goals?: Pick<GoalView, "id" | "title" | "children">[];
+  // 이 큰 할 일 밑의 세부 할 일(같은 날). 화면이 큰 할 일 밑에 모아 넘긴다.
+  subTodos?: HomeTodo[];
+  // 세부 할 일 한 줄이면 true. 옮기기·카테고리·세부 할 일 달기가 없고 창이 짧다.
+  child?: boolean;
 }) {
   const t = useT(todoMessages);
   const tc = useT(common);
@@ -75,13 +82,14 @@ export function TodoRow({
   const toast = useToast();
   const saveFailed = useSaveFailure();
   const store = useTodoStore();
-  const goalName = goalLabel(goals ?? [], todo.goalId);
+  const canAddSub = !child && !saving && !todo.isRoutine;
+  const subDone = subTodos.filter((sub) => sub.done).length;
 
   return (
     // 방금 적은 할 일은 살짝 떠오르며 들어온다(저장이 끝나 진짜 줄로 바뀔 때는 움직이지 않는다).
-    <div className={`py-2.5 ${saving ? "pointer-events-none animate-rise opacity-60" : ""}`} aria-busy={saving || undefined}>
+    <div className={`${child ? "py-1.5" : "py-2.5"} ${saving ? "pointer-events-none animate-rise opacity-60" : ""}`} aria-busy={saving || undefined}>
       {/* 메모가 있으면 줄이 길어진다. 체크는 가운데가 아니라 할 일 글자 줄에 맞춘다. */}
-      <div data-tour="todo-row" className="flex items-start gap-3">
+      <div data-tour={child ? undefined : "todo-row"} className="flex items-start gap-3">
         <div className="mt-px">
           <TodoCheckbox id={todo.id} done={todo.done} color={todo.color ?? todo.category?.color} />
         </div>
@@ -105,20 +113,38 @@ export function TodoRow({
               </span>
             )}
           </button>
-          {/* 연결된 목표(2026-11-19). 버튼 밖에 둬서 줄을 누르는 단추의 이름(할 일 글자)이 그대로다. 친구 화면에는 나오지 않는다. */}
-          {goalName && (
-            <span className="mt-0.5 flex min-w-0 items-center gap-1 text-xs text-brand">
-              <span aria-hidden>🎯</span>
-              <span className="truncate">{goalName}</span>
-            </span>
-          )}
         </div>
+
+        {/* 세부 할 일을 몇 개 끝냈는지. 큰 할 일의 체크와는 따로다(다 끝내도 큰 할 일이 저절로 끝나지 않는다). */}
+        {subTodos.length > 0 && (
+          <span aria-label={t("subProgress", { total: subTodos.length, done: subDone })} className="mt-0.5 shrink-0 text-xs font-semibold tabular-nums text-muted">
+            <span aria-hidden>
+              {subDone}/{subTodos.length}
+            </span>
+          </span>
+        )}
 
         {/* 친구가 보낸 반응(줄 오른쪽 끝에 겹친 그림과 개수). 반응이 많아도 줄이 길어지지 않는다. 누르면 누가 보냈는지 보인다. */}
         <ReceivedReactions received={received} />
       </div>
 
-      <Modal open={open} onClose={() => setOpen(false)} title={t("modalTitle")}>
+      {/* 세부 할 일: 큰 할 일의 체크박스 가운데에서 내려오는 세로줄 옆에 들여 쓴다. */}
+      {subTodos.length > 0 && (
+        <ul aria-label={t("subTodoList", { name: todo.content })} className="mt-1 ml-2.5 flex flex-col border-l-2 border-border pl-[1.15rem]">
+          {subTodos.map((sub) => (
+            <li key={sub.id}>
+              <TodoRow child todo={sub} date={date} quickMove={quickMove} received={sub.received} saving={sub.id.startsWith(PENDING_PREFIX)} />
+            </li>
+          ))}
+          {canAddSub && (
+            <li>
+              <SubTodoAdder parent={todo} date={date} />
+            </li>
+          )}
+        </ul>
+      )}
+
+      <Modal open={open} onClose={() => setOpen(false)} title={child ? t("modalTitleSub") : t("modalTitle")}>
         <form
           // 실패하면 창을 열어 둔 채 고친 글자를 남긴다. form action은 실패해도
           // 입력칸을 처음 값으로 되돌려서 onSubmit으로 보낸다.
@@ -148,7 +174,6 @@ export function TodoRow({
                     content: edited.content.trim(),
                     memo: memo || null,
                     memoPublic: formData.get("memoPrivate") !== "on",
-                    ...(formData.get("goalField") === "1" && { goalId: String(formData.get("goalId") ?? "") || null }),
                     ...(moved && { category, color: null }),
                   },
                 });
@@ -203,28 +228,28 @@ export function TodoRow({
               </div>
             </div>
           )}
-          {/* 목표가 하나라도 있으면 이 할 일이 향하는 목표(또는 세부 목표)를 고를 수 있다(2026-11-19). "연결 안 함"이 연결을 끊는다. */}
-          {goals && goals.length > 0 && (
-            <div className="flex items-center gap-3 text-sm">
-              <input type="hidden" name="goalField" value="1" />
-              <span className="shrink-0 text-muted">{t("goalLabel")}</span>
-              <div className="min-w-0 flex-1">
-                <ChoicePicker label={t("goalPicker")} name="goalId" defaultValue={todo.goalId ?? ""} options={goalChoices(goals, t("noGoal"))} />
-              </div>
+          {/* 세부 할 일은 여기서 바로 적는다(입력칸에서 Enter, 창은 열어 둔다). 처음 달 때 찾기 쉬우라고 창에 둔다(2026-11-20). */}
+          {canAddSub && (
+            <div className="flex flex-col gap-1.5 text-sm">
+              <span className="text-muted">{t("subTodoTitle")}</span>
+              <SubTodoAdder parent={todo} date={date} alwaysOpen />
+              {subTodos.length > 0 && <p className="text-xs text-muted">{t("subMoveHint")}</p>}
             </div>
           )}
-          {/* 날짜 옮기기는 자주 누르므로 메모·삭제·저장보다 위에 둔다(사용자 요청). */}
-          <MoveToDay
-            id={todo.id}
-            date={date}
-            quickMove={quickMove}
-            done={todo.done}
-            todo={todo}
-            plan={plan}
-            onPlan={setPlan}
-            planMessage={planMessage}
-            onMoved={() => setOpen(false)}
-          />
+          {/* 날짜 옮기기는 자주 누르므로 메모·삭제·저장보다 위에 둔다(사용자 요청). 세부 할 일은 큰 할 일과 같은 날이라 따로 옮기지 않는다. */}
+          {!child && (
+            <MoveToDay
+              id={todo.id}
+              date={date}
+              quickMove={quickMove}
+              done={todo.done}
+              todo={todo}
+              plan={plan}
+              onPlan={setPlan}
+              planMessage={planMessage}
+              onMoved={() => setOpen(false)}
+            />
+          )}
           <textarea
             name="memo"
             defaultValue={draft?.memo ?? todo.memo ?? ""}
@@ -238,8 +263,8 @@ export function TodoRow({
           <input type="hidden" name="memoPublicField" value="1" />
           <MemoPrivateToggle defaultChecked={!(todo.memoPublic ?? true)} />
           {/* 손잡이가 없어 순서를 바꾸는 법이 안 보인다. 폰은 길게 눌러, 컴퓨터는 줄을 잡고 끈다. */}
-          <p className="hidden text-xs text-muted pointer-coarse:block">{t("hintTouch")}</p>
-          <p className="hidden text-xs text-muted pointer-fine:block">{t("hintMouse")}</p>
+          {!child && <p className="hidden text-xs text-muted pointer-coarse:block">{t("hintTouch")}</p>}
+          {!child && <p className="hidden text-xs text-muted pointer-fine:block">{t("hintMouse")}</p>}
           <div className="flex items-center justify-between gap-2">
             <UndoableDeleteButton
               id={todo.id}
@@ -265,6 +290,101 @@ export function TodoRow({
         </form>
 
       </Modal>
+    </div>
+  );
+}
+
+/**
+ * 큰 할 일 밑에 세부 할 일을 적는 입력칸. 큰 할 일의 날짜·카테고리는 서버가 따라 붙이므로(app/(tabs)/actions.ts addTodo) parentId만 보낸다.
+ * 보내는 순간 칸을 비우고 목록에 흐리게 먼저 보인다(빠른 입력과 같다). 거절되거나 실패하면 글자를 되돌리고 이유를 알린다.
+ * alwaysOpen이면 항상 입력칸이고(할 일 창 안), 아니면 "+ 세부 할 일" 단추를 눌러야 입력칸이 열린다.
+ */
+function SubTodoAdder({ parent, date, alwaysOpen = false }: { parent: Todo; date: string; alwaysOpen?: boolean }) {
+  const t = useT(todoMessages);
+  const [open, setOpen] = useState(alwaysOpen);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [, startTransition] = useTransition();
+  const saveFailed = useSaveFailure();
+  const toast = useToast();
+  const store = useTodoStore();
+
+  function submit() {
+    const input = inputRef.current;
+    const text = input?.value.trim() ?? "";
+    if (!input || !text) return;
+    input.value = "";
+    // 실패하면 적었던 글자를 되돌린다. 그사이 다음 것을 적고 있었으면 덮지 않는다.
+    const restore = () => {
+      if (input.value === "") input.value = text;
+    };
+    const formData = new FormData();
+    formData.set("content", text);
+    formData.set("parentId", parent.id);
+    startTransition(async () => {
+      if (store) {
+        store({
+          type: "add",
+          todo: {
+            id: `${PENDING_PREFIX}${crypto.randomUUID()}`,
+            date,
+            content: text,
+            done: false,
+            color: null,
+            memo: null,
+            doneAt: null,
+            parentId: parent.id,
+            category: parent.category?.id ? { id: parent.category.id, name: parent.category.name, color: parent.category.color } : null,
+            received: [],
+          },
+        });
+      }
+      try {
+        const result = await addTodo(formData);
+        if (!result.ok) {
+          restore();
+          toast({ message: result.message });
+        }
+      } catch (error) {
+        restore();
+        saveFailed(error);
+      }
+    });
+  }
+
+  if (!open) {
+    return (
+      <button type="button" onClick={() => setOpen(true)} className="flex h-8 items-center text-xs font-medium text-muted hover:text-foreground">
+        {t("subTodoAdd")}
+      </button>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-2 py-1">
+      <input
+        ref={inputRef}
+        maxLength={200}
+        autoFocus={!alwaysOpen}
+        placeholder={t("subTodoPlaceholder")}
+        aria-label={t("subTodoInputLabel", { name: parent.content })}
+        onKeyDown={(event) => {
+          if (event.key === "Escape" && !alwaysOpen) {
+            setOpen(false);
+            return;
+          }
+          if (event.key !== "Enter") return;
+          // 할 일 창 안의 입력칸이라 Enter가 창의 저장을 누르지 않게 막는다.
+          event.preventDefault();
+          submit();
+        }}
+        onBlur={(event) => {
+          if (!alwaysOpen && event.currentTarget.value.trim() === "") setOpen(false);
+        }}
+        className="h-9 min-w-0 flex-1 rounded-lg bg-surface-hover px-3 text-sm outline-none placeholder:text-muted focus:ring-2 focus:ring-brand"
+      />
+      <button type="button" onClick={submit} className="h-9 shrink-0 rounded-lg px-3 text-sm font-semibold text-brand hover:bg-surface-hover">
+        {t("subTodoSubmit")}
+      </button>
     </div>
   );
 }
