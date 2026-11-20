@@ -22,14 +22,14 @@ export function DiaryCard({ date, today, entry }: { date: string; today: string;
   const base = "flex items-center gap-3 rounded-2xl bg-surface px-4 py-3.5 transition-colors hover:bg-surface-hover active:scale-[0.99]";
   if (!entry) {
     return (
-      <Link prefetch={false} href={`/diary/${date}`} data-diary-card className={`${base} text-sm text-muted`}>
+      <Link prefetch={false} href={`/diary/${date}`} data-diary-card data-tour="diary" className={`${base} text-sm text-muted`}>
         <DiaryMood value={null} size={44} />
         {date === today ? t("cardEmptyToday") : t("cardEmptyPast")}
       </Link>
     );
   }
   return (
-    <Link prefetch={false} href={`/diary/${date}`} data-diary-card className={base}>
+    <Link prefetch={false} href={`/diary/${date}`} data-diary-card data-tour="diary" className={base}>
       <DiaryMood value={entry.mood} size={44} label={entry.mood && isDiaryMood(entry.mood) ? t(MOOD_LABEL_KEYS[entry.mood]) : undefined} />
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
         <span className="flex items-center gap-2 text-sm font-medium">

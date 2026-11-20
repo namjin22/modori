@@ -210,6 +210,7 @@ export function HomeView({ data }: { data: HomeData }) {
                 <Link
                   prefetch={false}
                   href="/ai"
+                  data-tour="ai"
                   className="flex h-8 items-center rounded-full bg-surface px-3 text-sm text-muted hover:text-foreground min-[360px]:px-3.5"
                 >
                   {t("aiHelper")}
