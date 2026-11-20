@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 
-import { AI_CONSENT_VALID_FROM } from "@/lib/ai/consent";
+import { AI_CONSENT_VALID_FROM, AI_RECONSENT_NOTICE_UNTIL } from "@/lib/ai/consent";
 import { prisma } from "@/lib/prisma";
 
 import { RUN_TAG } from "./run-tag";
@@ -36,13 +36,19 @@ async function makeUser(page: Page, label: string, consentAt: Date | null) {
 const input = (page: Page) => page.getByLabel("AI에게 보낼 말");
 const banner = (page: Page) => page.getByRole("note").filter({ hasText: "내용을 보내는 곳이 바뀌었어요" });
 
-test("옛 문구에 동의한 사람은 변경 안내와 함께 다시 동의해야 열리고, 서버도 그 전에는 막는다", async ({ page }) => {
+test("옛 문구에 동의한 사람은 (7일 동안은 변경 안내와 함께) 다시 동의해야 열리고, 서버도 그 전에는 막는다", async ({ page }) => {
   const before = new Date(AI_CONSENT_VALID_FROM.getTime() - 24 * 60 * 60 * 1000);
   const user = await makeUser(page, "stale", before);
 
   await page.goto("/ai");
-  await expect(banner(page)).toBeVisible();
-  await expect(page.getByText("Google의 Gemini API로 전송된다고 적혀 있었어요")).toBeVisible();
+  // 변경 안내는 기준 시각부터 7일(2026-11-26 10:20 KST)까지만 보이고 그 뒤에는 사라진다(2026-11-20). 어느 쪽이든 동의는 계속 필요하다.
+  // 안내가 보이는 날·안 보이는 날 양쪽 판단은 tests/unit/ai-reconsent-notice.test.ts가 날짜를 고정해 확인한다.
+  if (Date.now() < AI_RECONSENT_NOTICE_UNTIL.getTime()) {
+    await expect(banner(page)).toBeVisible();
+    await expect(page.getByText("Google의 Gemini API로 전송된다고 적혀 있었어요")).toBeVisible();
+  } else {
+    await expect(banner(page)).toHaveCount(0);
+  }
   await expect(page.getByText("Cloudflare의 Workers AI로 전송돼요")).toBeVisible();
   await expect(input(page)).toHaveCount(0);
   const start = page.getByRole("button", { name: "동의하고 시작하기" });
