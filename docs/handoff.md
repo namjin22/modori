@@ -2144,6 +2144,6 @@ VM에 시험 DB(사용자 1000, 할 일 108만, 반응 24만, 280MB)를 만들�
 - **병합·배포**: PR #290(AI용으로 복사)은 CI 통과 후 병합했다(6a79304). 자동 배포는 이 줄을 쓴 시점에 확인하지 못했다.
 - **브랜치**: `feat/android-widget`(PR 있음). 근거·대가·못 한 것은 `docs/decisions.md` 2026-11-20 "Android 홈 화면 위젯", 사용법은 `mobile/README.md` "홈 화면 위젯".
 - **바뀐 것**: 서버 `GET /api/widget`(`app/api/widget/route.ts`, `lib/widget.ts`), Android `ModoriWidgetProvider.java`·`widget_todos.xml` 등 리소스·`AndroidManifest.xml`의 receiver·`MainActivity.onPause`(쿠키 flush + 2초 뒤 위젯 새로 고침). 개인정보 목록·방침에 "위젯의 마지막 목록" 추가.
-- **확인한 것**: 서버 API는 `tsc`·린트·단위(`widget.test.ts` 9개)·E2E(`widget-api.spec.ts` 4개) 통과. Android는 `android` 워크플로의 `assembleDebug`가 빌드되는지만 본다(결과는 PR에 적는다).
+- **확인한 것**: 서버 API는 `tsc`·린트·단위(`widget.test.ts` 9개)·E2E(`widget-api.spec.ts` 4개) 통과. Android는 `android` 워크플로의 `assembleDebug`가 빌드되는지만 봤다: 첫 빌드는 XML 주석의 `--`(리소스 병합), 둘째는 `MainActivity.onPause`를 `protected`로 덮어써서(`BridgeActivity.onPause`가 public) 실패했고, 고친 뒤 셋째(실행 44691607763)가 통과했다. APK 파일은 그 실행의 결과물 `modori-android-debug`다.
 - **못 한 것(중요)**: **위젯이 실제 폰에서 그려지는지, 위젯이 웹뷰 로그인 쿠키를 읽는지는 한 번도 못 봤다.** 이 PC에 Android SDK·에뮬레이터가 없다. 쿠키를 못 읽으면 위젯이 늘 "앱을 열어 로그인해 주세요"로 나온다 → 그때는 위젯용 토큰 방식으로 바꿔야 한다. iPhone·맥 위젯은 만들지 않았다(Xcode·Apple 계정).
 - **운영자 몫**: 새 APK를 `android` 워크플로(Actions → android → Run workflow, 결과물 `modori-android-debug`)로 받아 폰에 설치하고, 홈 화면을 길게 눌러 위젯 → 모도리 → "오늘 남은 할 일"을 놓아 본다. 로그인한 앱에서 할 일을 체크하고 앱을 떠난 뒤 2초 안에 위젯이 바뀌는지 본다. 스토어에 올리려면 새 AAB가 필요하다.
