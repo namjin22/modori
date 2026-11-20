@@ -2131,3 +2131,10 @@ VM에 시험 DB(사용자 1000, 할 일 108만, 반응 24만, 280MB)를 만들�
 - **시험 수정(운영자 승인)**: `tests/e2e/ai-reconsent.spec.ts` 첫 시험의 안내 확인을 날짜에 맞춰 바꿨다. 새 단위 시험 `tests/unit/ai-reconsent-notice.test.ts`.
 - **알아 둘 것**: 안내만 숨고 동의는 계속 필요하다. 11-26 이후에 이 파일을 읽는다면 안내가 안 보이는 것이 정상이다.
 - **운영자 몫으로 남은 것**: Cloudflare Worker 켜기(`deploy/README.md`), INC-22 원인 확인(VM에서 부팅 기록·cloudflared 로그), 옛 `GEMINI_API_KEY` 지우기(선택).
+
+## 2026-11-20(이어서 16) — 할 일·일정 창의 "AI용으로 복사"
+
+- **브랜치**: `feat/copy-for-ai`(origin/main 위). 근거·대가는 `docs/decisions.md` 2026-11-20 "할 일·일정 창에 AI용으로 복사를 넣는다".
+- **바뀐 것**: `lib/ai-reference.ts`(글 만들기), `components/copy-for-ai.tsx`(단추. 복사하면 단추 글자가 잠깐 "복사했어요"로 바뀌고, 막히면 오류와 글을 보여 준다), 할 일 창(`components/todo-row.tsx`, 세부 할 일 창 포함)과 일정 고치기 창(`components/event-section.tsx`)의 맨 밑, 문구는 `lib/i18n/messages/common.ts` 세 언어.
+- **확인한 것**: `tsc`·린트 통과, 새 단위 시험(`ai-reference`)과 `i18n` 통과, 새 E2E 4개(`copy-for-ai.spec.ts`) 통과, 기존 `memo.spec.ts`·`events.spec.ts` 통과(한 번 `memo.spec.ts`가 30초 제한에 걸렸다가 다시 돌리니 통과 — 이 PC가 느릴 때의 시간 초과로 보이지만 CI에서 다시 본다).
+- **못 한 것**: 실기기(앱 웹뷰·iOS)에서의 클립보드, 320px 폭, 릴리스 스크린샷(화면이 조금 바뀌었다. 위젯 작업 뒤에 한꺼번에 찍는다).
