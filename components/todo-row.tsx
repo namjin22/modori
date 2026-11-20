@@ -136,11 +136,6 @@ export function TodoRow({
               <TodoRow child todo={sub} date={date} quickMove={quickMove} received={sub.received} saving={sub.id.startsWith(PENDING_PREFIX)} />
             </li>
           ))}
-          {canAddSub && (
-            <li>
-              <SubTodoAdder parent={todo} date={date} />
-            </li>
-          )}
         </ul>
       )}
 
@@ -232,7 +227,7 @@ export function TodoRow({
           {canAddSub && (
             <div className="flex flex-col gap-1.5 text-sm">
               <span className="text-muted">{t("subTodoTitle")}</span>
-              <SubTodoAdder parent={todo} date={date} alwaysOpen />
+              <SubTodoAdder parent={todo} date={date} />
               {subTodos.length > 0 && <p className="text-xs text-muted">{t("subMoveHint")}</p>}
             </div>
           )}
@@ -297,11 +292,10 @@ export function TodoRow({
 /**
  * 큰 할 일 밑에 세부 할 일을 적는 입력칸. 큰 할 일의 날짜·카테고리는 서버가 따라 붙이므로(app/(tabs)/actions.ts addTodo) parentId만 보낸다.
  * 보내는 순간 칸을 비우고 목록에 흐리게 먼저 보인다(빠른 입력과 같다). 거절되거나 실패하면 글자를 되돌리고 이유를 알린다.
- * alwaysOpen이면 항상 입력칸이고(할 일 창 안), 아니면 "+ 세부 할 일" 단추를 눌러야 입력칸이 열린다.
+ * 할 일 창 안에만 있다. 세부 할 일 밑에 따로 붙던 "+ 세부 할 일" 단추는 운영자 요청(2026-11-20)으로 없앴다.
  */
-function SubTodoAdder({ parent, date, alwaysOpen = false }: { parent: Todo; date: string; alwaysOpen?: boolean }) {
+function SubTodoAdder({ parent, date }: { parent: Todo; date: string }) {
   const t = useT(todoMessages);
-  const [open, setOpen] = useState(alwaysOpen);
   const inputRef = useRef<HTMLInputElement>(null);
   const [, startTransition] = useTransition();
   const saveFailed = useSaveFailure();
@@ -351,34 +345,18 @@ function SubTodoAdder({ parent, date, alwaysOpen = false }: { parent: Todo; date
     });
   }
 
-  if (!open) {
-    return (
-      <button type="button" onClick={() => setOpen(true)} className="flex h-8 items-center text-xs font-medium text-muted hover:text-foreground">
-        {t("subTodoAdd")}
-      </button>
-    );
-  }
-
   return (
     <div className="flex items-center gap-2 py-1">
       <input
         ref={inputRef}
         maxLength={200}
-        autoFocus={!alwaysOpen}
         placeholder={t("subTodoPlaceholder")}
         aria-label={t("subTodoInputLabel", { name: parent.content })}
         onKeyDown={(event) => {
-          if (event.key === "Escape" && !alwaysOpen) {
-            setOpen(false);
-            return;
-          }
           if (event.key !== "Enter") return;
           // 할 일 창 안의 입력칸이라 Enter가 창의 저장을 누르지 않게 막는다.
           event.preventDefault();
           submit();
-        }}
-        onBlur={(event) => {
-          if (!alwaysOpen && event.currentTarget.value.trim() === "") setOpen(false);
         }}
         className="h-9 min-w-0 flex-1 rounded-lg bg-surface-hover px-3 text-sm outline-none placeholder:text-muted focus:ring-2 focus:ring-brand"
       />
