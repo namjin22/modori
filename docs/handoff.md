@@ -2110,3 +2110,11 @@ VM에 시험 DB(사용자 1000, 할 일 108만, 반응 24만, 280MB)를 만들�
 - **확인한 것**: `tsc`, 린트 오류 0, 새 단위·E2E 통과, 기존 MCP 단위 시험 통과. 기존 MCP E2E(`mcp.spec.ts`·`mcp-full.spec.ts`) 34개도 통과했다.
 - **못 한 것**: 실제 Claude 같은 MCP 클라이언트로 붙여 본 것(JSON-RPC 시험만 했다). 친구가 쓰던 환경에서 `create_todos`의 `parentId`가 보이는지는 배포 뒤 확인이 필요하다.
 - **알아 둘 것**: 큰 할 일과 세부 할 일을 한 번에 못 만든다(두 번 호출). 친구 읽기(`list_friend_todos`)는 세부 할 일을 평평하게 내보낸다. AI 도우미(`/ai`)는 세부 할 일을 만들지 않는다(운영자에게 묻기).
+
+## 2026-11-20(이어서 13) — AI 도우미 세부 할 일, 루틴 할 일 세부 할 일, 튜토리얼
+
+- **병합·배포된 것**: PR #286(세부 할 일 밑 "+ 세부 할 일" 버튼 삭제)은 CI 통과 후 병합했다(자동 배포는 확인 중, 이 줄을 쓴 시점에는 못 봤다).
+- **이 브랜치**(`feat/ai-sub-todos`): AI 도우미가 `subTodos`를 제안·미리보기·저장·되돌린다(`lib/ai/plan.ts`, `app/api/ai/chat/route.ts`, `app/(tabs)/ai/actions.ts`, `components/ai-chat.tsx`), 루틴 할 일에도 세부 할 일(`lib/sub-todos.ts`의 `canHaveSubTodos`, 루틴 고치기에서 `settleSubTodos`), 튜토리얼 단계 둘(일기·AI 도우미)과 설명 고침. 근거·대가는 `docs/decisions.md` 2026-11-20 "AI 도우미에 세부 할 일, 루틴 할 일에 세부 할 일, 튜토리얼에 새 기능".
+- **시험 수정(운영자 승인)**: `sub-todo-store.test.ts`·`mcp-sub-todos.spec.ts`·`tutorial.spec.ts`. 새 확인은 `ai-chat.spec.ts`(더하기만)·`sub-todos.spec.ts`.
+- **못 한 것**: 실제 AI 모델이 `subTodos`를 형식에 맞게 내는지(가짜 서버로만 시험했다. 지시문이 길어져 모델이 형식을 어길 수 있다), 390px 폰에서 새 튜토리얼 단계, 실기기. 릴리스 스크린샷(`npm run screenshots`)은 아직 안 찍었다(사용자의 미커밋 `tests/screenshots/*`는 건드리지 않는다).
+- **알아 둘 것**: AI 도우미는 이미 있는 할 일에 세부 할 일을 덧붙이지 못한다. 튜토리얼에 세부 할 일 전용 단계는 없다.

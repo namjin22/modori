@@ -86,7 +86,8 @@ async function handle(request: Request): Promise<Response> {
       where: { userId: user.id, date: { gte: monthStart, lte: monthEnd } },
       orderBy: [{ date: "asc" }, { order: "asc" }],
       take: AI_LIMITS.contextTodos,
-      select: { date: true, content: true, done: true, category: { select: { name: true } } },
+      // 세부 할 일은 위 할 일의 제목을 같이 읽는다(관계를 AI가 알게). 메모는 읽지 않는다.
+      select: { date: true, content: true, done: true, category: { select: { name: true } }, parent: { select: { content: true } } },
     }),
     prisma.event.findMany({
       where: { userId: user.id, startDate: { lte: monthEnd }, endDate: { gte: monthStart } },
@@ -102,7 +103,7 @@ async function handle(request: Request): Promise<Response> {
     timezone: user.timezone,
     context: buildContext({
       categories: categoryNames,
-      todos: todos.map((todo) => ({ date: todo.date, content: todo.content, done: todo.done, category: todo.category?.name ?? null })),
+      todos: todos.map((todo) => ({ date: todo.date, content: todo.content, done: todo.done, category: todo.category?.name ?? null, parent: todo.parent?.content ?? null })),
       events: events.map((event) => ({
         title: event.title,
         startDate: event.startDate,

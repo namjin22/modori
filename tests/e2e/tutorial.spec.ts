@@ -38,7 +38,10 @@ const NEW_USER_STEPS = [
   { title: "모도리 둘러보기", target: null },
   { title: "내 프로필", target: "profile" },
   { title: "달력", target: "calendar" },
+  // 일기와 AI 도우미 단계(2026-11-20): 일기 카드는 달력 밑, AI 도우미 버튼은 관리 버튼 옆에 있다.
+  { title: "일기", target: "diary" },
   { title: "날짜 넘기기", target: "day-nav" },
+  { title: "AI 도우미", target: "ai" },
   { title: "관리", target: "manage" },
   { title: "일정", target: "events" },
   { title: "카테고리 칩", target: "category" },
@@ -213,8 +216,8 @@ test.describe("설정에서 다시 보기", () => {
     await expect(dialog).toBeVisible();
 
     // 할 일이 있는 계정이라 "카테고리 칩" 다음에 "할 일 줄"이 끼어든다.
-    // 홈의 "기록" 단계를 마이페이지로 옮기면서 단계가 하나 줄어, "카테고리 칩"은 일곱 번째다(2026-11-17).
-    const withTodo = [...NEW_USER_STEPS.slice(0, 7), { title: "할 일 줄", target: "todo-row" }, ...NEW_USER_STEPS.slice(7)];
+    // 일기·AI 도우미 단계가 늘어(2026-11-20) "카테고리 칩"은 아홉 번째다.
+    const withTodo = [...NEW_USER_STEPS.slice(0, 9), { title: "할 일 줄", target: "todo-row" }, ...NEW_USER_STEPS.slice(9)];
     await walkThrough(page, withTodo);
     await dialog.getByRole("button", { name: "끝내기" }).click();
 

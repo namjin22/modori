@@ -109,9 +109,8 @@ export default async function FeedPage({
         color: true,
         memo: true,
         memoPublic: true,
-        // 세부 할 일이면 큰 할 일의 id(2026-11-20). 화면이 큰 할 일 밑에 모아 그린다. 루틴이 만든 할 일에는 세부 할 일을 달 수 없다.
+        // 세부 할 일이면 큰 할 일의 id(2026-11-20). 화면이 큰 할 일 밑에 모아 그린다.
         parentId: true,
-        routineId: true,
         category: { select: { id: true, name: true, color: true } },
         // 친구가 보낸 반응. 할 일 밑에 투두메이트처럼 보여준다(내가 내 일에 보낼 수는 없다).
         reactions: {
@@ -165,9 +164,8 @@ export default async function FeedPage({
     month: formatMonthKST(monthStart),
     from: formatKST(from),
     to: formatKST(to),
-    todos: todos.map(({ reactions, date: day, doneAt, routineId, ...todo }) => ({
+    todos: todos.map(({ reactions, date: day, doneAt, ...todo }) => ({
       ...todo,
-      isRoutine: routineId !== null,
       date: formatKST(day),
       doneAt: doneAt?.getTime() ?? null,
       received: groupReceivedReactions(

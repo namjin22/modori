@@ -71,11 +71,13 @@ describe("applyTodoChange와 세부 할 일", () => {
 });
 
 describe("canHaveSubTodos", () => {
-  it("보통 큰 할 일에만 세부 할 일을 달 수 있다", () => {
-    expect(canHaveSubTodos({ parentId: null, routineId: null })).toBe(true);
-    // 세부 할 일 밑에는 또 달지 못한다(2단계).
-    expect(canHaveSubTodos({ parentId: "P", routineId: null })).toBe(false);
-    // 루틴이 만든 할 일은 루틴을 고칠 때 카테고리가 따로 바뀌어서 달지 못한다.
-    expect(canHaveSubTodos({ parentId: null, routineId: "R" })).toBe(false);
+  it("세부 할 일이 아닌 할 일에는 달 수 있고, 세부 할 일 밑에는 또 달지 못한다(2단계)", () => {
+    expect(canHaveSubTodos({ parentId: null })).toBe(true);
+    expect(canHaveSubTodos({ parentId: "P" })).toBe(false);
+  });
+
+  it("루틴이 만든 할 일에도 달 수 있다(2026-11-20 결정). 루틴 표시는 따지지 않는다", () => {
+    // 루틴 할 일은 parentId만 비어 있으면 된다. 호출하는 쪽이 루틴 칸을 넘겨도 결과가 같다.
+    expect(canHaveSubTodos({ parentId: null, routineId: "R" } as { parentId: string | null })).toBe(true);
   });
 });

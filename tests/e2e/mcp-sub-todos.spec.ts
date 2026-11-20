@@ -1,6 +1,6 @@
 import { expect } from "@playwright/test";
 
-import { formatKST } from "@/lib/date";
+import { formatKST, parseKSTDate } from "@/lib/date";
 import { prisma } from "@/lib/prisma";
 
 import { call, day, makeToken, seedTodo, test, TODAY } from "./mcp-helpers";
@@ -47,12 +47,9 @@ test("세부 할 일을 달 수 없는 곳은 아무것도 만들지 않고 이�
   const { token } = await makeToken(account.id, "WRITE");
   const parent = await seedTodo(account.id, TODAY, "큰 할 일");
   const child = await prisma.todo.create({ data: { userId: account.id, content: "이미 세부", date: parent.date, parentId: parent.id, order: 1 } });
-  const routine = await prisma.routine.create({ data: { userId: account.id, content: "루틴", freq: "DAILY", startDate: parent.date } });
-  const fromRoutine = await prisma.todo.create({ data: { userId: account.id, content: "루틴이 만든 일", date: parent.date, routineId: routine.id, order: 2 } });
 
   const cases: [string, Record<string, unknown>, RegExp][] = [
     ["세부 할 일 밑에는 또 달 수 없다", { content: "손자", parentId: child.id }, /only two levels/i],
-    ["루틴이 만든 할 일에는 달 수 없다", { content: "루틴 밑", parentId: fromRoutine.id }, /routine/i],
     ["없는 큰 할 일", { content: "고아", parentId: "does-not-exist" }, /not found/i],
     ["큰 할 일과 다른 날", { content: "다른 날", parentId: parent.id, date: day(1) }, /same day|parent's date/i],
   ];
@@ -63,7 +60,28 @@ test("세부 할 일을 달 수 없는 곳은 아무것도 만들지 않고 이�
   }
   // 날짜도 parentId도 없으면 입력 검증에서 막힌다.
   expect((await call(request, token, "create_todos", { todos: [{ content: "날짜 없음" }] })).failed).toBe(true);
-  expect(await prisma.todo.count({ where: { userId: account.id } })).toBe(3);
+  expect(await prisma.todo.count({ where: { userId: account.id } })).toBe(2);
+});
+
+test("루틴이 만든 할 일 밑에도 세부 할 일을 달 수 있고, 루틴의 카테고리를 바꾸면 따라간다", async ({ request, account }) => {
+  const { token } = await makeToken(account.id, "FULL");
+  const first = await prisma.category.create({ data: { userId: account.id, name: "가", color: "#2563eb", order: 0 } });
+  const second = await prisma.category.create({ data: { userId: account.id, name: "나", color: "#dc2626", order: 1 } });
+  const today = parseKSTDate(TODAY);
+  const routine = await prisma.routine.create({ data: { userId: account.id, content: "물 마시기", freq: "DAILY", startDate: today, categoryId: first.id } });
+  const fromRoutine = await prisma.todo.create({ data: { userId: account.id, content: "물 마시기", date: today, routineId: routine.id, categoryId: first.id, order: 0 } });
+
+  const made = await call(request, token, "create_todos", { todos: [{ content: "아침 한 컵", parentId: fromRoutine.id }] });
+  expect(made.failed, made.raw).toBe(false);
+  const child = await prisma.todo.findFirstOrThrow({ where: { parentId: fromRoutine.id } });
+  expect(child.categoryId).toBe(first.id);
+
+  // 루틴의 카테고리를 바꾸면 오늘의 안 끝낸 루틴 할 일이 옮겨 가고, 세부 할 일도 같이 간다.
+  const edited = await call(request, token, "update_routine", { id: routine.id, category: "나" });
+  expect(edited.failed, edited.raw).toBe(false);
+  const rows = await prisma.todo.findMany({ where: { id: { in: [fromRoutine.id, child.id] } } });
+  expect(rows.map((row) => row.categoryId)).toEqual([second.id, second.id]);
+  expect((await prisma.todo.findUniqueOrThrow({ where: { id: child.id } })).parentId).toBe(fromRoutine.id);
 });
 
 test("큰 할 일을 옮기면 안 끝낸 세부 할 일이 따라가고, 세부 할 일만은 옮기지 못한다", async ({ request, account }) => {

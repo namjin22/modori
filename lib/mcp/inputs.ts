@@ -43,7 +43,7 @@ export const createTodosInput = {
           parentId: id
             .optional()
             .describe(
-              "Make this a sub-todo of an existing todo (id from list_todos or an earlier create_todos). Sub-todos sit under the parent on the same day and in the same category; there are only two levels, so the parent cannot itself be a sub-todo or a todo made by a routine.",
+              "Make this a sub-todo of an existing todo (id from list_todos or an earlier create_todos). Sub-todos sit under the parent on the same day and in the same category; there are only two levels, so the parent cannot itself be a sub-todo. A todo made by a routine can have sub-todos.",
             ),
         })
         .refine((item) => item.date !== undefined || item.parentId !== undefined, { message: "Give a date, or a parentId to attach this under an existing todo." }),

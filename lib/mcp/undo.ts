@@ -53,7 +53,7 @@ async function restoreTodos(ctx: McpContext, rows: Rows<"todos-deleted">): Promi
   // 큰 할 일이 없거나 세부 할 일이 되었으면 보통 할 일로 되살린다.
   const parentRefs = [...new Set(rows.flatMap((row) => (row.parentId ? [row.parentId] : [])))];
   const liveParents = new Map(
-    (await prisma.todo.findMany({ where: { id: { in: parentRefs }, userId: ctx.userId, parentId: null, routineId: null }, select: { id: true, date: true, categoryId: true } })).map((parent) => [parent.id, parent]),
+    (await prisma.todo.findMany({ where: { id: { in: parentRefs }, userId: ctx.userId, parentId: null }, select: { id: true, date: true, categoryId: true } })).map((parent) => [parent.id, parent]),
   );
   const dayOf = (row: (typeof rows)[number]) => {
     const live = row.parentId ? liveParents.get(row.parentId) : undefined;

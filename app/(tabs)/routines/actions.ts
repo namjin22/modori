@@ -12,6 +12,7 @@ import { LIMITS } from "@/lib/limits";
 import { prisma } from "@/lib/prisma";
 import { hasRuleForm, readRuleForm } from "@/lib/routine-rule-form";
 import { requireUser } from "@/lib/session";
+import { settleSubTodos } from "@/lib/sub-todos";
 
 import { createEventRoutine } from "./event-routine-actions";
 
@@ -141,6 +142,11 @@ export async function updateRoutine(formData: FormData): Promise<RoutineEdit> {
   if (typeof rule === "string") return { ok: false, message: t(rule) };
 
   const today = todayIn(user.timezone);
+  // 세부 할 일이 달린 루틴 할 일은 카테고리가 바뀌면 세부 할 일도 따라가야 한다(lib/sub-todos.ts, 2026-11-20).
+  const withSubs = await prisma.todo.findMany({
+    where: { routineId: routine.id, userId: user.id, done: false, date: { gte: today }, children: { some: {} } },
+    select: { id: true },
+  });
   await prisma.$transaction([
     prisma.routine.update({ where: { id: routine.id }, data: { content, categoryId: category.id, ...rule } }),
     prisma.todo.updateMany({
@@ -149,6 +155,7 @@ export async function updateRoutine(formData: FormData): Promise<RoutineEdit> {
       data: { content, categoryId: category.id, color: null },
     }),
   ]);
+  await settleSubTodos(user.id, withSubs.map((todo) => todo.id));
 
   revalidatePath("/routines");
   revalidatePath("/");
