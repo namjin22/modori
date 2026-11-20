@@ -2124,3 +2124,10 @@ VM에 시험 DB(사용자 1000, 할 일 108만, 반응 24만, 280MB)를 만들�
 - PR #287(AI 도우미·루틴·튜토리얼)까지 병합·배포 확인 뒤 `npm run screenshots`로 `docs/screenshots/2026-11-20/`(60장, 2.4MB)을 찍었다. 새 화면(세부 할 일·일정 팝업·다가오는 일정·AI 도우미 제안·둘러보기 새 단계)은 새 파일 `tests/screenshots/sub-todos.spec.ts`가 따로 찍는다(운영자의 미커밋 `capture.spec.ts`·`seed.ts`는 건드리지 않았다).
 - **알아 둘 것**: 폴더의 21~24(일기·AI 도우미 첫 화면)는 운영자의 **커밋 안 된** `capture.spec.ts`·`seed.ts` 변경으로 찍혔다. 그 변경이 커밋되기 전에는 다른 PC에서 같은 폴더를 다시 못 찍는다. 처음 찍으니 흐리게 나온 것(펼침 움직임 중)은 기다리게 고쳐 다시 찍었다.
 - **남은 것(운영자 몫)**: Cloudflare Worker 오류 화면 켜기(`deploy/README.md`), INC-22 원인(VM 로그), VM `.env`의 옛 `GEMINI_API_KEY` 지우기(선택), 재동의 안내 문구를 며칠 뒤 숨길지 결정.
+
+## 2026-11-20(이어서 15) — 재동의 안내 7일 뒤 숨김
+
+- `lib/ai/consent.ts`에 `AI_RECONSENT_NOTICE_UNTIL`(기준 시각 + 7일 = 2026-11-26 10:20 KST)과 `showReconsentNotice`, `app/(tabs)/ai/page.tsx`가 그것으로 안내를 정한다. 근거·대가는 `docs/decisions.md` "AI 도우미 재동의 안내를 7일 뒤에 숨긴다".
+- **시험 수정(운영자 승인)**: `tests/e2e/ai-reconsent.spec.ts` 첫 시험의 안내 확인을 날짜에 맞춰 바꿨다. 새 단위 시험 `tests/unit/ai-reconsent-notice.test.ts`.
+- **알아 둘 것**: 안내만 숨고 동의는 계속 필요하다. 11-26 이후에 이 파일을 읽는다면 안내가 안 보이는 것이 정상이다.
+- **운영자 몫으로 남은 것**: Cloudflare Worker 켜기(`deploy/README.md`), INC-22 원인 확인(VM에서 부팅 기록·cloudflared 로그), 옛 `GEMINI_API_KEY` 지우기(선택).

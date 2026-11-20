@@ -8,9 +8,21 @@
  */
 export const AI_CONSENT_VALID_FROM = new Date("2026-11-19T10:20:00+09:00");
 
+/**
+ * 다시 동의를 받을 때 위에 띄우는 "내용을 보내는 곳이 바뀌었어요" 안내는 기준 시각(AI_CONSENT_VALID_FROM)부터 7일 동안만 보인다(2026-11-20, 운영자 결정).
+ * 그 뒤에는 안내만 사라지고 동의 자체는 그대로 필요하다: 옛 동의는 계속 "다시 필요"(stale)라서 동의 화면은 처음 쓰는 사람과 같이 보인다.
+ * 이 시각은 절대 시각(기준 시각 + 7일)이라 달력의 날을 세는 lib/date.ts 도우미를 쓰지 않는다.
+ */
+export const AI_RECONSENT_NOTICE_UNTIL = new Date(AI_CONSENT_VALID_FROM.getTime() + 7 * 24 * 60 * 60 * 1000);
+
 export type AiConsentState = "none" | "stale" | "valid";
 
 export function aiConsentState(consentAt: Date | null | undefined): AiConsentState {
   if (!consentAt) return "none";
   return consentAt.getTime() >= AI_CONSENT_VALID_FROM.getTime() ? "valid" : "stale";
+}
+
+/** 변경 안내를 보일지: 옛 동의자(stale)에게, 보이는 기간(AI_RECONSENT_NOTICE_UNTIL) 안일 때만. */
+export function showReconsentNotice(state: AiConsentState, now: Date): boolean {
+  return state === "stale" && now.getTime() < AI_RECONSENT_NOTICE_UNTIL.getTime();
 }
