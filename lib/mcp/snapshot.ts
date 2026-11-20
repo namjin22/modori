@@ -22,6 +22,8 @@ const todoRow = z.object({
   routineId: id.nullable(),
   memo: z.string().nullable(),
   memoPublic: z.boolean(),
+  // 세부 할 일이었으면 큰 할 일의 id(2026-11-20). 그 전에 만든 기록에는 없다.
+  parentId: id.nullable().optional(),
   createdAt: instant,
 });
 

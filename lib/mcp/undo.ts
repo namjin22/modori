@@ -49,10 +49,20 @@ async function restoreTodos(ctx: McpContext, rows: Rows<"todos-deleted">): Promi
   const existing = new Set((await prisma.todo.findMany({ where: { id: { in: rows.map((row) => row.id) } }, select: { id: true } })).map((todo) => todo.id));
   const categoryIds = [...new Set(rows.flatMap((row) => (row.categoryId ? [row.categoryId] : [])))];
   const routineIds = [...new Set(rows.flatMap((row) => (row.routineId ? [row.routineId] : [])))];
+  // 세부 할 일이었으면 큰 할 일이 아직 있을 때 다시 단다(2026-11-20). 큰 할 일이 그 사이 다른 날로 갔으면 그 날·카테고리를 따른다(앱의 restoreTodo와 같다).
+  // 큰 할 일이 없거나 세부 할 일이 되었으면 보통 할 일로 되살린다.
+  const parentRefs = [...new Set(rows.flatMap((row) => (row.parentId ? [row.parentId] : [])))];
+  const liveParents = new Map(
+    (await prisma.todo.findMany({ where: { id: { in: parentRefs }, userId: ctx.userId, parentId: null, routineId: null }, select: { id: true, date: true, categoryId: true } })).map((parent) => [parent.id, parent]),
+  );
+  const dayOf = (row: (typeof rows)[number]) => {
+    const live = row.parentId ? liveParents.get(row.parentId) : undefined;
+    return live ? dayText(live.date) : row.date;
+  };
   const [categories, routines, counts] = await Promise.all([
     prisma.category.findMany({ where: { id: { in: categoryIds }, userId: ctx.userId }, select: { id: true } }),
     prisma.routine.findMany({ where: { id: { in: routineIds }, userId: ctx.userId }, select: { id: true } }),
-    prisma.todo.groupBy({ by: ["date"], where: { userId: ctx.userId, date: { in: [...new Set(rows.map((row) => row.date))].map(at) } }, _count: { _all: true } }),
+    prisma.todo.groupBy({ by: ["date"], where: { userId: ctx.userId, date: { in: [...new Set(rows.map(dayOf))].map(at) } }, _count: { _all: true } }),
   ]);
   const categoryOk = new Set(categories.map((category) => category.id));
   const routineOk = new Set(routines.map((routine) => routine.id));
@@ -65,35 +75,43 @@ async function restoreTodos(ctx: McpContext, rows: Rows<"todos-deleted">): Promi
       skipped.push({ id: row.id, reason: "already exists" });
       continue;
     }
-    const have = perDay.get(row.date) ?? 0;
+    const day = dayOf(row);
+    const have = perDay.get(day) ?? 0;
     if (have >= LIMITS.todosPerDay) {
-      skipped.push({ id: row.id, reason: `${row.date} already has ${LIMITS.todosPerDay} todos` });
+      skipped.push({ id: row.id, reason: `${day} already has ${LIMITS.todosPerDay} todos` });
       continue;
     }
-    perDay.set(row.date, have + 1);
+    perDay.set(day, have + 1);
     create.push(row);
   }
+  const createIds = new Set(create.map((row) => row.id));
 
   const restoredRoutineDays = create.flatMap((row) => (row.routineId && routineOk.has(row.routineId) ? [{ routineId: row.routineId, date: at(row.date) }] : []));
   const made = await prisma.$transaction(async (tx) => {
     // 루틴이 만든 할 일을 지울 때 "그 날은 건너뛴다"고 남겼다. 되살리면 그 기록은 지운다.
     if (restoredRoutineDays.length > 0) await tx.routineSkip.deleteMany({ where: { OR: restoredRoutineDays } });
     return tx.todo.createMany({
-      data: create.map((row) => ({
-        id: row.id,
-        userId: ctx.userId,
-        content: row.content,
-        date: at(row.date),
-        done: row.done,
-        doneAt: row.doneAt ? new Date(row.doneAt) : null,
-        order: row.order,
-        categoryId: row.categoryId && categoryOk.has(row.categoryId) ? row.categoryId : null,
-        color: row.color,
-        routineId: row.routineId && routineOk.has(row.routineId) ? row.routineId : null,
-        memo: row.memo,
-        memoPublic: row.memoPublic,
-        createdAt: new Date(row.createdAt),
-      })),
+      data: create.map((row) => {
+        const live = row.parentId ? liveParents.get(row.parentId) : undefined;
+        // 같이 되살리는 큰 할 일 밑이거나 아직 있는 큰 할 일 밑이면 다시 단다. 아니면 보통 할 일이다.
+        const parentId = row.parentId && (live || createIds.has(row.parentId)) ? row.parentId : null;
+        return {
+          id: row.id,
+          userId: ctx.userId,
+          content: row.content,
+          date: live ? live.date : at(row.date),
+          done: row.done,
+          doneAt: row.doneAt ? new Date(row.doneAt) : null,
+          order: row.order,
+          categoryId: live ? live.categoryId : row.categoryId && categoryOk.has(row.categoryId) ? row.categoryId : null,
+          color: row.color,
+          routineId: row.routineId && routineOk.has(row.routineId) ? row.routineId : null,
+          memo: row.memo,
+          memoPublic: row.memoPublic,
+          parentId,
+          createdAt: new Date(row.createdAt),
+        };
+      }),
       skipDuplicates: true,
     });
   }, BULK_TRANSACTION);

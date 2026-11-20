@@ -34,12 +34,19 @@ export const listTodosInput = {
 export const createTodosInput = {
   todos: z
     .array(
-      z.object({
-        content: z.string().trim().min(1).max(200).describe("What to do, up to 200 characters"),
-        date: day,
-        category: z.string().trim().min(1).max(64).optional().describe("Category id or exact name from get_overview. Omit for no category."),
-        memo: z.string().trim().max(500).optional().describe("Private note, up to 500 characters"),
-      }),
+      z
+        .object({
+          content: z.string().trim().min(1).max(200).describe("What to do, up to 200 characters"),
+          date: day.optional().describe("Required unless parentId is given. For a sub-todo it must equal the parent's date (or be omitted)."),
+          category: z.string().trim().min(1).max(64).optional().describe("Category id or exact name from get_overview. Omit for no category. A sub-todo always uses its parent's category."),
+          memo: z.string().trim().max(500).optional().describe("Private note, up to 500 characters"),
+          parentId: id
+            .optional()
+            .describe(
+              "Make this a sub-todo of an existing todo (id from list_todos or an earlier create_todos). Sub-todos sit under the parent on the same day and in the same category; there are only two levels, so the parent cannot itself be a sub-todo or a todo made by a routine.",
+            ),
+        })
+        .refine((item) => item.date !== undefined || item.parentId !== undefined, { message: "Give a date, or a parentId to attach this under an existing todo." }),
     )
     .min(1)
     .max(MCP_LIMITS.todosPerCall)

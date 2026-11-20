@@ -85,7 +85,7 @@ export function createMcpServer(ctx: McpContext): McpServer {
   );
   server.registerTool(
     "list_todos",
-    { title: "List todos", description: "List the user's todos between two dates, in display order.", inputSchema: listTodosInput, annotations: READ_ONLY },
+    { title: "List todos", description: "List the user's todos between two dates, in display order. A sub-todo has a parentId (the todo it sits under).", inputSchema: listTodosInput, annotations: READ_ONLY },
     (input) => listTodos(ctx, input),
   );
   server.registerTool(
@@ -151,7 +151,7 @@ export function createMcpServer(ctx: McpContext): McpServer {
     "create_todos",
     {
       title: "Create todos",
-      description: "Create up to 20 todos at once, each for a given date and optional category. All-or-nothing. Returns a batchId for undo_batch.",
+      description: "Create up to 20 todos at once, each for a given date and optional category. Give parentId to add a sub-todo under an existing todo (same day and category as the parent, one level only). All-or-nothing. Returns a batchId for undo_batch.",
       inputSchema: createTodosInput,
       annotations: ADDS,
     },

@@ -54,6 +54,10 @@ export async function updateTodos(ctx: McpContext, input: { updates: TodoUpdate[
       return;
     }
     let categoryId: string | undefined;
+    if (update.category !== undefined && row.parentId) {
+      problems.push(`updates[${index}].category cannot be changed: "${update.id}" is a sub-todo and always uses its parent's category. Change the parent's category instead.`);
+      return;
+    }
     if (update.category !== undefined) {
       const category = byId.get(update.category) ?? byName.get(update.category.trim().toLowerCase());
       if (!category) {
@@ -126,6 +130,7 @@ const todoRow = (row: {
   routineId: string | null;
   memo: string | null;
   memoPublic: boolean;
+  parentId: string | null;
   createdAt: Date;
 }): TodoSnapshotRow => ({
   id: row.id,
@@ -139,6 +144,7 @@ const todoRow = (row: {
   routineId: row.routineId,
   memo: row.memo,
   memoPublic: row.memoPublic,
+  parentId: row.parentId,
   createdAt: row.createdAt.toISOString(),
 });
 
@@ -147,22 +153,32 @@ export async function deleteTodos(ctx: McpContext, input: { ids: string[] }): Pr
   if (limited) return limited;
 
   const ids = [...new Set(input.ids)];
-  const rows = await prisma.todo.findMany({ where: { id: { in: ids }, userId: ctx.userId } });
-  const foundIds = new Set(rows.map((row) => row.id));
+  const asked = await prisma.todo.findMany({ where: { id: { in: ids }, userId: ctx.userId } });
+  const foundIds = new Set(asked.map((row) => row.id));
   const notFound = ids.filter((id) => !foundIds.has(id));
-  if (rows.length === 0) return ok({ deleted: 0, notFound });
+  if (asked.length === 0) return ok({ deleted: 0, notFound });
+  // 큰 할 일을 지우면 그 밑의 세부 할 일도 같이 지운다(앱의 deleteTodo와 같다, 2026-11-20). undo_batch가 함께 되살린다.
+  const kids = await prisma.todo.findMany({ where: { parentId: { in: [...foundIds] }, id: { notIn: [...foundIds] }, userId: ctx.userId } });
+  const rows = [...asked, ...kids];
+  const allIds = rows.map((row) => row.id);
 
   // 서버 액션 deleteTodo와 같다: 루틴이 만든 할 일이면 그 날을 건너뛴다고 남긴다. 남기지 않으면 화면을 다시 그릴 때 "없으니 만든다"가 돌아 되살아난다.
   const skips = rows.flatMap((row) => (row.routineId ? [{ routineId: row.routineId, date: row.date }] : []));
   const batch = await prisma.$transaction(async (tx) => {
-    await tx.todo.deleteMany({ where: { id: { in: [...foundIds] }, userId: ctx.userId } });
+    await tx.todo.deleteMany({ where: { id: { in: allIds }, userId: ctx.userId } });
     if (skips.length > 0) await tx.routineSkip.createMany({ data: skips, skipDuplicates: true });
     return tx.mcpBatch.create({ data: { userId: ctx.userId, snapshot: { kind: "todos-deleted", rows: rows.map(todoRow) } satisfies Snapshot }, select: { id: true } });
   }, BULK_TRANSACTION);
   await pruneBatches(ctx.userId);
   revalidatePath("/");
 
-  return ok({ batchId: batch.id, deleted: rows.length, notFound, undo: `${undoNote} Reactions friends sent to these todos cannot be restored.` });
+  return ok({
+    batchId: batch.id,
+    deleted: rows.length,
+    notFound,
+    ...(kids.length > 0 ? { subTodosDeletedAlong: kids.length } : {}),
+    undo: `${undoNote} Reactions friends sent to these todos cannot be restored.`,
+  });
 }
 
 type EventUpdate = {
