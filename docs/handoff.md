@@ -2118,3 +2118,9 @@ VM에 시험 DB(사용자 1000, 할 일 108만, 반응 24만, 280MB)를 만들�
 - **시험 수정(운영자 승인)**: `sub-todo-store.test.ts`·`mcp-sub-todos.spec.ts`·`tutorial.spec.ts`. 새 확인은 `ai-chat.spec.ts`(더하기만)·`sub-todos.spec.ts`.
 - **못 한 것**: 실제 AI 모델이 `subTodos`를 형식에 맞게 내는지(가짜 서버로만 시험했다. 지시문이 길어져 모델이 형식을 어길 수 있다), 390px 폰에서 새 튜토리얼 단계, 실기기. 릴리스 스크린샷(`npm run screenshots`)은 아직 안 찍었다(사용자의 미커밋 `tests/screenshots/*`는 건드리지 않는다).
 - **알아 둘 것**: AI 도우미는 이미 있는 할 일에 세부 할 일을 덧붙이지 못한다. 튜토리얼에 세부 할 일 전용 단계는 없다.
+
+## 2026-11-20(이어서 14) — 릴리스 스크린샷
+
+- PR #287(AI 도우미·루틴·튜토리얼)까지 병합·배포 확인 뒤 `npm run screenshots`로 `docs/screenshots/2026-11-20/`(60장, 2.4MB)을 찍었다. 새 화면(세부 할 일·일정 팝업·다가오는 일정·AI 도우미 제안·둘러보기 새 단계)은 새 파일 `tests/screenshots/sub-todos.spec.ts`가 따로 찍는다(운영자의 미커밋 `capture.spec.ts`·`seed.ts`는 건드리지 않았다).
+- **알아 둘 것**: 폴더의 21~24(일기·AI 도우미 첫 화면)는 운영자의 **커밋 안 된** `capture.spec.ts`·`seed.ts` 변경으로 찍혔다. 그 변경이 커밋되기 전에는 다른 PC에서 같은 폴더를 다시 못 찍는다. 처음 찍으니 흐리게 나온 것(펼침 움직임 중)은 기다리게 고쳐 다시 찍었다.
+- **남은 것(운영자 몫)**: Cloudflare Worker 오류 화면 켜기(`deploy/README.md`), INC-22 원인(VM 로그), VM `.env`의 옛 `GEMINI_API_KEY` 지우기(선택), 재동의 안내 문구를 며칠 뒤 숨길지 결정.
