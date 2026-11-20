@@ -32,6 +32,19 @@
 
         </activity>
 
+        <!-- 홈 화면 위젯: 오늘 남은 할 일(ModoriWidgetProvider, 읽기 전용). 새로 고침 신호는 앱 안에서만 같은 구성요소로 보낸다. -->
+        <receiver
+            android:name=".ModoriWidgetProvider"
+            android:exported="true"
+            android:label="@string/widget_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/modori_widget_info" />
+        </receiver>
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"

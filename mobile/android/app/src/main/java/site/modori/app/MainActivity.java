@@ -1,9 +1,13 @@
 package site.modori.app;
 
 import android.content.res.Configuration;
+import android.content.Context;
 import android.graphics.Color;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.os.SystemClock;
+import android.webkit.CookieManager;
 import androidx.core.splashscreen.SplashScreen;
 import com.getcapacitor.BridgeActivity;
 
@@ -16,6 +20,8 @@ import com.getcapacitor.BridgeActivity;
 public class MainActivity extends BridgeActivity {
 
     private static final long SPLASH_MAX_MS = 8000;
+    // 앱을 떠나기 직전에 누른 체크가 서버에 닿을 시간을 주고 위젯을 새로 고친다.
+    private static final long WIDGET_REFRESH_DELAY_MS = 2000;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -34,5 +40,18 @@ public class MainActivity extends BridgeActivity {
         if (getBridge() != null && getBridge().getWebView() != null) {
             getBridge().getWebView().setBackgroundColor(background);
         }
+    }
+
+    /**
+     * 앱 화면을 떠날 때 두 가지를 한다(홈 화면 위젯, ModoriWidgetProvider).
+     * 1) 로그인 쿠키를 저장소에 확정한다. 위젯이 이 쿠키로 서버를 부르는데, 웹뷰는 쿠키를 가끔 한꺼번에 적어서 앱이 닫힌 직후엔 낡을 수 있다.
+     * 2) 앱에서 고친 할 일이 위젯에 보이게 새로 고친다.
+     */
+    @Override
+    protected void onPause() {
+        super.onPause();
+        CookieManager.getInstance().flush();
+        final Context app = getApplicationContext();
+        new Handler(Looper.getMainLooper()).postDelayed(() -> ModoriWidgetProvider.refreshAll(app), WIDGET_REFRESH_DELAY_MS);
     }
 }

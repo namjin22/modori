@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_name">Today\'s remaining todos</string>
+    <string name="widget_description">See what\'s left to do today on your home screen</string>
+    <string name="widget_title">%1$d left today</string>
+    <string name="widget_none">Nothing left for today</string>
+    <string name="widget_more">+%1$d more</string>
+    <string name="widget_loading">Loading…</string>
+    <string name="widget_need_login">Open the app and sign in</string>
+    <string name="widget_error">Couldn\'t load your todos. Tap refresh to try again</string>
+    <string name="widget_stale">not updated</string>
+    <string name="widget_refresh">Refresh</string>
+</resources>
