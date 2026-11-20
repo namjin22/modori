@@ -48,7 +48,7 @@ public class MainActivity extends BridgeActivity {
      * 2) 앱에서 고친 할 일이 위젯에 보이게 새로 고친다.
      */
     @Override
-    protected void onPause() {
+    public void onPause() {
         super.onPause();
         CookieManager.getInstance().flush();
         final Context app = getApplicationContext();
