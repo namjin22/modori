@@ -189,6 +189,9 @@ model Todo {
   routineId  String? // 루틴이 생성한 인스턴스면 채워진다
   // 이 할 일이 향하는 목표(또는 세부 목표). 선택이고 본인에게만 보인다(친구 화면은 읽지 않는다). 목표를 지우면 비운다(2026-11-19).
   goalId     String?
+  // 세부 할 일이면 큰 할 일(부모)의 id. 부모는 세부 할 일이 될 수 없다(2단계, 서버가 막는다). 날짜·카테고리는 부모와 같게 맞춘다(lib/sub-todos.ts).
+  // 부모를 지우면 연결만 비운다(SetNull): 앱의 지우기는 세부 할 일도 같이 지우고, 그 밖의 길(AI 연결 등)은 세부 할 일을 잃지 않는다(2026-11-20).
+  parentId   String?
   color      String? // 비어 있으면 카테고리 색을 쓴다
   memo       String? // 기본은 본인만 본다. memoPublic을 켜면 친구 화면에 보인다(2026-10-17)
   // 메모를 팔로워에게 보일지. 할 일 자체는 카테고리 공개 여부를 따르고, 메모는 이 스위치를 따로 따른다.
@@ -199,6 +202,8 @@ model Todo {
   category  Category?  @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   routine   Routine?   @relation(fields: [routineId], references: [id], onDelete: SetNull)
   goal      Goal?      @relation(fields: [goalId], references: [id], onDelete: SetNull)
+  parent    Todo?      @relation("SubTodos", fields: [parentId], references: [id], onDelete: SetNull)
+  children  Todo[]     @relation("SubTodos")
   reactions Reaction[]
 
   // 루틴 중복 생성을 DB가 막는다.
@@ -208,6 +213,7 @@ model Todo {
   @@index([userId, date])
   @@index([userId, done, doneAt]) // 피드 조회용
   @@index([goalId])
+  @@index([parentId])
 }
 
 enum RoutineFreq {

@@ -4,7 +4,6 @@ import { HomeView, type HomeData } from "@/components/home-view";
 import { isAiConfigured } from "@/lib/ai/llm";
 import { diaryExcerpt } from "@/lib/diary";
 import { avatarUrl } from "@/lib/avatar";
-import { countLinked, toGoalView } from "@/lib/goals";
 import {
   daysBetween,
   endOfMonthKST,
@@ -97,7 +96,7 @@ export default async function FeedPage({
   // 이 날짜를 여는 순간 루틴 할 일이 없으면 만든다. 미래 날짜에는 만들지 않는다.
   await ensureRoutineTodos(user, date);
 
-  const [todos, categories, routines, events, upcoming, eventRoutines, eventSkips, diaryRows, goalRows, linkRows] = await Promise.all([
+  const [todos, categories, routines, events, upcoming, eventRoutines, eventSkips, diaryRows] = await Promise.all([
     prisma.todo.findMany({
       where: { userId: user.id, date: { gte: from, lte: to } },
       orderBy: { order: "asc" },
@@ -110,8 +109,9 @@ export default async function FeedPage({
         color: true,
         memo: true,
         memoPublic: true,
-        // 연결된 목표(2026-11-19). 이름은 화면이 목표 목록에서 찾는다.
-        goalId: true,
+        // 세부 할 일이면 큰 할 일의 id(2026-11-20). 화면이 큰 할 일 밑에 모아 그린다. 루틴이 만든 할 일에는 세부 할 일을 달 수 없다.
+        parentId: true,
+        routineId: true,
         category: { select: { id: true, name: true, color: true } },
         // 친구가 보낸 반응. 할 일 밑에 투두메이트처럼 보여준다(내가 내 일에 보낼 수는 없다).
         reactions: {
@@ -156,23 +156,7 @@ export default async function FeedPage({
       where: { userId: user.id, date: { gte: from, lte: to } },
       select: { date: true, content: true, mood: true, isPublic: true },
     }),
-    // 홈 위쪽 목표 칸(2026-11-19). 날짜와 상관없이 내 목표 전부(상한 20개)와 그 세부 목표.
-    prisma.goal.findMany({
-      where: { userId: user.id, parentId: null },
-      orderBy: { createdAt: "asc" },
-      select: {
-        id: true,
-        title: true,
-        dueDate: true,
-        doneAt: true,
-        isPublic: true,
-        children: { orderBy: { createdAt: "asc" }, select: { id: true, title: true, doneAt: true } },
-      },
-    }),
-    // 목표에 연결된 내 할 일의 개수(끝낸 것과 아닌 것). 날짜와 상관없이 전부 센다.
-    prisma.todo.groupBy({ by: ["goalId", "done"], where: { userId: user.id, goalId: { not: null } }, _count: { _all: true } }),
   ]);
-  const linked = countLinked(linkRows);
 
   const data: HomeData = {
     profile: { nickname: user.nickname, bio: user.bio, avatar: avatarUrl(user) },
@@ -181,8 +165,9 @@ export default async function FeedPage({
     month: formatMonthKST(monthStart),
     from: formatKST(from),
     to: formatKST(to),
-    todos: todos.map(({ reactions, date: day, doneAt, ...todo }) => ({
+    todos: todos.map(({ reactions, date: day, doneAt, routineId, ...todo }) => ({
       ...todo,
+      isRoutine: routineId !== null,
       date: formatKST(day),
       doneAt: doneAt?.getTime() ?? null,
       received: groupReceivedReactions(
@@ -197,7 +182,6 @@ export default async function FeedPage({
     upcoming,
     tour,
     aiReady: isAiConfigured(),
-    goals: goalRows.map((row) => toGoalView(row, linked)),
     diaries: diaryRows.map((row) => ({ date: formatKST(row.date), mood: row.mood, excerpt: diaryExcerpt(row.content, 120), isPublic: row.isPublic })),
   };
 

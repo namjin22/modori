@@ -29,7 +29,7 @@ async function signUp(page: Page, email: string, nickname: string) {
   await expect(homeReady(page)).toBeVisible();
 }
 
-test("관리 메뉴를 누르면 카테고리·루틴이 나오고(일정·목표 항목은 없다), 목표와 일정은 각 영역에서 바로 만든다", async ({ page, email }, testInfo) => {
+test("관리 메뉴를 누르면 카테고리·루틴이 나오고(일정·목표 항목은 없다), 일정은 일정 영역에서 바로 만든다", async ({ page, email }, testInfo) => {
   await signUp(page, email, `메뉴${testInfo.testId.slice(-6)}${RUN_TAG}`);
   const menuButton = page.getByRole("button", { name: "관리 메뉴" });
   await expect(page.getByRole("menu")).toHaveCount(0);
@@ -45,10 +45,6 @@ test("관리 메뉴를 누르면 카테고리·루틴이 나오고(일정·목�
   // Esc로 닫힌다.
   await page.keyboard.press("Escape");
   await expect(page.getByRole("menu")).toHaveCount(0);
-
-  // 목표는 목표 영역의 점선 상자가 만들기 칸을 연다(2026-11-19).
-  await page.getByRole("button", { name: "이루고 싶은 큰 목표 적어두기" }).click();
-  await expect(page.getByLabel("새 목표 이름")).toBeVisible();
 
   await page.getByRole("button", { name: "시험이나 행사 적어두기" }).click();
   await expect(page.getByLabel("새 일정 이름")).toBeVisible();

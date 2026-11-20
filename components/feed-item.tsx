@@ -30,6 +30,7 @@ export function FeedItem({
   viewerId,
   showAuthor = true,
   compact = false,
+  sub = false,
 }: {
   todo: FeedTodo;
   viewerId: string;
@@ -37,6 +38,8 @@ export function FeedItem({
   showAuthor?: boolean;
   // 친구 화면처럼 카테고리로 이미 묶인 곳에서는 한 줄로 줄여 한눈에 많이 보이게 한다.
   compact?: boolean;
+  // 큰 할 일 밑의 세부 할 일이면 들여 쓴다(2026-11-20, 친구 화면).
+  sub?: boolean;
 }) {
   const t = useT(social);
   const color = todo.color ?? todo.category?.color;
@@ -45,7 +48,7 @@ export function FeedItem({
   if (compact) {
     return (
       // 반응이 많아 이름이 몇 글자만 남을 만큼 좁아지면 반응 줄을 다음 줄로 내린다.
-      <li className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5 py-2.5">
+      <li className={`flex flex-wrap items-center gap-x-2.5 gap-y-1.5 ${sub ? "py-1.5 pl-6" : "py-2.5"}`}>
         {/* 내 화면의 체크와 같은 모양. 안 끝낸 일은 회색 네모, 반응은 끝낸 일에만 보낸다. */}
         <span
           role="img"
