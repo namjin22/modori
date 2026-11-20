@@ -71,7 +71,6 @@ model User {
   alarms               Alarm[]
   apiTokens            ApiToken[]
   diaryEntries         DiaryEntry[]
-  goals                Goal[]
   mcpBatches           McpBatch[]
   blocking             Block[]               @relation("blocker")
   blockedBy            Block[]               @relation("blocked")
@@ -187,8 +186,6 @@ model Todo {
   doneAt     DateTime?
   order      Int       @default(0)
   routineId  String? // 루틴이 생성한 인스턴스면 채워진다
-  // 이 할 일이 향하는 목표(또는 세부 목표). 선택이고 본인에게만 보인다(친구 화면은 읽지 않는다). 목표를 지우면 비운다(2026-11-19).
-  goalId     String?
   // 세부 할 일이면 큰 할 일(부모)의 id. 부모는 세부 할 일이 될 수 없다(2단계, 서버가 막는다). 날짜·카테고리는 부모와 같게 맞춘다(lib/sub-todos.ts).
   // 부모를 지우면 연결만 비운다(SetNull): 앱의 지우기는 세부 할 일도 같이 지우고, 그 밖의 길(AI 연결 등)은 세부 할 일을 잃지 않는다(2026-11-20).
   parentId   String?
@@ -201,7 +198,6 @@ model Todo {
   user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   category  Category?  @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   routine   Routine?   @relation(fields: [routineId], references: [id], onDelete: SetNull)
-  goal      Goal?      @relation(fields: [goalId], references: [id], onDelete: SetNull)
   parent    Todo?      @relation("SubTodos", fields: [parentId], references: [id], onDelete: SetNull)
   children  Todo[]     @relation("SubTodos")
   reactions Reaction[]
@@ -212,7 +208,6 @@ model Todo {
   @@unique([routineId, date])
   @@index([userId, date])
   @@index([userId, done, doneAt]) // 피드 조회용
-  @@index([goalId])
   @@index([parentId])
 }
 
@@ -306,29 +301,6 @@ model DiaryEntry {
 
   @@unique([userId, date])
   @@index([userId, isPublic, date])
-}
-
-// 목표(2026-11-19 운영자 결정, docs/decisions.md). 2단계다: parentId가 없으면 목표, 있으면 그 목표의 세부 목표(세부 목표 아래는 없다).
-// 달성은 직접 체크한다. 세부 목표가 있는 목표는 달성 여부를 칸에 저장하지 않고 세부 목표를 센 값으로 보인다(lib/goals.ts).
-model Goal {
-  id        String    @id @default(cuid())
-  userId    String
-  parentId  String?
-  title     String
-  // 기한(선택). 시각 없는 달력의 날이다. 할 일 날짜 범위(10년)와 별개로 제한이 없다.
-  dueDate   DateTime? @db.Date
-  // 달성한 시각. 비어 있으면 아직이다. 세부 목표가 있는 목표는 항상 비워 둔다.
-  doneAt    DateTime?
-  // 팔로워에게 보일지. 기본은 공개, 화면은 "비공개" 스위치다(2026-11-19). 세부 목표는 상위 목표를 따르므로 이 칸은 목표에만 뜻이 있다.
-  isPublic  Boolean   @default(true)
-  createdAt DateTime  @default(now())
-
-  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  parent   Goal?  @relation("GoalChildren", fields: [parentId], references: [id], onDelete: Cascade)
-  children Goal[] @relation("GoalChildren")
-  todos    Todo[]
-
-  @@index([userId, parentId])
 }
 
 // 서버·브라우저에서 난 오류. instrumentation.ts와 /api/errors가 쌓고 /admin/errors에서 본다.
