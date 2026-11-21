@@ -270,5 +270,19 @@
 - **발견**: 운영자가 화면 스크린샷으로 제보했다. 학교에 비가 와서 잠깐(약 2초) 정전이 났고 그 뒤 서버가 나간 것 같다는 말을 들었다고 했다(들은 말이고 확인한 것은 아니다).
 - **증상**: `https://modori.site` 접속 시 "Error 1033 Cloudflare Tunnel error"(Ray ID a5c6aa80a81ab853, 2026-11-18 11:34:26 UTC). 같은 시각 이 PC에서 `https://modori.site/api/health`는 **530**(11:35:16 UTC). Cloudflare는 응답하고 VM의 cloudflared 터널과 연결이 안 된다는 뜻이다.
 - **원인**: **확정하지 못했다.** 확인된 것: 같은 시각 GitHub Actions의 배포가 `ssh: connect to host ssh.gsmsv.site port 24141: Connection timed out`으로 실패했다(실행 44299496980, 12:01 UTC). 곧 cloudflared만이 아니라 **VM으로 가는 길 자체(VM이나 학교 쪽 네트워크)가 밖에서 닿지 않았다.** 학교에 잠깐 정전이 났다는 말은 들은 것이고 확인한 것이 아니며, 어디가 꺼졌는지와 어떻게 돌아왔는지는 운영자에게서 아직 못 들었다. 이 PC에는 VM 접속 열쇠가 없어 직접 볼 수 없다.
+  - **VM은 장애 때 다시 켜지지 않았다(2026-11-20 운영자가 VM에서 본 출력).** `last -x`의 마지막 부팅이 2026-11-18 05:00(VM 시각, KST)이고 그 뒤로 계속 켜져 있다(`still running`, `uptime -s` 2026-11-18 05:00:09). 앱·DB 컨테이너도 "2일째 켜짐"이었다. 그러니 20:34 무렵 VM 전원이 나간 것이 아니라 **VM 밖으로 나가는 길(네트워크나 그 앞 장비)이 끊긴 쪽**으로 좁혀진다. 끊긴 시각과 다시 붙은 시각은 cloudflared 로그(`sudo journalctl -u cloudflared`)에 있다. 그때 `ubuntu` 계정이 `adm` 그룹이 아니라 시스템 로그가 가려져 있었다("You are currently not seeing messages from other users and the system"). `sudo`로 다시 봐야 한다.
 - **조치**: 운영자가 서버를 되살렸다(방법은 못 들음). 복구를 확인한 뒤 실패한 자동 배포(44299496980, 검증을 통과한 커밋 01c1973)를 다시 실행했다. 운영자가 2026-11-19에 **"DB도 무사하다"고 알렸다**(확인한 방법과 수치는 못 들었다. 이 PC에서 직접 확인한 것이 아니다).
 - **재발 방지**: 원인을 안 뒤에 적는다.
+
+### INC-23 백업용 Neon 복원이 오류 14개를 냈다: `User` 표가 옛 상태로 남았을 수 있다 (2026-11-20 발견)
+
+- **영향**: VM 밖 백업(백업용 Neon)이 완전하지 않을 수 있다. VM이 통째로 사라져 백업용 Neon에서 되살려야 하면, 최근 가입자와 그 사람들의 연결(로그인 계정·팔로우·반응 등)이 빠질 수 있다. 운영 DB에는 영향이 없다(복원 대상은 백업용 Neon뿐이다). VM 안의 덤프 파일(7일치)은 이 오류와 별개다. 복원이 그 파일로 대부분의 표를 만들었으니 파일은 읽을 수 있었다.
+- **발견**: 2026-11-20 INC-22를 보려고 운영자가 VM에서 돌린 `journalctl` 출력에 백업 로그가 섞여 있었다.
+- **증상**(2026-11-18 04:00 백업, VM 시각 KST, `backup.sh`의 `pg_restore --clean --if-exists`):
+  - 04:00:54 `ERROR: multiple primary keys for table "User" are not allowed`(`ADD CONSTRAINT "User_pkey" PRIMARY KEY (id)`)
+  - 04:01:01~05 `Account`·`ActiveDay`·`Follow`(followerId·followingId)·`PushToken`·`Reaction`·`Session`의 외래 키가 `Key (userId)=(…) is not present in table "User"`로 실패
+  - 04:01:06 `pg_restore: warning: errors ignored on restore: 14`
+  - 출력이 잘려 앞쪽 오류(가장 먼저 난 것)는 보지 못했다. 빠진 사용자 id 두 개는 cuid에 든 시각으로 보면 10월 말과 11월 중순에 만든 계정이다.
+- **원인**: **확정하지 못했다.** 추정: `pg_restore --clean`은 덤프에 있는 것만 지우고 다시 만든다. 운영 DB에서 지운 표(2026-10-26 `remove_public_feed`의 `Post`·`PostPhoto`·`PostReaction` 등)는 덤프에 없어서 백업용 Neon에 그대로 남는다. 그 표가 `User`를 외래 키로 가리키면 `User`를 지우지 못하고, 옛 `User` 표와 기본 키가 남아 새 데이터를 넣지 못한다(기본 키 중복). 그 뒤 다른 표의 외래 키가 새 사용자 id에서 실패한다. 빠진 사용자가 10월 말 가입자부터라는 것과 맞는다. 확인할 것: 앞쪽 오류(예상은 `cannot drop table "User" because other objects depend on it`), 백업용 Neon에만 있는 표, 두 DB의 사용자 수, 언제부터 날마다 이랬는지.
+- **조치**: 아직 없다. 원인을 확인한 뒤 운영자와 정한다. 후보: (1) `backup.sh`가 복원 전에 백업용 Neon의 `public` 스키마를 통째로 비운다(앞으로 표를 지워도 다시 생기지 않는다. 대신 복원하는 몇 분 동안은 Neon 사본이 비어 있다). (2) 남은 옛 표만 한 번 지운다(앞으로 표를 지울 때마다 같은 일이 생긴다).
+- **재발 방지**: 원인을 안 뒤에 적는다. 이번에는 다른 장애를 보다가 우연히 찾았다. 언제부터였는지 모르니, 백업이 실패하면 알게 하는 방법도 같이 정한다.
