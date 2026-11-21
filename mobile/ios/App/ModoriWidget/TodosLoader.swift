@@ -43,7 +43,14 @@ enum TodosLoader {
     }()
 
     static func load() async -> TodosState {
-        guard let cookie = WidgetSession.load() else {
+        let stored: String?
+        do {
+            stored = try WidgetSession.load()
+        } catch {
+            // 키체인이 잠시 잠겨 있다. 로그인이 풀린 것이 아니니 마지막 목록을 지우지 않는다.
+            return fallback()
+        }
+        guard let cookie = stored else {
             TodosCache.clear()
             return .needLogin
         }

@@ -33,8 +33,13 @@ enum WidgetSession {
         ]
     }
 
+    struct ReadError: Error {
+        let status: OSStatus
+    }
+
     /// 위젯이 실을 Cookie 헤더. 없거나 만료됐으면 nil.
-    static func load() -> String? {
+    /// 키체인을 읽지 못한 것(폰을 켜고 아직 한 번도 잠금을 풀지 않았을 때 등)은 "로그인 없음"과 다르니 던진다.
+    static func load() throws -> String? {
         var search = query
         search[kSecReturnData as String] = true
         search[kSecMatchLimit as String] = kSecMatchLimitOne
@@ -43,7 +48,7 @@ enum WidgetSession {
         if status == errSecItemNotFound { return nil }
         guard status == errSecSuccess, let data = result as? Data else {
             log.error("키체인에서 로그인 쿠키를 읽지 못했다: \(status)")
-            return nil
+            throw ReadError(status: status)
         }
         do {
             let stored = try JSONDecoder().decode(Stored.self, from: data)
