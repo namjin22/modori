@@ -2147,3 +2147,13 @@ VM에 시험 DB(사용자 1000, 할 일 108만, 반응 24만, 280MB)를 만들�
 - **확인한 것**: 서버 API는 `tsc`·린트·단위(`widget.test.ts` 9개)·E2E(`widget-api.spec.ts` 4개) 통과. Android는 `android` 워크플로의 `assembleDebug`가 빌드되는지만 봤다: 첫 빌드는 XML 주석의 `--`(리소스 병합), 둘째는 `MainActivity.onPause`를 `protected`로 덮어써서(`BridgeActivity.onPause`가 public) 실패했고, 고친 뒤 셋째(실행 44691607763)가 통과했다. APK 파일은 그 실행의 결과물 `modori-android-debug`다.
 - **못 한 것(중요)**: **위젯이 실제 폰에서 그려지는지, 위젯이 웹뷰 로그인 쿠키를 읽는지는 한 번도 못 봤다.** 이 PC에 Android SDK·에뮬레이터가 없다. 쿠키를 못 읽으면 위젯이 늘 "앱을 열어 로그인해 주세요"로 나온다 → 그때는 위젯용 토큰 방식으로 바꿔야 한다. iPhone·맥 위젯은 만들지 않았다(Xcode·Apple 계정).
 - **운영자 몫**: 새 APK를 `android` 워크플로(Actions → android → Run workflow, 결과물 `modori-android-debug`)로 받아 폰에 설치하고, 홈 화면을 길게 눌러 위젯 → 모도리 → "오늘 남은 할 일"을 놓아 본다. 로그인한 앱에서 할 일을 체크하고 앱을 떠난 뒤 2초 안에 위젯이 바뀌는지 본다. 스토어에 올리려면 새 AAB가 필요하다.
+
+## 2026-11-21 — iPhone 홈 화면 위젯, 백업 복원 오류(INC-23)
+
+- **iPhone 위젯(브랜치 `feat/ios-widget`)**: 운영자가 "iOS에서도 위젯 꼭 넣어야 해, 어떻게든 방법 찾아서"라고 했다. 위젯 확장 `mobile/ios/App/ModoriWidget`(번들 `site.modori.app.widget`, iOS 17 이상, `ModoriWidget.swift`·`TodosLoader.swift`·`WidgetSession.swift`)을 만들었다. 대상은 Xcode 없이 `project.pbxproj`에 손으로 넣었다(ID 접두사 `7D0D0E1A2B3C4D5E6F708`). 위젯은 앱과 다른 프로세스라, 앱이 화면을 떠날 때(`MainViewController.syncWidget`) 웹뷰의 로그인 쿠키를 공유 키체인(`site.modori.shared`)에 적고 2초 뒤 위젯을 새로 고친다. 홈 화면에 위젯이 없거나 로그아웃했으면 지운다. 서버는 그대로(`/api/widget`). 근거·대가는 `docs/decisions.md` 2026-11-21. 개인정보 목록·방침(시행일 11-21)에 키체인 쿠키 복사본과 위젯 캐시를 더했다.
+- **확인한 것**: `ios` 워크플로의 서명 없는 시뮬레이터 빌드가 첫 실행(44849312625)에서 성공했다(위젯이 `App.app/PlugIns/ModoriWidget.appex`로 들어가고 내장 검사 통과). 웹은 `tsc`·린트(오류 0, 경고 1은 기존 `scripts/promo-edit.mjs`)·단위 620개×3시간대·방침 관련 E2E(`terms`·`seo`·`locale` 10개) 통과. 전체 `npm run verify`는 PR CI가 돈다.
+- **못 한 것(중요)**: **서명·업로드는 병합 뒤 `ios` 워크플로를 upload로 돌려야 처음 확인된다.** 새 App ID를 자동 서명이 만든다고 봤다(`-allowProvisioningUpdates`, 관리자 키, 앱의 푸시 기능도 그렇게 켜졌다). 실패하면 그 로그를 보고 고친다. **실제 iPhone에서는 한 번도 못 봤다**(운영자는 iPhone이 없다. TestFlight로 친구 폰에서 본다). 맥북 위젯은 없다.
+- **iPhone에서 확인하는 법**: TestFlight 새 빌드 설치 → 앱을 열어 로그인 → 홈 화면을 길게 눌러 편집 → 위젯 추가 → 모도리 → 놓기 → **앱을 한 번 열었다 홈으로 나가기**(그래야 로그인이 넘어간다) → 위젯에 오늘 남은 할 일이 뜨는지, 할 일을 체크하고 나간 뒤 몇 초 안에 바뀌는지, 오른쪽 위 단추로 바로 새로 받는지 본다. 계속 "앱을 열어 로그인해 주세요"면 쿠키가 안 넘어간 것이다.
+- **백업 복원 오류(INC-23, PR #292)**: 11-18 04:00 백업을 백업용 Neon에 복원할 때 `pg_restore` 오류 14개(`User` 기본 키 중복, 여러 표의 외래 키 실패). 운영에서 지운 표가 Neon에 남아 `User`를 못 지운다는 추정만 있고 확인하지 않았다. 운영자에게 VM에서 볼 명령을 줬다(`sudo journalctl -u modori-backup`, 두 DB의 표 목록·사용자 수 비교). 결과를 받으면 원인을 확정하고 `backup.sh`를 고칠지 운영자와 정한다.
+- **INC-22**: VM은 장애 때 재부팅되지 않았다(`last -x`, PR #292에 기록). 끊긴·붙은 시각은 `sudo journalctl -u cloudflared`로 받아야 한다.
+- **정리**: 병합된 로컬 브랜치 `feat/copy-for-ai`를 지웠다(운영자 요청). 다른 병합된 로컬 브랜치 100여 개는 그대로다.
