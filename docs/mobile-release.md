@@ -89,6 +89,8 @@ GitHub → Actions → ios → Run workflow → **upload 체크** → 실행(10�
 
 upload를 끄고 돌리면 서명 없이 시뮬레이터용으로 빌드만 한다(비밀 없이 도는 확인용). `mobile/`을 고친 PR에서도 이것이 돈다.
 
+홈 화면 위젯(2026-11-21)은 앱 안의 확장이고 App ID가 따로다(`site.modori.app.widget`). 손으로 만들지 않는다. 업로드 빌드의 자동 서명(`-allowProvisioningUpdates`, 관리자 키)이 App ID와 프로필을 만든다. 앱과 위젯이 같이 쓰는 키체인 그룹(`site.modori.shared`)은 등록할 것이 없다. 앱과 위젯의 버전·빌드 번호는 워크플로가 둘 다 같은 값으로 넣는다(App Store가 같기를 요구한다).
+
 ### 4. Apple 로그인 켜기 (심사 전에 꼭)
 
 Google 로그인이 있는 iOS 앱은 Apple 로그인도 함께 있어야 심사를 통과한다(지침 4.8). 웹 서버가 Apple 로그인을 맡는다.
