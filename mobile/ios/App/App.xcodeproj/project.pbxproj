@@ -18,7 +18,36 @@
 		50B271D11FEDC1A000F3C39B /* public in Resources */ = {isa = PBXBuildFile; fileRef = 50B271D01FEDC1A000F3C39B /* public */; };
 		9582B6832FE993A70072D4E8 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9582B6822FE993A50072D4E8 /* SceneDelegate.swift */; };
 		A1B2C3D4E5F60718293A4B05 /* MainViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60718293A4B04 /* MainViewController.swift */; };
+		7D0D0E1A2B3C4D5E6F708009 /* ModoriWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D0D0E1A2B3C4D5E6F708004 /* ModoriWidget.swift */; };
+		7D0D0E1A2B3C4D5E6F70800A /* TodosLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D0D0E1A2B3C4D5E6F708005 /* TodosLoader.swift */; };
+		7D0D0E1A2B3C4D5E6F70800B /* WidgetSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D0D0E1A2B3C4D5E6F708006 /* WidgetSession.swift */; };
+		7D0D0E1A2B3C4D5E6F70800C /* WidgetSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D0D0E1A2B3C4D5E6F708006 /* WidgetSession.swift */; };
+		7D0D0E1A2B3C4D5E6F70800D /* ModoriWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 7D0D0E1A2B3C4D5E6F708002 /* ModoriWidget.appex */; settings = {ATTRIBUTES = (RemoveHeaderOnCopy, ); }; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		7D0D0E1A2B3C4D5E6F708013 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 504EC2FC1FED79650016851F /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 7D0D0E1A2B3C4D5E6F708001;
+			remoteInfo = ModoriWidget;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		7D0D0E1A2B3C4D5E6F708011 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				7D0D0E1A2B3C4D5E6F70800D /* ModoriWidget.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		2FAD9762203C412B000D30F8 /* config.xml */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = config.xml; sourceTree = "<group>"; };
@@ -35,6 +64,12 @@
 		9582B6822FE993A50072D4E8 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
 		A1B2C3D4E5F60718293A4B04 /* MainViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainViewController.swift; sourceTree = "<group>"; };
 		958DCC722DB07C7200EA8C5F /* debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = debug.xcconfig; path = ../debug.xcconfig; sourceTree = SOURCE_ROOT; };
+		7D0D0E1A2B3C4D5E6F708002 /* ModoriWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = ModoriWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		7D0D0E1A2B3C4D5E6F708004 /* ModoriWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModoriWidget.swift; sourceTree = "<group>"; };
+		7D0D0E1A2B3C4D5E6F708005 /* TodosLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodosLoader.swift; sourceTree = "<group>"; };
+		7D0D0E1A2B3C4D5E6F708006 /* WidgetSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetSession.swift; sourceTree = "<group>"; };
+		7D0D0E1A2B3C4D5E6F708007 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		7D0D0E1A2B3C4D5E6F708008 /* ModoriWidget.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ModoriWidget.entitlements; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -46,6 +81,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		7D0D0E1A2B3C4D5E6F70800F /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -54,6 +96,7 @@
 			children = (
 				958DCC722DB07C7200EA8C5F /* debug.xcconfig */,
 				504EC3061FED79650016851F /* App */,
+				7D0D0E1A2B3C4D5E6F708003 /* ModoriWidget */,
 				504EC3051FED79650016851F /* Products */,
 			);
 			sourceTree = "<group>";
@@ -62,6 +105,7 @@
 			isa = PBXGroup;
 			children = (
 				504EC3041FED79650016851F /* App.app */,
+				7D0D0E1A2B3C4D5E6F708002 /* ModoriWidget.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -85,6 +129,18 @@
 			path = App;
 			sourceTree = "<group>";
 		};
+		7D0D0E1A2B3C4D5E6F708003 /* ModoriWidget */ = {
+			isa = PBXGroup;
+			children = (
+				7D0D0E1A2B3C4D5E6F708004 /* ModoriWidget.swift */,
+				7D0D0E1A2B3C4D5E6F708005 /* TodosLoader.swift */,
+				7D0D0E1A2B3C4D5E6F708006 /* WidgetSession.swift */,
+				7D0D0E1A2B3C4D5E6F708007 /* Info.plist */,
+				7D0D0E1A2B3C4D5E6F708008 /* ModoriWidget.entitlements */,
+			);
+			path = ModoriWidget;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -95,10 +151,12 @@
 				504EC3001FED79650016851F /* Sources */,
 				504EC3011FED79650016851F /* Frameworks */,
 				504EC3021FED79650016851F /* Resources */,
+				7D0D0E1A2B3C4D5E6F708011 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				7D0D0E1A2B3C4D5E6F708012 /* PBXTargetDependency */,
 			);
 			name = App;
 			packageProductDependencies = (
@@ -107,6 +165,23 @@
 			productName = App;
 			productReference = 504EC3041FED79650016851F /* App.app */;
 			productType = "com.apple.product-type.application";
+		};
+		7D0D0E1A2B3C4D5E6F708001 /* ModoriWidget */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 7D0D0E1A2B3C4D5E6F708016 /* Build configuration list for PBXNativeTarget "ModoriWidget" */;
+			buildPhases = (
+				7D0D0E1A2B3C4D5E6F70800E /* Sources */,
+				7D0D0E1A2B3C4D5E6F70800F /* Frameworks */,
+				7D0D0E1A2B3C4D5E6F708010 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = ModoriWidget;
+			productName = ModoriWidget;
+			productReference = 7D0D0E1A2B3C4D5E6F708002 /* ModoriWidget.appex */;
+			productType = "com.apple.product-type.app-extension";
 		};
 /* End PBXNativeTarget section */
 
@@ -121,6 +196,9 @@
 						CreatedOnToolsVersion = 9.2;
 						LastSwiftMigration = 1100;
 						ProvisioningStyle = Automatic;
+					};
+					7D0D0E1A2B3C4D5E6F708001 = {
+						CreatedOnToolsVersion = 15.0;
 					};
 				};
 			};
@@ -141,6 +219,7 @@
 			projectRoot = "";
 			targets = (
 				504EC3031FED79650016851F /* App */,
+				7D0D0E1A2B3C4D5E6F708001 /* ModoriWidget */,
 			);
 		};
 /* End PBXProject section */
@@ -160,6 +239,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		7D0D0E1A2B3C4D5E6F708010 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -170,10 +256,29 @@
 				504EC3081FED79650016851F /* AppDelegate.swift in Sources */,
 				9582B6832FE993A70072D4E8 /* SceneDelegate.swift in Sources */,
 				A1B2C3D4E5F60718293A4B05 /* MainViewController.swift in Sources */,
+				7D0D0E1A2B3C4D5E6F70800C /* WidgetSession.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		7D0D0E1A2B3C4D5E6F70800E /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				7D0D0E1A2B3C4D5E6F708009 /* ModoriWidget.swift in Sources */,
+				7D0D0E1A2B3C4D5E6F70800A /* TodosLoader.swift in Sources */,
+				7D0D0E1A2B3C4D5E6F70800B /* WidgetSession.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		7D0D0E1A2B3C4D5E6F708012 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 7D0D0E1A2B3C4D5E6F708001 /* ModoriWidget */;
+			targetProxy = 7D0D0E1A2B3C4D5E6F708013 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin PBXVariantGroup section */
 		504EC30B1FED79650016851F /* Main.storyboard */ = {
@@ -350,6 +455,54 @@
 			};
 			name = Release;
 		};
+		7D0D0E1A2B3C4D5E6F708014 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = ModoriWidget/ModoriWidget.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				INFOPLIST_FILE = ModoriWidget/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = site.modori.app.widget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		7D0D0E1A2B3C4D5E6F708015 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = ModoriWidget/ModoriWidget.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				INFOPLIST_FILE = ModoriWidget/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = site.modori.app.widget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -367,6 +520,15 @@
 			buildConfigurations = (
 				504EC3171FED79650016851F /* Debug */,
 				504EC3181FED79650016851F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		7D0D0E1A2B3C4D5E6F708016 /* Build configuration list for PBXNativeTarget "ModoriWidget" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				7D0D0E1A2B3C4D5E6F708014 /* Debug */,
+				7D0D0E1A2B3C4D5E6F708015 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
