@@ -15,7 +15,7 @@ test.afterAll(async () => {
   await prisma.$disconnect();
 });
 
-test("넓은 화면에는 손잡이가 없고 줄 자체를 잡는다. 그냥 누르면 고치기 창이 열리고 끄는 법을 알려 준다", async ({ page }) => {
+test("넓은 화면에는 손잡이가 없고 줄 자체를 잡는다. 그냥 누르면 고치기 창이 열린다", async ({ page }) => {
   await prisma.user.deleteMany({ where: { email: EMAIL } });
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.goto("/login");
@@ -37,10 +37,9 @@ test("넓은 화면에는 손잡이가 없고 줄 자체를 잡는다. 그냥 �
   const row = page.getByRole("listitem").filter({ hasText: "끌어서 옮길 일" });
   await expect(row).toHaveCSS("cursor", "grab");
 
-  // 끌지 않고 누르면 원래대로 고치기 창이 열리고, 끄는 법을 알려 준다.
+  // 끌지 않고 누르면 원래대로 고치기 창이 열린다(끄는 법 안내는 2026-11-22 운영자 요청으로 뺐다).
   await row.getByText("끌어서 옮길 일", { exact: true }).click();
   await expect(page.getByRole("dialog", { name: "할 일" })).toBeVisible();
-  await expect(page.getByText("할 일 줄을 잡고 끌면 순서를 바꾸거나 다른 카테고리로 옮길 수 있어요.")).toBeVisible();
 
   // 창은 줄 안쪽에 있어도 손 모양 커서를 물려받지 않는다(창 안, 창 뒤 어두운 곳 모두). 2026-10-22 제보.
   const dialog = page.getByRole("dialog", { name: "할 일" });
