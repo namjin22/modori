@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useState, useTransition } from "react";
 
-import { CopyForAi } from "@/components/copy-for-ai";
 import { EventForm } from "@/components/event-form";
 import { useLocale, useT } from "@/components/locale-provider";
 import { Modal } from "@/components/modal";
@@ -11,7 +10,6 @@ import { SortableList } from "@/components/sortable-list";
 import { useToast } from "@/components/toast";
 import { UndoableDeleteButton } from "@/components/undoable-delete-button";
 import { useSaveFailure } from "@/components/use-save-failure";
-import { eventReference } from "@/lib/ai-reference";
 import { formatKST, parseKSTDate } from "@/lib/date";
 import { ddayLabel, isSoonDday } from "@/lib/dday";
 import { describeEventWhen, formatTime } from "@/lib/event-time";
@@ -237,47 +235,34 @@ export function EventEditModal({ event, date, onClose }: { event: DayEvent | nul
   return (
     <Modal open={event !== null} onClose={onClose} title={t("section")}>
       {event && (
-        <>
-          <EventForm
-            defaultDate={date}
-            event={{
-              id: event.id,
-              title: event.title,
-              startDate: formatKST(event.startDate),
-              endDate: formatKST(event.endDate),
-              startTime: event.startTime === null ? "" : formatTime(event.startTime),
-              endTime: event.endTime === null ? "" : formatTime(event.endTime),
-              memo: event.memo ?? "",
-              isPublic: event.isPublic ?? false,
-              memoPublic: event.memoPublic ?? false,
-              dday: event.dday,
-              color: event.color,
-            }}
-            onSaved={onClose}
-            onCancel={onClose}
-            deleteButton={
-              <UndoableDeleteButton
-                id={event.id}
-                remove={deleteEvent}
-                restore={restoreEvent}
-                message={t("eventDeleted")}
-                onDone={onClose}
-                className="-ml-2 h-11 rounded-xl px-2 text-sm font-medium text-danger"
-              />
-            }
-          />
-          {/* AI에게 이 일정을 짚어 말할 때 쓰는 id가 든 글(메모는 뺀다, 2026-11-20). */}
-          <CopyForAi
-            text={eventReference({
-              id: event.id,
-              title: event.title,
-              startDate: formatKST(event.startDate),
-              endDate: formatKST(event.endDate),
-              startTime: event.startTime === null ? null : formatTime(event.startTime),
-              endTime: event.endTime === null ? null : formatTime(event.endTime),
-            })}
-          />
-        </>
+        <EventForm
+          defaultDate={date}
+          event={{
+            id: event.id,
+            title: event.title,
+            startDate: formatKST(event.startDate),
+            endDate: formatKST(event.endDate),
+            startTime: event.startTime === null ? "" : formatTime(event.startTime),
+            endTime: event.endTime === null ? "" : formatTime(event.endTime),
+            memo: event.memo ?? "",
+            isPublic: event.isPublic ?? false,
+            memoPublic: event.memoPublic ?? false,
+            dday: event.dday,
+            color: event.color,
+          }}
+          onSaved={onClose}
+          onCancel={onClose}
+          deleteButton={
+            <UndoableDeleteButton
+              id={event.id}
+              remove={deleteEvent}
+              restore={restoreEvent}
+              message={t("eventDeleted")}
+              onDone={onClose}
+              className="-ml-2 h-11 rounded-xl px-2 text-sm font-medium text-danger"
+            />
+          }
+        />
       )}
     </Modal>
   );
