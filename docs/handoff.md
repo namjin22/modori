@@ -2164,3 +2164,11 @@ VM에 시험 DB(사용자 1000, 할 일 108만, 반응 24만, 280MB)를 만들�
 - **첫 업로드(실행 44879414523)**: 서명한 앱 만들기(archive)는 **성공**했다. 곧 새 App ID `site.modori.app.widget`과 프로필을 자동 서명이 만들었다(학교 계정에 손댄 것 없음). 업로드는 `Invalid Pre-Release Train. The train version '1.0.0' is closed for new build submissions`로 실패했다. App Store가 1.0.0을 승인해 같은 번호의 새 빌드를 받지 않는다(위젯과 무관). #294로 `ios.yml`의 `MARKETING_VERSION`을 1.1.0으로 올렸다(`docs/mobile-release.md`).
 - **둘째 업로드(실행 44880370301, 1.1.0 빌드 25)**: `Upload succeeded`. App Store Connect 처리(10~30분) 뒤 TestFlight에 뜬다. **새 버전의 첫 빌드라 외부 테스트는 베타 심사를 다시 받는다**(보통 하루). 외부 그룹에 이 빌드가 들어갔는지는 App Store Connect TestFlight 탭에서 운영자가 본다.
 - **하지 않은 것**: App Store에 1.1.0을 제출하지 않았다(판매자가 학교라 운영자 결정). 실제 iPhone에서 위젯은 아직 아무도 못 봤다.
+
+## 2026-11-22 — 해를 넘기는 날짜에 깨진 시험, AI용 복사·끌기 안내 제거, INC-22 원인
+
+- **CI가 막혔던 것**: `tests/e2e/routine.spec.ts` "루틴 고치기 창은 지금 날짜·종료일을…"이 11-22부터 매번 실패했다. 종료일(오늘 + 40일)이 내년이 되면 날짜 단추의 보이는 글자가 "2027.1.1 (금)"으로 바뀐다(설계대로, `components/date-picker.tsx`). 그런데 시험은 "1월 1일"을 찾았다. 운영자 승인을 받아, 늘 긴 날짜를 쓰는 단추 이름으로 보게 고쳤다. 고치기 전에는 모든 PR·main verify가 실패해 자동 배포도 막혔다(실패한 배포는 없었다. main의 마지막 verify b23f827은 11-21에 통과했다). **다른 시험에도 "오늘 + N일"이 해를 넘기면 깨지는 곳이 있을 수 있다**(이번에 드러난 것은 이 하나).
+- **지운 것(운영자 요청)**: "AI용으로 복사"(코드를 88617c2 직전으로 되돌리고 그 시험 파일 둘을 지웠다), 할 일 창의 끌기 안내(PC·폰 문구, 세 언어 열쇠, 그 글을 보던 시험 두 줄). 근거·대가는 `docs/decisions.md` 2026-11-22.
+- **INC-22 원인 확정**: 운영자가 보여 준 GSMSV 운영진 공지에 따르면, 학교 정전으로 GSMSV 서버가 다시 켜지면서 iptables 규칙(포트포워딩)과 DHCP IP가 사라졌다. 같은 날 22:12 KST 전에 백업 규칙으로 복구됐다. `docs/incidents.md`에 적었다(사람 이름은 적지 않았다).
+- **확인한 것**: `tsc`, 린트(오류 0, 경고 1은 기존 `scripts/promo-edit.mjs`), 단위 610개 × 3시간대. E2E는 고친 루틴 시험 1개, `drag-handle`·`mobile-move` 5개. 전체 verify는 PR CI가 돌린다.
+- **운영자 몫으로 남은 것**: ① App Store Connect에서 iOS 1.1.0 (25)을 외부 테스트 그룹에 넣기(로그인에 친구 폰 인증번호가 필요해 학교에서) ② INC-23 확인용 VM 명령 실행(답변에 적었다: 오늘 새벽 백업 오류, 날마다 실패했는지, 두 DB의 표·사용자 수) ③ Cloudflare Worker 오류 화면 켜기 ④ Android·iPhone 위젯 실기기 확인.
