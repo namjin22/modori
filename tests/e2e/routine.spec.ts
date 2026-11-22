@@ -242,11 +242,16 @@ test("루틴 고치기 창은 지금 날짜·종료일을 채워 보여 주고, 
   await expect(dialog.getByLabel("5", { exact: true })).toBeChecked();
   await expect(dialog.getByLabel("20", { exact: true })).toBeChecked();
   await expect(dialog.getByLabel("6", { exact: true })).not.toBeChecked();
-  // 시작일·종료일 단추에 지금 날짜가 보인다(날짜는 "2026년 12월 31일 (목)" 꼴이라 월·일로 본다).
-  const [, startMonth, startDay] = formatKST(start).split("-").map(Number);
-  const [, endMonth, endDay] = formatKST(end).split("-").map(Number);
-  await expect(dialog.getByRole("button", { name: /^루틴 시작일:/ })).toContainText(`${startMonth}월 ${startDay}일`);
-  await expect(dialog.getByRole("button", { name: /^루틴 종료일:/ })).toContainText(`${endMonth}월 ${endDay}일`);
+  // 시작일·종료일 단추에 지금 날짜가 들어 있다. 보이는 글자는 올해면 "1월 1일 (금)", 다른 해면 "2027.1.1 (금)"으로 바뀌어서
+  // (components/date-picker.tsx) 늘 긴 날짜("2027년 1월 1일 (금)")를 쓰는 단추 이름으로 본다. 보이는 글자로 보던 때는 종료일이 해를 넘기는 날(11월 하순~12월)에 실패했다.
+  const [startYear, startMonth, startDay] = formatKST(start).split("-").map(Number);
+  const [endYear, endMonth, endDay] = formatKST(end).split("-").map(Number);
+  await expect(dialog.getByRole("button", { name: /^루틴 시작일:/ })).toHaveAccessibleName(
+    new RegExp(`^루틴 시작일: ${startYear}년 ${startMonth}월 ${startDay}일 `),
+  );
+  await expect(dialog.getByRole("button", { name: /^루틴 종료일:/ })).toHaveAccessibleName(
+    new RegExp(`^루틴 종료일: ${endYear}년 ${endMonth}월 ${endDay}일 `),
+  );
 
   // 날짜를 모두 빼면 저장하지 않고 이유를 보여 준다. 규칙은 그대로다.
   await dialog.getByText("5", { exact: true }).click();
