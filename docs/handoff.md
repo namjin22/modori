@@ -2157,3 +2157,10 @@ VM에 시험 DB(사용자 1000, 할 일 108만, 반응 24만, 280MB)를 만들�
 - **백업 복원 오류(INC-23, PR #292)**: 11-18 04:00 백업을 백업용 Neon에 복원할 때 `pg_restore` 오류 14개(`User` 기본 키 중복, 여러 표의 외래 키 실패). 운영에서 지운 표가 Neon에 남아 `User`를 못 지운다는 추정만 있고 확인하지 않았다. 운영자에게 VM에서 볼 명령을 줬다(`sudo journalctl -u modori-backup`, 두 DB의 표 목록·사용자 수 비교). 결과를 받으면 원인을 확정하고 `backup.sh`를 고칠지 운영자와 정한다.
 - **INC-22**: VM은 장애 때 재부팅되지 않았다(`last -x`, PR #292에 기록). 끊긴·붙은 시각은 `sudo journalctl -u cloudflared`로 받아야 한다.
 - **정리**: 병합된 로컬 브랜치 `feat/copy-for-ai`를 지웠다(운영자 요청). 다른 병합된 로컬 브랜치 100여 개는 그대로다.
+
+## 2026-11-21(이어서) — iPhone 위젯 TestFlight 업로드 확인
+
+- **병합·배포**: #292(INC-22 보강·INC-23), #293(iPhone 위젯), #294(iOS 버전 1.1.0). 웹 자동 배포(0f3fd02) 성공. 운영 `/privacy`의 시행일이 2026년 11월 21일이고 키체인 문구가 보인다. `/api/health` 200.
+- **첫 업로드(실행 44879414523)**: 서명한 앱 만들기(archive)는 **성공**했다. 곧 새 App ID `site.modori.app.widget`과 프로필을 자동 서명이 만들었다(학교 계정에 손댄 것 없음). 업로드는 `Invalid Pre-Release Train. The train version '1.0.0' is closed for new build submissions`로 실패했다. App Store가 1.0.0을 승인해 같은 번호의 새 빌드를 받지 않는다(위젯과 무관). #294로 `ios.yml`의 `MARKETING_VERSION`을 1.1.0으로 올렸다(`docs/mobile-release.md`).
+- **둘째 업로드(실행 44880370301, 1.1.0 빌드 25)**: `Upload succeeded`. App Store Connect 처리(10~30분) 뒤 TestFlight에 뜬다. **새 버전의 첫 빌드라 외부 테스트는 베타 심사를 다시 받는다**(보통 하루). 외부 그룹에 이 빌드가 들어갔는지는 App Store Connect TestFlight 탭에서 운영자가 본다.
+- **하지 않은 것**: App Store에 1.1.0을 제출하지 않았다(판매자가 학교라 운영자 결정). 실제 iPhone에서 위젯은 아직 아무도 못 봤다.
