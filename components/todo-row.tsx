@@ -4,7 +4,6 @@ import { useRef, useState, useTransition } from "react";
 
 import { addTodo, deleteTodo, moveTodo, repeatTodo, restoreTodo, updateTodo } from "@/app/(tabs)/actions";
 import { ChoicePicker } from "@/components/choice-picker";
-import { CopyForAi } from "@/components/copy-for-ai";
 import { DatePicker } from "@/components/date-picker";
 import { useT } from "@/components/locale-provider";
 import { MemoPrivateToggle } from "@/components/memo-private-toggle";
@@ -16,7 +15,6 @@ import { type HomeTodo, PENDING_PREFIX, useTodoStore } from "@/components/todo-s
 import { useToast } from "@/components/toast";
 import { UndoableDeleteButton } from "@/components/undoable-delete-button";
 import { useSaveFailure } from "@/components/use-save-failure";
-import { todoReference } from "@/lib/ai-reference";
 import { addDays, formatKST, parseKSTDate } from "@/lib/date";
 import { MAX_MEMO_LENGTH } from "@/lib/memo";
 import { common } from "@/lib/i18n/messages/common";
@@ -257,9 +255,6 @@ export function TodoRow({
           {/* 메모를 친구에게 숨길지(기본은 보인다, 2026-10-18). 할 일 자체는 카테고리 공개 여부를 따른다. 표시 칸은 이 스위치가 있는 화면이라는 표시다. */}
           <input type="hidden" name="memoPublicField" value="1" />
           <MemoPrivateToggle defaultChecked={!(todo.memoPublic ?? true)} />
-          {/* 손잡이가 없어 순서를 바꾸는 법이 안 보인다. 폰은 길게 눌러, 컴퓨터는 줄을 잡고 끈다. */}
-          {!child && <p className="hidden text-xs text-muted pointer-coarse:block">{t("hintTouch")}</p>}
-          {!child && <p className="hidden text-xs text-muted pointer-fine:block">{t("hintMouse")}</p>}
           <div className="flex items-center justify-between gap-2">
             <UndoableDeleteButton
               id={todo.id}
@@ -284,10 +279,6 @@ export function TodoRow({
           </div>
         </form>
 
-        {/* AI에게 이 할 일을 짚어 말할 때 쓰는 id가 든 글(메모는 뺀다, 2026-11-20). */}
-        <CopyForAi
-          text={todoReference({ id: todo.id, content: todo.content, done: todo.done, date, category: todo.category?.name ?? null, parentId: todo.parentId, subTodos })}
-        />
       </Modal>
     </div>
   );

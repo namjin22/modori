@@ -100,10 +100,9 @@ test("폰에서 할 일 줄을 짧게 누르면 창이 열리고, 길게 누르�
   });
   await page.reload();
 
-  // 짧게 누르면(탭) 할 일 창이 열린다. 창에는 길게 누르는 법이 적혀 있다.
+  // 짧게 누르면(탭) 할 일 창이 열린다(길게 누르는 법 안내는 2026-11-22 운영자 요청으로 뺐다).
   await page.getByRole("button", { name: "둘째", exact: true }).tap();
   await expect(page.getByLabel("할 일 내용 수정")).toBeVisible();
-  await expect(page.getByText("할 일을 길게 누르면 집혀서")).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(page.getByLabel("할 일 내용 수정")).toHaveCount(0);
 
