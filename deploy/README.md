@@ -16,7 +16,7 @@
 | `set-vapid.sh` | 웹 푸시 서버 열쇠(VAPID)를 VM에서 만들어 `.env`에 넣는다. 이미 있으면 그대로 둔다. 바꾸면 브라우저 구독이 새 열쇠로 다시 맺어질 때까지 컴퓨터 알림이 멈춘다 |
 | `deploy.sh` | 이미지 받기 → 마이그레이션 → 앱 교체 → 응답 확인 |
 | `migrate-from-neon.sh` | 이관하는 날 한 번. Neon 데이터를 VM DB로 복사 |
-| `backup.sh` | 매일 04:00. VM 안 7일치(파일 권한 600) + 백업용 Neon에 통째로 복원 |
+| `backup.sh` | 매일 04:00. VM 안 7일치(파일 권한 600) + 백업용 Neon의 `public` 스키마를 비우고 통째로 복원(한 트랜잭션, 실패하면 지난 사본이 그대로). 성공하면 `backups/neon-restore.ok`의 날짜를 새로 쓴다. **배포가 VM에 올리지 않는다.** 바꾸면 VM에서 직접 바꿔 넣는다(아래) |
 
 ## 배포 흐름
 
@@ -63,6 +63,17 @@ Windows(Git Bash)에서 `openssl rand -hex 24`로 만들면 줄 끝에 `\r\n`이
 `deploy/docker-compose.yml`의 새 내용(앱 `healthcheck`와 `./backups:/backups:ro`)을 VM의 `/opt/modori/docker-compose.yml`에 복사하고
 `cd /opt/modori && docker compose up -d app`으로 앱만 다시 띄운다. 25초쯤 뒤 `docker compose ps`에 앱이 `(healthy)`로 보이고
 `curl -s localhost:3000/api/health/backup`이 `{"status":"ok",...}`를 주면 된다. 이후 `health` 워크플로가 백업이 36시간 넘게 멈추면 메일을 보낸다.
+
+`backups/neon-restore.ok`가 있으면 `/api/health/backup`은 덤프 파일이 아니라 이 파일의 날짜를 본다(덤프는 Neon 복원보다 먼저 만들어져서,
+복원이 계속 실패해도 새로 생긴다. 2026-10-27~11-22에 그랬다, `docs/incidents.md` INC-23). 응답의 `of`가 `restore`면 복원 기준, `dump`면 아직 표시가 없어 덤프 기준이다.
+
+### backup.sh를 바꿨을 때 (사람이 VM에서)
+
+배포(`deploy.sh`)는 `backup.sh`를 올리지 않는다. 저장소의 `deploy/backup.sh`를 VM의 `/opt/modori/backup.sh`에 같은 내용으로 넣는다
+(Windows에서 파일을 옮기면 줄바꿈이 CRLF가 되어 bash가 못 읽는다. 저장소는 LF로 고정했지만 복사본은 아닐 수 있다. 붙여 넣기가 안전하다).
+넣은 뒤 `bash -n /opt/modori/backup.sh`(문법), `bash /opt/modori/backup.sh`(지금 한 번 실행)로 확인한다. 끝에 `백업 완료`가 나와야 하고,
+`ls -l /opt/modori/backups/neon-restore.ok`가 방금 시각이어야 한다. 실패하면 백업용 Neon은 지난 사본 그대로다(한 트랜잭션).
+`curl -s localhost:3000/api/health/backup`에 `"of":"restore"`가 보이면 새 감시가 켜진 것이다.
 
 ## 되살리기
 

@@ -2172,3 +2172,10 @@ VM에 시험 DB(사용자 1000, 할 일 108만, 반응 24만, 280MB)를 만들�
 - **INC-22 원인 확정**: 운영자가 보여 준 GSMSV 운영진 공지에 따르면, 학교 정전으로 GSMSV 서버가 다시 켜지면서 iptables 규칙(포트포워딩)과 DHCP IP가 사라졌다. 같은 날 22:12 KST 전에 백업 규칙으로 복구됐다. `docs/incidents.md`에 적었다(사람 이름은 적지 않았다).
 - **확인한 것**: `tsc`, 린트(오류 0, 경고 1은 기존 `scripts/promo-edit.mjs`), 단위 610개 × 3시간대. E2E는 고친 루틴 시험 1개, `drag-handle`·`mobile-move` 5개. 전체 verify는 PR CI가 돌린다.
 - **운영자 몫으로 남은 것**: ① App Store Connect에서 iOS 1.1.0 (25)을 외부 테스트 그룹에 넣기(로그인에 친구 폰 인증번호가 필요해 학교에서) ② INC-23 확인용 VM 명령 실행(답변에 적었다: 오늘 새벽 백업 오류, 날마다 실패했는지, 두 DB의 표·사용자 수) ③ Cloudflare Worker 오류 화면 켜기 ④ Android·iPhone 위젯 실기기 확인.
+
+## 2026-11-22(이어서) — INC-23 원인 확정, 백업 복원 고치기
+
+- **원인(운영자가 붙인 VM 결과로 확인)**: `pg_restore --clean`이 덤프에 있는 표만 지워서, 운영에서 지운 `Post`·`PostPhoto`·`PostReaction`(10-26)·`Goal`(11-20)이 백업용 Neon에 남아 `User`를 못 지웠다. 10-27부터 매일 오류(5개, 10-30부터 14개). 운영 26표·83명, Neon 30표·80명. **지운 데이터(`PostPhoto.data`는 사진 파일)가 사본에 27일 남았다**(방침 "백업 최대 7일"과 어긋남). `health`가 덤프 파일 날짜만 봐서 못 잡았다. 자세한 것은 `docs/incidents.md` INC-23.
+- **고친 것(브랜치 `fix/backup-restore-atomic`)**: `deploy/backup.sh`(스키마를 비우고 채우는 것을 한 트랜잭션으로, 성공하면 `backups/neon-restore.ok`), `app/api/health/backup/route.ts`(표시가 있으면 그 날짜를 본다), 새 단위 시험 `tests/unit/health-backup.test.ts`, `deploy/README.md`, `docs/decisions.md` 2026-11-22.
+- **못 한 것(중요)**: ① **VM의 `backup.sh`는 배포가 올리지 않는다.** 운영자가 VM에서 바꿔 넣고 한 번 돌려야 끝난다(`deploy/README.md` "backup.sh를 바꿨을 때"). 그전에는 아무것도 달라지지 않는다. ② **새 복원 방식을 실제 PostgreSQL에서 돌려 보지 못했다**(Docker·psql이 이 PC에 없다). `bash -n`과 단위 시험만. 첫 실행 결과를 INC-23에 적어야 한다. ③ Neon에 `public` 스키마를 지울 권한이 있는지 모른다(없으면 첫 실행이 오류로 끝나고 사본은 그대로).
+- **알아 둘 것**: `/api/health/backup`은 표시 파일이 없으면 예전처럼 덤프 날짜를 본다. 스크립트를 바꾼 첫 성공 뒤로는 복원 실패도 36시간 안에 `health`가 알린다.
