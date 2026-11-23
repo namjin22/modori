@@ -43,21 +43,22 @@ export default async function SettingsPage() {
           // 2026-11-18 요청: 톱니를 담는 틀을 하나 씌운다. 카드와 같은 면 색 + 얇은 테두리라 따로 튀지 않고, 틀의 색은 올려도 눌러도 그대로다(11-02 요청).
           className="group flex size-10 shrink-0 items-center justify-center rounded-full bg-surface text-foreground ring-1 ring-inset ring-border transition-transform duration-200 active:scale-90"
         >
+          {/* 2026-11-24 요청(설정 버튼이 어색하다): 원 둘과 바퀴살로 그린 그림이 톱니보다 배의 키처럼 보였다. 틀은 두고(11-18 요청)
+              이가 여덟 개인 톱니 외곽선으로 다시 그렸다. 이의 끝 반지름 10.2, 뿌리 7.6, 끝 폭 22°·뿌리 폭 34°로 계산한 점이다. */}
           <svg
             aria-hidden
-            width={24}
-            height={24}
+            width={22}
+            height={22}
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
-            strokeWidth={2}
+            strokeWidth={1.8}
             strokeLinecap="round"
             strokeLinejoin="round"
             className="transition-transform duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] group-hover:rotate-90 group-focus-visible:rotate-90 group-active:rotate-180 motion-reduce:transition-none motion-reduce:group-hover:rotate-0 motion-reduce:group-active:rotate-0"
           >
-            <circle cx={12} cy={12} r={7} />
-            <circle cx={12} cy={12} r={2.8} />
-            <path d="M19 12 L21.5 12 M16.95 16.95 L18.72 18.72 M12 19 L12 21.5 M7.05 16.95 L5.28 18.72 M5 12 L2.5 12 M7.05 7.05 L5.28 5.28 M12 5 L12 2.5 M16.95 7.05 L18.72 5.28" />
+            <path d="M9.78 4.73 L10.05 1.99 L13.95 1.99 L14.22 4.73 L15.57 5.29 L17.70 3.54 L20.46 6.30 L18.71 8.43 L19.27 9.78 L22.01 10.05 L22.01 13.95 L19.27 14.22 L18.71 15.57 L20.46 17.70 L17.70 20.46 L15.57 18.71 L14.22 19.27 L13.95 22.01 L10.05 22.01 L9.78 19.27 L8.43 18.71 L6.30 20.46 L3.54 17.70 L5.29 15.57 L4.73 14.22 L1.99 13.95 L1.99 10.05 L4.73 9.78 L5.29 8.43 L3.54 6.30 L6.30 3.54 L8.43 5.29 Z" />
+            <circle cx={12} cy={12} r={3.2} />
           </svg>
         </Link>
       </header>
