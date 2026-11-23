@@ -89,6 +89,10 @@ GitHub → Actions → ios → Run workflow → **upload 체크** → 실행(10�
 
 upload를 끄고 돌리면 서명 없이 시뮬레이터용으로 빌드만 한다(비밀 없이 도는 확인용). `mobile/`을 고친 PR에서도 이것이 돈다.
 
+**외부 테스트 그룹에 넣기(2026-11-22)**: App Store Connect 화면 로그인은 친구 폰의 인증번호가 필요해서, 같은 API 열쇠(`ASC_*`)로 하는 `testflight` 워크플로를 쓴다(`scripts/testflight-distribute.mjs`).
+Actions → testflight → Run workflow. `build`는 올린 빌드 번호(ios 실행 번호), `version`은 `ios.yml`의 버전. **먼저 `mode=list`**(읽기만: 빌드 상태, 그룹, 다음 할 일)로 보고, 괜찮으면 `mode=distribute`(베타 앱 심사를 내고 외부 그룹에 넣는다).
+외부 그룹이 하나일 때만 고르고 **내부 그룹은 건드리지 않는다**(내부 테스팅은 팀 멤버인 교장 선생님께 알림 메일이 간다). 새 버전 번호의 첫 빌드는 베타 심사를 거친다(보통 하루).
+
 홈 화면 위젯(2026-11-21)은 앱 안의 확장이고 App ID가 따로다(`site.modori.app.widget`). 손으로 만들지 않는다. 업로드 빌드의 자동 서명(`-allowProvisioningUpdates`, 관리자 키)이 App ID와 프로필을 만든다. 앱과 위젯이 같이 쓰는 키체인 그룹(`site.modori.shared`)은 등록할 것이 없다. 앱과 위젯의 버전·빌드 번호는 워크플로가 둘 다 같은 값으로 넣는다(App Store가 같기를 요구한다).
 
 ### 4. Apple 로그인 켜기 (심사 전에 꼭)

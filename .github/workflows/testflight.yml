@@ -19,9 +19,6 @@ on:
       version:
         description: "앱 버전(ios.yml의 MARKETING_VERSION)"
         default: "1.1.0"
-  # 임시: 이 브랜치에서 읽기만 하는 list를 먼저 돌려 본다(병합 전에 이 줄을 뺀다).
-  push:
-    branches: [feat/testflight-distribute]
 
 permissions:
   contents: read
@@ -38,10 +35,9 @@ jobs:
 
       - name: TestFlight 외부 그룹 작업
         env:
-          # push로 돌 때는 입력이 없다. 읽기만 하는 list와 1.1.0(25)로 정한다.
-          MODE: ${{ inputs.mode || 'list' }}
-          BUILD: ${{ inputs.build || '25' }}
-          VERSION: ${{ inputs.version || '1.1.0' }}
+          MODE: ${{ inputs.mode }}
+          BUILD: ${{ inputs.build }}
+          VERSION: ${{ inputs.version }}
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
           ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
