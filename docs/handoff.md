@@ -2179,3 +2179,11 @@ VM에 시험 DB(사용자 1000, 할 일 108만, 반응 24만, 280MB)를 만들�
 - **고친 것(브랜치 `fix/backup-restore-atomic`)**: `deploy/backup.sh`(스키마를 비우고 채우는 것을 한 트랜잭션으로, 성공하면 `backups/neon-restore.ok`), `app/api/health/backup/route.ts`(표시가 있으면 그 날짜를 본다), 새 단위 시험 `tests/unit/health-backup.test.ts`, `deploy/README.md`, `docs/decisions.md` 2026-11-22.
 - **못 한 것(중요)**: ① **VM의 `backup.sh`는 배포가 올리지 않는다.** 운영자가 VM에서 바꿔 넣고 한 번 돌려야 끝난다(`deploy/README.md` "backup.sh를 바꿨을 때"). 그전에는 아무것도 달라지지 않는다. ② **새 복원 방식을 실제 PostgreSQL에서 돌려 보지 못했다**(Docker·psql이 이 PC에 없다). `bash -n`과 단위 시험만. 첫 실행 결과를 INC-23에 적어야 한다. ③ Neon에 `public` 스키마를 지울 권한이 있는지 모른다(없으면 첫 실행이 오류로 끝나고 사본은 그대로).
 - **알아 둘 것**: `/api/health/backup`은 표시 파일이 없으면 예전처럼 덤프 날짜를 본다. 스크립트를 바꾼 첫 성공 뒤로는 복원 실패도 36시간 안에 `health`가 알린다.
+
+## 2026-11-22(이어서 2) — TestFlight 외부 그룹에 API로 넣기
+
+- **한 것**: 운영자가 "내가 할 일도 직접 다 해 달라"고 해서, 학교에 가서 인증번호로 로그인해야 하던 TestFlight 외부 그룹 넣기를 App Store Connect API 열쇠(CI의 `ASC_*`)로 했다. 새 워크플로 `testflight`(`scripts/testflight-distribute.mjs`, PR #297, 새 의존성 없음)가 `list`(읽기만)와 `distribute`(심사 제출 + 외부 그룹에 추가)를 한다. 외부 그룹이 정확히 하나일 때만 고르고 내부 그룹은 건드리지 않는다.
+- **결과**: `list`(실행 45092343869): 빌드 1.1.0 (25) `VALID`, `READY_FOR_BETA_SUBMISSION`, 외부 그룹 `tester` 하나(공개 링크 켜짐, "시험할 내용" ko 있음). `distribute`(실행 45097769442): "베타 앱 심사에 냈다", "외부 그룹 tester에 넣었다", **끝난 뒤 `WAITING_FOR_BETA_REVIEW`**. 심사는 보통 하루. 승인되면 `tester` 그룹 공개 링크로 설치된다.
+- **다음에 볼 것**: 심사 상태는 `testflight` 워크플로를 `mode=list`, `build=25`, `version=1.1.0`으로 돌리면 `externalBuildState`로 나온다(`BETA_APPROVED`나 `READY_FOR_BETA_TESTING`이면 설치 가능, `BETA_REJECTED`면 거절). 승인 뒤 친구 폰에서 위젯을 확인한다(앱 로그인 → 위젯 추가 → 앱을 한 번 열었다가 홈으로 나가야 로그인이 넘어간다).
+- **못 한 것**: ① **VM의 `backup.sh`는 아직 안 바뀌었다.** 이 PC에 VM 접속 열쇠가 없고(배포 열쇠는 `deploy.sh`만 실행하게 묶여 있다) 그 제한을 우회하지 않았다. 운영자가 VM에서 한 줄 명령으로 받아 해시를 확인하고 돌리면 된다(`docs/incidents.md` INC-23, `deploy/README.md`). ② Cloudflare Worker 켜기는 운영자 로그인이 필요하고 모든 요청이 지나는 길이라 운영자가 정한다. ③ 위젯 실기기 확인(Android·iPhone)은 폰이 없다.
+- **알아 둘 것**: 저장소 쓰기 권한이 곧 `ASC_*` 열쇠(관리자)의 권한이다(`docs/decisions.md` 2026-11-22). 같은 날 PR 296이 병합되는 동안 GitHub API 연결이 한 번 끊겨(`error connecting to api.github.com`) 감시가 실패로 끝났다. CI 실패가 아니었고 다시 걸어 병합했다.
