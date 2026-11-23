@@ -1,48 +1,23 @@
 name: ci-exp
 
-# 임시 실험용(병합하지 않는다). 2차: 시간 기준 균형 배치(6조각·8조각, 워커 1), node_modules 캐시가 적중했을 때, Docker 빌드 캐시.
+# 임시 실험용(병합하지 않는다). 3차: playwright --with-deps(apt)가 필요한가, 얼마나 들쭉날쭉한가.
 on:
   pull_request:
-    paths: [".github/workflows/ci-exp.yml", "scripts/e2e-timing.mjs", "scripts/e2e-shard.mjs", "scripts/e2e-weights.json"]
+    paths: [".github/workflows/ci-exp.yml"]
 
 concurrency:
   group: ci-exp-${{ github.head_ref }}
   cancel-in-progress: true
 
 jobs:
-  e2e:
-    name: b${{ matrix.total }} s${{ matrix.shard }}
+  apt:
+    name: apt probe ${{ matrix.n }}
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
-        total: [6, 8]
-        shard: [1, 2, 3, 4, 5, 6, 7, 8]
-        exclude:
-          - { total: 6, shard: 7 }
-          - { total: 6, shard: 8 }
-
-    services:
-      postgres:
-        image: postgres:18-alpine
-        env:
-          POSTGRES_USER: modori
-          POSTGRES_PASSWORD: modori
-          POSTGRES_DB: modori
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U modori -d modori"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 12
-
-    env:
-      DATABASE_URL: postgresql://modori:modori@localhost:5432/modori
-      DIRECT_URL: postgresql://modori:modori@localhost:5432/modori
-      AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
-
+        n: [1, 2, 3, 4]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -50,105 +25,38 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
-      - run: npm ci --prefix desktop --include=dev
-      - run: npm exec --prefix desktop -- install-electron
-      - uses: actions/cache@v4
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
-      - run: npx playwright install --with-deps chromium
-      - run: sudo apt-get install -y xvfb
-      - run: npx prisma migrate deploy
-      - name: E2E
-        env:
-          PLAYWRIGHT_JSON_OUTPUT_NAME: result.json
+      - name: 필요한 시스템 패키지 목록
         run: |
-          FILES=$(node scripts/e2e-shard.mjs ${{ matrix.shard }} ${{ matrix.total }})
-          xvfb-run -a npx playwright test $FILES --reporter=github,json
-      - name: 시간 요약
-        if: always()
-        run: node scripts/e2e-timing.mjs result.json "b${{ matrix.total }} s${{ matrix.shard }}"
-
-  # 1차에서 캐시를 만들었으니 이번에는 적중해야 한다.
-  install:
-    name: install ${{ matrix.mode }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    strategy:
-      fail-fast: false
-      matrix:
-        mode: [npm-ci, node-modules-cache]
-    env:
-      DATABASE_URL: postgresql://modori:modori@localhost:5432/modori
-      DIRECT_URL: postgresql://modori:modori@localhost:5432/modori
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 24
-          cache: ${{ matrix.mode == 'npm-ci' && 'npm' || '' }}
-      - name: node_modules 캐시
-        id: nm
-        if: matrix.mode == 'node-modules-cache'
-        uses: actions/cache@v4
-        with:
-          path: node_modules
-          key: nm-${{ runner.os }}-node24-${{ hashFiles('package-lock.json') }}
-      - name: 설치
-        if: matrix.mode == 'npm-ci' || steps.nm.outputs.cache-hit != 'true'
-        run: npm ci
-      - name: 캐시 상태
-        run: |
-          echo "hit=${{ steps.nm.outputs.cache-hit }}"
-          du -sh node_modules
-          node -e "require('@prisma/client'); console.log('prisma client ok')"
-          npx tsc --version
-
-  # 운영 배포(deploy.yml)의 느린 곳: 이미지 만들기 약 50초, 보내기 약 50초. 크기와 층별 크기, 빌드 캐시 효과를 잰다.
-  docker:
-    name: docker ${{ matrix.mode }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    strategy:
-      fail-fast: false
-      matrix:
-        mode: [plain, buildx-gha]
-    steps:
-      - uses: actions/checkout@v4
-      - name: 이미지 만들기(기본)
-        if: matrix.mode == 'plain'
+          npx playwright install-deps --dry-run chromium | tee deps.txt | cut -c1-300
+      - name: apt-get update 시간
         run: |
           start=$SECONDS
-          docker build -t modori:latest .
-          echo "build_seconds=$((SECONDS - start))"
-      - uses: docker/setup-buildx-action@v3
-        if: matrix.mode == 'buildx-gha'
-      - name: 이미지 만들기(buildx + GHA 캐시)
-        if: matrix.mode == 'buildx-gha'
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          load: true
-          tags: modori:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-      # 코드만 조금 바뀐 두 번째 배포를 흉내 낸다. 락 파일은 그대로라 설치 층은 캐시에서 와야 한다.
-      - name: 빌드 맥락의 파일 하나를 바꾼다
-        if: matrix.mode == 'buildx-gha'
-        run: echo "<!-- probe -->" >> README.md
-      - name: 코드가 조금 바뀐 뒤 다시 빌드(buildx + GHA 캐시)
-        if: matrix.mode == 'buildx-gha'
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          load: true
-          tags: modori:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-      - name: 크기
+          sudo apt-get update -qq
+          echo "apt_update_seconds=$((SECONDS - start))"
+      - name: 설치가 실제로 필요한 패키지가 있나(모의 설치)
         run: |
-          docker images modori:latest --format 'image_size={{.Size}}'
+          PKGS=$(grep -oE 'apt-get install[^&]*' deps.txt | sed -E 's/apt-get install//; s/-y//; s/--no-install-recommends//' | head -1)
+          echo "대상: $PKGS" | cut -c1-300
+          sudo apt-get install --dry-run --no-install-recommends $PKGS | grep -E "newly installed|upgraded," || true
+      - name: 브라우저만 받는다(시스템 패키지 없이)
+        run: |
           start=$SECONDS
-          bytes=$(docker save modori:latest | gzip -1 | wc -c)
-          echo "save_gzip_bytes=$bytes save_seconds=$((SECONDS - start))"
-          docker history --format '{{.Size}}\t{{.CreatedBy}}' modori:latest | cut -c1-110 | head -25
+          npx playwright install chromium
+          echo "browser_download_seconds=$((SECONDS - start))"
+      - name: 시스템 패키지 없이 브라우저가 뜨나
+        run: |
+          node -e "
+          const { chromium } = require('@playwright/test');
+          (async () => {
+            const b = await chromium.launch();
+            const p = await b.newPage();
+            await p.goto('about:blank');
+            console.log('launch_ok version=' + b.version());
+            await b.close();
+          })().catch((e) => { console.error('launch_failed: ' + String(e.message).split('\n')[0]); process.exit(1); });
+          "
+      - name: 지금 방식(--with-deps) 시간
+        run: |
+          start=$SECONDS
+          npx playwright install --with-deps chromium
+          echo "with_deps_seconds=$((SECONDS - start))"
