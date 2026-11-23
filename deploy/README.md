@@ -28,6 +28,11 @@
 - 급한 배포: Actions → `deploy-gsmsv` → "Run workflow"(`main`). 검증 없이 `main`의 최신 커밋을 올리므로
   그 커밋의 `verify` 결과를 먼저 확인한다. 쓴 날과 이유를 `docs/incidents.md`에 남긴다.
 - PR에서 돈 `verify`(포크 PR 포함)는 배포로 이어지지 않는다. `main`에 push되어 돈 것만 본다.
+- **`main`의 `verify`가 시험을 건너뛰는 두 경우**(2026-11-23, `docs/ci-cd.md`): ① 문서(`docs/`, `.md`)만 바뀐 변경 ② 합친 코드 묶음(git tree)이
+  PR에서 이미 통과한 것과 한 글자도 다르지 않을 때(PR 검증이 끝까지 통과하면 남기는 `verified-<해시>` 아티팩트로 확인, 보관 7일).
+  건너뛴 실행도 "성공"이라 배포는 그대로 이어진다. 기준 브랜치가 그 사이 움직여 코드 묶음이 달라졌거나 확인이 실패하면 전부 돌린다.
+- **문서만 바뀐 변경은 배포도 건너뛴다.** 마지막으로 성공한 배포의 커밋과 비교해 문서만 달라졌으면 이미지를 만들지도 앱을 다시 띄우지도 않는다
+  (앞 배포가 실패했거나 여러 커밋이 한꺼번에 올라가도 그 사이의 코드 변경을 놓치지 않는다). 급한 배포(Run workflow)는 항상 배포한다.
 
 Actions가 쓰는 SSH 키(`GSMSV_DEPLOY_KEY`)는 VM의 `authorized_keys`에
 `command="/opt/modori/deploy.sh",restrict`로 묶여 있다. 그 키로는 셸을 열 수 없고
