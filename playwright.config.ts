@@ -18,8 +18,9 @@ export default defineConfig({
   // 서로의 계정을 지웠기 때문이다. 이제 이름에 실행 꼬리표(run-tag.ts)와
   // 테스트 번호가 들어가서 겹치지 않는다. 개발 PC에서 13분이 3분으로 준다.
   //
-  // CI는 하나로 둔다. 러너가 작아서 둘만 돌려도 Next 서버와 서로 CPU를 뺏느라
-  // page.goto가 30초를 넘긴다. 실제로 그렇게 네 개가 깨졌다.
+  // CI는 하나로 둔다. 러너는 4 vCPU·16GB이고 시험 DB가 러너 안에 있어 둘·셋도 돌지만(2026-11-23 실측),
+  // 조각마다 불안정한 시험이 1~2개씩 드러난다(앱 URL 열기 시험의 준비 경쟁, 로그인 뒤 이동 시간 초과).
+  // 그래서 워커 대신 조각을 늘려 시간을 줄인다(scripts/e2e-shard.mjs, docs/ci-cd.md).
   workers: process.env.CI ? 1 : 4,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,

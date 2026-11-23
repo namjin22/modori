@@ -16,15 +16,46 @@ concurrency:
   group: ${{ github.event_name == 'push' && 'verify-main' || format('verify-pr-{0}', github.head_ref) }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
-# 2026-11-19: 한 작업이 67분(그중 E2E가 62분)이라 둘로 쪼갰다(docs/decisions.md "CI를 쪼개고 DB를 러너 안으로").
+permissions:
+  contents: read
+  # changes 작업이 "이 코드 묶음을 PR이 이미 검증했는가"를 아티팩트와 실행 기록으로 확인한다.
+  actions: read
+
+# 구조(docs/ci-cd.md, docs/decisions.md "CI/CD를 다시 짠다"):
+# - changes: 시험을 돌려야 하는지 정한다. 문서만 바뀌었거나, main에 합친 코드 묶음을 PR이 이미 통과시켰으면 건너뛴다.
 # - static: 타입·린트·단위 시험(DB 없음). E2E와 동시에 돈다.
-# - e2e: 시험을 4조각(--shard)으로 나눠 동시에 돌린다. 조각마다 운영과 같은 Postgres 18 컨테이너를 같은 머신에 띄워 쓴다.
-#   예전에는 미국 러너에서 싱가포르의 공용 시험 DB(Neon)로 질의마다 오가느라 시험 하나가 평균 10초였다.
+# - e2e: 시험 파일을 "걸리는 시간" 기준으로 8조각에 고르게 나눠(scripts/e2e-shard.mjs) 동시에 돌린다. 조각마다 운영과 같은
+#   Postgres 18 컨테이너를 같은 머신에 띄운다. 러너는 시험 하나에 하나씩(워커 1)이다. 워커를 늘리면 더 빠르지만 불안정한 시험이 드러난다(실측 기록 참고).
+# - record: PR 검증이 끝까지 통과하면 "이 코드 묶음은 검증됨" 표식(아티팩트)을 남긴다. main이 같은 코드 묶음을 받으면 다시 돌리지 않는다.
+# - warm: main에서 캐시를 채운다(PR 실행이 읽는다).
 # deploy.yml은 이 워크플로(verify)가 통째로 성공해야 배포한다. 작업이 여럿이어도 하나라도 실패하면 배포하지 않는다.
+# 건너뛴 작업은 실패가 아니므로 "건너뜀"으로 끝난 실행도 성공이다.
 jobs:
-  static:
+  changes:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 5
+    outputs:
+      skip: ${{ steps.decide.outputs.skip }}
+      tree: ${{ steps.decide.outputs.tree }}
+    steps:
+      # PR은 합쳐진 결과(부모 둘)를, push는 직전 커밋을 비교하려고 부모까지 받는다.
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - id: decide
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          EVENT_NAME: ${{ github.event_name }}
+          BEFORE: ${{ github.event.before }}
+        run: node scripts/ci-changes.mjs verify
+
+  static:
+    needs: changes
+    if: needs.changes.outputs.skip != 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
     # 단위 시험은 DB에 닿지 않는다. 클라이언트가 주소 모양만 요구해서 값만 넣는다.
     env:
       DATABASE_URL: postgresql://modori:modori@localhost:5432/modori
@@ -33,27 +64,22 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 24
-          cache: npm
-
-      # lock 파일 그대로 설치한다. 버전이 어긋나 배포가 깨진 적이 있다.
-      - run: npm ci
+      - uses: ./.github/actions/setup-app
       - run: npx tsc --noEmit
       - run: npm run lint
       - run: npm run test:tz
 
   e2e:
-    name: e2e (${{ matrix.shard }}/4)
+    name: e2e (${{ matrix.shard }}/8)
+    needs: changes
+    if: needs.changes.outputs.skip != 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 15
     strategy:
       # 한 조각이 깨져도 나머지 결과를 끝까지 본다(어느 시험이 깨졌는지 한 번에 알려고).
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4]
+        shard: [1, 2, 3, 4, 5, 6, 7, 8]
 
     # 운영(deploy/docker-compose.yml)과 같은 이미지. 조각마다 따로 떠서 서로의 데이터를 건드리지 않는다.
     services:
@@ -78,14 +104,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-app
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 24
-          cache: npm
-
-      # lock 파일 그대로 설치한다. 버전이 어긋나 배포가 깨진 적이 있다.
-      - run: npm ci
       - run: npm ci --prefix desktop --include=dev
       # Electron 44는 npm ci만으로 바이너리를 내려받지 않는다. 명시적으로 설치한다.
       - run: npm exec --prefix desktop -- install-electron
@@ -104,4 +124,53 @@ jobs:
       # 빈 DB에 마이그레이션을 처음부터 적용한다(운영 DB를 만들 때와 같은 방식).
       - run: npx prisma migrate deploy
 
-      - run: xvfb-run -a npx playwright test --shard=${{ matrix.shard }}/4
+      # 조각의 파일 목록은 scripts/e2e-shard.mjs가 가중치(scripts/e2e-weights.json)로 정한다. 모든 조각이 같은 계산을 하므로 겹치거나 빠지지 않는다.
+      - name: E2E
+        env:
+          PLAYWRIGHT_JSON_OUTPUT_NAME: e2e-result.json
+        run: |
+          FILES=$(node scripts/e2e-shard.mjs ${{ matrix.shard }} 8)
+          xvfb-run -a npx playwright test $FILES --reporter=github,json
+
+      # 가장 느린 파일과 불안정한 시험을 작업 요약에 남긴다. 가중치를 새로 만들 때도 이 로그를 쓴다(docs/ci-cd.md).
+      - name: 시간 요약
+        if: always() && hashFiles('e2e-result.json') != ''
+        continue-on-error: true
+        run: node scripts/e2e-timing.mjs e2e-result.json "shard ${{ matrix.shard }}/8"
+
+  # 검증이 끝까지 통과한 PR만 표식을 남긴다. 표식의 이름이 검사한 코드 묶음(git tree)의 해시라서,
+  # main에 합쳐진 결과가 한 글자도 다르지 않으면 main 쪽 검증(changes)이 이 표식을 보고 시험을 건너뛴다.
+  record:
+    needs: [changes, static, e2e]
+    if: github.event_name == 'pull_request' && needs.changes.outputs.tree != '' && needs.static.result == 'success' && needs.e2e.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - run: echo "${{ needs.changes.outputs.tree }}" > verified-tree.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: verified-${{ needs.changes.outputs.tree }}
+          path: verified-tree.txt
+          retention-days: 7
+          # 같은 실행을 다시 돌려도(재실행) 이름이 겹쳐 실패하지 않게 한다.
+          overwrite: true
+
+  # main에서 캐시를 만든다. 캐시는 만든 브랜치와 기본 브랜치(main)에서만 읽을 수 있어서, PR 안에서 만든 캐시는 다른 PR이 못 쓴다.
+  # main 검증은 시험을 건너뛸 수 있으니(위) 시험 작업에 캐시 만들기를 맡길 수 없다. 이미 있으면 몇 초 만에 끝난다.
+  warm:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      DATABASE_URL: postgresql://modori:modori@localhost:5432/modori
+      DIRECT_URL: postgresql://modori:modori@localhost:5432/modori
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-app
+      - uses: actions/cache@v4
+        id: browsers
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+      - if: steps.browsers.outputs.cache-hit != 'true'
+        run: npx playwright install chromium

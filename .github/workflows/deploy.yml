@@ -21,16 +21,33 @@ jobs:
       github.event_name == 'workflow_dispatch' ||
       (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # 마지막으로 성공한 배포의 커밋을 실행 기록에서 읽는다.
+      actions: read
     steps:
       # verify가 검사한 바로 그 커밋을 받는다. 그사이 main이 더 나아갔어도 검사하지 않은 커밋은 올리지 않는다.
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
+      # 마지막으로 성공한 배포 뒤로 문서(docs/, .md)만 바뀌었으면 이미지를 만들지도 앱을 다시 띄우지도 않는다.
+      # 앱 이미지는 문서를 담지 않으니 같은 앱이 다시 뜨는 것뿐이라서다. 손으로 돌린 배포(workflow_dispatch)는 항상 배포한다.
+      # 판단이 어려우면(기록을 못 읽는 등) 배포한다(scripts/ci-changes.mjs).
+      - name: 문서만 바뀌었는지 보기
+        id: changes
+        if: github.event_name == 'workflow_run'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: node scripts/ci-changes.mjs deploy
+
       - name: 이미지 만들기
+        if: steps.changes.outputs.docs_only != 'true'
         run: docker build -t modori:latest .
 
       - name: VM으로 보내 띄우기
+        if: steps.changes.outputs.docs_only != 'true'
         env:
           DEPLOY_KEY: ${{ secrets.GSMSV_DEPLOY_KEY }}
           KNOWN_HOSTS: ${{ secrets.GSMSV_KNOWN_HOSTS }}

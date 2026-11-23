@@ -2193,3 +2193,13 @@ VM에 시험 DB(사용자 1000, 할 일 108만, 반응 24만, 280MB)를 만들�
 - 운영자가 VM에서 `backup.sh`를 바꿔 넣고 첫 수동 실행을 했다(결과는 `docs/incidents.md` INC-23). 해시 확인 OK, `백업 완료`, `backups/neon-restore.ok`(11:15), `/api/health/backup`이 `{"status":"ok","of":"restore","ageHours":0}`다(modori.site 밖에서도 같다). Neon이 알린 `drop cascades to 32 other objects`에 운영에 없던 `Post`·`PostPhoto`·`PostReaction`·`Goal`이 들어 있어, 지운 데이터(사진 포함)가 사본에서 사라진 것을 확인했다.
 - **다음에 할 것**: 2026-11-24 04:00 자동 실행이 성공했는지 `curl https://modori.site/api/health/backup`로 본다(`of`가 `restore`, `ageHours`가 36 미만이면 성공). 실패했으면 VM 로그가 필요하다(`sudo journalctl -u modori-backup --since "03:55" --until "04:30"`). 성공하면 INC-23의 ③을 닫는다.
 - **못 한 것(기록함)**: 사본 행 수 비교, 고치기 전 "Neon에만 있는 계정" 확인(운영자가 하지 않고 바로 바꿔 증거가 없다).
+
+## 2026-11-23(이어서 2) — CI/CD 재설계(브랜치 `ci/faster-pipeline`, PR #301)
+
+- **한 것**: 운영자 요청("CI/CD를 계속 개선하고 포트폴리오에 정리")으로 병목을 먼저 쟀다(실험 PR #300, 병합하지 않고 닫음). `verify.yml`을 `changes`·`static`·`e2e`(8조각, 시험 파일을 실측 시간으로 균형 배치)·`record`·`warm`으로 다시 짰다. 새 파일: `scripts/e2e-shard.mjs`(+`e2e-weights.json`, `e2e-timing.mjs`), `scripts/ci-changes.mjs`, `.github/actions/setup-app`(node_modules 캐시, 적중해도 `prisma generate`). `deploy.yml`은 마지막 성공 배포 뒤로 문서만 바뀌었으면 이미지 빌드·전송을 건너뛴다. 설명은 `docs/ci-cd.md`(포트폴리오용), 결정은 `docs/decisions.md` "CI/CD를 측정으로 다시 짠다".
+- **실측**: 개선 전(최근 20회 중앙값) PR 352초, main 360초, 배포 116초. 이 PR의 검증 190초(캐시 적중, 실행 45168216980), 첫 실행 257초(캐시 미스). 기각한 것과 숫자: 워커 늘리기(불안정 시험 0→2건), Docker buildx 캐시(67초=67초), Playwright 글꼴 설치 빼기(글꼴 9개가 빠져 시험 환경이 바뀜).
+- **확인한 것(로컬)**: `tsc` 통과, 린트 오류 0(경고 1은 기존 `scripts/promo-edit.mjs`), 단위 658개 × 시간대 3개 통과(새 시험 3파일 32개). 로컬 E2E는 앱 코드가 안 바뀌어 돌리지 않았고 PR #301의 CI(8조각)가 두 번 통과했다.
+- **병합 뒤 확인할 것(미확인)**: ① main의 `verify` 실행에서 `changes`가 "같은 코드 묶음을 PR 검증이 이미 통과시켰다"를 쓰고 `static`·`e2e`가 건너뜀으로 끝나는지, 그 뒤 `deploy`가 도는지 ② `warm`이 캐시를 main에 만드는지(다음 PR 첫 실행이 캐시를 받는지) ③ 문서만 바뀐 PR이 시험을 건너뛰고, 그 main 푸시에서 배포가 건너뛰어지는지(`deploy` 실행 로그 "문서만 바뀌어 배포를 건너뛴다"). 확인되면 `docs/ci-cd.md`의 "미확인"을 실측으로 바꾼다.
+- **다음에 할 것(기존)**: 2026-11-24 04:00 백업 자동 실행(`/api/health/backup`, INC-23 ③), TestFlight 1.1.0 (25) 심사 결과(`testflight` 워크플로 `mode=list`).
+- **알아 둘 것**: 건너뛰기는 "문서만 바뀜"과 "같은 tree 해시"일 때만이고, 확신이 없으면 전부 돌린다. 가중치가 낡으면 `gh run view <실행> --log | node scripts/e2e-shard.mjs --update`. 시험 파일을 크게 더하거나 지웠을 때 한 번 갱신한다(안 해도 시험이 빠지지는 않는다).
+- **못 한 것**: 이미지 전송 줄이기(VM의 `deploy.sh` 변경 필요, 운영자 몫), 워커 2(불안정한 시험을 먼저 고쳐야 하고 시험 변경은 승인이 필요).
