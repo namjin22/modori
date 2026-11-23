@@ -1,9 +1,9 @@
 name: ci-exp
 
-# 임시 실험용(병합하지 않는다). 같은 코드·같은 샤드에서 워커 수만 바꿔 E2E 시간과 불안정 정도를 잰다.
+# 임시 실험용(병합하지 않는다). 2차: 시간 기준 균형 배치(6조각·8조각, 워커 1), node_modules 캐시가 적중했을 때, Docker 빌드 캐시.
 on:
   pull_request:
-    paths: [".github/workflows/ci-exp.yml", "scripts/e2e-timing.mjs"]
+    paths: [".github/workflows/ci-exp.yml", "scripts/e2e-timing.mjs", "scripts/e2e-shard.mjs", "scripts/e2e-weights.json"]
 
 concurrency:
   group: ci-exp-${{ github.head_ref }}
@@ -11,14 +11,17 @@ concurrency:
 
 jobs:
   e2e:
-    name: w${{ matrix.workers }} s${{ matrix.shard }}/4
+    name: b${{ matrix.total }} s${{ matrix.shard }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
-        workers: [1, 2, 3]
-        shard: [1, 2, 3, 4]
+        total: [6, 8]
+        shard: [1, 2, 3, 4, 5, 6, 7, 8]
+        exclude:
+          - { total: 6, shard: 7 }
+          - { total: 6, shard: 8 }
 
     services:
       postgres:
@@ -46,7 +49,6 @@ jobs:
         with:
           node-version: 24
           cache: npm
-      - run: echo "cpu=$(nproc) mem=$(free -m | awk '/Mem:/{print $2}')MB"
       - run: npm ci
       - run: npm ci --prefix desktop --include=dev
       - run: npm exec --prefix desktop -- install-electron
@@ -60,12 +62,14 @@ jobs:
       - name: E2E
         env:
           PLAYWRIGHT_JSON_OUTPUT_NAME: result.json
-        run: xvfb-run -a npx playwright test --shard=${{ matrix.shard }}/4 --workers=${{ matrix.workers }} --reporter=github,json
+        run: |
+          FILES=$(node scripts/e2e-shard.mjs ${{ matrix.shard }} ${{ matrix.total }})
+          xvfb-run -a npx playwright test $FILES --reporter=github,json
       - name: 시간 요약
         if: always()
-        run: node scripts/e2e-timing.mjs result.json "w${{ matrix.workers }} s${{ matrix.shard }}/4"
+        run: node scripts/e2e-timing.mjs result.json "b${{ matrix.total }} s${{ matrix.shard }}"
 
-  # npm ci(약 50초)를 node_modules 캐시로 바꾸면 얼마나 주는지 잰다. 첫 실행은 캐시를 만들고, 두 번째 실행부터 쓴다.
+  # 1차에서 캐시를 만들었으니 이번에는 적중해야 한다.
   install:
     name: install ${{ matrix.mode }}
     runs-on: ubuntu-latest
@@ -99,3 +103,52 @@ jobs:
           du -sh node_modules
           node -e "require('@prisma/client'); console.log('prisma client ok')"
           npx tsc --version
+
+  # 운영 배포(deploy.yml)의 느린 곳: 이미지 만들기 약 50초, 보내기 약 50초. 크기와 층별 크기, 빌드 캐시 효과를 잰다.
+  docker:
+    name: docker ${{ matrix.mode }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: [plain, buildx-gha]
+    steps:
+      - uses: actions/checkout@v4
+      - name: 이미지 만들기(기본)
+        if: matrix.mode == 'plain'
+        run: |
+          start=$SECONDS
+          docker build -t modori:latest .
+          echo "build_seconds=$((SECONDS - start))"
+      - uses: docker/setup-buildx-action@v3
+        if: matrix.mode == 'buildx-gha'
+      - name: 이미지 만들기(buildx + GHA 캐시)
+        if: matrix.mode == 'buildx-gha'
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          load: true
+          tags: modori:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      # 코드만 조금 바뀐 두 번째 배포를 흉내 낸다. 락 파일은 그대로라 설치 층은 캐시에서 와야 한다.
+      - name: 빌드 맥락의 파일 하나를 바꾼다
+        if: matrix.mode == 'buildx-gha'
+        run: echo "<!-- probe -->" >> README.md
+      - name: 코드가 조금 바뀐 뒤 다시 빌드(buildx + GHA 캐시)
+        if: matrix.mode == 'buildx-gha'
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          load: true
+          tags: modori:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: 크기
+        run: |
+          docker images modori:latest --format 'image_size={{.Size}}'
+          start=$SECONDS
+          bytes=$(docker save modori:latest | gzip -1 | wc -c)
+          echo "save_gzip_bytes=$bytes save_seconds=$((SECONDS - start))"
+          docker history --format '{{.Size}}\t{{.CreatedBy}}' modori:latest | cut -c1-110 | head -25
