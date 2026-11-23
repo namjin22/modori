@@ -2187,3 +2187,9 @@ VM에 시험 DB(사용자 1000, 할 일 108만, 반응 24만, 280MB)를 만들�
 - **다음에 볼 것**: 심사 상태는 `testflight` 워크플로를 `mode=list`, `build=25`, `version=1.1.0`으로 돌리면 `externalBuildState`로 나온다(`BETA_APPROVED`나 `READY_FOR_BETA_TESTING`이면 설치 가능, `BETA_REJECTED`면 거절). 승인 뒤 친구 폰에서 위젯을 확인한다(앱 로그인 → 위젯 추가 → 앱을 한 번 열었다가 홈으로 나가야 로그인이 넘어간다).
 - **못 한 것**: ① **VM의 `backup.sh`는 아직 안 바뀌었다.** 이 PC에 VM 접속 열쇠가 없고(배포 열쇠는 `deploy.sh`만 실행하게 묶여 있다) 그 제한을 우회하지 않았다. 운영자가 VM에서 한 줄 명령으로 받아 해시를 확인하고 돌리면 된다(`docs/incidents.md` INC-23, `deploy/README.md`). ② Cloudflare Worker 켜기는 운영자 로그인이 필요하고 모든 요청이 지나는 길이라 운영자가 정한다. ③ 위젯 실기기 확인(Android·iPhone)은 폰이 없다.
 - **알아 둘 것**: 저장소 쓰기 권한이 곧 `ASC_*` 열쇠(관리자)의 권한이다(`docs/decisions.md` 2026-11-22). 같은 날 PR 296이 병합되는 동안 GitHub API 연결이 한 번 끊겨(`error connecting to api.github.com`) 감시가 실패로 끝났다. CI 실패가 아니었고 다시 걸어 병합했다.
+
+## 2026-11-23 — INC-23 고침(VM에 반영)
+
+- 운영자가 VM에서 `backup.sh`를 바꿔 넣고 첫 수동 실행을 했다(결과는 `docs/incidents.md` INC-23). 해시 확인 OK, `백업 완료`, `backups/neon-restore.ok`(11:15), `/api/health/backup`이 `{"status":"ok","of":"restore","ageHours":0}`다(modori.site 밖에서도 같다). Neon이 알린 `drop cascades to 32 other objects`에 운영에 없던 `Post`·`PostPhoto`·`PostReaction`·`Goal`이 들어 있어, 지운 데이터(사진 포함)가 사본에서 사라진 것을 확인했다.
+- **다음에 할 것**: 2026-11-24 04:00 자동 실행이 성공했는지 `curl https://modori.site/api/health/backup`로 본다(`of`가 `restore`, `ageHours`가 36 미만이면 성공). 실패했으면 VM 로그가 필요하다(`sudo journalctl -u modori-backup --since "03:55" --until "04:30"`). 성공하면 INC-23의 ③을 닫는다.
+- **못 한 것(기록함)**: 사본 행 수 비교, 고치기 전 "Neon에만 있는 계정" 확인(운영자가 하지 않고 바로 바꿔 증거가 없다).
