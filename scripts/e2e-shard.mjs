@@ -52,6 +52,11 @@ function update(input) {
   const sorted = Object.fromEntries(Object.entries(sums).sort(([a], [b]) => a.localeCompare(b)));
   writeFileSync(WEIGHTS, `${JSON.stringify(sorted, null, 2)}\n`);
   console.error(`가중치 ${Object.keys(sorted).length}개를 ${WEIGHTS}에 썼다.`);
+  // 조각 하나의 로그(--job)만 넣으면 나머지 파일의 가중치가 사라진다. 사라진 것은 평균 무게로 치니 시험이 빠지지는 않지만 균형이 깨진다.
+  const missing = listSpecs().filter((f) => !(f in sorted));
+  if (missing.length) {
+    console.error(`경고: 시간이 없는 시험 파일 ${missing.length}개(${missing.slice(0, 3).join(", ")}…). 조각 하나가 아니라 실행 전체 로그(--job 없이)를 넣었는지 본다.`);
+  }
 }
 
 // 시험(vitest)이 partition만 불러 쓸 때는 아래 명령줄 부분이 돌지 않는다.
