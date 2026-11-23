@@ -124,11 +124,14 @@ jobs:
           echo "key=playwright-debs-$ImageOS-$ImageVersion-${{ hashFiles('package-lock.json') }}" >> "$GITHUB_OUTPUT"
           echo "prefix=playwright-debs-$ImageOS-" >> "$GITHUB_OUTPUT"
       - uses: actions/cache@v4
+        id: debs
         with:
           path: ~/.cache/playwright-debs
           key: ${{ steps.image.outputs.key }}
           restore-keys: ${{ steps.image.outputs.prefix }}
       - run: bash scripts/ci-playwright-deps.sh
+        env:
+          DEBS_EXACT: ${{ steps.debs.outputs.cache-hit }}
       - run: sudo apt-get install -y xvfb
 
       # Electron 설치 스크립트가 막히면 테스트가 건너뛰므로 먼저 명시적으로 실패시킨다.

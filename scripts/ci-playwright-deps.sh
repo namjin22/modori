@@ -11,6 +11,8 @@
 # - 예전 길로 깐 뒤에도 빠진 것이 남아 있으면 실패로 끝낸다.
 #
 # 캐시 폴더: PLAYWRIGHT_DEBS(기본 ~/.cache/playwright-debs). 받아 둔 .deb만 들어 있다.
+# DEBS_EXACT=true: 캐시 키(러너 이미지 판 + 락 파일)가 정확히 맞았다. 그 묶음은 같은 이미지·같은 Playwright 판에서 예전 길로 깔고
+# Playwright에게 확인까지 받은 것이라, 깐 뒤에는 dpkg로만 확인한다(Playwright에게 묻는 데 한 번에 약 5초가 든다).
 set -euo pipefail
 
 DIR="${PLAYWRIGHT_DEBS:-$HOME/.cache/playwright-debs}"
@@ -33,6 +35,27 @@ fallback() {
 }
 
 started=$SECONDS
+
+# 캐시의 .deb가 모두 깔렸는가(패키지 이름은 .deb 안에서 읽는다).
+installed() {
+  local file name
+  for file in "$DIR"/*.deb; do
+    name=$(dpkg-deb -f "$file" Package)
+    dpkg-query -W -f='${Status}' "$name" 2>/dev/null | grep -q "install ok installed" || return 1
+  done
+}
+
+tried=false
+if [ "${DEBS_EXACT:-false}" = true ] && compgen -G "$DIR/*.deb" >/dev/null; then
+  tried=true
+  if sudo dpkg -i "$DIR"/*.deb >/tmp/dpkg.log 2>&1 && installed; then
+    echo "캐시한 .deb로 깔았다(같은 러너 이미지·Playwright 판에서 확인한 묶음, $((SECONDS - started))초)"
+    exit 0
+  fi
+  echo "캐시한 .deb로 깔지 못했다(원문):"
+  cat /tmp/dpkg.log
+fi
+
 out=$(ask)
 if ! grep -q "^$HEADER" <<<"$out"; then
   # 빠진 것이 없다는 뜻일 수도 있지만, 형식이 바뀐 것과 구별할 수 없으니 확실한 쪽으로 간다.
@@ -48,8 +71,8 @@ if [ -z "$missing" ]; then
 fi
 echo "빠진 패키지: $(echo $missing)"
 
-# 빠른 길: 받아 둔 .deb를 dpkg로 바로 깐다(apt-get update·내려받기 없음).
-if compgen -G "$DIR/*.deb" >/dev/null; then
+# 빠른 길: 받아 둔 .deb를 dpkg로 바로 깐다(apt-get update·내려받기 없음). 러너 이미지 판이 바뀌어 앞 판의 캐시를 받은 경우다.
+if [ "$tried" = false ] && compgen -G "$DIR/*.deb" >/dev/null; then
   if sudo dpkg -i "$DIR"/*.deb >/tmp/dpkg.log 2>&1; then
     after=$(ask)
     if ! grep -q "^$HEADER" <<<"$after"; then
