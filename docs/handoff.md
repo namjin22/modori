@@ -2203,3 +2203,9 @@ VM에 시험 DB(사용자 1000, 할 일 108만, 반응 24만, 280MB)를 만들�
 - **다음에 할 것(기존)**: 2026-11-24 04:00 백업 자동 실행(`/api/health/backup`, INC-23 ③), TestFlight 1.1.0 (25) 심사 결과(`testflight` 워크플로 `mode=list`).
 - **알아 둘 것**: 건너뛰기는 "문서만 바뀜"과 "같은 tree 해시"일 때만이고, 확신이 없으면 전부 돌린다. 가중치가 낡으면 `gh run view <실행> --log | node scripts/e2e-shard.mjs --update`. 시험 파일을 크게 더하거나 지웠을 때 한 번 갱신한다(안 해도 시험이 빠지지는 않는다).
 - **못 한 것**: 이미지 전송 줄이기(VM의 `deploy.sh` 변경 필요, 운영자 몫), 워커 2(불안정한 시험을 먼저 고쳐야 하고 시험 변경은 승인이 필요).
+
+## 2026-11-24 — 글꼴 캐시(PR #304), 포트폴리오 정리, 화면 요청 넷
+
+- **CI(PR #304)**: Playwright 글꼴 `.deb` 캐시(`scripts/ci-playwright-deps.sh`, verify.yml의 e2e·warm). 시스템 패키지 단계 7~71초 → 2~10초, PR 검증 178·194초(전 190·200초). 병합 뒤 main의 `warm`이 main 범위 캐시를 만드는지, 다음 PR의 첫 실행이 정확 적중("같은 러너 이미지·Playwright 판에서 확인한 묶음")으로 가는지 본다.
+- **포트폴리오**: `docs/portfolio/ci-cd.md`(운영자 요청). 숫자는 `docs/ci-cd.md`·decisions와 같게 둔다.
+- **화면(운영자 요청, 따로 PR)**: 설정 톱니 다시 그리기(PR #305), 일기 읽기/쓰기 화면 분리(`feat/diary-view`), 할 일·일정 창의 세부 할 일·메모를 따로 넘어가는 화면으로(`feat/detail-views`). 시험 수정은 운영자 승인(이동 단계만 + 일기 기대값 세 곳)으로 했다. 자세한 것은 각 PR과 decisions.
