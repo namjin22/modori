@@ -49,7 +49,8 @@ test("일기를 쓰고 고치고 지운다: 글·이모지·기분·친구 공�
   await page.goto("/diary");
   await expect(page).toHaveURL(/\/diary$/);
   await page.getByRole("link", { name: "오늘 일기 쓰기" }).click();
-  await expect(page).toHaveURL(new RegExp(`/diary/${TODAY}$`));
+  // 쓰기 화면은 /diary/날짜/edit다(2026-11-24에 읽는 화면과 나눴다, 운영자 승인으로 기대 주소를 바꿨다).
+  await expect(page).toHaveURL(new RegExp(`/diary/${TODAY}/edit$`));
   await expect(page.getByRole("button", { name: "일기 지우기" })).toHaveCount(0);
 
   // 비었으면 저장할 수 없다.
@@ -73,8 +74,9 @@ test("일기를 쓰고 고치고 지운다: 글·이모지·기분·친구 공�
   // 기본은 나만 본다.
   expect(await entryOf(me.id, TODAY)).toMatchObject({ content: "오늘은 시험이 끝났다.🎉", mood: "sun", isPublic: false });
 
-  // 새로 열어도 그대로이고, 고쳐도 한 편이다.
+  // 새로 열어도 그대로이고, 고쳐도 한 편이다. 저장하면 읽는 화면으로 가므로 고치기 버튼으로 쓰기 화면에 다시 간다(2026-11-24).
   await page.reload();
+  await page.getByRole("link", { name: "일기 고치기" }).click();
   await expect(content).toHaveValue("오늘은 시험이 끝났다.🎉");
   await expect(page.locator('input[name="mood"][value="sun"]')).toBeChecked();
   await content.fill("오늘은 시험이 끝났다.\n둘째 줄도 적었다.");
@@ -86,6 +88,7 @@ test("일기를 쓰고 고치고 지운다: 글·이모지·기분·친구 공�
   expect(await entryOf(me.id, TODAY)).toMatchObject({ content: "오늘은 시험이 끝났다.\n둘째 줄도 적었다.", mood: "partly", isPublic: true });
 
   // 기분을 "고르지 않음"으로 되돌릴 수 있다.
+  await page.getByRole("link", { name: "일기 고치기" }).click();
   await page.getByText("고르지 않음", { exact: true }).click();
   // 값을 바꾸면 지난 저장의 "저장했어요."는 사라진다. 새로 저장된 뒤에 다시 뜬다.
   await expect(page.getByText("저장했어요.")).toHaveCount(0);
@@ -94,6 +97,7 @@ test("일기를 쓰고 고치고 지운다: 글·이모지·기분·친구 공�
   await expect.poll(async () => (await entryOf(me.id, TODAY))?.mood).toBeNull();
 
   // 지우기는 한 번 더 묻는다.
+  await page.getByRole("link", { name: "일기 고치기" }).click();
   await page.getByRole("button", { name: "일기 지우기" }).click();
   await page.getByRole("alert").getByRole("button", { name: "취소" }).click();
   expect(await entryOf(me.id, TODAY)).not.toBeNull();
@@ -128,9 +132,10 @@ test("목록은 달마다 최근 날부터 보이고, 공개 표시가 붙고, �
     await expect(yesterday).not.toContainText("친구 공개");
   }
 
-  // 일기 한 편을 눌러 그 날의 쓰기 화면으로 간다.
+  // 일기 한 편을 눌러 그 날의 읽는 화면으로 가고(2026-11-24), 고치기 버튼으로 쓰기 화면에 간다.
   await todayItem.getByRole("link").click();
   await expect(page).toHaveURL(new RegExp(`/diary/${TODAY}$`));
+  await page.getByRole("link", { name: "일기 고치기" }).click();
   await expect(page.getByLabel("일기 내용")).toHaveValue("오늘 쓴 일기");
 
   // 이전 달로 가면 그 달의 일기만 보이고, 이번 달보다 뒤로는 가지 않는다.
@@ -142,19 +147,19 @@ test("목록은 달마다 최근 날부터 보이고, 공개 표시가 붙고, �
   await expect(page.getByRole("link", { name: "다음 달" })).toBeVisible();
 });
 
-test("홈의 하루 화면에서 그날의 일기를 바로 보고, 없으면 쓰러 가는 줄이 보인다(내일 이후에는 없다)", async ({ page, emails }, testInfo) => {
+test("홈의 하루 화면 카드에서 그날의 일기로 가고(내용은 누른 뒤 보인다), 없으면 쓰러 가는 줄이 보인다(내일 이후에는 없다)", async ({ page, emails }, testInfo) => {
   await signUp(page, emails.me, `피드${testInfo.testId.slice(-6)}${RUN_TAG}`);
   const me = await userByEmail(emails.me);
   const card = page.locator("[data-diary-card]");
 
-  // 쓴 일기가 없으면 오늘의 일기를 쓰러 가는 줄이 있고, 누르면 그 날의 쓰기 화면이 열린다.
+  // 쓴 일기가 없으면 오늘의 일기를 쓰러 가는 줄이 있고, 누르면 그 날의 쓰기 화면(/edit, 2026-11-24 운영자 승인)이 열린다.
   await page.goto("/");
   await expect(card).toHaveCount(1);
   await expect(card).toContainText("오늘의 일기를 써 보세요");
   await card.click();
-  await expect(page).toHaveURL(new RegExp(`/diary/${TODAY}$`));
+  await expect(page).toHaveURL(new RegExp(`/diary/${TODAY}/edit$`));
 
-  // 저장하면 홈에서 바로 보인다: 기분 그림과 글의 앞부분, 친구 공개 표시.
+  // 저장하면 홈 카드에 기분 그림과 친구 공개 표시가 보인다. 글은 카드에 보이지 않고 눌러야 보인다(2026-11-24 요청, 운영자 승인으로 기대값을 바꿨다).
   await page.getByLabel("일기 내용").fill("홈에서 바로 보이는 일기\n둘째 줄은 이어서 붙는다");
   await mood(page, "moon").click();
   await page.getByRole("checkbox", { name: /친구에게 공개/ }).check();
@@ -162,7 +167,8 @@ test("홈의 하루 화면에서 그날의 일기를 바로 보고, 없으면 �
   await expect(page.getByText("저장했어요.")).toBeVisible();
   await page.goto("/");
   await expect(card).toHaveCount(1);
-  await expect(card).toContainText("홈에서 바로 보이는 일기 둘째 줄은 이어서 붙는다");
+  await expect(card).not.toContainText("홈에서 바로 보이는 일기");
+  await expect(card).toContainText("눌러서 읽기");
   await expect(card).toContainText("친구 공개");
   await expect(card).not.toContainText("써 보세요");
   await expect(card.locator("svg").first()).toBeVisible();
@@ -170,17 +176,20 @@ test("홈의 하루 화면에서 그날의 일기를 바로 보고, 없으면 �
   // 다른 날을 보면 그 날의 일기(또는 쓰러 가는 줄)가 보이고, 아직 오지 않은 날에는 카드가 없다.
   await prisma.diaryEntry.create({ data: { userId: me.id, date: parseKSTDate(day(-1)), content: "어제 쓴 일기 맛보기" } });
   await page.goto(`/?date=${day(-1)}`);
-  await expect(card).toContainText("어제 쓴 일기 맛보기");
+  await expect(card).toContainText("눌러서 읽기");
+  await expect(card).not.toContainText("어제 쓴 일기 맛보기");
   await expect(card).not.toContainText("친구 공개");
   await page.goto(`/?date=${day(-2)}`);
   await expect(card).toContainText("이 날의 일기를 써 보세요");
   await page.goto(`/?date=${day(1)}`);
   await expect(card).toHaveCount(0);
 
-  // 카드를 누르면 그 날의 일기 화면이 열린다.
+  // 카드를 누르면 그 날의 일기를 읽는 화면이 열리고 거기서 내용이 보인다. 고치기 버튼으로 쓰기 화면에 간다.
   await page.goto(`/?date=${day(-1)}`);
   await card.click();
   await expect(page).toHaveURL(new RegExp(`/diary/${day(-1)}$`));
+  await expect(page.getByRole("article", { name: "일기" })).toContainText("어제 쓴 일기 맛보기");
+  await page.getByRole("link", { name: "일기 고치기" }).click();
   await expect(page.getByLabel("일기 내용")).toHaveValue("어제 쓴 일기 맛보기");
 });
 
@@ -205,17 +214,16 @@ test("날짜 규칙: 아직 오지 않은 날은 오늘로, 없는 날짜는 없
   const next = page.getByRole("button", { name: "다음날 일기" });
   await expect(next).toBeVisible();
   await expect(page.locator(".animate-nudge")).toHaveCount(0);
-  await page.getByLabel("일기 내용").fill("움찔해도 글은 그대로");
+  // 앞뒤 날 단추는 읽는 화면에만 있다(2026-11-24). 쓰던 글이 남는지 보던 줄은 쓰기 화면에 단추가 없어 뺐다(운영자 승인).
   await next.click();
   await expect(page.locator(".animate-nudge")).toHaveCount(1);
   await expect(page).toHaveURL(new RegExp(`/diary/${TODAY}$`));
-  await expect(page.getByLabel("일기 내용")).toHaveValue("움찔해도 글은 그대로");
   await next.click();
   await expect(page.locator(".animate-nudge")).toHaveCount(1);
   await expect(page).toHaveURL(new RegExp(`/diary/${TODAY}$`));
-  await page.getByLabel("일기 내용").fill("");
 
   // 5000자가 넘으면 센 글자 수가 빨개지고 저장할 수 없다(이모지도 한 글자).
+  await page.goto(`/diary/${TODAY}/edit`);
   const content = page.getByLabel("일기 내용");
   await content.fill("가".repeat(5001));
   await expect(page.getByText("5001 / 5000")).toBeVisible();
