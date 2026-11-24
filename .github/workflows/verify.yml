@@ -110,12 +110,28 @@ jobs:
       # Electron 44는 npm ci만으로 바이너리를 내려받지 않는다. 명시적으로 설치한다.
       - run: npm exec --prefix desktop -- install-electron
 
-      # 브라우저 내려받기(약 4분)를 건너뛴다. 시스템 라이브러리 설치(--with-deps)는 캐시와 상관없이 매번 한다.
+      # 브라우저 내려받기(약 4분)를 건너뛴다.
       - uses: actions/cache@v4
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
-      - run: npx playwright install --with-deps chromium
+      - run: npx playwright install chromium
+
+      # 브라우저가 요구하는 시스템 패키지(실측: 글꼴 9개). apt로 받으면 조각마다 7~71초로 들쭉날쭉해서 .deb를 캐시해 두고 dpkg로 깐다.
+      # 키에 러너 이미지 판을 넣고, 판이 바뀌면 앞 판의 캐시로 먼저 해 본다(맞지 않으면 스크립트가 예전 길로 간다). scripts/ci-playwright-deps.sh
+      - id: image
+        run: |
+          echo "key=playwright-debs-$ImageOS-$ImageVersion-${{ hashFiles('package-lock.json') }}" >> "$GITHUB_OUTPUT"
+          echo "prefix=playwright-debs-$ImageOS-" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v4
+        id: debs
+        with:
+          path: ~/.cache/playwright-debs
+          key: ${{ steps.image.outputs.key }}
+          restore-keys: ${{ steps.image.outputs.prefix }}
+      - run: bash scripts/ci-playwright-deps.sh
+        env:
+          DEBS_EXACT: ${{ steps.debs.outputs.cache-hit }}
       - run: sudo apt-get install -y xvfb
 
       # Electron 설치 스크립트가 막히면 테스트가 건너뛰므로 먼저 명시적으로 실패시킨다.
@@ -174,3 +190,16 @@ jobs:
           key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
       - if: steps.browsers.outputs.cache-hit != 'true'
         run: npx playwright install chromium
+      # 글꼴 .deb 캐시도 main에서 만든다(PR이 읽는다). 이미 있으면 아무것도 깔지 않는다.
+      - id: image
+        run: |
+          echo "key=playwright-debs-$ImageOS-$ImageVersion-${{ hashFiles('package-lock.json') }}" >> "$GITHUB_OUTPUT"
+          echo "prefix=playwright-debs-$ImageOS-" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v4
+        id: debs
+        with:
+          path: ~/.cache/playwright-debs
+          key: ${{ steps.image.outputs.key }}
+          restore-keys: ${{ steps.image.outputs.prefix }}
+      - if: steps.debs.outputs.cache-hit != 'true'
+        run: bash scripts/ci-playwright-deps.sh
