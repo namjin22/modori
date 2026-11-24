@@ -7,7 +7,8 @@ import { expect, test, type Page } from "@playwright/test";
 import { addDays, formatKST, todayKST } from "@/lib/date";
 import { prisma } from "@/lib/prisma";
 
-// 릴리스 스크린샷 중 2026-11-17~20에 새로 생긴 화면(세부 할 일, 일정 팝업·다가오는 일정, AI 도우미 제안, 둘러보기의 새 단계).
+// 릴리스 스크린샷 중 2026-11-17 이후에 새로 생긴 화면(세부 할 일, 일정 팝업·다가오는 일정, AI 도우미 제안, 둘러보기의 새 단계,
+// 일기 읽는 화면, 할 일 창의 메모 화면).
 // 데모 데이터는 이 파일이 따로 만든다(capture.spec.ts의 데모 계정과 겹치지 않는다). 번호는 capture.spec.ts의 21~24 뒤로 25부터 붙인다.
 // 운영 화면은 찍지 않는다. 테스트 DB에 계정을 만들고 지운다.
 const OUT = path.join("docs", "screenshots", process.env.SCREENSHOT_DIR ?? formatKST(todayKST()));
@@ -70,6 +71,16 @@ test.beforeAll(async () => {
       { userId: me.id, title: "정보처리기능사 필기", startDate: addDays(today, 28), endDate: addDays(today, 28), startTime: 10 * 60, endTime: 11 * 60, color: "#2563eb" },
     ],
   });
+  // 32 일기 읽는 화면. 어제 날짜로 둔다: 오늘 일기면 홈 카드가 바뀌어 25번을 지난 폴더와 견줄 수 없다.
+  await prisma.diaryEntry.create({
+    data: {
+      userId: me.id,
+      date: addDays(today, -1),
+      content: "포트폴리오 메인 페이지 디자인을 끝냈다. 색을 세 번이나 바꿨는데 마지막 게 제일 마음에 든다.\n내일은 프로젝트 설명을 쓰자.",
+      mood: "sun",
+      isPublic: true,
+    },
+  });
 });
 
 test.afterAll(async () => {
@@ -113,11 +124,21 @@ for (const viewport of VIEWPORTS) {
     await expect(page.getByRole("list", { name: "포트폴리오 완성의 세부 할 일" })).toBeVisible();
     await shoot(page, `${viewport.name}-25-sub-todos`);
 
-    // 26 큰 할 일 창: 세부 할 일 입력칸.
+    // 26 큰 할 일 창의 세부 할 일 화면. 2026-11-24부터 첫 화면의 "세부 할 일" 줄을 눌러 넘어간다.
     await page.getByRole("button", { name: "포트폴리오 완성", exact: true }).click();
+    const sheet = page.getByRole("dialog", { name: "할 일" });
+    await sheet.getByRole("button", { name: /^세부 할 일 / }).click();
     await expect(page.getByLabel("포트폴리오 완성의 세부 할 일 이름")).toBeVisible();
     await shootView(page, `${viewport.name}-26-sub-todo-sheet`);
     await page.keyboard.press("Escape");
+
+    // 33 할 일 창의 메모 화면(2026-11-24). 메모는 적기만 하고 저장하지 않는다(저장하면 홈 줄에 메모가 보여 25번이 바뀐다).
+    await page.getByRole("button", { name: "장보기", exact: true }).click();
+    await sheet.getByRole("button", { name: /^메모 / }).click();
+    await sheet.getByLabel("할 일 메모").fill("우유, 계란, 두부\n세일하면 휴지도");
+    await shootView(page, `${viewport.name}-33-todo-memo`);
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("dialog")).toHaveCount(0);
 
     // 27 일정 만들기는 팝업으로 뜬다. 28 다가오는 일정은 제목 옆 토글로 한꺼번에 펼친다.
     await page.getByRole("button", { name: "일정", exact: true }).click();
@@ -135,6 +156,11 @@ for (const viewport of VIEWPORTS) {
     await page.getByRole("button", { name: "보내기", exact: true }).click();
     await expect(page.getByRole("region", { name: "이렇게 넣을까요?" })).toBeVisible();
     await shoot(page, `${viewport.name}-29-ai-proposal`);
+
+    // 32 일기 읽는 화면(2026-11-24): 날짜를 누르면 먼저 읽는 화면이 열리고, "일기 고치기"로 쓰는 화면에 간다.
+    await page.goto(`/diary/${formatKST(addDays(today, -1))}`);
+    await expect(page.getByRole("article", { name: "일기" })).toBeVisible();
+    await shoot(page, `${viewport.name}-32-diary-view`);
 
     // 30·31 둘러보기의 새 단계: 일기, AI 도우미.
     await page.goto("/?tour=1");

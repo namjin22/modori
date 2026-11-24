@@ -174,6 +174,8 @@ for (const viewport of STORE || IOS ? [] : VIEWPORTS) {
     await page.getByRole("button", { name: /^수학 문제집 3장/ }).click();
     // 끝낸 할 일이면 "다른 날 또 하기", 안 끝낸 일이면 "다른 날에 하기"다(2026-10-14).
     await page.getByRole("button", { name: /^다른 날(에| 또) 하기$/ }).click();
+    // 날짜 칸이 떠오르는 움직임(animate-rise)이 끝난 뒤 찍는다. 안 기다리면 흐리게 찍혔다(2026-11-24).
+    await page.waitForTimeout(600);
     await shoot(page, `${viewport.name}-10-todo-sheet`);
 
     // 9/30 이후 새로 생긴 화면: 친구의 팔로우 목록, 반응을 누른 사람 창, 일정 만들기 창.
