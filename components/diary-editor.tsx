@@ -15,7 +15,7 @@ export type DiaryDraft = { content: string; mood: string | null; isPublic: boole
 
 /**
  * 하루치 일기를 쓰고 고치는 칸. 글과 오늘의 기분("마음 날씨" 여섯 가지)을 적고, 기본은 나만 보며 일기마다 친구 공개를 켤 수 있다.
- * 저장해도 칸을 비우지 않는다(이어서 고친다). 날짜가 바뀌면 부른 쪽이 key로 새로 그린다.
+ * 저장하면 그 날의 읽는 화면으로 간다(2026-11-24 요청). 저장하지 못하면 이 화면에 남아 이유를 보인다.
  */
 export function DiaryEditor({ date, initial }: { date: string; initial: DiaryDraft | null }) {
   const t = useT(diary);
@@ -25,7 +25,7 @@ export function DiaryEditor({ date, initial }: { date: string; initial: DiaryDra
   // 기분과 공개 여부도 값을 쥐고 있는다. 기본값만 주고 두면 저장 뒤 router.refresh()가 서버 값을 다시 내려줄 때, 그 사이에 바꾼 선택이 되돌아간다.
   const [mood, setMood] = useState(initial?.mood && isDiaryMood(initial.mood) ? initial.mood : "");
   const [isPublic, setIsPublic] = useState(initial?.isPublic ?? false);
-  const [exists, setExists] = useState(initial !== null);
+  const exists = initial !== null;
   const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(null);
   const [confirming, setConfirming] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -51,11 +51,12 @@ export function DiaryEditor({ date, initial }: { date: string; initial: DiaryDra
     startTransition(async () => {
       try {
         const result = await saveDiary(formData);
-        setMessage(result ? { text: result.message, ok: result.ok === true } : null);
         if (result?.ok) {
-          setExists(true);
-          router.refresh();
+          // 읽는 화면이 "저장했어요."를 보이고 주소의 표시를 지운다(components/diary-saved-notice.tsx).
+          router.push(`/diary/${date}?saved=1`);
+          return;
         }
+        setMessage(result ? { text: result.message, ok: false } : null);
       } catch (error) {
         saveFailed(error);
       }

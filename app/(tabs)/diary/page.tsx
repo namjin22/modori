@@ -63,7 +63,7 @@ export default async function DiaryListPage({ searchParams }: { searchParams: Pr
 
       <Link
         prefetch={false}
-        href={`/diary/${formatKST(today)}`}
+        href={`/diary/${formatKST(today)}/edit`}
         className="flex h-12 items-center justify-center rounded-xl bg-brand text-sm font-semibold text-brand-contrast"
       >
         {todayEntry ? t("editToday") : t("writeToday")}
