@@ -49,6 +49,7 @@ export async function saveDiary(formData: FormData): Promise<DiaryFormState> {
 
   revalidatePath("/diary");
   revalidatePath(`/diary/${formatKST(date)}`);
+  revalidatePath(`/diary/${formatKST(date)}/edit`);
   return { message: t("saved"), ok: true };
 }
 
