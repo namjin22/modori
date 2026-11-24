@@ -121,10 +121,10 @@ test("내일 하기를 누르면 오늘 할 일이 내일로 옮겨진다", asyn
   await addTodo(page, "빨래 개기");
 
   await openTodo(page, "빨래 개기");
-  // 옮기기 버튼은 메모보다 위에 있다.
+  // 옮기기 버튼은 메모보다 위에 있다. 메모는 2026-11-24부터 "메모" 줄을 눌러 넘어가므로 그 줄과 견준다.
   const dialog = page.getByRole("dialog");
   const tomorrowBox = await dialog.getByRole("button", { name: "내일 하기" }).boundingBox();
-  const memoBox = await dialog.getByLabel("할 일 메모").boundingBox();
+  const memoBox = await dialog.getByRole("button", { name: /^메모 / }).boundingBox();
   expect(tomorrowBox!.y).toBeLessThan(memoBox!.y);
 
   await dialog.getByRole("button", { name: "내일 하기" }).click();

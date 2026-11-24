@@ -34,6 +34,8 @@ test("할 일에 메모를 적으면 글자 밑에 보이고, 지웠다 되돌�
   await addTodo(page, "수학 숙제");
 
   await openTodo(page, "수학 숙제");
+  // 메모는 창의 "메모" 줄을 눌러 넘어간 화면에서 적는다(2026-11-24).
+  await page.getByRole("dialog").getByRole("button", { name: /^메모 / }).click();
   await page.getByLabel("할 일 메모").fill("3단원 끝까지\n계산기 챙기기");
   await page.getByRole("button", { name: "저장", exact: true }).click();
 
@@ -43,12 +45,14 @@ test("할 일에 메모를 적으면 글자 밑에 보이고, 지웠다 되돌�
 
   // 메모를 비우면 사라진다.
   await row.getByRole("button", { name: /수학 숙제/ }).click();
+  await page.getByRole("dialog").getByRole("button", { name: /^메모 / }).click();
   await page.getByLabel("할 일 메모").fill("");
   await page.getByRole("button", { name: "저장", exact: true }).click();
   await expect(row).not.toContainText("3단원 끝까지");
 
   // 다시 적고 지웠다 되돌리면 메모도 돌아온다.
   await row.getByRole("button", { name: /수학 숙제/ }).click();
+  await page.getByRole("dialog").getByRole("button", { name: /^메모 / }).click();
   await page.getByLabel("할 일 메모").fill("준비물 없음");
   await page.getByRole("button", { name: "저장", exact: true }).click();
   await expect(row).toContainText("준비물 없음");
@@ -66,6 +70,7 @@ test("일정에 메모를 적으면 일정 밑에 보인다", async ({ page, ema
   await signUp(page, email, `일메${testInfo.testId.slice(-6)}${RUN_TAG}`);
   await page.getByRole("button", { name: "일정", exact: true }).click();
   await page.getByLabel("새 일정 이름").fill("동아리 발표");
+  await page.getByRole("dialog").getByRole("button", { name: /^메모 / }).click();
   await page.getByLabel("새 일정 메모").fill("노트북 충전기");
   await page.getByRole("button", { name: "저장", exact: true }).click();
 
@@ -74,6 +79,7 @@ test("일정에 메모를 적으면 일정 밑에 보인다", async ({ page, ema
 
   // 고치는 창에도 메모가 들어 있다.
   await card.getByRole("button").click();
+  await page.getByRole("dialog").getByRole("button", { name: /^메모 / }).click();
   await expect(page.getByLabel("일정 메모", { exact: true })).toHaveValue("노트북 충전기");
 });
 
@@ -83,6 +89,7 @@ test("친구 화면에는 비공개를 켠 할 일 메모가 보이지 않는다
   await signUp(page, email, `메주${tag}`);
   await addTodo(page, "비밀 메모 할 일");
   await openTodo(page, "비밀 메모 할 일");
+  await page.getByRole("dialog").getByRole("button", { name: /^메모 / }).click();
   await page.getByLabel("할 일 메모").fill("나만 보는 메모");
   await page.getByRole("checkbox", { name: /^메모 비공개/ }).check();
   await page.getByRole("button", { name: "저장", exact: true }).click();
