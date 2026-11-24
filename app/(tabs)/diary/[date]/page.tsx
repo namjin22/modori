@@ -1,50 +1,47 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
 
 import { BackLink } from "@/components/back-link";
-import { DiaryEditor } from "@/components/diary-editor";
+import { DiaryMood } from "@/components/diary-mood";
 import { DiaryNextDay } from "@/components/diary-next-day";
-import { addDays, formatKST, parseKSTDate, todayIn } from "@/lib/date";
-import { diaryDateProblem } from "@/lib/diary";
+import { DiarySavedNotice } from "@/components/diary-saved-notice";
+import { addDays, formatKST } from "@/lib/date";
+import { MOOD_LABEL_KEYS, isDiaryMood } from "@/lib/diary";
 import { dayHeading } from "@/lib/i18n/format";
 import { diary } from "@/lib/i18n/messages/diary";
 import { getLocale, getT } from "@/lib/i18n/server";
 import { prisma } from "@/lib/prisma";
-import { requireUser } from "@/lib/session";
+
+import { loadDiaryDay } from "./load-day";
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: (await getT(diary))("pageTitle") };
 }
 
 /**
- * 하루치 일기를 쓰고 고치는 화면(2026-11-17). 주소의 날짜가 잘못되면 없는 주소, 아직 오지 않은 날이면 오늘로 보낸다.
- * 앞뒤 날의 일기로 넘어갈 수 있고, 뒤로는 오늘까지만 간다.
+ * 하루치 일기를 읽는 화면(2026-11-24 요청: 들어가면 늘 고치는 화면이라 별로다. 읽는 곳을 따로 두고 쓰기 버튼으로 넘어가게).
+ * 목록·홈 카드에서 일기를 누르면 여기로 온다. 고치거나 새로 쓰려면 아래 버튼으로 쓰기 화면(/diary/날짜/edit)에 간다.
+ * 앞뒤 날의 일기로 넘어갈 수 있고, 뒤로는 오늘까지만 간다(오늘에서는 다음 날 단추가 움찔만 한다).
  */
-export default async function DiaryDayPage({ params }: { params: Promise<{ date: string }> }) {
-  const user = await requireUser();
+export default async function DiaryDayPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ date: string }>;
+  searchParams: Promise<{ saved?: string }>;
+}) {
+  const { date: raw } = await params;
+  const { user, date, today, key } = await loadDiaryDay(raw, (day) => `/diary/${day}`);
   const t = await getT(diary);
   const locale = await getLocale();
-  const { date: raw } = await params;
-
-  let date: Date;
-  try {
-    date = parseKSTDate(raw);
-  } catch (error) {
-    console.error("[diary] 날짜 형식이 잘못됐다.", error);
-    notFound();
-  }
-  const today = todayIn(user.timezone);
-  const problem = diaryDateProblem(date, today);
-  if (problem === "future") redirect(`/diary/${formatKST(today)}`);
-  if (problem === "tooOld") notFound();
+  const { saved } = await searchParams;
 
   const entry = await prisma.diaryEntry.findUnique({
     where: { userId_date: { userId: user.id, date } },
     select: { content: true, mood: true, isPublic: true },
   });
+  const mood = entry?.mood && isDiaryMood(entry.mood) ? entry.mood : null;
 
-  const key = formatKST(date);
   const hasNext = date.getTime() < today.getTime();
   const navButton = "flex size-10 items-center justify-center rounded-full text-lg text-foreground hover:bg-surface-hover";
 
@@ -63,7 +60,30 @@ export default async function DiaryDayPage({ params }: { params: Promise<{ date:
         <DiaryNextDay href={hasNext ? `/diary/${formatKST(addDays(date, 1))}` : null} label={t("nextDay")} />
       </header>
 
-      <DiaryEditor key={key} date={key} initial={entry} />
+      {saved === "1" && entry && <DiarySavedNotice text={t("saved")} />}
+
+      {entry ? (
+        <article aria-label={t("title")} className="flex flex-col gap-4 rounded-2xl bg-surface p-5">
+          <div className="flex items-center gap-3">
+            <DiaryMood value={entry.mood} size={52} />
+            <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+              {mood && <span className="text-base font-semibold">{t(MOOD_LABEL_KEYS[mood])}</span>}
+              {entry.isPublic && <span className="rounded-full bg-surface-hover px-2 py-0.5 text-xs text-muted">{t("publicBadge")}</span>}
+            </div>
+          </div>
+          <p className="whitespace-pre-wrap wrap-break-word text-[15px] leading-relaxed">{entry.content}</p>
+        </article>
+      ) : (
+        <p className="rounded-2xl bg-surface p-6 text-center text-sm text-muted">{t("viewEmpty")}</p>
+      )}
+
+      <Link
+        prefetch={false}
+        href={`/diary/${key}/edit`}
+        className="flex h-12 items-center justify-center rounded-xl bg-brand text-sm font-semibold text-brand-contrast"
+      >
+        {entry ? t("edit") : t("write")}
+      </Link>
     </div>
   );
 }
