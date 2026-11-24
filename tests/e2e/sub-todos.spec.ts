@@ -52,6 +52,8 @@ test("큰 할 일 창에서 세부 할 일을 달면 밑에 들여 쓰이고 끝
   await addTodo(page, "포트폴리오 완성");
 
   await openTodo(page, "포트폴리오 완성");
+  // 세부 할 일은 창의 "세부 할 일" 줄을 눌러 넘어간 화면에서 적는다(2026-11-24).
+  await page.getByRole("dialog").getByRole("button", { name: /^세부 할 일 / }).click();
   const input = page.getByLabel("포트폴리오 완성의 세부 할 일 이름");
   for (const name of ["메인 페이지 디자인", "프로젝트 설명 쓰기", "배포하기"]) {
     await input.fill(name);
@@ -97,6 +99,7 @@ test("세부 할 일 밑에는 또 달 수 없고, 세부 할 일에는 옮기�
   await expect(dialog.getByRole("button", { name: "내일 하기" })).toHaveCount(0);
   await expect(dialog.getByRole("button", { name: "다른 날에 하기" })).toHaveCount(0);
   await expect(dialog.getByLabel("할 일 카테고리")).toHaveCount(0);
+  await dialog.getByRole("button", { name: /^메모 / }).click();
   await expect(dialog.getByLabel("할 일 메모")).toBeVisible();
 });
 
@@ -184,6 +187,7 @@ test("루틴이 만든 할 일에도 세부 할 일을 달 수 있고, 루틴의
   await page.reload();
   await expect(homeReady(page)).toBeVisible();
   await openTodo(page, "물 마시기");
+  await page.getByRole("dialog").getByRole("button", { name: /^세부 할 일 / }).click();
   const input = page.getByLabel("물 마시기의 세부 할 일 이름");
   await input.fill("아침 한 컵");
   await input.press("Enter");

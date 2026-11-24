@@ -92,14 +92,19 @@ test("새 일정·메모는 공개로 시작하고(비공개 스위치 꺼짐), 
   await page.getByLabel("새 일정 이름").fill("보이는 시험");
   // 2026-10-18부터 "비공개" 스위치다. 기본은 공개(꺼짐)다.
   await expect(page.getByRole("checkbox", { name: /^비공개/ })).not.toBeChecked();
+  // 메모와 그 공개 설정은 "메모" 줄을 눌러 넘어간 화면에 있다(2026-11-24).
+  await page.getByRole("dialog").getByRole("button", { name: /^메모 / }).click();
   await expect(page.getByRole("checkbox", { name: /^메모 비공개/ })).not.toBeChecked();
+  await page.getByRole("dialog").getByRole("button", { name: "일정으로 돌아가기" }).click();
   await page.getByLabel("새 일정 이름").press("Enter");
   await expect.poll(async () => (await prisma.event.findFirst({ where: { userId: me.id, title: "보이는 시험" } }))?.isPublic).toBe(true);
 
   await page.getByRole("button", { name: "+ 일정 더 적기" }).click();
   await page.getByLabel("새 일정 이름").fill("숨긴 병원");
   await page.getByRole("checkbox", { name: /^비공개/ }).check();
+  await page.getByRole("dialog").getByRole("button", { name: /^메모 / }).click();
   await expect(page.getByRole("checkbox", { name: /^메모 비공개/ })).toHaveCount(0);
+  await page.getByRole("dialog").getByRole("button", { name: "일정으로 돌아가기" }).click();
   await page.getByLabel("새 일정 이름").press("Enter");
   await expect.poll(async () => (await prisma.event.findFirst({ where: { userId: me.id, title: "숨긴 병원" } }))?.isPublic).toBe(false);
 
@@ -107,6 +112,7 @@ test("새 일정·메모는 공개로 시작하고(비공개 스위치 꺼짐), 
   await page.getByRole("button", { name: "메모 공개할 일", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "할 일" });
   // 메모도 기본은 공개다. 비공개를 켜야 숨는다.
+  await dialog.getByRole("button", { name: /^메모 / }).click();
   await expect(dialog.getByRole("checkbox", { name: /^메모 비공개/ })).not.toBeChecked();
   await dialog.getByLabel("할 일 메모").fill("친구도 보는 메모");
   await dialog.getByRole("button", { name: "저장" }).click();
@@ -116,6 +122,7 @@ test("새 일정·메모는 공개로 시작하고(비공개 스위치 꺼짐), 
 
   await page.getByRole("button", { name: /^메모 공개할 일/ }).first().click();
   const again = page.getByRole("dialog", { name: "할 일" });
+  await again.getByRole("button", { name: /^메모 / }).click();
   await again.getByRole("checkbox", { name: /^메모 비공개/ }).check();
   await again.getByRole("button", { name: "저장" }).click();
   await expect

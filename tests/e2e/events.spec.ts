@@ -260,12 +260,14 @@ test("일정은 Enter나 저장 버튼으로 저장하고, 취소하면 고친 �
   await page.getByRole("button", { name: "시험이나 행사 적어두기" }).click();
   await page.getByLabel("새 일정 이름").fill("수학 시험");
   await setEventTime(page, "시작", "09:00");
-  // 메모 칸의 Enter는 줄바꿈이라 저장하지 않는다.
+  // 메모 칸의 Enter는 줄바꿈이라 저장하지 않는다. 메모는 "메모" 줄을 눌러 넘어간 화면에 있다(2026-11-24).
+  await page.getByRole("dialog").getByRole("button", { name: /^메모 / }).click();
   await page.getByLabel("새 일정 메모").fill("3단원");
   await page.getByLabel("새 일정 메모").press("Enter");
   expect(await prisma.event.count({ where: { userId: user.id } })).toBe(0);
 
   // 이름 칸에서 Enter를 누르면 저장한다.
+  await page.getByRole("dialog").getByRole("button", { name: "일정으로 돌아가기" }).click();
   await page.getByLabel("새 일정 이름").press("Enter");
   await expect(page.getByRole("listitem").filter({ hasText: "수학 시험" })).toContainText("09:00");
 
