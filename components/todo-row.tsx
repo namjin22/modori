@@ -1,10 +1,11 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 
 import { addTodo, deleteTodo, moveTodo, repeatTodo, restoreTodo, updateTodo } from "@/app/(tabs)/actions";
 import { ChoicePicker } from "@/components/choice-picker";
 import { DatePicker } from "@/components/date-picker";
+import { DetailHeader, DetailRow, DetailRows, memoSummary } from "@/components/detail-panel";
 import { useT } from "@/components/locale-provider";
 import { MemoPrivateToggle } from "@/components/memo-private-toggle";
 import { Modal } from "@/components/modal";
@@ -82,6 +83,24 @@ export function TodoRow({
   const store = useTodoStore();
   const canAddSub = !child && !saving;
   const subDone = subTodos.filter((sub) => sub.done).length;
+  // 창 안의 화면(2026-11-24 요청): 첫 화면, 세부 할 일, 메모. 세 화면 모두 한 폼 안에 있어 숨긴 칸의 값도 저장할 때 함께 간다.
+  const [view, setView] = useState<"main" | "sub" | "memo">("main");
+  // 메모 요약을 첫 화면 줄에 보이려고 메모 칸의 값을 쥐고 있는다. 창을 열 때 저장된 값(또는 실패한 글)으로 채운다.
+  const [memoText, setMemoText] = useState("");
+  const lastView = useRef<"main" | "sub" | "memo">("main");
+  const subSection = useRef<HTMLElement>(null);
+  const memoInput = useRef<HTMLTextAreaElement>(null);
+  const subRow = useRef<HTMLButtonElement>(null);
+  const memoRow = useRef<HTMLButtonElement>(null);
+
+  // 넘어간 화면에서는 그 칸으로, 돌아오면 눌렀던 줄로 포커스를 옮긴다(키보드·화면 읽기가 길을 잃지 않게).
+  useEffect(() => {
+    if (view === "memo") memoInput.current?.focus();
+    else if (view === "sub") subSection.current?.querySelector("input")?.focus();
+    else if (lastView.current === "memo") memoRow.current?.focus();
+    else if (lastView.current === "sub") subRow.current?.focus();
+    lastView.current = view;
+  }, [view]);
 
   return (
     // 방금 적은 할 일은 살짝 떠오르며 들어온다(저장이 끝나 진짜 줄로 바뀔 때는 움직이지 않는다).
@@ -98,6 +117,9 @@ export function TodoRow({
             onClick={() => {
               setPlan(null);
               setPlanMessage(null);
+              lastView.current = "main";
+              setView("main");
+              setMemoText(draft?.memo ?? todo.memo ?? "");
               setOpen(true);
             }}
             className="flex min-w-0 flex-col text-left"
@@ -197,77 +219,118 @@ export function TodoRow({
           className="flex flex-col gap-3"
         >
           <input type="hidden" name="id" value={todo.id} />
-          {/* 할 일 칸에서 Enter를 누르면 예전처럼 바로 저장된다. 메모 칸의 Enter는 줄바꿈이다. */}
-          <input
-            name="content"
-            defaultValue={draft?.content ?? todo.content}
-            maxLength={200}
-            required
-            autoFocus
-            data-autofocus
-            aria-label={t("editLabel")}
-            className="h-12 w-full rounded-xl bg-surface-hover px-4 text-[15px] outline-none focus:ring-2 focus:ring-brand"
-          />
-          {categories && todo.category?.id && categories.some((option) => option.id === todo.category?.id) && (
-            <div className="flex items-center gap-3 text-sm">
-              <span className="shrink-0 text-muted">{t("categoryLabel")}</span>
-              <div className="min-w-0 flex-1">
-                <ChoicePicker
-                  label={t("categoryPicker")}
-                  name="categoryId"
-                  defaultValue={todo.category.id}
-                  options={categories.map((option) => ({ value: option.id, label: option.name, color: option.color }))}
-                />
+          {/* 첫 화면: 이름·카테고리·날짜 옮기기, 그리고 세부 할 일·메모로 넘어가는 줄(2026-11-24 요청: 한 화면에 다 떠서 조잡하다). */}
+          <div hidden={view !== "main"} className="flex flex-col gap-3">
+            {/* 할 일 칸에서 Enter를 누르면 예전처럼 바로 저장된다. 비운 채 다른 화면에서 저장하면 이 화면으로 돌아와 보이게 한다. */}
+            <input
+              name="content"
+              defaultValue={draft?.content ?? todo.content}
+              maxLength={200}
+              required
+              autoFocus
+              data-autofocus
+              aria-label={t("editLabel")}
+              onInvalid={() => setView("main")}
+              className="h-12 w-full rounded-xl bg-surface-hover px-4 text-[15px] outline-none focus:ring-2 focus:ring-brand"
+            />
+            {categories && todo.category?.id && categories.some((option) => option.id === todo.category?.id) && (
+              <div className="flex items-center gap-3 text-sm">
+                <span className="shrink-0 text-muted">{t("categoryLabel")}</span>
+                <div className="min-w-0 flex-1">
+                  <ChoicePicker
+                    label={t("categoryPicker")}
+                    name="categoryId"
+                    defaultValue={todo.category.id}
+                    options={categories.map((option) => ({ value: option.id, label: option.name, color: option.color }))}
+                  />
+                </div>
               </div>
-            </div>
-          )}
-          {/* 세부 할 일은 여기서 바로 적는다(입력칸에서 Enter, 창은 열어 둔다). 처음 달 때 찾기 쉬우라고 창에 둔다(2026-11-20). */}
+            )}
+            {/* 날짜 옮기기는 자주 누르므로 세부 할 일·메모보다 위에 둔다(사용자 요청). 세부 할 일은 큰 할 일과 같은 날이라 따로 옮기지 않는다. */}
+            {!child && (
+              <MoveToDay
+                id={todo.id}
+                date={date}
+                quickMove={quickMove}
+                done={todo.done}
+                todo={todo}
+                plan={plan}
+                onPlan={setPlan}
+                planMessage={planMessage}
+                onMoved={() => setOpen(false)}
+              />
+            )}
+            <DetailRows>
+              {canAddSub && (
+                <DetailRow
+                  buttonRef={subRow}
+                  label={t("subTodoTitle")}
+                  summary={subTodos.length > 0 ? t("subCount", { count: subTodos.length }) : t("detailNone")}
+                  onOpen={() => setView("sub")}
+                />
+              )}
+              <DetailRow buttonRef={memoRow} label={t("memoTitle")} summary={memoSummary(memoText, t("detailNone"))} onOpen={() => setView("memo")} />
+            </DetailRows>
+          </div>
+
+          {/* 세부 할 일 화면: 지금 달린 세부 할 일과 적는 칸. 적으면 바로 저장된다(입력칸에서 Enter, 창은 열어 둔다). */}
           {canAddSub && (
-            <div className="flex flex-col gap-1.5 text-sm">
-              <span className="text-muted">{t("subTodoTitle")}</span>
+            <section ref={subSection} hidden={view !== "sub"} aria-label={t("subTodoTitle")} className="flex flex-col gap-3">
+              <DetailHeader title={t("subTodoTitle")} backLabel={t("backToTodo")} onBack={() => setView("main")} />
+              {subTodos.length > 0 ? (
+                <ul className="flex flex-col gap-1.5 text-sm">
+                  {subTodos.map((sub) => (
+                    <li key={sub.id} className={`truncate rounded-lg bg-surface-hover px-3 py-2 ${sub.done ? "text-muted line-through" : ""}`}>
+                      {sub.content}
+                      {sub.done && <span className="sr-only"> ({t("subDoneMark")})</span>}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-sm text-muted">{t("subEmpty")}</p>
+              )}
               <SubTodoAdder parent={todo} date={date} />
               {subTodos.length > 0 && <p className="text-xs text-muted">{t("subMoveHint")}</p>}
-            </div>
+            </section>
           )}
-          {/* 날짜 옮기기는 자주 누르므로 메모·삭제·저장보다 위에 둔다(사용자 요청). 세부 할 일은 큰 할 일과 같은 날이라 따로 옮기지 않는다. */}
-          {!child && (
-            <MoveToDay
-              id={todo.id}
-              date={date}
-              quickMove={quickMove}
-              done={todo.done}
-              todo={todo}
-              plan={plan}
-              onPlan={setPlan}
-              planMessage={planMessage}
-              onMoved={() => setOpen(false)}
+
+          {/* 메모 화면: 메모와 친구에게 숨길지. 메모 칸의 Enter는 줄바꿈이다. */}
+          <section hidden={view !== "memo"} aria-label={t("memoTitle")} className="flex flex-col gap-2">
+            <DetailHeader title={t("memoTitle")} backLabel={t("backToTodo")} onBack={() => setView("main")} />
+            <textarea
+              ref={memoInput}
+              name="memo"
+              value={memoText}
+              onChange={(event) => setMemoText(event.target.value)}
+              maxLength={MAX_MEMO_LENGTH}
+              rows={6}
+              placeholder={t("memoPlaceholder")}
+              aria-label={t("memoLabel")}
+              className="w-full resize-none rounded-xl bg-surface-hover px-4 py-3 text-sm outline-none placeholder:text-muted focus:ring-2 focus:ring-brand"
             />
-          )}
-          <textarea
-            name="memo"
-            defaultValue={draft?.memo ?? todo.memo ?? ""}
-            maxLength={MAX_MEMO_LENGTH}
-            rows={3}
-            placeholder={t("memoPlaceholder")}
-            aria-label={t("memoLabel")}
-            className="w-full resize-none rounded-xl bg-surface-hover px-4 py-3 text-sm outline-none placeholder:text-muted focus:ring-2 focus:ring-brand"
-          />
-          {/* 메모를 친구에게 숨길지(기본은 보인다, 2026-10-18). 할 일 자체는 카테고리 공개 여부를 따른다. 표시 칸은 이 스위치가 있는 화면이라는 표시다. */}
-          <input type="hidden" name="memoPublicField" value="1" />
-          <MemoPrivateToggle defaultChecked={!(todo.memoPublic ?? true)} />
+            {/* 메모를 친구에게 숨길지(기본은 보인다, 2026-10-18). 할 일 자체는 카테고리 공개 여부를 따른다. 표시 칸은 이 스위치가 있는 화면이라는 표시다. */}
+            <input type="hidden" name="memoPublicField" value="1" />
+            <MemoPrivateToggle defaultChecked={!(todo.memoPublic ?? true)} />
+          </section>
+
+          {/* 지우기는 첫 화면에만 둔다(세부 할 일·메모 화면에서 누르면 큰 할 일이 지워지는 줄 모를 수 있다). 저장은 어느 화면에서나 된다. */}
           <div className="flex items-center justify-between gap-2">
-            <UndoableDeleteButton
-              id={todo.id}
-              remove={(id) => {
-                // 홈에서는 누르는 즉시 목록에서 뺀다(서버 응답 전).
-                store?.({ type: "remove", id });
-                return deleteTodo(id);
-              }}
-              restore={restoreTodo}
-              message={t("deleted")}
-              onDone={() => setOpen(false)}
-              className="h-10 rounded-xl px-3 text-sm font-medium text-danger"
-            />
+            {view === "main" ? (
+              <UndoableDeleteButton
+                id={todo.id}
+                remove={(id) => {
+                  // 홈에서는 누르는 즉시 목록에서 뺀다(서버 응답 전).
+                  store?.({ type: "remove", id });
+                  return deleteTodo(id);
+                }}
+                restore={restoreTodo}
+                message={t("deleted")}
+                onDone={() => setOpen(false)}
+                className="h-10 rounded-xl px-3 text-sm font-medium text-danger"
+              />
+            ) : (
+              <span />
+            )}
             <SubmitButton
               // 홈에서는 저장이 뒤에서 돌아 창이 이미 닫혀 있다. 이어서 다시 열어 고칠 때 버튼을 막지 않는다.
               pending={!store && pending}

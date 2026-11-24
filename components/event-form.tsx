@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode, useEffect, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 
 import {
   createEvent,
@@ -9,6 +9,7 @@ import {
 } from "@/app/(tabs)/events/actions";
 import { ColorSwatches } from "@/components/color-swatches";
 import { DatePicker } from "@/components/date-picker";
+import { DetailHeader, DetailRow, DetailRows, memoSummary } from "@/components/detail-panel";
 import { useT } from "@/components/locale-provider";
 import { LabeledSwitch } from "@/components/labeled-switch";
 import { MemoPrivateToggle } from "@/components/memo-private-toggle";
@@ -72,6 +73,21 @@ export function EventForm({
   const [endTime, setEndTime] = useState(event?.endTime ?? "");
   // 새 일정은 공개로 시작한다(비공개 스위치 꺼짐). 고칠 때는 저장된 값을 따른다.
   const [isPrivate, setIsPrivate] = useState(event ? !event.isPublic : false);
+  // 메모는 따로 넘어가는 화면에서 적는다(2026-11-24 요청: 창에 다 떠서 조잡하다. 운영자가 일정은 메모만 옮기기로 골랐다).
+  // 두 화면이 한 폼 안에 있어 숨긴 칸의 값도 저장할 때 함께 간다. 첫 화면 줄에 요약을 보이려고 메모 값을 쥐고 있는다.
+  const [view, setView] = useState<"main" | "memo">("main");
+  const [memoText, setMemoText] = useState(event?.memo ?? "");
+  const memoInput = useRef<HTMLTextAreaElement>(null);
+  const memoRow = useRef<HTMLButtonElement>(null);
+  const opened = useRef(false);
+  useEffect(() => {
+    if (view === "memo") {
+      opened.current = true;
+      memoInput.current?.focus();
+    } else if (opened.current) {
+      memoRow.current?.focus();
+    }
+  }, [view]);
 
   // 시작을 끝보다 늦게 옮기면 끝을 한 시간 뒤로 따라 옮긴다. 그대로 두면 저장할 때 "끝이 시작보다 이르다"에 걸린다.
   // "HH:MM"은 글자 순서가 시간 순서와 같아 그대로 견준다.
@@ -98,6 +114,7 @@ export function EventForm({
     >
       {event && <input type="hidden" name="id" value={event.id} />}
 
+      <div hidden={view !== "main"} className="flex flex-col gap-4">
       <input
         name="title"
         required
@@ -110,6 +127,8 @@ export function EventForm({
         onKeyDown={(keyEvent) => {
           if (keyEvent.key === "Escape") onCancel();
         }}
+        // 이름을 비운 채 메모 화면에서 저장하면 이 칸이 보이는 첫 화면으로 돌아온다.
+        onInvalid={() => setView("main")}
         className="h-12 w-full rounded-xl bg-surface-hover px-4 text-[15px] outline-none placeholder:text-muted focus:ring-2 focus:ring-brand"
       />
 
@@ -155,19 +174,9 @@ export function EventForm({
       {/* 할 일 카테고리와 같은 색 팔레트. 달력 칸의 일정 이름표와 일정 카드의 띠가 이 색이 된다. */}
       <ColorSwatches name="color" legend={t("color")} defaultValue={event?.color ?? DEFAULT_EVENT_COLOR} />
 
-      {/* 메모 칸의 Enter는 줄바꿈이다(textarea라 폼을 보내지 않는다). 메모를 숨길지는 칸 바로 아래 한 줄이다(2026-10-20). */}
-      <div className="flex flex-col gap-0.5">
-        <textarea
-          name="memo"
-          defaultValue={event?.memo ?? ""}
-          maxLength={MAX_MEMO_LENGTH}
-          rows={3}
-          placeholder={t("memo")}
-          aria-label={t("memoLabel", { label })}
-          className="w-full resize-none rounded-xl bg-surface-hover px-4 py-3 text-sm outline-none placeholder:text-muted focus:ring-2 focus:ring-brand"
-        />
-        <MemoPrivateToggle forcedPrivate={isPrivate} defaultChecked={event ? !event.memoPublic : false} />
-      </div>
+      <DetailRows>
+        <DetailRow buttonRef={memoRow} label={t("memo")} summary={memoSummary(memoText, t("detailNone"))} onOpen={() => setView("memo")} />
+      </DetailRows>
 
       {/* 켜고 끄는 것 둘을 한 상자에 줄로 나눠 둔다. 예전에는 D-day는 상자 없이, 비공개는 따로 상자에 있어 들쭉날쭉했다(2026-10-20).
           비공개: 팔로우한 친구에게 숨길지(기본은 보인다, 2026-10-18). 일정을 숨기면 메모도 숨는다. */}
@@ -179,6 +188,24 @@ export function EventForm({
           <PrivateSwitch title={t("privateTitle")} description={t("privateHint")} checked={isPrivate} onChange={setIsPrivate} />
         </div>
       </div>
+      </div>
+
+      {/* 메모 화면: 메모와 친구에게 숨길지. 메모 칸의 Enter는 줄바꿈이다(textarea라 폼을 보내지 않는다). 일정이 비공개면 메모도 나만 본다. */}
+      <section hidden={view !== "memo"} aria-label={t("memo")} className="flex flex-col gap-2">
+        <DetailHeader title={t("memo")} backLabel={t("backToEvent")} onBack={() => setView("main")} />
+        <textarea
+          ref={memoInput}
+          name="memo"
+          value={memoText}
+          onChange={(changeEvent) => setMemoText(changeEvent.target.value)}
+          maxLength={MAX_MEMO_LENGTH}
+          rows={6}
+          placeholder={t("memo")}
+          aria-label={t("memoLabel", { label })}
+          className="w-full resize-none rounded-xl bg-surface-hover px-4 py-3 text-sm outline-none placeholder:text-muted focus:ring-2 focus:ring-brand"
+        />
+        <MemoPrivateToggle forcedPrivate={isPrivate} defaultChecked={event ? !event.memoPublic : false} />
+      </section>
 
       {state?.message && !state.ok && (
         <p role="alert" className="text-sm text-danger">
@@ -187,7 +214,8 @@ export function EventForm({
       )}
 
       <div className={deleteButton ? "flex items-center gap-2" : "grid grid-cols-2 gap-2"}>
-        {deleteButton && <div className="mr-auto">{deleteButton}</div>}
+        {/* 지우기는 첫 화면에만 둔다(메모 화면에서 누르면 일정이 통째로 지워지는 줄 모를 수 있다). */}
+        {deleteButton && <div className="mr-auto">{view === "main" && deleteButton}</div>}
         <button
           type="button"
           onClick={onCancel}
