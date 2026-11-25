@@ -9,6 +9,8 @@ export const LIMITS = {
   categories: 10,
   routines: 50,
   events: 1000,
+  // 일정에 쓰는 이름 붙은 색(EventCategory). 폼의 칩이 한 줄에 몇 줄 넘게 쌓이지 않을 만큼.
+  eventCategories: 20,
   // 달력 한 칸에 이름이 세 개까지 보이고, 그날 목록도 다섯이면 한 화면에 들어온다.
   eventsPerDay: 5,
   // 오늘에서 앞뒤로 이만큼(10년) 안의 날에만 할 일을 만들거나 옮기거나 다시 한다. 하루 상한(todosPerDay)과 곱한 것이 한 사람이 쌓을 수 있는

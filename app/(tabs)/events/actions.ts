@@ -104,6 +104,24 @@ function readEventInput(formData: FormData, t: EventT): EventInput | string {
 }
 
 /**
+ * 폼이 고른 일정 카테고리를 확인해 저장할 색과 카테고리를 정한다(2026-11-25). 내 카테고리면 그 색이 이 일정의 색이 된다.
+ * 카테고리를 고르지 않았으면 직접 고른 색이라 카테고리를 뗀다. 색 칸이 없던 예전 요청은 둘 다 그대로 둔다(undefined).
+ * 남의 id나 이미 지운 id는 고르지 않은 것으로 본다.
+ */
+async function resolveCategory(
+  userId: string,
+  formData: FormData,
+  color: string | undefined,
+): Promise<{ categoryId: string | null | undefined; color: string | undefined }> {
+  const id = readText(formData, "categoryId");
+  if (id && isId(id)) {
+    const category = await prisma.eventCategory.findFirst({ where: { id, userId }, select: { id: true, color: true } });
+    if (category) return { categoryId: category.id, color: category.color };
+  }
+  return { categoryId: color === undefined ? undefined : null, color };
+}
+
+/**
  * 기간 안의 어느 날이라도 일정이 하루 상한만큼 차 있으면 사람에게 보여줄 문장을 돌려준다.
  * 고치는 중인 일정은 자기 자신을 세지 않는다(exceptId).
  */
@@ -143,7 +161,10 @@ export async function createEvent(
   const full = await dailyLimitMessage(user.id, input, t);
   if (full) return { message: full };
 
-  await prisma.event.create({ data: { ...input, color: input.color ?? DEFAULT_EVENT_COLOR, userId: user.id } });
+  const picked = await resolveCategory(user.id, formData, input.color);
+  await prisma.event.create({
+    data: { ...input, color: picked.color ?? DEFAULT_EVENT_COLOR, categoryId: picked.categoryId ?? null, userId: user.id },
+  });
 
   revalidatePath("/");
   return { message: t("created"), ok: true };
@@ -162,9 +183,10 @@ export async function updateEvent(
   const full = await dailyLimitMessage(user.id, input, t, id);
   if (full) return { message: full };
 
+  const picked = await resolveCategory(user.id, formData, input.color);
   const { count } = await prisma.event.updateMany({
     where: { id, userId: user.id },
-    data: input,
+    data: { ...input, color: picked.color, categoryId: picked.categoryId },
   });
   if (count === 0) return { message: t("notFound") };
 
@@ -182,6 +204,8 @@ export type DeletedEvent = {
   startTime: string;
   endTime: string;
   color: string;
+  // 이름 붙은 색을 골랐던 일정이면 그 id. 되돌릴 때 다시 잇는다(그 사이 지웠으면 색만 남는다).
+  categoryId?: string | null;
   memo: string | null;
   dday: boolean;
   isPublic?: boolean;
@@ -205,6 +229,7 @@ export async function deleteEvent(id: string): Promise<DeletedEvent | null> {
     startTime: event.startTime === null ? "" : formatTime(event.startTime),
     endTime: event.endTime === null ? "" : formatTime(event.endTime),
     color: event.color,
+    categoryId: event.categoryId,
     memo: event.memo,
     dday: event.dday,
     isPublic: event.isPublic,
@@ -222,6 +247,7 @@ export async function restoreEvent(snapshot: DeletedEvent): Promise<string | voi
   formData.set("startDate", snapshot.startDate);
   formData.set("endDate", snapshot.endDate);
   formData.set("color", snapshot.color);
+  if (typeof snapshot.categoryId === "string") formData.set("categoryId", snapshot.categoryId);
   formData.set("startTime", typeof snapshot.startTime === "string" ? snapshot.startTime : "");
   formData.set("endTime", typeof snapshot.endTime === "string" ? snapshot.endTime : "");
   formData.set("memo", typeof snapshot.memo === "string" ? snapshot.memo : "");
@@ -244,9 +270,16 @@ export async function restoreEvent(snapshot: DeletedEvent): Promise<string | voi
   const full = await dailyLimitMessage(user.id, input, t);
   if (full) return full;
 
+  const picked = await resolveCategory(user.id, formData, input.color);
   try {
     await prisma.event.create({
-      data: { ...input, color: input.color ?? DEFAULT_EVENT_COLOR, id: snapshot.id, userId: user.id },
+      data: {
+        ...input,
+        color: picked.color ?? DEFAULT_EVENT_COLOR,
+        categoryId: picked.categoryId ?? null,
+        id: snapshot.id,
+        userId: user.id,
+      },
     });
   } catch (error) {
     // 두 번 눌렀거나 이미 되살아난 경우.

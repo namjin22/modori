@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState, useTransition } from "react";
 
+import { useEventCategories } from "@/components/event-categories";
 import { EventForm } from "@/components/event-form";
 import { useLocale, useT } from "@/components/locale-provider";
 import { Modal } from "@/components/modal";
@@ -31,6 +32,8 @@ export type DayEvent = {
   startTime: number | null;
   endTime: number | null;
   color: string;
+  // 이름 붙은 색(일정 카테고리)을 골랐으면 그 id. 반복 일정을 펼친 것에는 없다.
+  categoryId?: string | null;
   memo: string | null;
   dday: boolean;
   // 팔로워에게 보일지, 메모까지 보일지(2026-10-17). 반복 일정을 펼친 것에는 없다.
@@ -249,6 +252,7 @@ export function EventEditModal({ event, date, onClose }: { event: DayEvent | nul
             memoPublic: event.memoPublic ?? false,
             dday: event.dday,
             color: event.color,
+            categoryId: event.categoryId ?? null,
           }}
           onSaved={onClose}
           onCancel={onClose}
@@ -334,7 +338,9 @@ function EventCard({ event, todayDate, onOpen }: { event: DayEvent; todayDate: D
   const when = describeEventWhen(event, locale);
   // D-day를 끈 일정은 이름과 시간만 보인다. 반복 일정에는 D-day가 없다.
   const dday = event.dday ? ddayLabel(event.startDate, event.endDate, todayDate, locale) : null;
-  const detail = [event.repeat ? `↻ ${event.repeat.rule}` : null, when].filter(Boolean).join(" · ");
+  // 이름 붙은 색을 골랐으면 그 이름을 시간 앞에 보인다(이름은 나만 본다).
+  const categoryName = useEventCategories().find((category) => category.id === event.categoryId)?.name ?? null;
+  const detail = [event.repeat ? `↻ ${event.repeat.rule}` : null, categoryName, when].filter(Boolean).join(" · ");
   return (
     <div className="flex items-stretch">
       {/* 색은 카드 안쪽의 둥근 막대로 보인다. 카드 가장자리에 붙인 띠는 둥근 모서리를 따라 위아래가 가늘어졌다.
