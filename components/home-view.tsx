@@ -11,6 +11,7 @@ import { DayRollover } from "@/components/day-rollover";
 import { DiaryCard, type HomeDiary } from "@/components/diary-card";
 import { ManageMenu } from "@/components/manage-menu";
 import { Dori } from "@/components/dori";
+import { EventCategoriesProvider, type EventCategoryOption } from "@/components/event-categories";
 import { type DayEvent, EventSection } from "@/components/event-section";
 import { FirstTodoButton } from "@/components/first-todo-button";
 import { MonthCalendar } from "@/components/month-calendar";
@@ -45,6 +46,8 @@ export type HomeData = {
   to: string;
   todos: HomeTodo[];
   categories: { id: string; name: string; color: string; isPublic: boolean }[];
+  // 일정에 쓰는 이름 붙은 색(2026-11-25). 일정 만들기·고치기 창의 칩과 일정 카드의 이름에 쓴다.
+  eventCategories: EventCategoryOption[];
   scheduled: Record<string, ScheduledRoutine[]>;
   pending: string[];
   events: DayEvent[];
@@ -220,7 +223,9 @@ export function HomeView({ data }: { data: HomeData }) {
               <ManageMenu />
             </nav>
 
-            <EventSection events={dayEvents} upcoming={upcoming} date={selected} today={data.today} />
+            <EventCategoriesProvider categories={data.eventCategories}>
+              <EventSection events={dayEvents} upcoming={upcoming} date={selected} today={data.today} />
+            </EventCategoriesProvider>
 
             {data.categories.length === 0 && (
               // 카테고리 칩이 곧 할 일을 적는 자리다. 하나도 없으면 적을 곳이 없어진다.

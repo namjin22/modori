@@ -2239,3 +2239,12 @@ VM에 시험 DB(사용자 1000, 할 일 108만, 반응 24만, 280MB)를 만들�
 - **바로잡은 것**: 이전 문서의 10/7 가입자 7일 재방문 15%(41명 중 6명, 10/14 낮 값)를 하루 합계의 21%(42명 중 9명)로 고쳤다. 기록한 시각과 분모가 다른 이유는 확인하지 못했다.
 - **남은 [미확인]**: 10/7 18:22 배포 전후로 나눈 활성화(VM에서 부록 A 쿼리 2), 루틴을 뺀 직접 할 일 수(쿼리 1). `ActiveDay`가 2026-12-15부터 지워지기 시작해, 재방문을 다른 정의(예: 14일 안)로 다시 세려면 그 전에 쿼리 3을 돌린다.
 - 확인: 문서만 바꿨다. 숫자는 CSV를 `python`으로 직접 센 값이고 두 CSV끼리 맞는지도 확인했다(할 일을 가진 사람 22, 팔로우 건 사람 24, 반응 보낸 사람 11, 가입자 73, 팔로우 79). 구간·검정은 Wilson·Fisher로 계산했다. `npm run verify`는 돌리지 않았다(코드 변경이 없고, 문서만 바뀐 변경은 CI가 시험을 건너뛴다).
+
+## 2026-11-25 — 일정 카테고리(이름 붙은 색)
+
+- **무엇**: 운영자가 아이폰 캘린더처럼 "시험=주황, 학교=보라" 식으로 색에 이름을 붙여 일정에 쓰고 싶다고 요청(스크린샷). 방식은 운영자가 골랐다: 일정 전용 새 표 `EventCategory`(할 일 카테고리와 따로), 기본 목록 없음. 결정은 `docs/decisions.md` "일정에 이름 붙은 색".
+- **바뀐 곳**: `prisma/schema.prisma`(`EventCategory`, `Event.categoryId` — 마이그레이션 `20261125090000_event_categories`, 사용자 데이터를 지우지 않는 추가형), `app/(tabs)/event-categories/`(화면·서버 동작: 만들기·고치기·순서·지우기와 되돌리기), `components/event-color-field.tsx`(일정 만들기·고치기 창의 칩), `components/event-categories.tsx`(문맥), `events/actions.ts`(`resolveCategory`로 내 카테고리일 때만 그 색을 씀), 홈 데이터·일정 카드(이름이 시간 앞에 붙음), `/categories` 맨 위 "일정 카테고리" 줄, 사전 3언어(`events.ts`의 `ec*`·`category*`), 한 사람 20개(`LIMITS.eventCategories`).
+- **개인정보**(규칙 8): `docs/privacy-inventory.md`에 줄 추가, `lib/privacy.ts` 문구 추가와 시행일 2026-11-25. 이름은 본인만 보고 친구·AI 연결·AI 도우미에는 색만(이름·id 모두 안 나감, 각 조회가 필드를 직접 고른다).
+- **알아 둘 것**: ① 색은 일정(`Event.color`)에 복사해 두고 카테고리 색을 바꾸면 "아직 옛 색인" 일정만 같이 바꾼다(AI 연결로 색을 따로 바꾼 일정은 따라가지 않음). ② 반복 일정(일정 루틴)·AI 연결·AI 도우미가 만드는 일정에는 카테고리가 안 붙는다(색만). 필요하면 운영자에게 묻는다. ③ 일정 카테고리를 AI 연결(MCP)로 읽고 쓰는 길은 만들지 않았다(규칙 7 범위 밖).
+- **확인**: `npx tsc --noEmit`·`eslint`(바뀐 파일) 통과. 새 시험 `tests/e2e/event-categories.spec.ts` 6개 통과, 관련 기존 E2E 13개 파일 37개 통과(events·event-popup·upcoming-events·share-events-memos·dday·event-routine·category-add·category-edit·archived-category·a11y·account-deletion·detail-views·event-digest). 단위 시험은 이 PC의 작업 폴더에서 `npx vitest run`이 76개 파일 모두 `TypeError: Cannot read properties of undefined (reading 'config')`로 시작도 못 한다(원인 모름, 내 변경 때문이 아님 — 깨끗한 main 복사본에서는 통과하고 `.next`·시험 결과·`.claude` 등을 치워도 그대로. `.env`는 건드리지 않아 확인하지 못했다). 내 변경을 얹은 깨끗한 복사본에서 `scripts/test-tz.mjs`(3개 시간대)는 658개 × 3 모두 통과. 전체 E2E(`npm run verify`)는 CI가 돈다.
+- **못 한 것**: 릴리스 스크린샷(배포 뒤 `npm run screenshots`), 이 PC 작업 폴더의 vitest 오류 원인 확인.

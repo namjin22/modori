@@ -1,7 +1,10 @@
+import Link from "next/link";
+
 import { ColorSwatches } from "@/components/color-swatches";
 import { PALETTE } from "@/lib/colors";
 import { SubmitButton } from "@/components/submit-button";
 import { categories as categoryMessages } from "@/lib/i18n/messages/categories";
+import { events as eventMessages } from "@/lib/i18n/messages/events";
 import { getT } from "@/lib/i18n/server";
 import { prisma } from "@/lib/prisma";
 import { LIMITS } from "@/lib/limits";
@@ -20,6 +23,7 @@ const DEFAULT_NEW_COLOR = PALETTE[0].value;
 export default async function CategoriesPage() {
   const user = await requireUser();
   const t = await getT(categoryMessages);
+  const te = await getT(eventMessages);
 
   const categories = await prisma.category.findMany({
     where: { userId: user.id },
@@ -35,6 +39,29 @@ export default async function CategoriesPage() {
         <BackLink href="/" label={t("toFeed")} />
         <h1 className="text-2xl font-bold">{t("title")}</h1>
       </header>
+
+      {/* 일정에 쓰는 이름 붙은 색(2026-11-25)은 할 일 카테고리와 따로 만든다. 여기서 들어간다. */}
+      <Link
+        prefetch={false}
+        href="/event-categories"
+        className="flex items-center justify-between rounded-2xl bg-surface px-4 py-3.5 text-sm font-medium"
+      >
+        {te("ecLink")}
+        <svg
+          aria-hidden
+          width={16}
+          height={16}
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={2.2}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="shrink-0 text-muted"
+        >
+          <path d="M9 5 L16 12 L9 19" />
+        </svg>
+      </Link>
 
       {/* 상한에 닿으면 폼 대신 이유를 보여준다. 눌렀는데 아무 일도 없으면 고장 난 줄 안다. */}
       {active.length >= LIMITS.categories ? (

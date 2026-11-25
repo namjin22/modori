@@ -7,7 +7,7 @@ import {
   type EventFormState,
   updateEvent,
 } from "@/app/(tabs)/events/actions";
-import { ColorSwatches } from "@/components/color-swatches";
+import { EventColorField } from "@/components/event-color-field";
 import { DatePicker } from "@/components/date-picker";
 import { DetailHeader, DetailRow, DetailRows, memoSummary } from "@/components/detail-panel";
 import { useT } from "@/components/locale-provider";
@@ -33,6 +33,8 @@ type EditingEvent = {
   memo: string;
   dday: boolean;
   color: string;
+  // 이름 붙은 색(일정 카테고리)을 골랐던 일정이면 그 id.
+  categoryId: string | null;
   isPublic: boolean;
   memoPublic: boolean;
 };
@@ -171,8 +173,9 @@ export function EventForm({
         <input type="hidden" name="endTime" value={allDay ? "" : endTime} />
       </div>
 
-      {/* 할 일 카테고리와 같은 색 팔레트. 달력 칸의 일정 이름표와 일정 카드의 띠가 이 색이 된다. */}
-      <ColorSwatches name="color" legend={t("color")} defaultValue={event?.color ?? DEFAULT_EVENT_COLOR} />
+      {/* 할 일 카테고리와 같은 색 팔레트. 달력 칸의 일정 이름표와 일정 카드의 띠가 이 색이 된다.
+          이름 붙은 색(일정 카테고리)을 만들어 두었으면 그 칩이 먼저 보인다(2026-11-25). */}
+      <EventColorField defaultCategoryId={event?.categoryId ?? null} defaultColor={event?.color ?? DEFAULT_EVENT_COLOR} />
 
       <DetailRows>
         <DetailRow buttonRef={memoRow} label={t("memo")} summary={memoSummary(memoText, t("detailNone"))} onOpen={() => setView("memo")} />
