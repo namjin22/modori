@@ -4,9 +4,9 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition, type CSSProperties, type FormEvent } from "react";
 
 import { deleteDiary, saveDiary } from "@/app/(tabs)/diary/actions";
-import { LabeledSwitch } from "@/components/labeled-switch";
 import { useT } from "@/components/locale-provider";
 import { MOOD_COLORS, MoodIcon } from "@/components/mood-icon";
+import { PrivateSwitch } from "@/components/private-switch";
 import { useSaveFailure } from "@/components/use-save-failure";
 import { DIARY_MOODS, MAX_DIARY_LENGTH, MOOD_LABEL_KEYS, diaryLength, isDiaryMood } from "@/lib/diary";
 import { diary } from "@/lib/i18n/messages/diary";
@@ -14,7 +14,8 @@ import { diary } from "@/lib/i18n/messages/diary";
 export type DiaryDraft = { content: string; mood: string | null; isPublic: boolean };
 
 /**
- * 하루치 일기를 쓰고 고치는 칸. 글과 오늘의 기분("마음 날씨" 여섯 가지)을 적고, 기본은 나만 보며 일기마다 친구 공개를 켤 수 있다.
+ * 하루치 일기를 쓰고 고치는 칸. 글과 오늘의 기분("마음 날씨" 여섯 가지)을 적고, 기본은 친구에게 보이며 일기마다 "비공개"를 켜면 나만 본다
+ * (2026-11-26 운영자 요청, 일정·카테고리와 같다. 그 전에는 기본이 나만 보고 친구 공개를 켜는 쪽이었다).
  * 저장하면 그 날의 읽는 화면으로 간다(2026-11-24 요청). 저장하지 못하면 이 화면에 남아 이유를 보인다.
  */
 export function DiaryEditor({ date, initial }: { date: string; initial: DiaryDraft | null }) {
@@ -24,7 +25,7 @@ export function DiaryEditor({ date, initial }: { date: string; initial: DiaryDra
   const [content, setContent] = useState(initial?.content ?? "");
   // 기분과 공개 여부도 값을 쥐고 있는다. 기본값만 주고 두면 저장 뒤 router.refresh()가 서버 값을 다시 내려줄 때, 그 사이에 바꾼 선택이 되돌아간다.
   const [mood, setMood] = useState(initial?.mood && isDiaryMood(initial.mood) ? initial.mood : "");
-  const [isPublic, setIsPublic] = useState(initial?.isPublic ?? false);
+  const [isPrivate, setIsPrivate] = useState(initial ? !initial.isPublic : false);
   const exists = initial !== null;
   const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(null);
   const [confirming, setConfirming] = useState(false);
@@ -39,8 +40,8 @@ export function DiaryEditor({ date, initial }: { date: string; initial: DiaryDra
     setMood(value);
     setMessage(null);
   };
-  const changePublic = (value: boolean) => {
-    setIsPublic(value);
+  const changePrivate = (value: boolean) => {
+    setIsPrivate(value);
     setMessage(null);
   };
 
@@ -122,7 +123,7 @@ export function DiaryEditor({ date, initial }: { date: string; initial: DiaryDra
         <p className={`self-end text-xs ${tooLong ? "text-danger" : "text-muted"}`}>{t("counter", { count: length, max: MAX_DIARY_LENGTH })}</p>
       </div>
 
-      <LabeledSwitch name="public" title={t("publicTitle")} description={t("publicHint")} checked={isPublic} onChange={changePublic} />
+      <PrivateSwitch title={t("privateTitle")} description={t("privateHint")} checked={isPrivate} onChange={changePrivate} />
 
       {message && (
         <p role={message.ok ? "status" : "alert"} className={`text-sm ${message.ok ? "text-muted" : "text-danger"}`}>

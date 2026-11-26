@@ -23,7 +23,8 @@ function readDay(value: FormDataEntryValue | string | null): Date | null {
 
 /**
  * 그 날의 일기를 저장한다(없으면 만들고 있으면 고친다, 하루 한 편). 날짜는 쓴 사람의 시간대 달력으로 오늘까지만 받는다.
- * 일기는 기본으로 나만 본다: "public"이 켜진 폼만 팔로워에게 보인다(체크하지 않으면 값이 오지 않는다).
+ * 일기는 기본으로 팔로워에게 보이고(2026-11-26 운영자 요청, 일정과 같다), "비공개"(isPrivate)가 켜진 폼만 나만 본다(켜지 않으면 값이 오지 않는다).
+ * 그 전에 쓴 일기는 쓸 때 정한 값 그대로다(고치면서 스위치를 다시 고른다).
  */
 export async function saveDiary(formData: FormData): Promise<DiaryFormState> {
   const user = await requireUser();
@@ -39,7 +40,7 @@ export async function saveDiary(formData: FormData): Promise<DiaryFormState> {
   if (!content.ok) return { message: content.reason === "empty" ? t("errorEmpty") : t("errorTooLong", { max: MAX_DIARY_LENGTH }) };
   const mood = readDiaryMood(formData.get("mood"));
   if (mood === undefined) return { message: t("errorMood") };
-  const isPublic = formData.get("public") === "on";
+  const isPublic = formData.get("isPrivate") !== "on";
 
   await prisma.diaryEntry.upsert({
     where: { userId_date: { userId: user.id, date } },

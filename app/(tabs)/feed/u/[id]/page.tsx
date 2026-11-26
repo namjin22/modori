@@ -17,6 +17,7 @@ import { requireUser } from "@/lib/session";
 import { Avatar } from "@/components/avatar";
 import { BlockedProfile } from "@/components/blocked-profile";
 import { FriendView, type FriendData } from "@/components/friend-view";
+import { clipDiary } from "@/lib/diary";
 import { expandEventRoutines } from "@/lib/event-routine";
 import { SafetyMenu } from "@/components/safety-menu";
 import { BackLink } from "@/components/back-link";
@@ -138,7 +139,7 @@ export default async function FriendDayPage({
   const to = daysBetween(monthEnd, date) > 0 ? date : monthEnd;
   const basePath = `/feed/u/${friend.id}`;
 
-  const [todos, events, eventRoutines, eventSkips] = await Promise.all([
+  const [todos, events, eventRoutines, eventSkips, diaryRows] = await Promise.all([
     prisma.todo.findMany({
       where: { category: { isPublic: true }, userId: friend.id, date: { gte: from, lte: to } },
       orderBy: { order: "asc" },
@@ -174,6 +175,11 @@ export default async function FriendDayPage({
       where: { date: { gte: from, lte: to }, eventRoutine: { userId: friend.id, isPublic: true } },
       select: { eventRoutineId: true, date: true },
     }),
+    // 받아 둔 기간의 친구 일기(2026-11-26 요청). 공개한 일기만 글(앞부분)과 기분을 브라우저로 보내고, 비공개한 일기는 있다는 것만 보낸다(글·기분은 서버 밖으로 나가지 않는다).
+    prisma.diaryEntry.findMany({
+      where: { userId: friend.id, date: { gte: from, lte: to } },
+      select: { date: true, isPublic: true, mood: true, content: true },
+    }),
   ]);
 
   const data: FriendData = {
@@ -189,6 +195,10 @@ export default async function FriendDayPage({
       memo: memoPublic ? memo : null,
       date: formatKST(day),
       doneAt: doneAt?.getTime() ?? null,
+    })),
+    diaries: diaryRows.map((row) => ({
+      date: formatKST(row.date),
+      entry: row.isPublic ? ({ kind: "public", mood: row.mood, content: clipDiary(row.content) } as const) : ({ kind: "private" } as const),
     })),
     events: [
       ...events.map(({ memo, memoPublic, ...event }) => ({ ...event, memo: memoPublic ? memo : null })),

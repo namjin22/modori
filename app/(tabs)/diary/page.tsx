@@ -96,7 +96,6 @@ export default async function DiaryListPage({ searchParams }: { searchParams: Pr
                   <span className="flex min-w-0 flex-1 flex-col gap-1">
                     <span className="flex items-center gap-2 text-sm font-medium">
                       {monthDayWithWeekday(locale, entry.date.getUTCMonth() + 1, entry.date.getUTCDate(), entry.date.getUTCDay())}
-                      {entry.isPublic && <span className="rounded-full bg-surface-hover px-2 py-0.5 text-xs font-normal text-muted">{t("publicBadge")}</span>}
                     </span>
                     <span className="line-clamp-3 break-words text-sm leading-relaxed text-muted">{diaryExcerpt(entry.content)}</span>
                   </span>

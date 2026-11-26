@@ -38,7 +38,7 @@ export default async function DiaryDayPage({
 
   const entry = await prisma.diaryEntry.findUnique({
     where: { userId_date: { userId: user.id, date } },
-    select: { content: true, mood: true, isPublic: true },
+    select: { content: true, mood: true },
   });
   const mood = entry?.mood && isDiaryMood(entry.mood) ? entry.mood : null;
 
@@ -68,7 +68,6 @@ export default async function DiaryDayPage({
             <DiaryMood value={entry.mood} size={52} />
             <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
               {mood && <span className="text-base font-semibold">{t(MOOD_LABEL_KEYS[mood])}</span>}
-              {entry.isPublic && <span className="rounded-full bg-surface-hover px-2 py-0.5 text-xs text-muted">{t("publicBadge")}</span>}
             </div>
           </div>
           <p className="whitespace-pre-wrap wrap-break-word text-[15px] leading-relaxed">{entry.content}</p>

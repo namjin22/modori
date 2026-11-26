@@ -6,7 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { RUN_TAG } from "./run-tag";
 import { homeReady } from "./todo-helpers";
 
-// 일기(2026-11-17 운영자 결정, docs/decisions.md "일기"): 하루 한 편의 글과 이모지, 기본은 나만 보고 일기마다 친구 공개.
+// 일기(2026-11-17 운영자 결정, docs/decisions.md "일기"): 하루 한 편의 글과 이모지. 2026-11-26부터 기본은 친구에게 보이고 일기마다 "비공개"를 켜면 나만 본다.
 const TODAY = formatKST(todayIn("Asia/Seoul"));
 const day = (offset: number) => formatKST(addDays(parseKSTDate(TODAY), offset));
 
@@ -40,7 +40,7 @@ const userByEmail = (email: string) => prisma.user.findUniqueOrThrow({ where: { 
 const entryOf = (userId: string, date: string) => prisma.diaryEntry.findUnique({ where: { userId_date: { userId, date: parseKSTDate(date) } } });
 const mood = (page: Page, key: string) => page.locator(`label:has(input[name="mood"][value="${key}"])`);
 
-test("일기를 쓰고 고치고 지운다: 글·이모지·기분·친구 공개, 하루 한 편", async ({ page, emails }, testInfo) => {
+test("일기를 쓰고 고치고 지운다: 글·이모지·기분·비공개, 하루 한 편", async ({ page, emails }, testInfo) => {
   await signUp(page, emails.me, `일기${testInfo.testId.slice(-6)}${RUN_TAG}`);
   const me = await userByEmail(emails.me);
 
@@ -71,8 +71,8 @@ test("일기를 쓰고 고치고 지운다: 글·이모지·기분·친구 공�
 
   await save.click();
   await expect(page.getByText("저장했어요.")).toBeVisible();
-  // 기본은 나만 본다.
-  expect(await entryOf(me.id, TODAY)).toMatchObject({ content: "오늘은 시험이 끝났다.🎉", mood: "sun", isPublic: false });
+  // 기본은 친구에게 보인다(2026-11-26). 비공개 스위치는 꺼져 있다.
+  expect(await entryOf(me.id, TODAY)).toMatchObject({ content: "오늘은 시험이 끝났다.🎉", mood: "sun", isPublic: true });
 
   // 새로 열어도 그대로이고, 고쳐도 한 편이다. 저장하면 읽는 화면으로 가므로 고치기 버튼으로 쓰기 화면에 다시 간다(2026-11-24).
   await page.reload();
@@ -81,11 +81,12 @@ test("일기를 쓰고 고치고 지운다: 글·이모지·기분·친구 공�
   await expect(page.locator('input[name="mood"][value="sun"]')).toBeChecked();
   await content.fill("오늘은 시험이 끝났다.\n둘째 줄도 적었다.");
   await mood(page, "partly").click();
-  await page.getByRole("checkbox", { name: /친구에게 공개/ }).check();
+  await expect(page.getByRole("checkbox", { name: /비공개/ })).not.toBeChecked();
+  await page.getByRole("checkbox", { name: /비공개/ }).check();
   await save.click();
   await expect(page.getByText("저장했어요.")).toBeVisible();
   expect(await prisma.diaryEntry.count({ where: { userId: me.id } })).toBe(1);
-  expect(await entryOf(me.id, TODAY)).toMatchObject({ content: "오늘은 시험이 끝났다.\n둘째 줄도 적었다.", mood: "partly", isPublic: true });
+  expect(await entryOf(me.id, TODAY)).toMatchObject({ content: "오늘은 시험이 끝났다.\n둘째 줄도 적었다.", mood: "partly", isPublic: false });
 
   // 기분을 "고르지 않음"으로 되돌릴 수 있다.
   await page.getByRole("link", { name: "일기 고치기" }).click();
@@ -107,7 +108,7 @@ test("일기를 쓰고 고치고 지운다: 글·이모지·기분·친구 공�
   expect(await entryOf(me.id, TODAY)).toBeNull();
 });
 
-test("목록은 달마다 최근 날부터 보이고, 공개 표시가 붙고, 오늘 일기로 바로 간다", async ({ page, emails }, testInfo) => {
+test("목록은 달마다 최근 날부터 보이고, 오늘 일기로 바로 간다(공개 표시는 없다)", async ({ page, emails }, testInfo) => {
   await signUp(page, emails.me, `목록${testInfo.testId.slice(-6)}${RUN_TAG}`);
   const me = await userByEmail(emails.me);
   await prisma.diaryEntry.createMany({
@@ -123,9 +124,9 @@ test("목록은 달마다 최근 날부터 보이고, 공개 표시가 붙고, �
   await expect(page.getByRole("link", { name: "오늘 일기 이어 쓰기" })).toBeVisible();
 
   const items = page.getByRole("listitem");
-  // 오늘 일기가 어제보다 위에 있고(달이 바뀌는 날은 이번 달에 하나뿐일 수 있다), 공개 표시는 공개한 것에만 붙는다.
+  // 오늘 일기가 어제보다 위에 있다(달이 바뀌는 날은 이번 달에 하나뿐일 수 있다). "친구 공개" 표시는 없앴다(2026-11-26, 기본이 공개라 거의 모든 일기에 붙는다).
   const todayItem = items.filter({ hasText: "오늘 쓴 일기" });
-  await expect(todayItem).toContainText("친구 공개");
+  await expect(todayItem).not.toContainText("친구 공개");
   const yesterday = items.filter({ hasText: "어제 쓴 일기 둘째 줄" });
   if (formatKST(parseKSTDate(day(-1))).slice(0, 7) === TODAY.slice(0, 7)) {
     await expect(yesterday).toBeVisible();
@@ -147,7 +148,7 @@ test("목록은 달마다 최근 날부터 보이고, 공개 표시가 붙고, �
   await expect(page.getByRole("link", { name: "다음 달" })).toBeVisible();
 });
 
-test("홈의 하루 화면 카드에서 그날의 일기로 가고(내용은 누른 뒤 보인다), 없으면 쓰러 가는 줄이 보인다(내일 이후에는 없다)", async ({ page, emails }, testInfo) => {
+test("홈의 하루 화면 카드에서 그날 일기의 글이 바로 보이고 누르면 읽는 화면으로 가며, 없으면 쓰러 가는 줄이 보인다(내일 이후에는 없다)", async ({ page, emails }, testInfo) => {
   await signUp(page, emails.me, `피드${testInfo.testId.slice(-6)}${RUN_TAG}`);
   const me = await userByEmail(emails.me);
   const card = page.locator("[data-diary-card]");
@@ -159,26 +160,26 @@ test("홈의 하루 화면 카드에서 그날의 일기로 가고(내용은 누
   await card.click();
   await expect(page).toHaveURL(new RegExp(`/diary/${TODAY}/edit$`));
 
-  // 저장하면 홈 카드에 기분 그림과 친구 공개 표시가 보인다. 글은 카드에 보이지 않고 눌러야 보인다(2026-11-24 요청, 운영자 승인으로 기대값을 바꿨다).
+  // 저장하면 홈 카드에 기분 그림과 글이 바로 보인다(2026-11-26 요청: 눌러야 읽는 것이 아니라 한 화면에 들어올 만큼은 보이게. 11-24에는 내용을 숨겼다).
+  // "친구 공개" 표시는 없다(기본이 공개).
   await page.getByLabel("일기 내용").fill("홈에서 바로 보이는 일기\n둘째 줄은 이어서 붙는다");
   await mood(page, "moon").click();
-  await page.getByRole("checkbox", { name: /친구에게 공개/ }).check();
   await page.getByRole("button", { name: "저장", exact: true }).click();
   await expect(page.getByText("저장했어요.")).toBeVisible();
   await page.goto("/");
   await expect(card).toHaveCount(1);
-  await expect(card).not.toContainText("홈에서 바로 보이는 일기");
-  await expect(card).toContainText("눌러서 읽기");
-  await expect(card).toContainText("친구 공개");
+  await expect(card).toContainText("홈에서 바로 보이는 일기");
+  await expect(card).toContainText("둘째 줄은 이어서 붙는다");
+  await expect(card).not.toContainText("눌러서 읽기");
+  await expect(card).not.toContainText("친구 공개");
   await expect(card).not.toContainText("써 보세요");
   await expect(card.locator("svg").first()).toBeVisible();
 
   // 다른 날을 보면 그 날의 일기(또는 쓰러 가는 줄)가 보이고, 아직 오지 않은 날에는 카드가 없다.
   await prisma.diaryEntry.create({ data: { userId: me.id, date: parseKSTDate(day(-1)), content: "어제 쓴 일기 맛보기" } });
   await page.goto(`/?date=${day(-1)}`);
-  await expect(card).toContainText("눌러서 읽기");
-  await expect(card).not.toContainText("어제 쓴 일기 맛보기");
-  await expect(card).not.toContainText("친구 공개");
+  await expect(card).toContainText("어제 쓴 일기 맛보기");
+  await expect(card).not.toContainText("눌러서 읽기");
   await page.goto(`/?date=${day(-2)}`);
   await expect(card).toContainText("이 날의 일기를 써 보세요");
   await page.goto(`/?date=${day(1)}`);
