@@ -6,6 +6,7 @@ import type { ComponentProps, ReactNode } from "react";
 
 
 import {
+  addDays,
   addMonths,
   daysInMonthKST,
   formatKST,
@@ -88,6 +89,10 @@ export function MonthCalendar({
   const days = Array.from({ length: daysInMonthKST(monthStart) }, (_, index) =>
     parseKSTDate(`${monthKey}-${String(index + 1).padStart(2, "0")}`),
   );
+  // 첫 줄·마지막 줄의 빈 칸에는 앞뒤 달의 날짜를 흐리게 보인다(2026-11-27 요청: 12월 첫 줄에 11월 29·30일). 누르는 칸이 아니라 모양만이다.
+  const trailingBlanks = (7 - ((leadingBlanks + days.length) % 7)) % 7;
+  const leadingDays = Array.from({ length: leadingBlanks }, (_, index) => addDays(monthStart, index - leadingBlanks));
+  const trailingDays = Array.from({ length: trailingBlanks }, (_, index) => addDays(days[days.length - 1], index + 1));
   const isThisMonth = monthKey === formatMonthKST(today);
 
   return (
@@ -146,8 +151,8 @@ export function MonthCalendar({
         {/* 달을 넘기면 넘긴 쪽에서 날짜 칸이 미끄러져 들어온다. 요일 줄은 그대로 둔다. */}
         <SwapIn swapKey={monthKey}>
           <DayGrid editable={editableEvents}>
-            {Array.from({ length: leadingBlanks }, (_, index) => (
-              <div key={`blank-${index}`} />
+            {leadingDays.map((day) => (
+              <OtherMonthDay key={formatKST(day)} day={day} compact={compact} />
             ))}
 
             {days.map((day) => {
@@ -228,6 +233,10 @@ export function MonthCalendar({
                 </DayLink>
               );
             })}
+
+            {trailingDays.map((day) => (
+              <OtherMonthDay key={formatKST(day)} day={day} compact={compact} />
+            ))}
           </DayGrid>
         </SwapIn>
       </div>
@@ -263,4 +272,13 @@ function DayGrid({ editable, children }: { editable: boolean; children: ReactNod
   const className = "grid grid-cols-7 gap-0.5";
   if (!editable) return <TouchGuard className={className}>{children}</TouchGuard>;
   return <EventDragGrid className={className}>{children}</EventDragGrid>;
+}
+
+/** 달력 첫 줄·마지막 줄에서 앞뒤 달에 걸친 날. 흐리게 숫자만 보이고 누를 수 없다(스크린 리더에도 읽히지 않는다). */
+function OtherMonthDay({ day, compact }: { day: Date; compact: boolean }) {
+  return (
+    <div aria-hidden data-other-month className={`flex flex-col items-center px-0.5 py-1 ${compact ? "min-h-10" : "min-h-11 sm:min-h-16"}`}>
+      <span className="flex size-6 items-center justify-center text-xs text-muted opacity-50">{day.getUTCDate()}</span>
+    </div>
+  );
 }
