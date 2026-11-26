@@ -2266,3 +2266,9 @@ VM에 시험 DB(사용자 1000, 할 일 108만, 반응 24만, 280MB)를 만들�
 - **대표 색 12개**: `lib/colors.ts`의 `MORE_COLORS`를 100색 공식에서 고정 12색으로(이름의 MORE는 예전 "더 많은 색" 창에서 왔다). 창은 한 줄 6개(`components/color-picker-sheet.tsx`). 색상 코드·색 판은 그대로. 시험은 개수만 바꿨다(운영자 승인): `colors-more.test.ts`, `colors-menu.spec.ts`.
 - **카드의 이름 지움**: `components/event-section.tsx`의 `EventCard`가 내 색 이름을 안 적는다. 이름을 찾는 데만 쓰던 반복 일정 `categoryId` 전달(`lib/event-routine.ts`, 친구 화면)도 치웠다. 내가 쓴 `event-categories.spec.ts` 두 곳은 이름이 없는 것을 확인하게 바꿨다. 일정을 고치는 창에서는 `DayEvent.categoryId`로 붙은 색이 골라진다.
 - 결정: `docs/decisions.md` "새 색 만들기 창의 표를 대표 색 12개로 줄이고…".
+
+## 2026-11-26(이어서) — 릴리스 스크린샷
+
+- `docs/screenshots/2026-11-26/` 71장(main f94a7bb, 로컬 `npm run screenshots`, 약 2.7MB). 새 화면: 34 일정 창의 색 고르기(흰색 + 내 색 + +), 35 새 색 만들기 창(대표 색 12개), 36 내 색 화면. README "릴리스 목록"에 한 줄.
+- 촬영 스크립트(커밋함): `tests/screenshots/my-colors.spec.ts`(데모 계정 하나와 내 색 다섯 개를 따로 만든다). 운영자 미커밋 변경(`capture.spec.ts` 21~24번, `seed.ts`)은 이번에도 건드리지 않고 그대로 두고 찍었다 — 21~24번은 그 변경으로 찍힌 것이다. 커밋할지는 운영자가 정한다.
+- 이번에는 시험 DB 연결이 안정적이어서 한 번에 끝났다(11-26 낮의 `P1001`은 없었다).
