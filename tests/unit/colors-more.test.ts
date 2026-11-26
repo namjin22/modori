@@ -2,11 +2,11 @@ import { describe, expect, it } from "vitest";
 
 import { hexToHsv, hsvToHex, isHexColor, MORE_COLORS, normalizeHex } from "@/lib/colors";
 
-describe("더 많은 색(2026-10-19)", () => {
-  it("100색이고 모두 저장할 수 있는 꼴이며 겹치지 않는다", () => {
-    expect(MORE_COLORS).toHaveLength(100);
+describe("더 많은 색(2026-10-19, 2026-11-26에 대표 색 열둘로 줄임)", () => {
+  it("대표 색 열둘이고 모두 저장할 수 있는 꼴이며 겹치지 않는다", () => {
+    expect(MORE_COLORS).toHaveLength(12);
     expect(MORE_COLORS.every(isHexColor)).toBe(true);
-    expect(new Set(MORE_COLORS).size).toBe(100);
+    expect(new Set(MORE_COLORS).size).toBe(12);
   });
 
   it("색상 코드는 #·대소문자·세 자리를 받아 #rrggbb 소문자로 바꾸고, 아닌 것은 버린다", () => {
