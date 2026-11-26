@@ -135,7 +135,7 @@ function PickerBody({
 
       <section aria-label={t("colorList")} className="flex flex-col gap-2">
         <p className="text-xs text-muted">{t("colorList")}</p>
-        <div className="grid grid-cols-10 gap-1.5">
+        <div className="grid grid-cols-6 gap-2">
           {MORE_COLORS.map((color) => (
             <button
               key={color}
@@ -143,7 +143,7 @@ function PickerBody({
               aria-label={color}
               aria-pressed={color === hex}
               onClick={() => choose(color)}
-              className={`color-edge aspect-square rounded-md ${color === hex ? "ring-2 ring-foreground ring-offset-1 ring-offset-surface" : ""}`}
+              className={`color-edge aspect-square rounded-xl ${color === hex ? "ring-2 ring-foreground ring-offset-2 ring-offset-surface" : ""}`}
               style={{ backgroundColor: color }}
             />
           ))}

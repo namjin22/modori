@@ -56,7 +56,7 @@ test("관리 메뉴를 누르면 카테고리·루틴이 나오고(일정·목�
   await expect(page).toHaveURL(/\/categories$/);
 });
 
-test("새 색 만들기에서 100색 중 하나나 색상 코드로 만든 색이 저장되고, 다시 열면 그 색이 골라져 있다", async ({ page, email }, testInfo) => {
+test("새 색 만들기에서 대표 색 중 하나나 색상 코드로 만든 색이 저장되고, 다시 열면 그 색이 골라져 있다", async ({ page, email }, testInfo) => {
   await signUp(page, email, `색${testInfo.testId.slice(-6)}${RUN_TAG}`);
   const user = await prisma.user.findUniqueOrThrow({ where: { email } });
 
@@ -65,7 +65,7 @@ test("새 색 만들기에서 100색 중 하나나 색상 코드로 만든 색�
   await page.getByPlaceholder("새 카테고리").fill("독서");
   await page.getByRole("button", { name: "새 색 만들기" }).click();
   const sheet = page.getByRole("dialog", { name: "새 색 만들기" });
-  await expect(sheet.getByRole("region", { name: "색 목록" }).getByRole("button")).toHaveCount(100);
+  await expect(sheet.getByRole("region", { name: "색 목록" }).getByRole("button")).toHaveCount(12);
   const firstListed = (await sheet.getByRole("region", { name: "색 목록" }).getByRole("button").nth(5).getAttribute("aria-label")) ?? "";
   await sheet.getByRole("button", { name: firstListed }).click();
   await expect(sheet.getByLabel("색상 코드")).toHaveValue(firstListed);

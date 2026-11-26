@@ -2260,3 +2260,9 @@ VM에 시험 DB(사용자 1000, 할 일 108만, 반응 24만, 280MB)를 만들�
 - **확인한 것**: `npx tsc --noEmit`, `eslint`(바뀐 앱·lib·components·tests) 통과, `prisma migrate deploy`와 스키마 일치(`migrate diff` 차이 없음).
 - **확인하지 못한 것(CI에 맡김)**: 이 PC의 시험 DB(Neon, `-pooler` 주소)가 `Can't reach database server`(P1001)·연결 풀 시간 초과로 불안정해 로컬 E2E를 믿을 수 없었다. 첫 묶음 95개 중 92개 실패(대부분 5초 안에, 서버 로그에 P1001), 일꾼 2개로 다시 돌린 25개는 11 통과·14 실패(실패 원인은 DB 지연으로 보이는 시간 초과이고, 서버 로그의 `Event_userId_fkey`·`EventRoutine_userId_fkey`는 시간 초과로 먼저 사용자가 지워져서 생긴 것). 내 새 시험 중 통과한 것: 흰색 하나와 +로 일정에 붙이기, 일반 카테고리에서도 보임, 색 바꾸면 따라감, 같은 이름 거절, 지우기·되돌리기. **`mcp-my-colors.spec.ts`는 로컬에서 한 번도 못 돌렸다.** 단위 시험은 이 PC 작업 폴더에서 `vitest`가 모든 파일에서 `reading 'config'`로 시작하지 못한다(11-25에 적은 같은 문제).
 - **알아 둘 것**: 신규 가입자는 처음에 흰색과 +뿐이다(대가로 적음). 예전 "더 많은 색"처럼 저장하지 않는 한 번짜리 색은 이제 없다(내 색은 20개까지). 일반 카테고리는 색을 복사해 쓰므로 내 색을 바꿔도 따라가지 않는다.
+
+## 2026-11-26(이어서) — 대표 색 12개, 카드의 내 색 이름 지움
+
+- **대표 색 12개**: `lib/colors.ts`의 `MORE_COLORS`를 100색 공식에서 고정 12색으로(이름의 MORE는 예전 "더 많은 색" 창에서 왔다). 창은 한 줄 6개(`components/color-picker-sheet.tsx`). 색상 코드·색 판은 그대로. 시험은 개수만 바꿨다(운영자 승인): `colors-more.test.ts`, `colors-menu.spec.ts`.
+- **카드의 이름 지움**: `components/event-section.tsx`의 `EventCard`가 내 색 이름을 안 적는다. 이름을 찾는 데만 쓰던 반복 일정 `categoryId` 전달(`lib/event-routine.ts`, 친구 화면)도 치웠다. 내가 쓴 `event-categories.spec.ts` 두 곳은 이름이 없는 것을 확인하게 바꿨다. 일정을 고치는 창에서는 `DayEvent.categoryId`로 붙은 색이 골라진다.
+- 결정: `docs/decisions.md` "새 색 만들기 창의 표를 대표 색 12개로 줄이고…".

@@ -57,42 +57,24 @@ export function hexToHsv(hex: string): { h: number; s: number; v: number } {
   return { h: (h + 360) % 360, s: max === 0 ? 0 : delta / max, v: max };
 }
 
-function hslToHex(h: number, s: number, l: number): string {
-  const a = s * Math.min(l, 1 - l);
-  const f = (n: number) => {
-    const k = (n + h / 30) % 12;
-    return l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1));
-  };
-  return `#${toHex(f(0) * 255)}${toHex(f(8) * 255)}${toHex(f(4) * 255)}`;
-}
-
-// 더 많은 색: 파스텔 색상 10가지 × 톤 9단계 + 바탕·회색 10 = 100색. 손으로 적으면 오타가 나서 공식으로 만든다.
-// 처음엔 색상환을 고르게 나눈 진한 색이었는데 "그냥 배열된 색"처럼 보인다는 의견을 받았다(2026-10-19).
-// 아주 연한 톤부터 차분한 톤까지 채도를 낮게 두고, 흰 글씨가 필요한 어두운 끝은 맨 아래 두 줄만 남겼다.
-const MORE_HUES = [345, 10, 28, 48, 88, 150, 180, 205, 232, 268];
-const MORE_TONES: [saturation: number, lightness: number][] = [
-  [0.75, 0.94],
-  [0.7, 0.9],
-  [0.66, 0.86],
-  [0.62, 0.82],
-  [0.56, 0.78],
-  [0.5, 0.74],
-  [0.44, 0.7],
-  [0.36, 0.65],
-  [0.26, 0.58],
-];
+/**
+ * "새 색 만들기" 창의 대표 색 열둘(2026-11-26 운영자 요청). 예전에는 파스텔 100색 표였는데 쓰지 않는 색이 대부분이라 줄였다.
+ * 표에 없는 색은 색상 코드나 색 판 직접 찍기로 만든다. 검정은 어두운 화면에서 배경에 묻혀 뺐고, 흰색은 색 고르기에 처음부터 있다.
+ * 이름의 MORE는 예전 "더 많은 색" 창에서 왔다.
+ */
 export const MORE_COLORS: string[] = [
-  ...MORE_TONES.flatMap(([s, l]) => MORE_HUES.map((h) => hslToHex(h, s, l))),
-  "#fbf8f3",
-  "#f3ece2",
-  "#e8dfd3",
-  "#d6cbbd",
-  "#b9ad9f",
-  "#e9edf2",
-  "#cfd6df",
-  "#a5afbc",
-  "#6b7280",
-  "#374151",
+  "#dc2626", // 빨강
+  "#f97316", // 주황
+  "#facc15", // 노랑
+  "#84cc16", // 연두
+  "#22c55e", // 초록
+  "#14b8a6", // 청록
+  "#38bdf8", // 하늘
+  "#2563eb", // 파랑
+  "#7c3aed", // 보라
+  "#ec4899", // 분홍
+  "#92400e", // 갈색
+  "#6b7280", // 회색
 ];
 
 /** 색의 상대 휘도(WCAG). 읽을 수 없는 값이면 null. */
