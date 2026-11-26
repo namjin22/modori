@@ -48,9 +48,10 @@ test("색 고르기에는 흰색 하나와 +만 있고, +로 만든 색이 일�
   await expect(page.getByText("학교 시험", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "저장", exact: true }).click();
 
-  // 일정 카드에 이름이 같이 보인다.
+  // 일정 카드에는 내 색의 이름을 적지 않는다(2026-11-26 운영자 요청). 색 띠만 보인다.
   const card = page.getByRole("listitem").filter({ hasText: "기말 평가" });
-  await expect(card).toContainText("학교 시험");
+  await expect(card).toBeVisible();
+  await expect(card).not.toContainText("학교 시험");
 
   const user = await prisma.user.findUniqueOrThrow({ where: { email } });
   const category = await prisma.eventCategory.findFirstOrThrow({ where: { userId: user.id } });
@@ -187,7 +188,7 @@ test("고치는 창에는 붙어 있던 내 색이 골라져 있고, 흰색을 �
   expect(after.color).toBe("#ffffff");
 });
 
-test("반복 일정도 내 색을 골라 만들고 고친다. 홈에는 이름이 같이 뜬다", async ({ page, email }, testInfo) => {
+test("반복 일정도 내 색을 골라 만들고 고친다", async ({ page, email }, testInfo) => {
   await signInAndOnboard(page, email, `반색${testInfo.testId.slice(-6)}${RUN_TAG}`);
   const user = await prisma.user.findUniqueOrThrow({ where: { email } });
   const category = await prisma.eventCategory.create({ data: { userId: user.id, name: "학원", color: "#2563eb", order: 0 } });
@@ -203,10 +204,11 @@ test("반복 일정도 내 색을 골라 만들고 고친다. 홈에는 이름�
   const made = await prisma.eventRoutine.findFirstOrThrow({ where: { userId: user.id, title: "수학 학원" } });
   expect(made).toMatchObject({ categoryId: category.id, color: "#2563eb" });
 
-  // 홈의 반복 일정 줄에 내 색의 이름이 붙는다.
+  // 홈의 반복 일정 줄에는 내 색의 이름을 적지 않는다.
   await page.goto("/");
   const list = page.getByRole("region", { name: "일정" }).getByRole("list", { name: "반복 일정" });
-  await expect(list).toContainText("↻ 매일 · 학원");
+  await expect(list).toContainText("↻ 매일");
+  await expect(list).not.toContainText("· 학원");
 
   // 고치는 창: 붙어 있는 색이 골라져 있다.
   await page.goto("/routines");

@@ -11,7 +11,7 @@ import { describeRoutineRule, matchesRule } from "@/lib/routine";
 export type EventRoutineRule = Pick<
   EventRoutine,
   "id" | "title" | "color" | "startTime" | "endTime" | "freq" | "byWeekday" | "byMonthday" | "startDate" | "endDate" | "pausedAt"
-> & { categoryId?: string | null };
+>;
 
 /** 펼친 하루치. 홈의 일정 목록·달력이 보통 일정과 같은 모양으로 그리고, repeat로 반복 일정인 것을 안다. */
 export type EventOccurrence = {
@@ -22,8 +22,6 @@ export type EventOccurrence = {
   startTime: number | null;
   endTime: number | null;
   color: string;
-  // 내 색(이름 붙은 색)을 골랐으면 그 id. 일정 카드가 이름을 찾는 데 쓴다(2026-11-26).
-  categoryId: string | null;
   memo: null;
   dday: false;
   repeat: { routineId: string; date: string; rule: string };
@@ -63,7 +61,6 @@ export function expandEventRoutines(
         startTime: routine.startTime,
         endTime: routine.endTime,
         color: routine.color,
-        categoryId: routine.categoryId ?? null,
         memo: null,
         dday: false,
         repeat: { routineId: routine.id, date: key, rule: describeRoutineRule(routine, locale) },
