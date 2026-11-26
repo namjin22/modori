@@ -2285,3 +2285,11 @@ VM에 시험 DB(사용자 1000, 할 일 108만, 반응 24만, 280MB)를 만들�
 ## 2026-11-26(밤) — 릴리스 스크린샷 다시
 
 - 같은 날 일기 변경(PR #316)이 배포돼 `docs/screenshots/2026-11-26/` 71장을 main `d794244`로 다시 찍어 덮어썼다(로컬 `npm run screenshots`, 이번에도 운영자 미커밋 촬영 변경 `capture.spec.ts` 21~24번·`seed.ts`를 커밋하지 않고 그대로 두고 찍었다). 바뀐 화면: 홈 일기 카드(글 여섯 줄, 친구 공개 표시 없음), 친구 화면 달력 밑 일기 카드(05), 일기 쓰기의 "비공개" 스위치(22). README "릴리스 목록"의 11-26 줄을 고쳤다.
+
+## 2026-11-26(이어서) — 데스크톱 앱 Alt 메뉴 막대(INC-24, 앱 1.0.10)
+
+- **원인**: `desktop/main.js`의 `autoHideMenuBar: true`. Alt를 단독으로 눌렀다 떼면 "보기·편집" 막대가 떠서 웹 화면 높이가 26px(785 → 759) 줄고 배치가 다시 계산된다. 앱 1.0.9를 Electron 44.4.5로 띄워 `webContents.sendInputEvent`로 Alt를 보내 재현·측정했다.
+- **고침**: 앱 1.0.10(`desktop/package.json`). `autoHideMenuBar: false` + `setMenuBarVisibility(false)` + `show: false` 뒤 `show()`. 메뉴는 그대로라 단축키(Ctrl+= 확대 0 → 0.5 확인)는 먹는다. 결정 `docs/decisions.md` "데스크톱 앱의 메뉴 막대를 숨기고…", 장애 기록 INC-24.
+- **시험**: `tests/e2e/desktop-app.spec.ts`에 Alt·단축키 시험을 더했다(Electron이 설치된 곳에서만 돈다, CI는 건너뜀).
+- **배포**: 앱은 웹과 달리 태그로 배포한다. 병합 뒤 `desktop-v1.0.10` 태그를 올리면 `desktop` 워크플로가 설치 파일을 만들어 릴리스한다(`desktop/README.md` "배포"). 사용자는 앱 안 "업데이트" 버튼으로 받는다(1.0.7부터).
+- **못 확인한 것**: 설치 파일로 만든 Windows 앱과 macOS. 운영자가 1.0.10을 받아 Alt를 눌러 확인해 주면 닫는다.
