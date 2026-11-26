@@ -203,6 +203,49 @@ test("확대는 Shift 없는 Ctrl+=와 숫자 패드 +로도, 축소는 숫자 �
   }
 });
 
+test("Alt를 눌러도 메뉴 막대가 뜨지 않아 웹 화면 크기가 그대로이고, 메뉴 단축키는 그대로 먹는다", async () => {
+  // 예전에는 autoHideMenuBar: true라 Alt를 눌렀다 떼면 막대가 떠서 웹 화면이 막대 높이(26px)만큼 줄고 다시 누르면 늘어났다(2026-11-26 제보).
+  // 막대를 숨기고 자동 숨김을 꺼 두면 Alt로는 다시 뜨지 않는다. 키 입력은 창으로 직접 보낸다(sendInputEvent는 운영체제 키 입력과 같은 길로 들어간다).
+  const app = await launch("http://127.0.0.1:9");
+  try {
+    const win = await app.firstWindow();
+    await expect(win.getByRole("heading", { name: "모도리에 연결하지 못했어요" })).toBeVisible();
+    const state = () =>
+      app.evaluate(({ BrowserWindow }) => {
+        const window = BrowserWindow.getAllWindows()[0];
+        return { menuBarVisible: window.isMenuBarVisible(), autoHideMenuBar: window.autoHideMenuBar, contentSize: window.getContentSize() };
+      });
+    const press = (keyCode: string, modifiers: ("control" | "alt")[] = []) =>
+      app.evaluate(
+        ({ BrowserWindow }, key) => {
+          const contents = BrowserWindow.getAllWindows()[0].webContents;
+          contents.sendInputEvent({ type: "keyDown", keyCode: key.keyCode, modifiers: key.modifiers });
+          contents.sendInputEvent({ type: "keyUp", keyCode: key.keyCode, modifiers: key.modifiers });
+        },
+        { keyCode, modifiers },
+      );
+    const pause = () => new Promise((resolve) => setTimeout(resolve, 500));
+
+    const before = await state();
+    expect(before).toMatchObject({ menuBarVisible: false, autoHideMenuBar: false });
+    // Alt를 눌렀다 떼도(두 번, 한 번 더 누르면 숨던 때와 같은 순서) 막대는 안 뜨고 창 안쪽 크기는 그대로다.
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      await press("Alt");
+      await pause();
+      expect(await state()).toEqual(before);
+    }
+
+    // 막대가 안 보여도 메뉴의 단축키는 먹는다: Ctrl+=로 확대된다.
+    const zoomBefore = await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].webContents.getZoomLevel());
+    await press("=", ["control"]);
+    await expect
+      .poll(() => app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].webContents.getZoomLevel()))
+      .toBeGreaterThan(zoomBefore);
+  } finally {
+    await app.close();
+  }
+});
+
 /** 지금은 아무도 듣지 않는 포트 하나(열었다 닫아서 얻는다). */
 async function closedPort(): Promise<number> {
   const server = createServer();

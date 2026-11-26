@@ -114,7 +114,11 @@ function createWindow() {
     minHeight: 600,
     title: "모도리",
     icon: path.join(__dirname, "build", "icon.png"),
-    autoHideMenuBar: true,
+    // 메뉴 막대는 아예 숨긴다(아래 setMenuBarVisibility). 예전의 autoHideMenuBar: true는 Alt를 눌렀다 떼면 막대가 떠서 웹 화면이
+    // 막대 높이(26px)만큼 줄고 다시 누르면 늘어났다. 웹이 화면 높이(100dvh)를 따라 그리므로 그때마다 화면이 출렁였다(2026-11-26).
+    autoHideMenuBar: false,
+    // 막대가 처음 한 프레임 보였다 사라지지 않게, 숨긴 뒤에 보인다.
+    show: false,
     backgroundColor: "#f7f8fa",
     webPreferences: {
       contextIsolation: true,
@@ -123,6 +127,11 @@ function createWindow() {
       preload: path.join(__dirname, "preload.js"),
     },
   });
+
+  // 자동 숨김이 꺼져 있으면 Alt로는 다시 뜨지 않는다. 막대만 숨길 뿐 메뉴는 그대로라 단축키(F5·Ctrl+R·확대·축소·Alt+←→)는 먹는다.
+  // macOS는 메뉴가 화면 맨 위에 따로 있어 이 호출이 아무 일도 하지 않는다.
+  win.setMenuBarVisibility(false);
+  win.show();
 
   const contents = win.webContents;
   // Electron은 앱 이름("모도리")을 사용자 에이전트에 넣는다. HTTP 헤더에 한글이 들어가면 요청이 깨지므로
@@ -157,7 +166,7 @@ function createWindow() {
   win.loadURL(BASE.toString());
 }
 
-// 메뉴 막대는 Alt를 눌러야 보이지만, 단축키는 늘 먹는다. 기본 메뉴의 새로고침은 안내 화면에서 안내 화면만 다시 읽는다.
+// 메뉴 막대는 보이지 않지만(createWindow에서 숨긴다), 단축키는 늘 먹는다. 기본 메뉴의 새로고침은 안내 화면에서 안내 화면만 다시 읽는다.
 function setupMenu() {
   Menu.setApplicationMenu(
     Menu.buildFromTemplate([
