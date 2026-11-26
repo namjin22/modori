@@ -18,7 +18,7 @@ import { events } from "@/lib/i18n/messages/events";
 type EventCategory = { id: string; name: string; color: string };
 
 /**
- * 일정 카테고리 한 줄. 누르면 창이 떠서 고친다(할 일 카테고리와 같은 방식, components/category-editor.tsx).
+ * 내 색(이름 붙은 색) 한 줄. 누르면 창이 떠서 고친다(할 일 카테고리와 같은 방식, components/category-editor.tsx).
  * 저장 버튼이 없다. 색을 고르면 그 자리에서, 이름은 Enter나 칸을 벗어날 때 저장한다.
  */
 export function EventCategoryEditor({ category }: { category: EventCategory }) {
@@ -102,7 +102,7 @@ export function EventCategoryEditor({ category }: { category: EventCategory }) {
             className="h-12 w-full rounded-xl bg-surface-hover px-4 text-[15px] font-medium outline-none focus:ring-2 focus:ring-brand"
           />
 
-          <ColorSwatches name="color" legend={t("color")} defaultValue={category.color} />
+          <ColorSwatches name="color" legend={t("color")} defaultValue={category.color} plain onChosen={save} />
         </form>
 
         <div className="flex items-center justify-between border-t border-border pt-4">

@@ -36,10 +36,10 @@
 
 | 도구 | 하는 일 |
 |---|---|
-| `get_overview` | 오늘 날짜(사용자 시간대), 카테고리(id·이름·색·팔로워에게 보이는지), 상한, 이 토큰이 할 수 있는 것(`access`) |
+| `get_overview` | 오늘 날짜(사용자 시간대), 카테고리(id·이름·색·팔로워에게 보이는지), 상한, 이 토큰이 할 수 있는 것(`access`). 사용자가 만든 **내 색**(`eventCategories`: id·이름·색, 2026-11-26)과 그 상한도 같이 나간다 |
 | `list_todos` | 기간(최대 62일, 300개)의 할 일. `includeMemo`를 켜야 메모가 나간다. 세부 할 일에는 큰 할 일의 `parentId`가 붙는다 |
-| `list_events` | 기간에 걸친 일정(반복 일정은 `list_routines`) |
-| `list_routines` | 루틴(할 일 루틴)과 반복 일정, 반복 규칙·멈춤 여부 |
+| `list_events` | 기간에 걸친 일정(반복 일정은 `list_routines`). 일정마다 쓰는 내 색(`category`: id·이름)이 붙는다 |
+| `list_routines` | 루틴(할 일 루틴)과 반복 일정, 반복 규칙·멈춤 여부. 반복 일정에는 내 색(`category`)이 붙는다 |
 | `get_profile` | 닉네임·소개·언어·시간대·알림 설정·팔로우 수 |
 | `search_users` | 닉네임 일부로 사람 찾기(최대 20, 차단 관계는 안 나온다), 내가 팔로우 중인지. 닉네임만 나간다(친구 찾기 화면과 같다) |
 | `list_people` | 내가 팔로우하는 사람 / 나를 팔로우하는 사람 |
@@ -59,7 +59,7 @@
 | `add_todo_memos` | 이미 있는 할 일 최대 20개에 메모를 단다. 기본은 있던 메모 뒤에 줄을 바꿔 덧붙이고(`replace: true`면 바꿈), 합쳐 500자를 넘으면 거절한다. AI가 쓴 메모는 팔로워에게 안 보인다(`memoPublic=false`). 글·카테고리는 건드리지 않는다. `batchId` |
 | `complete_todos` | id 최대 50개를 끝냄/안 끝냄으로 |
 | `move_todos` | id 최대 50개를 다른 날로(루틴이 만든 할 일은 그날 루틴이 다시 안 생기게 건너뛴 날로 남긴다). 큰 할 일을 옮기면 안 끝낸 세부 할 일이 따라가고(끝낸 것은 그 날에 남아 연결이 끊긴다), 세부 할 일만은 옮기지 않고 `subTodosNotMoved`로 알린다 |
-| `create_events` | 일정 최대 10개. 기본 **비공개**, 메모는 늘 비공개. `batchId` |
+| `create_events` | 일정 최대 10개. 기본 **비공개**, 메모는 늘 비공개. `batchId`. 내 색은 `category`(id나 이름)로 고르고, 그러면 그 색이 일정의 색이 된다(`color`와 함께 못 준다) |
 | `undo_batch` | `batchId`로 그 요청이 한 일을 24시간 안에 되돌린다(아래) |
 
 모든 권한(`FULL`):
@@ -68,14 +68,27 @@
 |---|---|
 | `update_todos` | 할 일 최대 20개의 글·메모·메모 공개·카테고리. 전부 아니면 무. `batchId`(고치기 전 값 보관). 큰 할 일의 카테고리를 바꾸면 세부 할 일도 따라가고, 세부 할 일의 카테고리는 따로 못 바꾼다 |
 | `delete_todos` | 할 일 최대 50개 지우기. 루틴이 만든 것은 그 날을 건너뛴다고 남긴다. 큰 할 일을 지우면 세부 할 일도 같이 지우고 `undo_batch`가 함께 되살린다. `batchId` |
-| `update_events` | 일정 최대 10개의 이름·날짜·시각·색·메모·공개·D-day. `batchId` |
+| `update_events` | 일정 최대 10개의 이름·날짜·시각·색·메모·공개·D-day. `batchId`. `category`(id·이름)로 내 색을 붙이고 `null`이면 떼며(색은 남는다), 색(`color`)만 손으로 바꾸면 내 색이 떨어진다 |
 | `delete_events` | 일정 최대 10개 지우기. `batchId` |
-| `create_category` / `update_category` / `delete_category` | 카테고리(전체 10개까지). 기본 **비공개**. 지우면 할 일은 "카테고리 없음"으로 남고 루틴은 멈춘다. 만들기·고치기는 되돌릴 값(`previous`)을 돌려주고, 지우기는 `batchId` |
-| `create_routine` / `update_routine` / `delete_routine` | 할 일 루틴(`kind: todo`, 카테고리 필수)과 반복 일정(`kind: event`, 기본 비공개). 둘을 합쳐 50개까지. 주기 DAILY·WEEKLY(요일 0~6)·MONTHLY(날짜 1~31). 멈춤·다시 돌림은 `update_routine`의 `paused`. 지우기는 `batchId` |
+| `create_category` / `update_category` / `delete_category` | 카테고리(전체 10개까지). 기본 **비공개**. 지우면 할 일은 "카테고리 없음"으로 남고 루틴은 멈춘다. 만들기·고치기는 되돌릴 값(`previous`)을 돌려주고, 지우기는 `batchId`. **`kind: event`를 주면 내 색을 다룬다**(아래 "내 색") |
+| `create_routine` / `update_routine` / `delete_routine` | 할 일 루틴(`kind: todo`, 카테고리 필수)과 반복 일정(`kind: event`, 기본 비공개). 둘을 합쳐 50개까지. 주기 DAILY·WEEKLY(요일 0~6)·MONTHLY(날짜 1~31). 멈춤·다시 돌림은 `update_routine`의 `paused`. 지우기는 `batchId`. 반복 일정(`kind: event`)은 `category`로 내 색을 고르고 `update_routine`에서 `null`이면 뗀다 |
 | `update_profile` | 닉네임(유일·20자)·소개(100자)·캐릭터. 사진은 못 올린다. `previous` |
 | `update_settings` | 시간대, 친구가 끝내면 푸시, 추천 친구에 안 나오기, 오늘 일정 알림 시각(5분 단위, null이면 끔). `previous`. **언어는 못 바꾼다** |
 | `follow_user` / `unfollow_user` / `remove_follower` | 닉네임으로 팔로우·끊기·내 팔로워 끊기. 팔로우하면 상대가 푸시를 받는다 |
 | `set_reaction` | 팔로우한 사람의 **끝낸 공개 카테고리 할 일**에 이모지 반응 보내기, `on=false`로 내 반응 지우기. 상대가 푸시를 받는다 |
+
+### 내 색(이름 붙은 색, 2026-11-26)
+
+사용자가 "시험=주황, 학교=보라"처럼 이름을 붙여 둔 색 목록이다(표 `EventCategory`). 앱에서는 색 고르기의 맨 오른쪽 +로 만들고, 일정·반복 일정·일반 카테고리가 같은 목록을 쓴다.
+**도구를 새로 늘리지 않고** 카테고리 도구(`create_category`·`update_category`·`delete_category`)에 `kind`를 둔다(루틴 도구의 `kind`와 같은 방식).
+`kind`를 안 주면 `todo`(할 일 카테고리, 이전과 같다)이고, `kind: event`이면 내 색이다. 권한은 할 일 카테고리와 같이 모든 권한(`FULL`)이다. 읽기는 모든 토큰이 `get_overview`·`list_events`·`list_routines`로 한다.
+
+- 만들기: 이름 20자(같은 이름은 대소문자 무시로 거절)·색 `#rrggbb`·한 사람 20개. `isPublic`은 거절한다(친구에게는 색만 보이고 이름은 안 나간다).
+- 고치기: 이름·색. 색을 바꾸면 아직 옛 색인 일정·반복 일정만 따라 바뀐다(다른 색으로 바꿔 둔 것은 그대로). `previous`를 돌려준다.
+- 지우기: 일정·반복 일정은 색을 그대로 둔 채 이름만 떨어진다. `batchId`로 `undo_batch`가 다시 잇는다(`event-category-deleted`).
+- 일정·반복 일정에 붙이기: `category`에 id나 이름. 그러면 그 색이 일정의 색이 되고 `color`와 함께 줄 수 없다. 색만 손으로 바꾸면 이름이 떨어진다(앱의 "직접 고르기"와 같다).
+- 일정을 지우거나 고쳤다가 되돌릴 때는 그 내 색이 아직 있을 때만 다시 잇는다.
+- 친구 읽기(`list_friend_events`)에는 이름도 id도 나가지 않는다(그 도구는 색 자체도 내보내지 않는다).
 
 **일부러 없는 것**: 토큰 만들기·지우기(토큰이 토큰을 만들면 권한 상승이다), 계정 지우기, 로그인 방법·연결 계정, 프로필 사진 올리기(이미지), "내가 정한 알림"(알림 문구를 AI가 정하는 것은 `CLAUDE.md` 규칙 7이 허용한 범위 밖이다), 차단·신고(안전 장치는 사람이 쓴다),
 언어 바꾸기(이 기기의 쿠키가 계정 값을 덮어써서 약속할 수 없다).
@@ -86,7 +99,7 @@
 
 - 만들기: 만든 것을 지운다(그새 사용자가 끝낸 할 일은 남긴다).
 - 할 일·일정 고치기, 메모 달기: 글·메모·메모 공개 여부·카테고리·기간 등을 고치기 전 값으로.
-- 할 일·일정·카테고리·루틴·반복 일정 지우기: 같은 id로 다시 만든다. 카테고리·루틴은 아직 본인 것으로 있을 때만 다시 잇고, 새로 만드는 것과 같은 상한(하루 50개, 일정 5개, 카테고리 10개…)을 지킨다. 못 되돌린 것은 이유와 함께 `skipped`로 알린다.
+- 할 일·일정·카테고리·내 색·루틴·반복 일정 지우기: 같은 id로 다시 만든다. 카테고리·루틴은 아직 본인 것으로 있을 때만 다시 잇고, 새로 만드는 것과 같은 상한(하루 50개, 일정 5개, 카테고리 10개…)을 지킨다. 못 되돌린 것은 이유와 함께 `skipped`로 알린다.
 - **되돌려지지 않는 것**: 지운 할 일에 친구가 보낸 반응(지울 때 같이 사라진다), 카테고리·루틴·프로필·설정을 고친 것(고치기 전 값 `previous`로 다시 고치면 된다), 팔로우·반응(반대 도구로).
 - 한 번 쓴 묶음은 지운다. 7일 넘은 묶음 기록은 다음에 AI가 바꿀 때 지운다.
 
@@ -125,9 +138,9 @@
 
 `app/mcp/route.ts`(전송, 요청마다 새 서버·전송), `lib/mcp/server.ts`(도구 등록, 권한·친구 허락별로 걸러 등록), `lib/mcp/shared.ts`(공용: 결과·속도 제한·날짜),
 `lib/mcp/tools.ts`(읽기·만들기·끝내기·옮기기·되돌리기), `edit-tools.ts`(할 일·일정 고치기·지우기), `organize-tools.ts`(카테고리·루틴), `people-tools.ts`(프로필·설정·친구·반응·친구 읽기),
-`undo.ts`·`snapshot.ts`(되돌리기), `routine-rule.ts`(반복 규칙 검사), `inputs.ts`·`inputs-full.ts`(입력 모양·상한), `auth.ts`(인증),
+`undo.ts`·`snapshot.ts`(되돌리기), `routine-rule.ts`(반복 규칙 검사), `lib/event-category.ts`(내 색 찾기), `inputs.ts`·`inputs-full.ts`(입력 모양·상한), `auth.ts`(인증),
 `lib/api-token.ts`·`lib/api-token-secret.ts`(토큰), 화면 `app/(tabs)/settings/ai/`·`components/api-token-manager.tsx`·`components/ai-guide.tsx`.
-시험: `tests/unit/api-token.test.ts`, `mcp-inputs.test.ts`, `mcp-full.test.ts`, `tests/e2e/mcp.spec.ts`(핵심), `mcp-full.spec.ts`(모든 권한·친구·되돌리기), `mcp-helpers.ts`.
+시험: `tests/unit/api-token.test.ts`, `mcp-inputs.test.ts`, `mcp-full.test.ts`, `tests/e2e/mcp.spec.ts`(핵심), `mcp-full.spec.ts`(모든 권한·친구·되돌리기), `mcp-my-colors.spec.ts`(내 색), `mcp-helpers.ts`.
 
 ## 다음 단계(안 한 것)
 

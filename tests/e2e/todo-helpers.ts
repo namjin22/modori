@@ -1,4 +1,4 @@
-import { expect, type Page } from "@playwright/test";
+import { expect, type Locator, type Page } from "@playwright/test";
 
 /** 가입하면 처음 하나만 만들어지는 카테고리. */
 export const FIRST_CATEGORY = "오늘";
@@ -36,6 +36,20 @@ export async function addCategory(page: Page, name: string) {
   await page.getByLabel("새 카테고리 이름").fill(name);
   await page.getByRole("button", { name: "추가", exact: true }).click();
   await expect(page.getByText(name, { exact: true })).toBeVisible();
+}
+
+/**
+ * 색 고르기의 맨 오른쪽 +를 눌러 내 색(이름 붙은 색)을 만든다(2026-11-26). 색은 색상 코드 칸에 쳐서 정하고, 만들면 그 색이 골라진다.
+ * scope는 그 색 고르기가 든 영역(떠 있는 창 등). 한 화면에 색 고르기가 둘 이상이면 좁혀 준다.
+ */
+export async function createMyColor(page: Page, name: string, hex: string, scope: Locator = page.locator("body")) {
+  await scope.getByRole("button", { name: "새 색 만들기" }).click();
+  const sheet = page.getByRole("dialog", { name: "새 색 만들기" });
+  await sheet.getByLabel("색 이름").fill(name);
+  await sheet.getByLabel("색상 코드").fill(hex);
+  await sheet.getByRole("button", { name: "추가", exact: true }).click();
+  await expect(sheet).toBeHidden();
+  await expect(scope.getByRole("radio", { name, exact: true })).toBeChecked();
 }
 
 /** 할 일 글자를 눌러 고치는 창을 연다. */

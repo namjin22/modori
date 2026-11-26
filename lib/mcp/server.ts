@@ -58,7 +58,7 @@ const REACHES_OTHERS: ToolAnnotations = { readOnlyHint: false, destructiveHint: 
 
 const INSTRUCTIONS = [
   "modori is a todo and calendar app. These tools read and change the signed-in user's own data.",
-  "Call get_overview first: it returns today's date in the user's timezone, their categories, the limits, and what this token may do (access.scope).",
+  "Call get_overview first: it returns today's date in the user's timezone, their todo categories, their named colors ('my colors', eventCategories: the colors the user gave a name, e.g. exam = orange, which events and repeating events can use), the limits, and what this token may do (access.scope).",
   "Create or edit many items in one call instead of one by one. Every call is all-or-nothing.",
   "Events, categories and repeating events you create are private to the user unless they asked to share them. Todos in a public category are visible to the user's followers.",
   "Every call that creates, edits or deletes returns a batchId; undo_batch puts things back within 24 hours if the user changes their mind.",
@@ -78,7 +78,8 @@ export function createMcpServer(ctx: McpContext): McpServer {
     "get_overview",
     {
       title: "Get overview",
-      description: "Today's date in the user's timezone, the user's categories (id, name, color, whether followers can see it), the limits, and what this token may do. Call this first.",
+      description:
+        "Today's date in the user's timezone, the user's todo categories (id, name, color, whether followers can see it), the user's named colors for events (eventCategories: id, name, color), the limits, and what this token may do. Call this first.",
       annotations: READ_ONLY,
     },
     () => getOverview(ctx),
@@ -92,7 +93,7 @@ export function createMcpServer(ctx: McpContext): McpServer {
     "list_events",
     {
       title: "List events",
-      description: "List the user's calendar events that overlap a date range. Repeating events are listed by list_routines.",
+      description: "List the user's calendar events that overlap a date range, with the named color (category) each one uses, if any. Repeating events are listed by list_routines.",
       inputSchema: listEventsInput,
       annotations: READ_ONLY,
     },
@@ -182,7 +183,8 @@ export function createMcpServer(ctx: McpContext): McpServer {
     "create_events",
     {
       title: "Create events",
-      description: "Create up to 10 calendar events at once (one-day or multi-day, with optional times). Private by default. All-or-nothing. Returns a batchId for undo_batch.",
+      description:
+        "Create up to 10 calendar events at once (one-day or multi-day, with optional times). Give color (#rrggbb) or category (one of the user's named colors, which also sets the event's color), not both. Private by default. All-or-nothing. Returns a batchId for undo_batch.",
       inputSchema: createEventsInput,
       annotations: ADDS,
     },
@@ -215,7 +217,12 @@ export function createMcpServer(ctx: McpContext): McpServer {
   );
   server.registerTool(
     "update_events",
-    { title: "Edit events", description: "Change the title, dates, times, color, memo or visibility of up to 10 events.", inputSchema: updateEventsInput, annotations: CHANGES },
+    {
+      title: "Edit events",
+      description: "Change the title, dates, times, color or named color (category), memo or visibility of up to 10 events.",
+      inputSchema: updateEventsInput,
+      annotations: CHANGES,
+    },
     (input) => updateEvents(ctx, input),
   );
   server.registerTool(
@@ -225,24 +232,43 @@ export function createMcpServer(ctx: McpContext): McpServer {
   );
   server.registerTool(
     "create_category",
-    { title: "Create category", description: "Create a category (up to 10 in total). Private by default.", inputSchema: createCategoryInput, annotations: ADDS },
+    {
+      title: "Create category",
+      description:
+        "Create a todo category (up to 10 in total, private by default) or, with kind=event, a named color for events (up to 20 in total, e.g. exam = orange; followers only ever see the color).",
+      inputSchema: createCategoryInput,
+      annotations: ADDS,
+    },
     (input) => createCategory(ctx, input),
   );
   server.registerTool(
     "update_category",
-    { title: "Edit category", description: "Rename a category, change its color or whether followers can see its todos. Returns the previous values.", inputSchema: updateCategoryInput, annotations: CHANGES },
+    {
+      title: "Edit category",
+      description:
+        "Rename a category, change its color or (todo categories only) whether followers can see its todos. With kind=event it edits a named color: events and repeating events that still have its old color follow a new color. Returns the previous values.",
+      inputSchema: updateCategoryInput,
+      annotations: CHANGES,
+    },
     (input) => updateCategory(ctx, input),
   );
   server.registerTool(
     "delete_category",
-    { title: "Delete category", description: "Delete a category. Its todos stay without a category and its routines are paused. Returns a batchId for undo_batch.", inputSchema: deleteCategoryInput, annotations: REMOVES },
+    {
+      title: "Delete category",
+      description:
+        "Delete a todo category (its todos stay without a category and its routines are paused) or, with kind=event, a named color (events and repeating events keep their color). Returns a batchId for undo_batch.",
+      inputSchema: deleteCategoryInput,
+      annotations: REMOVES,
+    },
     (input) => deleteCategory(ctx, input),
   );
   server.registerTool(
     "create_routine",
     {
       title: "Create routine",
-      description: "Create a routine (a todo that repeats, needs a category) or, with kind=event, a repeating calendar event. At most 50 in total. Repeating events are private by default.",
+      description:
+        "Create a routine (a todo that repeats, needs a category) or, with kind=event, a repeating calendar event (optionally in one of the user's named colors via category). At most 50 in total. Repeating events are private by default.",
       inputSchema: createRoutineInput,
       annotations: ADDS,
     },
@@ -252,7 +278,7 @@ export function createMcpServer(ctx: McpContext): McpServer {
     "update_routine",
     {
       title: "Edit routine",
-      description: "Change a routine or repeating event: title, category, repeat rule, dates, times, or pause/resume it. Returns the previous values.",
+      description: "Change a routine or repeating event: title, category (named color for a repeating event), repeat rule, dates, times, or pause/resume it. Returns the previous values.",
       inputSchema: updateRoutineInput,
       annotations: CHANGES,
     },

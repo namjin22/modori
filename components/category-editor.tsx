@@ -120,7 +120,7 @@ export function CategoryEditor({ category }: { category: Category }) {
             className="h-12 w-full rounded-xl bg-surface-hover px-4 text-[15px] font-medium outline-none focus:ring-2 focus:ring-brand"
           />
 
-          <ColorSwatches name="color" legend={t("color")} defaultValue={category.color} />
+          <ColorSwatches name="color" legend={t("color")} defaultValue={category.color} onChosen={save} />
 
           <PrivateSwitch title={t("privateTitle")} description={t("privateHint")} defaultChecked={!category.isPublic} />
         </form>

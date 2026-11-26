@@ -3,7 +3,7 @@ import { expect, test as base, type Page } from "@playwright/test";
 import { addDays, daysInMonthKST, formatKST, formatMonthKST, todayKST } from "@/lib/date";
 import { prisma } from "@/lib/prisma";
 
-import { addEvent, addTodo, chooseDate, homeReady, openEvent } from "./todo-helpers";
+import { addEvent, addTodo, chooseDate, createMyColor, homeReady, openEvent } from "./todo-helpers";
 
 import { RUN_TAG } from "./run-tag";
 
@@ -291,11 +291,11 @@ test("일정도 할 일처럼 색을 골라 만들고 바꾼다. 달력 이름�
   const user = await prisma.user.findUniqueOrThrow({ where: { email } });
   const color = async () => (await prisma.event.findFirstOrThrow({ where: { userId: user.id } })).color;
 
-  // 색을 고르지 않으면 파랑이다. 색을 고르면 그 색으로 저장된다.
+  // 색을 고르지 않으면 흰색이다(2026-11-26: 기본 색은 흰색 하나). +로 색을 만들어 고르면 그 색으로 저장된다.
   await page.getByRole("button", { name: "일정", exact: true }).click();
   await page.getByLabel("새 일정 이름").fill("빨간 일정");
-  await expect(page.getByRole("radio", { name: "파랑" })).toBeChecked();
-  await page.getByRole("radio", { name: "빨강" }).check();
+  await expect(page.getByRole("radio", { name: "흰색" })).toBeChecked();
+  await createMyColor(page, "빨강", "#dc2626");
   await page.getByRole("button", { name: "저장", exact: true }).click();
   await expect(page.getByRole("listitem").filter({ hasText: "빨간 일정" })).toBeVisible();
   expect(await color()).toBe("#dc2626");
@@ -306,7 +306,7 @@ test("일정도 할 일처럼 색을 골라 만들고 바꾼다. 달력 이름�
   // 고치는 창에는 지금 색이 골라져 있고, 바꾸면 달력도 바뀐다.
   await openEvent(page, "빨간 일정");
   await expect(page.getByRole("radio", { name: "빨강" })).toBeChecked();
-  await page.getByRole("radio", { name: "초록" }).check();
+  await createMyColor(page, "초록", "#22c55e");
   await page.getByRole("button", { name: "저장", exact: true }).click();
   await expect.poll(color).toBe("#22c55e");
   await expect(chip).toHaveCSS("background-color", "rgb(34, 197, 94)");

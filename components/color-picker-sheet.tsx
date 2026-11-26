@@ -8,33 +8,65 @@ import { hexToHsv, hsvToHex, MORE_COLORS, normalizeHex } from "@/lib/colors";
 import { categories } from "@/lib/i18n/messages/categories";
 import { common } from "@/lib/i18n/messages/common";
 
+/** 이름을 받는 창에서 쓰는 글(이름 칸의 이름표·안내). 주면 이름을 적어야 누를 수 있다. */
+export type NameField = { label: string; placeholder: string };
+
 /**
- * "더 많은 색" 창(2026-10-19 요청). 100색 격자에서 고르거나, 색 판을 직접 찍거나, 색상 코드를 친다.
+ * 색을 고르는 창(2026-10-19 요청). 100색 격자에서 고르거나, 색 판을 직접 찍거나, 색상 코드를 친다.
  * 휴대폰 기본 색 선택창은 기기마다 모양이 달라 쓰지 않고 직접 그린다(새 의존성 없이 CSS 그라데이션과 포인터 좌표로).
+ *
+ * nameField를 주면 "내 색"을 만드는 창이 된다(2026-11-26): 이름을 적고 누르면 onPick(색, 이름)으로 알린다.
+ * 만들기가 실패하면 부른 쪽이 error를 넘겨 창을 연 채 이유를 보여 준다.
  */
 export function ColorPickerSheet({
   open,
   initial,
+  title,
+  confirmLabel,
+  nameField,
+  error,
+  pending = false,
   onClose,
   onPick,
 }: {
   open: boolean;
   initial: string;
+  title: string;
+  confirmLabel: string;
+  nameField?: NameField;
+  error?: string | null;
+  pending?: boolean;
   onClose: () => void;
-  onPick: (hex: string) => void;
+  onPick: (hex: string, name: string) => void;
 }) {
-  const t = useT(categories);
   return (
-    <Modal open={open} onClose={onClose} title={t("pickColor")}>
+    <Modal open={open} onClose={onClose} title={title}>
       {/* 열 때마다 지금 색에서 시작하도록 새로 그린다. */}
-      {open && <PickerBody initial={initial} onCancel={onClose} onPick={onPick} />}
+      {open && <PickerBody initial={initial} confirmLabel={confirmLabel} nameField={nameField} error={error} pending={pending} onCancel={onClose} onPick={onPick} />}
     </Modal>
   );
 }
 
-function PickerBody({ initial, onCancel, onPick }: { initial: string; onCancel: () => void; onPick: (hex: string) => void }) {
+function PickerBody({
+  initial,
+  confirmLabel,
+  nameField,
+  error,
+  pending,
+  onCancel,
+  onPick,
+}: {
+  initial: string;
+  confirmLabel: string;
+  nameField?: NameField;
+  error?: string | null;
+  pending: boolean;
+  onCancel: () => void;
+  onPick: (hex: string, name: string) => void;
+}) {
   const t = useT(categories);
   const tc = useT(common);
+  const [name, setName] = useState("");
   // 고른 색은 그대로 쥔다(목록·코드로 고른 색이 색 판을 거치며 한 끗 바뀌지 않게). 색 판 위치는 따로 쥔다.
   const [hex, setHex] = useState(initial);
   const [hsv, setHsv] = useState(() => hexToHsv(initial));
@@ -56,6 +88,19 @@ function PickerBody({ initial, onCancel, onPick }: { initial: string; onCancel: 
 
   return (
     <>
+      {nameField && (
+        <input
+          value={name}
+          onChange={(event) => setName(event.target.value)}
+          maxLength={20}
+          required
+          autoFocus
+          aria-label={nameField.label}
+          placeholder={nameField.placeholder}
+          className="h-12 w-full rounded-xl bg-surface-hover px-4 text-[15px] font-medium outline-none placeholder:text-muted focus:ring-2 focus:ring-brand"
+        />
+      )}
+
       <div className="flex items-center gap-3">
         <span aria-hidden className="color-edge size-12 shrink-0 rounded-2xl" style={{ backgroundColor: hex }} />
         <label className="flex min-w-0 flex-1 flex-col gap-1 text-xs text-muted">
@@ -105,17 +150,23 @@ function PickerBody({ initial, onCancel, onPick }: { initial: string; onCancel: 
         </div>
       </section>
 
+      {error && (
+        <p role="alert" className="text-sm text-danger">
+          {error}
+        </p>
+      )}
+
       <div className="grid grid-cols-2 gap-2">
         <button type="button" onClick={onCancel} className="h-12 rounded-xl bg-surface-hover text-sm font-semibold">
           {tc("cancel")}
         </button>
         <button
           type="button"
-          disabled={!typedValid}
-          onClick={() => onPick(hex)}
+          disabled={!typedValid || pending || (nameField !== undefined && name.trim() === "")}
+          onClick={() => onPick(hex, name.trim())}
           className="h-12 rounded-xl bg-brand text-sm font-semibold text-brand-contrast disabled:opacity-50"
         >
-          {t("useColor")}
+          {pending ? tc("saving") : confirmLabel}
         </button>
       </div>
     </>

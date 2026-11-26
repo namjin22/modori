@@ -20,6 +20,8 @@ function refresh() {
   revalidatePath("/");
   revalidatePath("/categories");
   revalidatePath("/routines");
+  // 내 색 목록은 탭 화면 레이아웃이 들고 있어 되돌린 뒤 다시 받게 한다.
+  revalidatePath("/", "layout");
 }
 
 const at = (value: string) => parseKSTDate(value);
@@ -36,6 +38,8 @@ export async function restoreSnapshot(ctx: McpContext, snapshot: Snapshot): Prom
       return revertEvents(ctx, snapshot.rows);
     case "category-deleted":
       return restoreCategory(ctx, snapshot.category);
+    case "event-category-deleted":
+      return restoreEventCategory(ctx, snapshot.category);
     case "routine-deleted":
       return restoreRoutine(ctx, snapshot.routine);
     case "event-routine-deleted":
@@ -151,6 +155,7 @@ async function restoreEvents(ctx: McpContext, rows: Rows<"events-deleted">): Pro
   const last = rows.reduce((max, row) => (row.endDate > max ? row.endDate : max), rows[0].endDate);
   const accepted = await prisma.event.findMany({ where: { userId: ctx.userId, startDate: { lte: at(last) }, endDate: { gte: at(first) } }, select: { startDate: true, endDate: true } });
 
+  const colorIds = await liveEventCategoryIds(ctx, rows.map((row) => row.categoryId));
   const skipped: Skipped[] = [];
   const create: typeof rows = [];
   for (const row of rows) {
@@ -182,6 +187,7 @@ async function restoreEvents(ctx: McpContext, rows: Rows<"events-deleted">): Pro
       startTime: row.startTime,
       endTime: row.endTime,
       color: row.color,
+      categoryId: row.categoryId && colorIds.has(row.categoryId) ? row.categoryId : null,
       memo: row.memo,
       dday: row.dday,
       isPublic: row.isPublic,
@@ -205,6 +211,7 @@ async function revertEvents(ctx: McpContext, rows: Rows<"events-updated">): Prom
     select: { startDate: true, endDate: true },
   });
 
+  const colorIds = await liveEventCategoryIds(ctx, rows.map((row) => row.categoryId));
   const skipped: Skipped[] = [];
   const apply: typeof rows = [];
   for (const row of rows) {
@@ -227,6 +234,8 @@ async function revertEvents(ctx: McpContext, rows: Rows<"events-updated">): Prom
           startTime: row.startTime,
           endTime: row.endTime,
           color: row.color,
+          // 기록에 id가 없는 예전 묶음은 그대로 둔다(undefined). 있으면 그 색이 아직 있을 때만 다시 잇는다.
+          categoryId: row.categoryId === undefined ? undefined : row.categoryId && colorIds.has(row.categoryId) ? row.categoryId : null,
           memo: row.memo,
           dday: row.dday,
           isPublic: row.isPublic,
@@ -240,6 +249,29 @@ async function revertEvents(ctx: McpContext, rows: Rows<"events-updated">): Prom
     revertedEvents: results.reduce((sum, result) => sum + result.count, 0),
     skipped: [...skipped, ...apply.filter((_row, index) => results[index].count === 0).map((row) => ({ id: row.id, reason: "not found" }))],
   });
+}
+
+/** 기록에 있던 내 색(이름 붙은 색) id 가운데 지금도 본인 것으로 있는 것. 지워졌으면 이으려 하지 않는다. */
+async function liveEventCategoryIds(ctx: McpContext, ids: (string | null | undefined)[]): Promise<Set<string>> {
+  const wanted = [...new Set(ids.flatMap((each) => (each ? [each] : [])))];
+  if (wanted.length === 0) return new Set();
+  const rows = await prisma.eventCategory.findMany({ where: { id: { in: wanted }, userId: ctx.userId }, select: { id: true } });
+  return new Set(rows.map((row) => row.id));
+}
+
+async function restoreEventCategory(ctx: McpContext, category: Extract<Snapshot, { kind: "event-category-deleted" }>["category"]): Promise<ToolResult> {
+  if (await prisma.eventCategory.findUnique({ where: { id: category.id }, select: { id: true } })) return fail("That named color already exists again.");
+  const count = await prisma.eventCategory.count({ where: { userId: ctx.userId } });
+  if (count >= LIMITS.eventCategories) return fail(`The limit is ${LIMITS.eventCategories} named colors. Delete one first.`);
+
+  const [, events, routines] = await prisma.$transaction([
+    prisma.eventCategory.create({ data: { id: category.id, userId: ctx.userId, name: category.name, color: category.color, order: category.order } }),
+    // 그 사이 다른 색으로 옮긴 것은 건드리지 않는다.
+    prisma.event.updateMany({ where: { id: { in: category.eventIds }, userId: ctx.userId, categoryId: null }, data: { categoryId: category.id } }),
+    prisma.eventRoutine.updateMany({ where: { id: { in: category.routineIds }, userId: ctx.userId, categoryId: null }, data: { categoryId: category.id } }),
+  ]);
+  refresh();
+  return ok({ restoredNamedColor: category.name, relinkedEvents: events.count, relinkedRepeatingEvents: routines.count });
 }
 
 async function restoreCategory(ctx: McpContext, category: Extract<Snapshot, { kind: "category-deleted" }>["category"]): Promise<ToolResult> {
@@ -295,6 +327,7 @@ async function restoreRoutine(ctx: McpContext, routine: Extract<Snapshot, { kind
 async function restoreEventRoutine(ctx: McpContext, routine: Extract<Snapshot, { kind: "event-routine-deleted" }>["routine"]): Promise<ToolResult> {
   if (await prisma.eventRoutine.findUnique({ where: { id: routine.id }, select: { id: true } })) return fail("That repeating event already exists again.");
   if ((await routineCount(ctx.userId)) >= LIMITS.routines) return fail(`The limit is ${LIMITS.routines} routines (repeating events count too).`);
+  const colorIds = await liveEventCategoryIds(ctx, [routine.categoryId]);
 
   await prisma.$transaction([
     prisma.eventRoutine.create({
@@ -303,6 +336,7 @@ async function restoreEventRoutine(ctx: McpContext, routine: Extract<Snapshot, {
         userId: ctx.userId,
         title: routine.title,
         color: routine.color,
+        categoryId: routine.categoryId && colorIds.has(routine.categoryId) ? routine.categoryId : null,
         startTime: routine.startTime,
         endTime: routine.endTime,
         freq: routine.freq,

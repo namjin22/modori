@@ -1,20 +1,11 @@
 /**
- * 카테고리에 고를 수 있는 색. 무지개 순서대로 두고 흰색과 검정을 끝에 붙인다.
- * 색이 많으면 무엇을 골랐는지 기억하지 못하고, 비슷한 색끼리 구별도 안 된다.
+ * 색 고르기에 처음부터 있는 색. 2026-11-26 운영자 요청으로 흰색 하나만 남겼다(예전에는 빨강·주황·노랑·초록·파랑·보라·흰색·검정 여덟 색이었다).
+ * 나머지 색은 사람이 팔레트 오른쪽 끝의 +로 "내 색"(이름 붙은 색, EventCategory)을 만들어 쓴다(components/color-swatches.tsx).
+ * 예전 여덟 색의 이름은 lib/i18n/messages/categories.ts의 colorNames에 남아 있다(그 색을 쓰던 카테고리·일정은 값을 그대로 가진다).
  *
- * 흰색과 검정은 화면 배경과 같아질 수 있다. 색을 그리는 곳에는 얇은 테두리를
- * 둘러서 배경에 묻히지 않게 한다.
+ * 흰색은 화면 배경과 같아질 수 있다. 색을 그리는 곳에는 얇은 테두리를 둘러서 배경에 묻히지 않게 한다.
  */
-export const PALETTE = [
-  { value: "#dc2626", name: "빨강" },
-  { value: "#f97316", name: "주황" },
-  { value: "#facc15", name: "노랑" },
-  { value: "#22c55e", name: "초록" },
-  { value: "#2563eb", name: "파랑" },
-  { value: "#7c3aed", name: "보라" },
-  { value: "#ffffff", name: "흰색" },
-  { value: "#111827", name: "검정" },
-] as const;
+export const PALETTE = [{ value: "#ffffff", name: "흰색" }] as const;
 
 /** 일정의 기본 색. 일정도 할 일처럼 팔레트에서 색을 고를 수 있고(2026-10-13), 고르지 않으면 파랑이다. */
 export const DEFAULT_EVENT_COLOR = "#2563eb";
