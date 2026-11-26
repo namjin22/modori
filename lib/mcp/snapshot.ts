@@ -50,6 +50,8 @@ const eventRow = z.object({
   isPublic: z.boolean(),
   memoPublic: z.boolean(),
   sortOrder: z.number().int(),
+  // 내 색(이름 붙은 색)을 골랐던 일정이면 그 id(2026-11-26). 그 전에 만든 기록에는 없다.
+  categoryId: id.nullable().optional(),
   createdAt: instant,
 });
 
@@ -82,7 +84,18 @@ const eventRoutineRow = z.object({
   endDate: day.nullable(),
   paused: z.boolean(),
   isPublic: z.boolean(),
+  categoryId: id.nullable().optional(),
   skipDates: z.array(day),
+});
+
+/** 내 색(이름 붙은 색)을 지우기 전의 모습. 붙어 있던 일정·반복 일정의 id를 담아 되돌릴 때 다시 잇는다. */
+const eventCategoryRow = z.object({
+  id,
+  name: z.string(),
+  color: z.string(),
+  order: z.number().int(),
+  eventIds: z.array(id),
+  routineIds: z.array(id),
 });
 
 const categoryRow = z.object({
@@ -103,6 +116,7 @@ export const snapshotSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("events-deleted"), rows: z.array(eventRow) }),
   z.object({ kind: z.literal("events-updated"), rows: z.array(eventRow) }),
   z.object({ kind: z.literal("category-deleted"), category: categoryRow }),
+  z.object({ kind: z.literal("event-category-deleted"), category: eventCategoryRow }),
   z.object({ kind: z.literal("routine-deleted"), routine: routineRow }),
   z.object({ kind: z.literal("event-routine-deleted"), routine: eventRoutineRow }),
 ]);

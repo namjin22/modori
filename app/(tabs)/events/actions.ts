@@ -9,6 +9,7 @@ import type { Translate } from "@/lib/i18n";
 import { formatMonthDay } from "@/lib/i18n/format";
 import { events as eventMessages } from "@/lib/i18n/messages/events";
 import { getLocale, getT } from "@/lib/i18n/server";
+import { resolveEventCategory } from "@/lib/event-category";
 import { firstOverfullDay } from "@/lib/event-limit";
 import { formatTime, parseTime } from "@/lib/event-time";
 import { isId, readIdList } from "@/lib/ids";
@@ -104,24 +105,6 @@ function readEventInput(formData: FormData, t: EventT): EventInput | string {
 }
 
 /**
- * 폼이 고른 일정 카테고리를 확인해 저장할 색과 카테고리를 정한다(2026-11-25). 내 카테고리면 그 색이 이 일정의 색이 된다.
- * 카테고리를 고르지 않았으면 직접 고른 색이라 카테고리를 뗀다. 색 칸이 없던 예전 요청은 둘 다 그대로 둔다(undefined).
- * 남의 id나 이미 지운 id는 고르지 않은 것으로 본다.
- */
-async function resolveCategory(
-  userId: string,
-  formData: FormData,
-  color: string | undefined,
-): Promise<{ categoryId: string | null | undefined; color: string | undefined }> {
-  const id = readText(formData, "categoryId");
-  if (id && isId(id)) {
-    const category = await prisma.eventCategory.findFirst({ where: { id, userId }, select: { id: true, color: true } });
-    if (category) return { categoryId: category.id, color: category.color };
-  }
-  return { categoryId: color === undefined ? undefined : null, color };
-}
-
-/**
  * 기간 안의 어느 날이라도 일정이 하루 상한만큼 차 있으면 사람에게 보여줄 문장을 돌려준다.
  * 고치는 중인 일정은 자기 자신을 세지 않는다(exceptId).
  */
@@ -161,7 +144,7 @@ export async function createEvent(
   const full = await dailyLimitMessage(user.id, input, t);
   if (full) return { message: full };
 
-  const picked = await resolveCategory(user.id, formData, input.color);
+  const picked = await resolveEventCategory(user.id, formData, input.color);
   await prisma.event.create({
     data: { ...input, color: picked.color ?? DEFAULT_EVENT_COLOR, categoryId: picked.categoryId ?? null, userId: user.id },
   });
@@ -183,7 +166,7 @@ export async function updateEvent(
   const full = await dailyLimitMessage(user.id, input, t, id);
   if (full) return { message: full };
 
-  const picked = await resolveCategory(user.id, formData, input.color);
+  const picked = await resolveEventCategory(user.id, formData, input.color);
   const { count } = await prisma.event.updateMany({
     where: { id, userId: user.id },
     data: { ...input, color: picked.color, categoryId: picked.categoryId },
@@ -270,7 +253,7 @@ export async function restoreEvent(snapshot: DeletedEvent): Promise<string | voi
   const full = await dailyLimitMessage(user.id, input, t);
   if (full) return full;
 
-  const picked = await resolveCategory(user.id, formData, input.color);
+  const picked = await resolveEventCategory(user.id, formData, input.color);
   try {
     await prisma.event.create({
       data: {

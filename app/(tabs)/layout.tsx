@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 
 import { BottomNav } from "@/components/bottom-nav";
+import { EventCategoriesProvider } from "@/components/event-categories";
 import { LocaleSync } from "@/components/locale-sync";
 import { DesktopUpdateBanner, OutdatedAppBanner } from "@/components/desktop-update";
 import { PageFrame } from "@/components/page-frame";
@@ -13,6 +14,7 @@ import { WebPushSync } from "@/components/web-push-sync";
 import { outdatedDesktopApp } from "@/lib/desktop";
 import { DEFAULT_LOCALE, isLocale } from "@/lib/i18n";
 import { getLocaleCookie } from "@/lib/i18n/server";
+import { prisma } from "@/lib/prisma";
 import { countUnreadNotifications, requireUser } from "@/lib/session";
 
 // 탭 화면은 전부 로그인과 닉네임이 필요하다. 각 페이지에서 반복하지 않고 여기서 막는다.
@@ -22,8 +24,10 @@ export default async function TabsLayout({ children }: { children: ReactNode }) 
   const outdatedApp = await outdatedDesktopApp();
 
   // 웹과 데스크톱은 뱃지로 알리고, 켠 기기는 컴퓨터 알림도 띄운다(브라우저는 웹 푸시, 데스크톱 앱은 창이 열려 있는 동안). 모바일 앱은 받은 반응·새 팔로워를 푸시로도 알린다(components/push-registrar.tsx).
-  const [unreadNotifications] = await Promise.all([
+  // 내 색(이름 붙은 색)은 일정·반복 일정·카테고리의 색 고르기가 어느 화면에서나 쓴다(2026-11-26). 사람마다 20개 안쪽이다.
+  const [unreadNotifications, eventCategories] = await Promise.all([
     countUnreadNotifications(user.id, user.lastSeenAt, user.notifyFriendDone),
+    prisma.eventCategory.findMany({ where: { userId: user.id }, orderBy: { order: "asc" }, select: { id: true, name: true, color: true } }),
   ]);
 
   // 이 기기에 고른 언어(없으면 한국어)와 계정의 언어가 다르면 한 번 맞춘다(components/locale-sync.tsx).
@@ -33,6 +37,7 @@ export default async function TabsLayout({ children }: { children: ReactNode }) 
   return (
     <ToastProvider>
       <TimezoneProvider timezone={user.timezone}>
+      <EventCategoriesProvider categories={eventCategories}>
       {(cookieLocale ?? DEFAULT_LOCALE) !== user.locale && isLocale(localeTarget) && <LocaleSync target={localeTarget} />}
       <PushRegistrar />
       <WebPushSync userId={user.id} />
@@ -45,6 +50,7 @@ export default async function TabsLayout({ children }: { children: ReactNode }) 
         </PageFrame>
         <BottomNav userId={user.id} unreadNotifications={unreadNotifications} />
       </div>
+      </EventCategoriesProvider>
       </TimezoneProvider>
     </ToastProvider>
   );

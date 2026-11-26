@@ -189,6 +189,8 @@ type EventUpdate = {
   startTime?: string | null;
   endTime?: string | null;
   color?: string;
+  // 내 색(이름 붙은 색)의 id나 이름. null이면 떼고 색은 남긴다(2026-11-26).
+  category?: string | null;
   memo?: string | null;
   isPublic?: boolean;
   memoPublic?: boolean;
@@ -203,6 +205,7 @@ type EventRow = {
   startTime: number | null;
   endTime: number | null;
   color: string;
+  categoryId: string | null;
   memo: string | null;
   dday: boolean;
   isPublic: boolean;
@@ -219,6 +222,7 @@ const eventSnapshot = (row: EventRow): EventSnapshotRow => ({
   startTime: row.startTime,
   endTime: row.endTime,
   color: row.color,
+  categoryId: row.categoryId,
   memo: row.memo,
   dday: row.dday,
   isPublic: row.isPublic,
@@ -226,6 +230,11 @@ const eventSnapshot = (row: EventRow): EventSnapshotRow => ({
   sortOrder: row.sortOrder,
   createdAt: row.createdAt.toISOString(),
 });
+
+/** 이번 고치기에 내 색(category)을 건드리는 항목이 있는가. 없으면 목록을 읽지 않는다. */
+function touchesNamedColor(updates: EventUpdate[]): boolean {
+  return updates.some((update) => typeof update.category === "string");
+}
 
 export async function updateEvents(ctx: McpContext, input: { updates: EventUpdate[] }): Promise<ToolResult> {
   const limited = writeLimited(ctx);
@@ -235,6 +244,8 @@ export async function updateEvents(ctx: McpContext, input: { updates: EventUpdat
   if (new Set(ids).size !== ids.length) return fail("Each event id may appear only once per call.");
   const rows = await prisma.event.findMany({ where: { id: { in: ids }, userId: ctx.userId } });
   const found = new Map(rows.map((row) => [row.id, row]));
+  // 내 색(이름 붙은 색)은 한 번에 읽어 둔다. id나 이름(대소문자 무시)으로 찾는다.
+  const namedColors = touchesNamedColor(input.updates) ? await prisma.eventCategory.findMany({ where: { userId: ctx.userId }, orderBy: { order: "asc" }, select: { id: true, name: true, color: true } }) : [];
 
   const problems: string[] = [];
   const plan: { before: EventRow; after: Omit<EventRow, "id" | "sortOrder" | "createdAt"> }[] = [];
@@ -267,6 +278,27 @@ export async function updateEvents(ctx: McpContext, input: { updates: EventUpdat
       problems.push(`updates[${index}].color must be #rrggbb.`);
       return;
     }
+    // 내 색: 고르면 그 색과 이름이 붙고, null이면 이름만 떼며, 색을 손으로 바꾸면 이름도 뗀다(앱의 "직접 고르기"와 같다).
+    if (update.category !== undefined && update.color !== undefined) {
+      problems.push(`updates[${index}]: give either color or category, not both.`);
+      return;
+    }
+    let color = update.color ? update.color.toLowerCase() : row.color;
+    let categoryId = row.categoryId;
+    if (update.category === null) {
+      categoryId = null;
+    } else if (typeof update.category === "string") {
+      const wanted = update.category.trim().toLowerCase();
+      const named = namedColors.find((each) => each.id === update.category) ?? namedColors.find((each) => each.name.trim().toLowerCase() === wanted);
+      if (!named) {
+        problems.push(`updates[${index}].category "${update.category}" was not found. Available: ${namedColors.map((each) => each.name).join(", ") || "(none)"}.`);
+        return;
+      }
+      categoryId = named.id;
+      color = named.color;
+    } else if (update.color !== undefined) {
+      categoryId = null;
+    }
     const isPublic = update.isPublic ?? row.isPublic;
     plan.push({
       before: row,
@@ -276,7 +308,8 @@ export async function updateEvents(ctx: McpContext, input: { updates: EventUpdat
         endDate,
         startTime,
         endTime,
-        color: update.color ? update.color.toLowerCase() : row.color,
+        color,
+        categoryId,
         memo: update.memo === undefined ? row.memo : update.memo ? update.memo : null,
         dday: update.dday ?? row.dday,
         isPublic,

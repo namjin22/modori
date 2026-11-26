@@ -97,7 +97,7 @@ export default async function FeedPage({
   // 이 날짜를 여는 순간 루틴 할 일이 없으면 만든다. 미래 날짜에는 만들지 않는다.
   await ensureRoutineTodos(user, date);
 
-  const [todos, categories, routines, events, upcoming, eventRoutines, eventSkips, diaryRows, eventCategories] = await Promise.all([
+  const [todos, categories, routines, events, upcoming, eventRoutines, eventSkips, diaryRows] = await Promise.all([
     prisma.todo.findMany({
       where: { userId: user.id, date: { gte: from, lte: to } },
       orderBy: { order: "asc" },
@@ -157,12 +157,6 @@ export default async function FeedPage({
       // 홈 카드는 일기 내용을 보이지 않는다(2026-11-24). 글은 읽는 화면에서만 가져온다.
       select: { date: true, mood: true, isPublic: true },
     }),
-    // 일정에 쓰는 이름 붙은 색. 사람마다 20개 안쪽이라 한 번에 받는다.
-    prisma.eventCategory.findMany({
-      where: { userId: user.id },
-      orderBy: { order: "asc" },
-      select: { id: true, name: true, color: true },
-    }),
   ]);
 
   const data: HomeData = {
@@ -181,7 +175,6 @@ export default async function FeedPage({
       ),
     })),
     categories,
-    eventCategories,
     scheduled: routines.scheduled,
     pending: routines.pending,
     // 보통 일정 다음에 반복 일정. 반복 일정은 끌어 기간을 바꾸거나 순서를 바꾸지 않는다(components/event-section.tsx).

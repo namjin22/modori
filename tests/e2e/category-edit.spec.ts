@@ -3,7 +3,7 @@ import { expect, test as base, type Page } from "@playwright/test";
 import { prisma } from "@/lib/prisma";
 
 import { RUN_TAG } from "./run-tag";
-import { FIRST_CATEGORY, homeReady, openCategory } from "./todo-helpers";
+import { createMyColor, FIRST_CATEGORY, homeReady, openCategory } from "./todo-helpers";
 
 const test = base.extend<{ email: string }>({
   email: async ({}, provide, testInfo) => {
@@ -33,8 +33,8 @@ test("색을 고르면 저장 버튼 없이 바로 저장된다", async ({ page,
 
   await page.goto("/categories");
   await openCategory(page, FIRST_CATEGORY);
-  // 새 카테고리 폼에도 같은 견본이 있다. 떠 있는 창 안에서 고른다.
-  await page.getByRole("dialog").getByLabel("초록").check();
+  // 2026-11-26: 기본 색이 흰색 하나뿐이라 +로 색을 만들어 고른다. 만들자마자 그 색으로 저장된다.
+  await createMyColor(page, "초록", "#22c55e", page.getByRole("dialog", { name: "카테고리" }));
   await expect(page.getByText("저장했어요")).toBeVisible();
 
   const user = await prisma.user.findUniqueOrThrow({ where: { email } });
@@ -53,7 +53,7 @@ test("이름을 비운 채 색을 바꾸면 저장하지 않고 이유를 알려
   await page.goto("/categories");
   await openCategory(page, FIRST_CATEGORY);
   await page.getByLabel("카테고리 이름", { exact: true }).fill("");
-  await page.getByRole("dialog").getByLabel("빨강").check();
+  await page.getByRole("dialog").getByLabel("흰색").check();
 
   // "저장했어요"라고 하면서 실제로는 아무것도 바뀌지 않던 것을 막는다.
   await expect(page.getByText("이름을 적어주세요")).toBeVisible();
@@ -63,7 +63,7 @@ test("이름을 비운 채 색을 바꾸면 저장하지 않고 이유를 알려
     where: { userId: user.id },
   });
   expect(category.name).toBe(FIRST_CATEGORY);
-  expect(category.color).not.toBe("#dc2626");
+  expect(category.color).not.toBe("#ffffff");
 });
 
 test("카테고리를 지우면 할 일은 남고 루틴은 멈추며, 되돌리면 다시 이어진다", async ({

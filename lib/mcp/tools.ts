@@ -39,11 +39,14 @@ const MAX_DONE_NOTIFICATIONS = 5;
 const SUB_TODO_MOVE_NOTE = "Sub-todos cannot be moved on their own. Move the parent todo instead: its unfinished sub-todos go with it, finished ones stay on their day.";
 
 export async function getOverview(ctx: McpContext): Promise<ToolResult> {
-  const categories = await prisma.category.findMany({
-    where: { userId: ctx.userId, archivedAt: null },
-    orderBy: { order: "asc" },
-    select: { id: true, name: true, color: true, isPublic: true },
-  });
+  const [categories, eventCategories] = await Promise.all([
+    prisma.category.findMany({
+      where: { userId: ctx.userId, archivedAt: null },
+      orderBy: { order: "asc" },
+      select: { id: true, name: true, color: true, isPublic: true },
+    }),
+    prisma.eventCategory.findMany({ where: { userId: ctx.userId }, orderBy: { order: "asc" }, select: { id: true, name: true, color: true } }),
+  ]);
   return ok({
     today: dayText(todayIn(ctx.timezone)),
     timezone: ctx.timezone,
@@ -56,8 +59,11 @@ export async function getOverview(ctx: McpContext): Promise<ToolResult> {
       // 공개 카테고리의 할 일은 팔로워에게 보인다. 사용자가 비공개로 두라고 한 내용은 비공개 카테고리에 넣는다.
       visibleToFollowers: category.isPublic,
     })),
+    // 내 색(이름 붙은 색, 2026-11-26): "시험=주황"처럼 사용자가 만든 색 목록. 일정·반복 일정에 category로 붙이고, 이름은 사용자만 본다(친구에게는 색만 보인다).
+    eventCategories: eventCategories.map((category) => ({ id: category.id, name: category.name, color: category.color })),
     limits: {
       todosPerDay: LIMITS.todosPerDay,
+      eventCategories: LIMITS.eventCategories,
       eventsPerDay: LIMITS.eventsPerDay,
       events: LIMITS.events,
       todosPerCall: MCP_LIMITS.todosPerCall,
@@ -303,7 +309,7 @@ export async function listEvents(ctx: McpContext, input: { from: string; to?: st
     where: { userId: ctx.userId, startDate: { lte: to }, endDate: { gte: from } },
     orderBy: [{ startDate: "asc" }, { startTime: "asc" }],
     take: MCP_LIMITS.listRows + 1,
-    select: { id: true, title: true, startDate: true, endDate: true, startTime: true, endTime: true, color: true, isPublic: true },
+    select: { id: true, title: true, startDate: true, endDate: true, startTime: true, endTime: true, color: true, isPublic: true, category: { select: { id: true, name: true } } },
   });
   const clock = (minutes: number | null) => (minutes === null ? null : formatTime(minutes));
   return ok({
@@ -318,6 +324,8 @@ export async function listEvents(ctx: McpContext, input: { from: string; to?: st
       startTime: clock(event.startTime),
       endTime: clock(event.endTime),
       color: event.color,
+      // 내 색(이름 붙은 색)을 골랐으면 그 이름(2026-11-26).
+      category: event.category ? { id: event.category.id, name: event.category.name } : null,
       visibleToFollowers: event.isPublic,
     })),
   });
@@ -330,6 +338,8 @@ type NewEvent = {
   startTime?: string;
   endTime?: string;
   color?: string;
+  // 내 색(이름 붙은 색)의 id나 이름. 주면 그 색과 이름이 붙는다(2026-11-26).
+  category?: string;
   memo?: string;
   isPublic?: boolean;
 };
@@ -338,8 +348,21 @@ export async function createEvents(ctx: McpContext, input: { events: NewEvent[] 
   const limited = writeLimited(ctx);
   if (limited) return limited;
 
+  const namedColors = input.events.some((item) => item.category !== undefined)
+    ? await prisma.eventCategory.findMany({ where: { userId: ctx.userId }, orderBy: { order: "asc" }, select: { id: true, name: true, color: true } })
+    : [];
   const problems: string[] = [];
-  const rows: { title: string; startDate: Date; endDate: Date; startTime: number | null; endTime: number | null; color: string; memo: string | null; isPublic: boolean }[] = [];
+  const rows: {
+    title: string;
+    startDate: Date;
+    endDate: Date;
+    startTime: number | null;
+    endTime: number | null;
+    color: string;
+    categoryId: string | null;
+    memo: string | null;
+    isPublic: boolean;
+  }[] = [];
   input.events.forEach((item, index) => {
     const startDate = parseDay(item.startDate);
     const endDate = item.endDate === undefined ? startDate : parseDay(item.endDate);
@@ -370,13 +393,31 @@ export async function createEvents(ctx: McpContext, input: { events: NewEvent[] 
       problems.push(`events[${index}].endTime is before startTime.`);
       return;
     }
+    // 내 색을 고르면 그 색이 일정의 색이 된다. 색을 따로 주는 것과 함께 쓸 수 없다.
+    let color = item.color ? item.color.toLowerCase() : DEFAULT_EVENT_COLOR;
+    let categoryId: string | null = null;
+    if (item.category !== undefined) {
+      if (item.color !== undefined) {
+        problems.push(`events[${index}]: give either color or category, not both.`);
+        return;
+      }
+      const wanted = item.category.trim().toLowerCase();
+      const named = namedColors.find((each) => each.id === item.category) ?? namedColors.find((each) => each.name.trim().toLowerCase() === wanted);
+      if (!named) {
+        problems.push(`events[${index}].category "${item.category}" was not found. Available: ${namedColors.map((each) => each.name).join(", ") || "(none)"}.`);
+        return;
+      }
+      color = named.color;
+      categoryId = named.id;
+    }
     rows.push({
       title: item.title,
       startDate,
       endDate,
       startTime,
       endTime,
-      color: item.color ? item.color.toLowerCase() : DEFAULT_EVENT_COLOR,
+      color,
+      categoryId,
       memo: item.memo ? item.memo : null,
       isPublic: item.isPublic === true,
     });

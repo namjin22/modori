@@ -289,8 +289,8 @@ model Event {
   @@index([categoryId])
 }
 
-// 일정에 쓰는 "이름 붙은 색"(2026-11-25 운영자 요청, docs/decisions.md). 예: 시험=주황, 학교=보라.
-// 할 일 카테고리(Category)와는 따로다. 이름은 본인만 보고, 친구에게는 색만 보인다.
+// "내 색" = 이름 붙은 색(2026-11-25 운영자 요청, 2026-11-26에 팔레트 오른쪽 끝의 +로 만들고 일정·반복 일정·일반 카테고리가 같이 쓰게 넓혔다, docs/decisions.md).
+// 예: 시험=주황, 학교=보라. 일정과 반복 일정은 categoryId로 잇고, 일반 카테고리(Category)는 색만 복사해 쓴다. 이름은 본인만 보고, 친구에게는 색만 보인다.
 model EventCategory {
   id        String   @id @default(cuid())
   userId    String
@@ -299,8 +299,9 @@ model EventCategory {
   order     Int
   createdAt DateTime @default(now())
 
-  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  events Event[]
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  events        Event[]
+  eventRoutines EventRoutine[]
 
   @@index([userId, order])
 }
@@ -467,6 +468,8 @@ model EventRoutine {
   userId     String
   title      String
   color      String
+  // 이름 붙은 색(EventCategory)을 골랐으면 그 id(2026-11-26). 일정(Event)과 같다: 색은 복사해 두고, 지우면 비워지며 색은 남는다.
+  categoryId String?
   // 자정부터 몇 분(일정과 같다). 비어 있으면 하루 종일.
   startTime  Int?
   endTime    Int?
@@ -480,10 +483,12 @@ model EventRoutine {
   isPublic   Boolean     @default(true)
   createdAt  DateTime    @default(now())
 
-  user  User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  skips EventRoutineSkip[]
+  user     User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category EventCategory?     @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  skips    EventRoutineSkip[]
 
   @@index([userId])
+  @@index([categoryId])
 }
 
 // 반복 일정에서 "이 날만 빼기"를 한 날.

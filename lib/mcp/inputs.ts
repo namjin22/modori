@@ -99,7 +99,14 @@ export const createEventsInput = {
           .string()
           .regex(/^#[0-9a-fA-F]{6}$/, "Use #rrggbb")
           .optional()
-          .describe("#rrggbb. Omit for the default color."),
+          .describe("#rrggbb. Omit for the default color. Give either color or category, not both."),
+        category: z
+          .string()
+          .trim()
+          .min(1)
+          .max(64)
+          .optional()
+          .describe("One of the user's own named colors ('my colors', get_overview.eventCategories): id or exact name. The event gets that color and name. Not the todo categories."),
         memo: z.string().trim().max(500).optional(),
         isPublic: z
           .boolean()

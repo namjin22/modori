@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 
 import { DEFAULT_EVENT_COLOR, isHexColor } from "@/lib/colors";
 import { formatKST, parseKSTDate, todayIn } from "@/lib/date";
+import { resolveEventCategory } from "@/lib/event-category";
 import { parseTime } from "@/lib/event-time";
 import type { Translate } from "@/lib/i18n";
 import { events as eventMessages } from "@/lib/i18n/messages/events";
@@ -91,8 +92,10 @@ export async function createEventRoutine(
     return { message: t("routinesTooMany", { max: LIMITS.routines }) };
   }
 
+  // 내 색(이름 붙은 색)을 골랐으면 그 색이 반복 일정의 색이 된다(2026-11-26).
+  const picked = await resolveEventCategory(user.id, formData, look.color);
   await prisma.eventRoutine.create({
-    data: { userId: user.id, ...look, ...rule },
+    data: { userId: user.id, ...look, color: picked.color ?? look.color, categoryId: picked.categoryId ?? null, ...rule },
   });
   refresh();
   return { message: t("repeatCreated"), ok: true };
@@ -116,7 +119,11 @@ export async function updateEventRoutine(formData: FormData): Promise<EventRouti
   const rule = hasRuleForm(formData) ? readRuleForm(formData, existing.startDate) : null;
   if (typeof rule === "string") return { ok: false, message: t(rule) };
 
-  const { count } = await prisma.eventRoutine.updateMany({ where: { id, userId: user.id }, data: { ...look, ...rule } });
+  const picked = await resolveEventCategory(user.id, formData, look.color);
+  const { count } = await prisma.eventRoutine.updateMany({
+    where: { id, userId: user.id },
+    data: { ...look, color: picked.color ?? look.color, categoryId: picked.categoryId, ...rule },
+  });
   if (count === 0) return { ok: false, message: t("repeatNotFound") };
   refresh();
   return { ok: true };
@@ -176,6 +183,8 @@ export type DeletedEventRoutine = {
   endDate: string | null;
   paused: boolean;
   isPublic?: boolean;
+  // 내 색(이름 붙은 색)을 골랐던 반복 일정이면 그 id. 되돌릴 때 아직 있으면 다시 잇는다.
+  categoryId?: string | null;
   skipDates: string[];
 };
 
@@ -198,6 +207,7 @@ export async function deleteEventRoutine(id: string): Promise<DeletedEventRoutin
     endDate: routine.endDate ? formatKST(routine.endDate) : null,
     paused: routine.pausedAt !== null,
     isPublic: routine.isPublic,
+    categoryId: routine.categoryId,
     skipDates: routine.skips.map((skip) => formatKST(skip.date)),
   };
 }
@@ -213,6 +223,10 @@ export async function restoreEventRoutine(snapshot: DeletedEventRoutine): Promis
   if (!Array.isArray(snapshot.byWeekday) || !Array.isArray(snapshot.byMonthday) || !Array.isArray(snapshot.skipDates)) return;
   const time = (value: unknown) => (Number.isInteger(value) && (value as number) >= 0 && (value as number) < 24 * 60 ? (value as number) : null);
   if ((await routineCount(user.id)) >= LIMITS.routines) return (await getT(eventMessages))("routinesTooManyShort", { max: LIMITS.routines });
+  // 브라우저에서 돌아온 값이라 내 카테고리로 아직 있을 때만 다시 잇는다.
+  const category = isId(snapshot.categoryId)
+    ? await prisma.eventCategory.findFirst({ where: { id: snapshot.categoryId, userId: user.id }, select: { id: true } })
+    : null;
 
   try {
     await prisma.eventRoutine.create({
@@ -230,6 +244,7 @@ export async function restoreEventRoutine(snapshot: DeletedEventRoutine): Promis
         endDate: snapshot.endDate ? readDate(snapshot.endDate) : null,
         pausedAt: snapshot.paused ? new Date() : null,
         isPublic: snapshot.isPublic === true,
+        categoryId: category?.id ?? null,
         skips: {
           create: snapshot.skipDates
             .slice(0, 2000)

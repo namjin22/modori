@@ -192,7 +192,8 @@ export default async function FriendDayPage({
     })),
     events: [
       ...events.map(({ memo, memoPublic, ...event }) => ({ ...event, memo: memoPublic ? memo : null })),
-      ...expandEventRoutines(eventRoutines, eventSkips, from, to, locale).map((event) => ({ ...event, memo: null })),
+      // 친구의 내 색(이름 붙은 색) id는 친구 것이라 보내지 않는다. 색만 보인다.
+      ...expandEventRoutines(eventRoutines, eventSkips, from, to, locale).map((event) => ({ ...event, memo: null, categoryId: null })),
     ],
   };
 

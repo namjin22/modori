@@ -15,7 +15,7 @@ import { PrivateSwitch } from "@/components/private-switch";
 import { SubmitButton } from "@/components/submit-button";
 import { TimePicker } from "@/components/time-picker";
 import { useFormAction } from "@/components/use-form-action";
-import { DEFAULT_EVENT_COLOR } from "@/lib/colors";
+import { PALETTE } from "@/lib/colors";
 import { weekdayNames } from "@/lib/i18n/format";
 import { events } from "@/lib/i18n/messages/events";
 import { routines } from "@/lib/i18n/messages/routines";
@@ -232,7 +232,7 @@ export function RoutineRuleFields({ today, initial }: { today?: string; initial?
 export function EventRoutineFields({
   initial,
 }: {
-  initial?: { title: string; color: string; startTime: string; endTime: string; isPublic?: boolean };
+  initial?: { title: string; color: string; categoryId?: string | null; startTime: string; endTime: string; isPublic?: boolean };
 }) {
   const t = useT(routines);
   const te = useT(events);
@@ -275,7 +275,14 @@ export function EventRoutineFields({
         <input type="hidden" name="startTime" value={allDay ? "" : startTime} />
         <input type="hidden" name="endTime" value={allDay ? "" : endTime} />
       </div>
-      <ColorSwatches name="color" legend={te("color")} defaultValue={initial?.color ?? DEFAULT_EVENT_COLOR} />
+      {/* 처음 색은 흰색이고, 내가 만든 색(이름 붙은 색)이 그 오른쪽에 붙는다. 내 색을 고르면 그 id도 같이 간다(2026-11-26). */}
+      <ColorSwatches
+        name="color"
+        legend={te("color")}
+        defaultValue={initial?.color ?? PALETTE[0].value}
+        categoryField="categoryId"
+        defaultCategoryId={initial?.categoryId ?? null}
+      />
       {/* 팔로우한 친구에게 숨길지(일정과 같다, 기본은 보인다, 2026-10-18). */}
       <PrivateSwitch title={te("privateTitle")} description={t("privateHint")} defaultChecked={initial ? initial.isPublic === false : false} />
     </>

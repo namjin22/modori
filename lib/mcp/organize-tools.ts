@@ -3,6 +3,7 @@ import { revalidatePath } from "next/cache";
 
 import { DEFAULT_EVENT_COLOR } from "@/lib/colors";
 import { todayIn } from "@/lib/date";
+import { findEventCategory } from "@/lib/event-category";
 import { formatTime, parseTime } from "@/lib/event-time";
 import { LIMITS } from "@/lib/limits";
 import { MCP_LIMITS } from "@/lib/mcp/inputs";
@@ -25,9 +26,120 @@ function refresh() {
   revalidatePath("/");
   revalidatePath("/categories");
   revalidatePath("/routines");
+  // 내 색(이름 붙은 색) 목록은 탭 화면 레이아웃이 들고 있다(2026-11-26).
+  revalidatePath("/", "layout");
 }
 
-export async function createCategory(ctx: McpContext, input: { name: string; color: string; isPublic?: boolean }): Promise<ToolResult> {
+/**
+ * 카테고리 도구 셋은 kind로 두 가지를 다룬다(루틴 도구의 kind와 같은 방식): todo(기본) = 할 일 카테고리,
+ * event = "내 색"(이름 붙은 색, EventCategory). 내 색은 일정·반복 일정이 id로 잇고 일반 카테고리 폼의 색 고르기에도 나타난다(docs/mcp.md).
+ */
+type CategoryKind = "todo" | "event";
+
+export async function createCategory(ctx: McpContext, input: { kind?: CategoryKind; name: string; color: string; isPublic?: boolean }): Promise<ToolResult> {
+  return input.kind === "event" ? createNamedColor(ctx, input) : createTodoCategory(ctx, input);
+}
+
+export async function updateCategory(ctx: McpContext, input: { kind?: CategoryKind; id: string; name?: string; color?: string; isPublic?: boolean }): Promise<ToolResult> {
+  return input.kind === "event" ? updateNamedColor(ctx, input) : updateTodoCategory(ctx, input);
+}
+
+export async function deleteCategory(ctx: McpContext, input: { kind?: CategoryKind; id: string }): Promise<ToolResult> {
+  return input.kind === "event" ? deleteNamedColor(ctx, input) : deleteTodoCategory(ctx, input);
+}
+
+const sameName = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
+const NAMED_COLOR_PUBLIC = "isPublic does not apply to named colors (kind=event): followers only ever see an event's color, never the name.";
+
+async function createNamedColor(ctx: McpContext, input: { name: string; color: string; isPublic?: boolean }): Promise<ToolResult> {
+  const limited = writeLimited(ctx);
+  if (limited) return limited;
+  if (input.isPublic !== undefined) return fail(NAMED_COLOR_PUBLIC);
+
+  const existing = await prisma.eventCategory.findMany({ where: { userId: ctx.userId }, select: { name: true, order: true } });
+  if (existing.length >= LIMITS.eventCategories) return fail(`The limit is ${LIMITS.eventCategories} named colors (you have ${existing.length}). Delete or reuse one.`);
+  if (existing.some((row) => sameName(row.name, input.name))) return fail(`A named color called "${input.name}" already exists.`);
+  const last = existing.reduce((max, row) => Math.max(max, row.order), -1);
+  const category = await prisma.eventCategory.create({
+    data: { userId: ctx.userId, name: input.name, color: input.color.toLowerCase(), order: last + 1 },
+    select: { id: true, name: true, color: true },
+  });
+  refresh();
+  return ok({ kind: "event", id: category.id, name: category.name, color: category.color });
+}
+
+async function updateNamedColor(ctx: McpContext, input: { id: string; name?: string; color?: string; isPublic?: boolean }): Promise<ToolResult> {
+  const limited = writeLimited(ctx);
+  if (limited) return limited;
+  if (input.isPublic !== undefined) return fail(NAMED_COLOR_PUBLIC);
+  if (input.name === undefined && input.color === undefined) return fail("Give at least one of name or color to change.");
+
+  const before = await prisma.eventCategory.findFirst({ where: { id: input.id, userId: ctx.userId }, select: { id: true, name: true, color: true } });
+  if (!before) return fail("Named color not found.");
+  if (input.name !== undefined) {
+    const others = await prisma.eventCategory.findMany({ where: { userId: ctx.userId, id: { not: before.id } }, select: { name: true } });
+    if (others.some((row) => sameName(row.name, input.name ?? ""))) return fail(`A named color called "${input.name}" already exists.`);
+  }
+  const color = input.color?.toLowerCase();
+  // 앱과 같다: 색을 바꾸면 아직 옛 색인 일정·반복 일정이 따라 바뀐다. 다른 색으로 바꿔 둔 것은 그대로 둔다.
+  await prisma.$transaction([
+    prisma.eventCategory.updateMany({ where: { id: before.id, userId: ctx.userId }, data: { ...(input.name !== undefined && { name: input.name }), ...(color !== undefined && { color }) } }),
+    ...(color !== undefined && color !== before.color
+      ? [
+          prisma.event.updateMany({ where: { userId: ctx.userId, categoryId: before.id, color: before.color }, data: { color } }),
+          prisma.eventRoutine.updateMany({ where: { userId: ctx.userId, categoryId: before.id, color: before.color }, data: { color } }),
+        ]
+      : []),
+  ]);
+  refresh();
+  return ok({
+    kind: "event",
+    id: before.id,
+    previous: { name: before.name, color: before.color },
+    now: { name: input.name ?? before.name, color: color ?? before.color },
+  });
+}
+
+async function deleteNamedColor(ctx: McpContext, input: { id: string }): Promise<ToolResult> {
+  const limited = writeLimited(ctx);
+  if (limited) return limited;
+
+  const category = await prisma.eventCategory.findFirst({
+    where: { id: input.id, userId: ctx.userId },
+    include: { events: { select: { id: true } }, eventRoutines: { select: { id: true } } },
+  });
+  if (!category) return fail("Named color not found.");
+
+  // 앱과 같다: 색만 지우고 붙어 있던 일정·반복 일정은 색을 그대로 둔 채 이름만 떨어진다(onDelete: SetNull).
+  const snapshot: Snapshot = {
+    kind: "event-category-deleted",
+    category: {
+      id: category.id,
+      name: category.name,
+      color: category.color,
+      order: category.order,
+      eventIds: category.events.map((event) => event.id),
+      routineIds: category.eventRoutines.map((routine) => routine.id),
+    },
+  };
+  const batch = await prisma.$transaction(async (tx) => {
+    await tx.eventCategory.delete({ where: { id: category.id } });
+    return tx.mcpBatch.create({ data: { userId: ctx.userId, snapshot }, select: { id: true } });
+  }, BULK_TRANSACTION);
+  await pruneBatches(ctx.userId);
+  refresh();
+
+  return ok({
+    batchId: batch.id,
+    kind: "event",
+    deleted: category.name,
+    eventsKeptWithColor: category.events.length,
+    repeatingEventsKeptWithColor: category.eventRoutines.length,
+    undo: undoNote,
+  });
+}
+
+async function createTodoCategory(ctx: McpContext, input: { name: string; color: string; isPublic?: boolean }): Promise<ToolResult> {
   const limited = writeLimited(ctx);
   if (limited) return limited;
 
@@ -43,7 +155,7 @@ export async function createCategory(ctx: McpContext, input: { name: string; col
   return ok({ id: category.id, name: category.name, color: category.color, visibleToFollowers: category.isPublic });
 }
 
-export async function updateCategory(ctx: McpContext, input: { id: string; name?: string; color?: string; isPublic?: boolean }): Promise<ToolResult> {
+async function updateTodoCategory(ctx: McpContext, input: { id: string; name?: string; color?: string; isPublic?: boolean }): Promise<ToolResult> {
   const limited = writeLimited(ctx);
   if (limited) return limited;
   if (input.name === undefined && input.color === undefined && input.isPublic === undefined) return fail("Give at least one of name, color or isPublic to change.");
@@ -62,7 +174,7 @@ export async function updateCategory(ctx: McpContext, input: { id: string; name?
   });
 }
 
-export async function deleteCategory(ctx: McpContext, input: { id: string }): Promise<ToolResult> {
+async function deleteTodoCategory(ctx: McpContext, input: { id: string }): Promise<ToolResult> {
   const limited = writeLimited(ctx);
   if (limited) return limited;
 
@@ -105,7 +217,7 @@ const clock = (minutes: number | null) => (minutes === null ? null : formatTime(
 export async function listRoutines(ctx: McpContext): Promise<ToolResult> {
   const [routines, eventRoutines] = await Promise.all([
     prisma.routine.findMany({ where: { userId: ctx.userId }, orderBy: { order: "asc" }, include: { category: { select: { id: true, name: true } } } }),
-    prisma.eventRoutine.findMany({ where: { userId: ctx.userId }, orderBy: { createdAt: "asc" } }),
+    prisma.eventRoutine.findMany({ where: { userId: ctx.userId }, orderBy: { createdAt: "asc" }, include: { category: { select: { id: true, name: true } } } }),
   ]);
   const rule = (row: { freq: RoutineFreq; byWeekday: number[]; byMonthday: number[]; startDate: Date; endDate: Date | null; pausedAt: Date | null }) => ({
     frequency: row.freq,
@@ -124,6 +236,8 @@ export async function listRoutines(ctx: McpContext): Promise<ToolResult> {
         kind: "event",
         title: row.title,
         color: row.color,
+        // 내 색(이름 붙은 색)을 골랐으면 그 이름. get_overview.eventCategories와 같다(2026-11-26).
+        category: row.category ? { id: row.category.id, name: row.category.name } : null,
         startTime: clock(row.startTime),
         endTime: clock(row.endTime),
         visibleToFollowers: row.isPublic,
@@ -173,11 +287,22 @@ export async function createRoutine(ctx: McpContext, input: RoutineInput): Promi
     if (startTime === undefined || endTime === undefined) return fail("startTime and endTime must be HH:MM.");
     if (startTime === null && endTime !== null) return fail("endTime needs a startTime.");
     if (startTime !== null && endTime !== null && endTime < startTime) return fail("endTime is before startTime.");
+    // 내 색(이름 붙은 색)을 고르면 그 색이 반복 일정의 색이 된다. 색을 따로 주는 것과 함께 쓸 수 없다.
+    let color = input.color ? input.color.toLowerCase() : DEFAULT_EVENT_COLOR;
+    let categoryId: string | null = null;
+    if (input.category !== undefined) {
+      if (input.color !== undefined) return fail("Give either color or category, not both.");
+      const found = await findEventCategory(ctx.userId, input.category);
+      if ("error" in found) return fail(found.error);
+      color = found.color;
+      categoryId = found.id;
+    }
     const row = await prisma.eventRoutine.create({
       data: {
         userId: ctx.userId,
         title: input.title,
-        color: input.color ? input.color.toLowerCase() : DEFAULT_EVENT_COLOR,
+        color,
+        categoryId,
         startTime,
         endTime,
         isPublic: input.isPublic === true,
@@ -206,7 +331,8 @@ export async function createRoutine(ctx: McpContext, input: RoutineInput): Promi
 type RoutineUpdate = {
   id: string;
   title?: string;
-  category?: string;
+  // 할 일 루틴: 할 일 카테고리. 반복 일정: 내 색(이름 붙은 색), null이면 떼고 색은 남긴다.
+  category?: string | null;
   frequency?: RoutineFreq;
   weekdays?: number[];
   monthdays?: number[];
@@ -263,6 +389,7 @@ async function updateTodoRoutine(
   if (typeof rule === "string") return fail(rule);
 
   let categoryId = row.categoryId;
+  if (input.category === null) return fail("A todo routine always needs a category. Give another category to move it.");
   if (input.category !== undefined) {
     const categories = await prisma.category.findMany({ where: { userId: ctx.userId, archivedAt: null }, select: { id: true, name: true } });
     const category = categories.find((each) => each.id === input.category) ?? categories.find((each) => each.name.trim().toLowerCase() === input.category?.trim().toLowerCase());
@@ -301,9 +428,23 @@ async function updateEventRoutine(
   row: NonNullable<Awaited<ReturnType<typeof prisma.eventRoutine.findFirst>>>,
   input: RoutineUpdate,
 ): Promise<ToolResult> {
-  if (input.category !== undefined) return fail("Repeating events have no category.");
   const rule = mergeRule(row, input);
   if (typeof rule === "string") return fail(rule);
+
+  // 내 색(이름 붙은 색): 고르면 그 색이 반복 일정의 색이 되고, null이면 떼며 색은 남는다. 색을 손으로 바꾸면 이름도 뗀다(앱의 "직접 고르기"와 같다).
+  if (input.category !== undefined && input.color !== undefined) return fail("Give either color or category, not both.");
+  let categoryId = row.categoryId;
+  let color = input.color ? input.color.toLowerCase() : row.color;
+  if (input.category === null) {
+    categoryId = null;
+  } else if (typeof input.category === "string") {
+    const found = await findEventCategory(ctx.userId, input.category);
+    if ("error" in found) return fail(found.error);
+    categoryId = found.id;
+    color = found.color;
+  } else if (input.color !== undefined) {
+    categoryId = null;
+  }
 
   const title = input.title ?? row.title;
   if ([...title].length > MAX_TITLE) return fail(`An event title is at most ${MAX_TITLE} characters.`);
@@ -321,7 +462,8 @@ async function updateEventRoutine(
       title,
       startTime,
       endTime,
-      color: input.color ? input.color.toLowerCase() : row.color,
+      color,
+      categoryId,
       isPublic: input.isPublic ?? row.isPublic,
       pausedAt: input.paused === undefined ? row.pausedAt : input.paused ? (row.pausedAt ?? new Date()) : null,
       ...(rule ?? {}),
@@ -331,7 +473,7 @@ async function updateEventRoutine(
   return ok({
     id: row.id,
     kind: "event",
-    previous: { title: row.title, color: row.color, startTime: clock(row.startTime), endTime: clock(row.endTime), visibleToFollowers: row.isPublic, paused: row.pausedAt !== null, ...describeRule(row) },
+    previous: { title: row.title, color: row.color, categoryId: row.categoryId, startTime: clock(row.startTime), endTime: clock(row.endTime), visibleToFollowers: row.isPublic, paused: row.pausedAt !== null, ...describeRule(row) },
   });
 }
 
@@ -388,6 +530,7 @@ export async function deleteRoutine(ctx: McpContext, input: { id: string }): Pro
       endDate: eventRoutine.endDate ? dayText(eventRoutine.endDate) : null,
       paused: eventRoutine.pausedAt !== null,
       isPublic: eventRoutine.isPublic,
+      categoryId: eventRoutine.categoryId,
       skipDates: eventRoutine.skips.map((skip) => dayText(skip.date)),
     },
   };

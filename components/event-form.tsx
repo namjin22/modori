@@ -7,7 +7,7 @@ import {
   type EventFormState,
   updateEvent,
 } from "@/app/(tabs)/events/actions";
-import { EventColorField } from "@/components/event-color-field";
+import { ColorSwatches } from "@/components/color-swatches";
 import { DatePicker } from "@/components/date-picker";
 import { DetailHeader, DetailRow, DetailRows, memoSummary } from "@/components/detail-panel";
 import { useT } from "@/components/locale-provider";
@@ -17,7 +17,7 @@ import { PrivateSwitch } from "@/components/private-switch";
 import { SubmitButton } from "@/components/submit-button";
 import { TimePicker } from "@/components/time-picker";
 import { useFormAction } from "@/components/use-form-action";
-import { DEFAULT_EVENT_COLOR } from "@/lib/colors";
+import { PALETTE } from "@/lib/colors";
 import { common } from "@/lib/i18n/messages/common";
 import { events } from "@/lib/i18n/messages/events";
 import { MAX_MEMO_LENGTH } from "@/lib/memo";
@@ -173,9 +173,15 @@ export function EventForm({
         <input type="hidden" name="endTime" value={allDay ? "" : endTime} />
       </div>
 
-      {/* 할 일 카테고리와 같은 색 팔레트. 달력 칸의 일정 이름표와 일정 카드의 띠가 이 색이 된다.
-          이름 붙은 색(일정 카테고리)을 만들어 두었으면 그 칩이 먼저 보인다(2026-11-25). */}
-      <EventColorField defaultCategoryId={event?.categoryId ?? null} defaultColor={event?.color ?? DEFAULT_EVENT_COLOR} />
+      {/* 달력 칸의 일정 이름표와 일정 카드의 띠가 이 색이 된다. 처음 색은 흰색이고, 내가 만든 색(이름 붙은 색)이 그 오른쪽에 붙는다(2026-11-26).
+          내 색을 고르면 그 id도 같이 간다. */}
+      <ColorSwatches
+        name="color"
+        legend={t("color")}
+        defaultValue={event?.color ?? PALETTE[0].value}
+        categoryField="categoryId"
+        defaultCategoryId={event?.categoryId ?? null}
+      />
 
       <DetailRows>
         <DetailRow buttonRef={memoRow} label={t("memo")} summary={memoSummary(memoText, t("detailNone"))} onOpen={() => setView("memo")} />

@@ -17,7 +17,7 @@ export function EventRoutineEditButton({
   routine,
   rule,
 }: {
-  routine: { id: string; title: string; color: string; startTime: number | null; endTime: number | null; isPublic: boolean };
+  routine: { id: string; title: string; color: string; categoryId: string | null; startTime: number | null; endTime: number | null; isPublic: boolean };
   rule: RuleInitial;
 }) {
   const t = useT(events);
@@ -61,6 +61,7 @@ export function EventRoutineEditButton({
             initial={{
               title: routine.title,
               color: routine.color,
+              categoryId: routine.categoryId,
               startTime: routine.startTime === null ? "" : formatTime(routine.startTime),
               endTime: routine.endTime === null ? "" : formatTime(routine.endTime),
               isPublic: routine.isPublic,
