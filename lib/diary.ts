@@ -60,6 +60,16 @@ export function diaryDateProblem(date: Date, today: Date): "future" | "tooOld" |
   return null;
 }
 
+/**
+ * 홈과 친구 화면의 일기 카드가 보이는 글(2026-11-26). 줄바꿈은 그대로 두고 앞부분만 잘라 보낸다(한 달치를 한 번에 받으므로 5,000자짜리 일기가
+ * 서른 편이어도 가볍게). 한 화면에 들어오는 만큼만 보이고 나머지는 "…"이 되는 것은 카드의 줄 수 제한(CSS)이 하고, 여기서 자르면 "…"을 붙인다.
+ */
+export const DIARY_CARD_LETTERS = 400;
+export function clipDiary(content: string, max = DIARY_CARD_LETTERS): string {
+  const letters = Array.from(content);
+  return letters.length <= max ? content : `${letters.slice(0, max).join("").trimEnd()}…`;
+}
+
 /** 목록에 보이는 맛보기: 줄바꿈을 공백으로 펴고 글자 수에서 자른다(글자 단위라 이모지가 반쪽이 되지 않는다). */
 export function diaryExcerpt(content: string, max = 140): string {
   const flat = content.replace(/\s*\n\s*/g, " ").trim();

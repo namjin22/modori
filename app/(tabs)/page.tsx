@@ -1,6 +1,7 @@
 import { headers } from "next/headers";
 
 import { HomeView, type HomeData } from "@/components/home-view";
+import { clipDiary } from "@/lib/diary";
 import { isAiConfigured } from "@/lib/ai/llm";
 import { avatarUrl } from "@/lib/avatar";
 import {
@@ -154,8 +155,8 @@ export default async function FeedPage({
     // 하루 화면에 보이는 일기(2026-11-17). 받아 둔 기간 안에서만, 글은 맛보기만 읽는다.
     prisma.diaryEntry.findMany({
       where: { userId: user.id, date: { gte: from, lte: to } },
-      // 홈 카드는 일기 내용을 보이지 않는다(2026-11-24). 글은 읽는 화면에서만 가져온다.
-      select: { date: true, mood: true, isPublic: true },
+      // 홈 카드는 글의 앞부분을 보인다(2026-11-26 요청, 11-24에는 내용을 보이지 않았다). 전체는 읽는 화면에서만 가져온다.
+      select: { date: true, mood: true, content: true },
     }),
   ]);
 
@@ -182,7 +183,7 @@ export default async function FeedPage({
     upcoming,
     tour,
     aiReady: isAiConfigured(),
-    diaries: diaryRows.map((row) => ({ date: formatKST(row.date), mood: row.mood, isPublic: row.isPublic })),
+    diaries: diaryRows.map((row) => ({ date: formatKST(row.date), mood: row.mood, content: clipDiary(row.content) })),
   };
 
   return <HomeView data={data} />;

@@ -99,7 +99,8 @@ export default async function FriendDiaryPage({
       ) : (
         <ul className="flex flex-col gap-3">
           {entries.map((entry) => (
-            <li key={formatKST(entry.date)} className="flex flex-col gap-2 rounded-2xl bg-surface p-4">
+            // 친구 화면의 일기 카드가 "#d-날짜"로 이 줄에 바로 온다(2026-11-26).
+            <li key={formatKST(entry.date)} id={`d-${formatKST(entry.date)}`} className="flex scroll-mt-4 flex-col gap-2 rounded-2xl bg-surface p-4">
               <p className="flex items-center gap-2 text-sm font-medium">
                 {entry.mood && <DiaryMood value={entry.mood} size={40} label={isDiaryMood(entry.mood) ? t(MOOD_LABEL_KEYS[entry.mood]) : undefined} />}
                 {monthDayWithWeekday(locale, entry.date.getUTCMonth() + 1, entry.date.getUTCDate(), entry.date.getUTCDay())}

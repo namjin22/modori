@@ -34,7 +34,7 @@ async function signUp(page: Page, email: string, nickname: string) {
   await expect(homeReady(page)).toBeVisible();
 }
 
-test("빈 카드는 쓰기로, 저장하면 읽기로, 홈 카드는 내용 없이 읽기로 간다", async ({ page, email }, testInfo) => {
+test("빈 카드는 쓰기로, 저장하면 읽기로, 홈 카드는 글을 보이며 읽기로 간다", async ({ page, email }, testInfo) => {
   await signUp(page, email, `읽기${testInfo.testId.slice(-6)}${RUN_TAG}`);
   const card = page.locator("[data-diary-card]");
 
@@ -66,10 +66,10 @@ test("빈 카드는 쓰기로, 저장하면 읽기로, 홈 카드는 내용 없�
   await page.getByRole("link", { name: "일기 보기로" }).click();
   await expect(page).toHaveURL(new RegExp(`/diary/${TODAY}$`));
 
-  // 홈 카드에는 기분과 "눌러서 읽기"만 있고 내용은 없다. 누르면 읽는 화면이다.
+  // 홈 카드에는 기분과 글이 바로 보인다(2026-11-26 요청, 11-24에는 "눌러서 읽기"만 있었다). 누르면 읽는 화면이다.
   await page.goto("/");
-  await expect(card).toContainText("눌러서 읽기");
-  await expect(card).not.toContainText("모두의 창업 마감!");
+  await expect(card).toContainText("모두의 창업 마감!");
+  await expect(card).not.toContainText("눌러서 읽기");
   await card.click();
   await expect(page).toHaveURL(new RegExp(`/diary/${TODAY}$`));
   await expect(page.getByRole("article", { name: "일기" })).toContainText("모두의 창업 마감!");

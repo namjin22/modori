@@ -4,6 +4,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { CategoryChip } from "@/components/category-chip";
+import { FriendDiaryCard, type FriendDiary } from "@/components/diary-card";
 import { Dori } from "@/components/dori";
 import { useLocale, useT } from "@/components/locale-provider";
 import { FeedItem } from "@/components/feed-item";
@@ -59,6 +60,8 @@ export type FriendData = {
   to: string;
   todos: FriendTodo[];
   events: FriendEvent[];
+  // 받아 둔 기간의 친구 일기(2026-11-26). 공개한 날은 글(앞부분)과 기분, 비공개한 날은 있다는 표시만 있다.
+  diaries: { date: string; entry: FriendDiary }[];
 };
 
 function formatHeading(locale: Locale, key: string): string {
@@ -122,6 +125,8 @@ export function FriendView({ profile, data }: { profile: ReactNode; data: Friend
             locale={locale}
             monthHref={(month) => `${basePath}?date=${selected}&month=${month}`}
             onSelectDay={select}
+            // 내 화면과 같이 달력 바로 아래에 그날의 일기 카드를 둔다(2026-11-26 요청).
+            footer={<FriendDiaryCard friendId={data.friendId} date={selected} today={data.today} entry={data.diaries.find((diary) => diary.date === selected)?.entry ?? null} />}
           />
         </div>
       </div>
