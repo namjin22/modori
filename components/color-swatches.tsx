@@ -7,8 +7,8 @@ import { ColorPickerSheet } from "@/components/color-picker-sheet";
 import { type EventCategoryOption, useEventCategories } from "@/components/event-categories";
 import { useT } from "@/components/locale-provider";
 import { useSaveFailure } from "@/components/use-save-failure";
-import { isPaletteColor, PALETTE } from "@/lib/colors";
-import { categories as categoryMessages, colorNames } from "@/lib/i18n/messages/categories";
+import { NO_CATEGORY_COLOR } from "@/lib/colors";
+import { categories as categoryMessages } from "@/lib/i18n/messages/categories";
 import { events } from "@/lib/i18n/messages/events";
 
 const SWATCH =
@@ -19,17 +19,18 @@ const RADIO = "absolute inset-0 m-0 cursor-pointer appearance-none rounded-full"
 type Selected = { color: string; categoryId: string | null };
 
 /**
- * 색 고르기(2026-11-26 운영자 요청으로 다시 만들었다). 처음부터 있는 색은 흰색 하나뿐이고, 그 오른쪽에 내가 만든 색("내 색", 이름 붙은 색)이
- * 하나씩 붙고, 맨 오른쪽 +를 누르면 이름과 색을 정해 새 색을 만든다. 만든 색은 저장되어 일정·반복 일정·카테고리의 색 고르기에 같이 나타난다.
+ * 색 고르기(2026-11-26 운영자 요청으로 다시 만들었다). 처음부터 있는 색은 없다(11-27에 흰색 하나도 뺐다). 내가 만든 색("내 색", 이름 붙은 색)이
+ * 하나씩 놓이고, 맨 오른쪽 +를 누르면 이름과 색을 정해 새 색을 만든다. 아무것도 고르지 않은 것이 "색 없음"이고(처음 상태, 고른 색을 한 번 더
+ * 누르면 되돌아온다), 그때는 중립 회색(NO_CATEGORY_COLOR)으로 저장되어 회색으로 보인다. 만든 색은 저장되어 일정·반복 일정·카테고리의 색 고르기에 같이 나타난다.
  * 모두 라디오 버튼이라 폼으로 그대로 전송된다(color=#rrggbb).
  *
  * categoryField를 주면(일정·반복 일정 폼) 내 색을 골랐을 때 그 id를 그 이름의 숨은 칸으로 함께 보낸다. 서버가 내 색인지 확인하고 그 색을 쓴다.
  * 흰색이나 직접 고른 색을 고르면 id는 빈 값이다. 일반 카테고리 폼은 id 없이 색만 보낸다(색을 복사해 쓴다).
  *
- * 예전 여덟 색(빨강 등)이나 예전에 고른 색을 이미 가진 카테고리·일정은 그 색이 한 칸으로 같이 보인다. 안 그러면 아무것도 고르지 않은 상태가 되어
+ * 내 색이 아닌 색(예전 여덟 색이나 흰색, 예전에 고른 색)을 이미 가진 카테고리·일정은 그 색이 한 칸으로 같이 보인다. 안 그러면 아무것도 고르지 않은 상태가 되어
  * 저장이 조용히 무시된다.
  *
- * plain이면 내 색 없이 흰색과 "색 고르기" 창(100색·직접 찍기·색상 코드)만 쓴다. 내 색 자신의 색을 바꾸는 창이 쓴다.
+ * plain이면 내 색 없이 "색 고르기" 창(100색·직접 찍기·색상 코드)만 쓴다. 내 색 자신의 색을 바꾸는 창이 쓴다.
  */
 export function ColorSwatches({
   name,
@@ -54,7 +55,6 @@ export function ColorSwatches({
 }) {
   const t = useT(events);
   const tcat = useT(categoryMessages);
-  const tn = useT(colorNames);
   const saved = useEventCategories();
   const saveFailed = useSaveFailure();
   // 방금 만든 색은 서버가 목록을 다시 보내기 전에도 바로 보여야 한다.
@@ -67,8 +67,8 @@ export function ColorSwatches({
     categoryId: !plain && defaultCategoryId && saved.some((each) => each.id === defaultCategoryId) ? defaultCategoryId : null,
   }));
   const [selected, setSelected] = useState<Selected>(initial);
-  // 흰색도 내 색도 아닌 색(예전에 고른 색이나 plain 창에서 고른 색). 그대로 보여 주지 않으면 아무것도 고르지 않은 상태가 된다.
-  const [custom, setCustom] = useState<string | null>(initial.categoryId === null && defaultValue && !isPaletteColor(defaultValue) ? defaultValue : null);
+  // 내 색도 "색 없음"도 아닌 색(예전에 고른 색이나 plain 창에서 고른 색). 그대로 보여 주지 않으면 아무것도 고르지 않은 상태가 된다.
+  const [custom, setCustom] = useState<string | null>(initial.categoryId === null && defaultValue && defaultValue !== NO_CATEGORY_COLOR ? defaultValue : null);
   const [picking, setPicking] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -92,10 +92,12 @@ export function ColorSwatches({
   }, [initial]);
 
   const selectedName = mine.find((each) => each.id === selected.categoryId)?.name ?? null;
+  const NONE: Selected = { color: NO_CATEGORY_COLOR, categoryId: null };
+  const isNone = selected.categoryId === null && selected.color === NO_CATEGORY_COLOR;
 
   function pickPlain(hex: string) {
     setPicking(false);
-    if (!isPaletteColor(hex)) setCustom(hex);
+    if (hex !== NO_CATEGORY_COLOR) setCustom(hex);
     setSelected({ color: hex, categoryId: null });
     setChosenTick((tick) => tick + 1);
   }
@@ -124,19 +126,6 @@ export function ColorSwatches({
     <fieldset ref={fieldsetRef} className="flex flex-col gap-1.5">
       <legend className="mb-2 text-xs text-muted">{legend}</legend>
       <div className="flex flex-wrap gap-2">
-        {PALETTE.map((color) => (
-          <label key={color.value} title={tn(color.value)} className={SWATCH} style={{ backgroundColor: color.value }}>
-            <input
-              type="radio"
-              name={name}
-              value={color.value}
-              checked={selected.categoryId === null && selected.color === color.value}
-              onChange={() => setSelected({ color: color.value, categoryId: null })}
-              aria-label={tn(color.value)}
-              className={RADIO}
-            />
-          </label>
-        ))}
         {mine.map((category) => (
           <label key={category.id} title={category.name} className={SWATCH} style={{ backgroundColor: category.color }}>
             <input
@@ -145,6 +134,10 @@ export function ColorSwatches({
               value={category.color}
               checked={selected.categoryId === category.id}
               onChange={() => setSelected({ color: category.color, categoryId: category.id })}
+              // 고른 색을 한 번 더 누르면 고르지 않은 상태(색 없음)로 돌아간다.
+              onClick={() => {
+                if (selected.categoryId === category.id) setSelected(NONE);
+              }}
               aria-label={category.name}
               className={RADIO}
             />
@@ -158,6 +151,9 @@ export function ColorSwatches({
               value={custom}
               checked={selected.categoryId === null && selected.color === custom}
               onChange={() => setSelected({ color: custom, categoryId: null })}
+              onClick={() => {
+                if (selected.categoryId === null && selected.color === custom) setSelected(NONE);
+              }}
               aria-label={t("customColor", { color: custom })}
               className={RADIO}
             />
@@ -180,6 +176,8 @@ export function ColorSwatches({
         </button>
       </div>
       {selectedName && <p className="text-xs text-muted">{selectedName}</p>}
+      {/* 아무것도 고르지 않았으면 라디오가 하나도 전송되지 않으므로 중립 회색을 따로 보낸다. */}
+      {isNone && <input type="hidden" name={name} value={NO_CATEGORY_COLOR} />}
       {categoryField && <input type="hidden" name={categoryField} value={selected.categoryId ?? ""} />}
 
       <ColorPickerSheet

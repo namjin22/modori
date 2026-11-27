@@ -7,7 +7,7 @@ import { RUN_TAG } from "./run-tag";
 import { createMyColor, homeReady, openEvent } from "./todo-helpers";
 
 // "내 색"(이름 붙은 색, EventCategory): 2026-11-25에 일정 카테고리로 만들었고, 2026-11-26에 색 고르기의 +로 만들며
-// 일정·반복 일정·일반 카테고리가 같이 쓰게 넓혔다. 기본 색은 흰색 하나뿐이다.
+// 일정·반복 일정·일반 카테고리가 같이 쓰게 넓혔다. 처음부터 있는 색은 없다(11-27에 흰색 기본도 뺐다).
 
 const test = base.extend<{ email: string }>({
   email: async ({}, provide, testInfo) => {
@@ -32,19 +32,18 @@ test.afterAll(async () => {
   await prisma.$disconnect();
 });
 
-test("색 고르기에는 흰색 하나와 +만 있고, +로 만든 색이 일정에 그 색과 이름으로 붙는다", async ({ page, email }, testInfo) => {
+test("색 고르기에는 +만 있고(색 없음이 처음 상태), +로 만든 색이 일정에 그 색과 이름으로 붙는다", async ({ page, email }, testInfo) => {
   await signInAndOnboard(page, email, `내색${testInfo.testId.slice(-6)}${RUN_TAG}`);
 
   await page.getByRole("button", { name: "일정", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "새 일정" });
   await page.getByLabel("새 일정 이름").fill("기말 평가");
-  // 처음부터 있는 색은 흰색 하나뿐이다(예전 여덟 색은 없다).
-  await expect(dialog.getByRole("radio")).toHaveCount(1);
-  await expect(dialog.getByRole("radio", { name: "흰색" })).toBeChecked();
+  // 처음부터 있는 색은 없다(예전 여덟 색도 흰색도 없다). 아무것도 고르지 않은 것이 "색 없음"이다.
+  await expect(dialog.getByRole("radio")).toHaveCount(0);
 
   await createMyColor(page, "학교 시험", "#f97316", dialog);
-  // 만든 색은 흰색 오른쪽에 붙고 골라진다. 이름은 색 아래에 보인다.
-  await expect(dialog.getByRole("radio")).toHaveCount(2);
+  // 만든 색이 놓이고 골라진다. 이름은 색 아래에 보인다.
+  await expect(dialog.getByRole("radio")).toHaveCount(1);
   await expect(page.getByText("학교 시험", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "저장", exact: true }).click();
 
@@ -59,6 +58,23 @@ test("색 고르기에는 흰색 하나와 +만 있고, +로 만든 색이 일�
   expect(category).toMatchObject({ name: "학교 시험", color: "#f97316" });
   expect(event.categoryId).toBe(category.id);
   expect(event.color).toBe("#f97316");
+});
+
+test("색을 고르지 않고 일정과 카테고리를 만들면 색 없음(회색)으로 저장된다", async ({ page, email }, testInfo) => {
+  await signInAndOnboard(page, email, `무색${testInfo.testId.slice(-6)}${RUN_TAG}`);
+  const user = await prisma.user.findUniqueOrThrow({ where: { email } });
+
+  await page.getByRole("button", { name: "일정", exact: true }).click();
+  await page.getByLabel("새 일정 이름").fill("색 없는 일정");
+  await page.getByRole("button", { name: "저장", exact: true }).click();
+  await expect(page.getByRole("listitem").filter({ hasText: "색 없는 일정" })).toBeVisible();
+  expect((await prisma.event.findFirstOrThrow({ where: { userId: user.id, title: "색 없는 일정" } })).color).toBe("#8b95a1");
+
+  await page.goto("/categories");
+  await page.getByLabel("새 카테고리 이름").fill("색 없는 카테고리");
+  await page.getByRole("button", { name: "추가", exact: true }).click();
+  await expect(page.getByText("색 없는 카테고리", { exact: true })).toBeVisible();
+  expect((await prisma.category.findFirstOrThrow({ where: { userId: user.id, name: "색 없는 카테고리" } })).color).toBe("#8b95a1");
 });
 
 test("만든 색은 일반 카테고리의 색 고르기에도 나타나고, 고르면 색만 복사된다", async ({ page, email }, testInfo) => {
@@ -107,7 +123,7 @@ test("카테고리 색을 바꾸면 그 색인 일정과 반복 일정만 같이
 
   await page.goto("/event-categories");
   await page.getByRole("button", { name: "약속 고치기" }).click();
-  // 내 색 자신의 색을 바꾸는 창은 흰색과 "색 고르기"(100색·색상 코드)만 쓴다. 고르면 그 자리에서 저장된다.
+  // 내 색 자신의 색을 바꾸는 창은 "색 고르기"(대표 색·색상 코드)만 쓴다. 고르면 그 자리에서 저장된다.
   await page.getByRole("dialog").getByRole("button", { name: "색 고르기" }).click();
   const sheet = page.getByRole("dialog", { name: "색 고르기" }).last();
   await sheet.getByLabel("색상 코드").fill("#22c55e");
@@ -166,7 +182,7 @@ test("내 색을 지워도 일정과 반복 일정의 색은 남고, 되돌리�
   expect((await prisma.eventRoutine.findUniqueOrThrow({ where: { id: repeat.id } })).categoryId).toBe(category.id);
 });
 
-test("고치는 창에는 붙어 있던 내 색이 골라져 있고, 흰색을 고르면 이름이 떨어진다", async ({ page, email }, testInfo) => {
+test("고치는 창에는 붙어 있던 내 색이 골라져 있고, 한 번 더 눌러 고르지 않으면 이름이 떨어지고 회색(색 없음)이 된다", async ({ page, email }, testInfo) => {
   await signInAndOnboard(page, email, `일직${testInfo.testId.slice(-6)}${RUN_TAG}`);
   const user = await prisma.user.findUniqueOrThrow({ where: { email } });
   const day = todayKST();
@@ -179,13 +195,14 @@ test("고치는 창에는 붙어 있던 내 색이 골라져 있고, 흰색을 �
   await expect(homeReady(page)).toBeVisible();
   await openEvent(page, "동아리 발표");
   await expect(page.getByRole("radio", { name: "학교", exact: true })).toBeChecked();
-  await page.getByRole("radio", { name: "흰색" }).check();
+  // 고른 색을 한 번 더 누르면 고르지 않은 상태(색 없음)가 된다.
+  await page.getByRole("radio", { name: "학교", exact: true }).click();
   await page.getByRole("button", { name: "저장", exact: true }).click();
   await expect(page.getByRole("dialog")).toBeHidden();
 
   const after = await prisma.event.findUniqueOrThrow({ where: { id: event.id } });
   expect(after.categoryId).toBeNull();
-  expect(after.color).toBe("#ffffff");
+  expect(after.color).toBe("#8b95a1");
 });
 
 test("반복 일정도 내 색을 골라 만들고 고친다", async ({ page, email }, testInfo) => {

@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 import { ColorSwatches } from "@/components/color-swatches";
-import { PALETTE } from "@/lib/colors";
+import { NO_CATEGORY_COLOR } from "@/lib/colors";
 import { SubmitButton } from "@/components/submit-button";
 import { categories as categoryMessages } from "@/lib/i18n/messages/categories";
 import { events as eventMessages } from "@/lib/i18n/messages/events";
@@ -18,7 +18,7 @@ import { SortableList } from "@/components/sortable-list";
 import { CategoryEditor } from "@/components/category-editor";
 
 // 브랜드 파랑을 기본값으로 두면 새 카테고리가 버튼 색과 구분되지 않는다.
-const DEFAULT_NEW_COLOR = PALETTE[0].value;
+const DEFAULT_NEW_COLOR = NO_CATEGORY_COLOR;
 
 export default async function CategoriesPage() {
   const user = await requireUser();
