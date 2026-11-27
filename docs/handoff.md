@@ -2297,3 +2297,9 @@ VM에 시험 DB(사용자 1000, 할 일 108만, 반응 24만, 280MB)를 만들�
 ## 2026-11-27 — 달력 앞뒤 달 날짜
 
 - `components/month-calendar.tsx`: 첫 줄·마지막 줄의 빈 칸에 앞뒤 달의 날짜를 흐리게(`OtherMonthDay`, 숫자만, `aria-hidden`, 누를 수 없고 `data-date`도 없다). 요청은 앞 달(12월 첫 줄의 11월 29·30일)만 말했고 뒤 달 날짜는 내가 같이 채웠다. 홈과 친구 화면 모두 이 컴포넌트를 써서 둘 다 바뀐다. 새 시험 `tests/e2e/calendar-adjacent.spec.ts`, 달력·홈 달 시험 12개 통과.
+
+## 2026-11-27(이어서) — 색 고르기의 흰색 기본 제거, 색 없음
+
+- `components/color-swatches.tsx`: 처음부터 있는 색을 없앴다(`PALETTE`·`isPaletteColor` 삭제). 아무것도 안 고른 것이 "색 없음"이고 숨은 칸으로 회색(`NO_CATEGORY_COLOR`)을 보낸다. 고른 색을 한 번 더 누르면 해제. 일정·카테고리·반복 일정 폼의 기본값도 회색. 결정 `docs/decisions.md` "색 고르기의 흰색 기본도 없애고…".
+- **알아 둘 것**: 서버 대체값(`DEFAULT_EVENT_COLOR` 파랑)과 AI 연결의 기본색은 그대로다(화면은 늘 색을 보낸다). `colorNames` 사전(예전 여덟 색 이름)은 이제 안 쓰이지만 `i18n.test.ts`가 가져와 두었다.
+- 시험(운영자 승인): `events.spec.ts`·`category-edit.spec.ts` 한 곳씩, 내 `event-categories.spec.ts` 두 곳. 새 시험(색 없음 저장). 관련 E2E 39개 로컬 통과.

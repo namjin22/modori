@@ -17,7 +17,7 @@ import { PrivateSwitch } from "@/components/private-switch";
 import { SubmitButton } from "@/components/submit-button";
 import { TimePicker } from "@/components/time-picker";
 import { useFormAction } from "@/components/use-form-action";
-import { PALETTE } from "@/lib/colors";
+import { NO_CATEGORY_COLOR } from "@/lib/colors";
 import { common } from "@/lib/i18n/messages/common";
 import { events } from "@/lib/i18n/messages/events";
 import { MAX_MEMO_LENGTH } from "@/lib/memo";
@@ -173,12 +173,12 @@ export function EventForm({
         <input type="hidden" name="endTime" value={allDay ? "" : endTime} />
       </div>
 
-      {/* 달력 칸의 일정 이름표와 일정 카드의 띠가 이 색이 된다. 처음 색은 흰색이고, 내가 만든 색(이름 붙은 색)이 그 오른쪽에 붙는다(2026-11-26).
-          내 색을 고르면 그 id도 같이 간다. */}
+      {/* 달력 칸의 일정 이름표와 일정 카드의 띠가 이 색이 된다. 처음에는 아무 색도 고르지 않은 "색 없음"(회색)이고,
+          내가 만든 색(이름 붙은 색)을 고른다(2026-11-26, 11-27에 흰색 기본을 뺐다). 내 색을 고르면 그 id도 같이 간다. */}
       <ColorSwatches
         name="color"
         legend={t("color")}
-        defaultValue={event?.color ?? PALETTE[0].value}
+        defaultValue={event?.color ?? NO_CATEGORY_COLOR}
         categoryField="categoryId"
         defaultCategoryId={event?.categoryId ?? null}
       />

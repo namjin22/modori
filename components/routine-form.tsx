@@ -15,7 +15,7 @@ import { PrivateSwitch } from "@/components/private-switch";
 import { SubmitButton } from "@/components/submit-button";
 import { TimePicker } from "@/components/time-picker";
 import { useFormAction } from "@/components/use-form-action";
-import { PALETTE } from "@/lib/colors";
+import { NO_CATEGORY_COLOR } from "@/lib/colors";
 import { weekdayNames } from "@/lib/i18n/format";
 import { events } from "@/lib/i18n/messages/events";
 import { routines } from "@/lib/i18n/messages/routines";
@@ -275,11 +275,11 @@ export function EventRoutineFields({
         <input type="hidden" name="startTime" value={allDay ? "" : startTime} />
         <input type="hidden" name="endTime" value={allDay ? "" : endTime} />
       </div>
-      {/* 처음 색은 흰색이고, 내가 만든 색(이름 붙은 색)이 그 오른쪽에 붙는다. 내 색을 고르면 그 id도 같이 간다(2026-11-26). */}
+      {/* 처음에는 아무 색도 고르지 않은 "색 없음"(회색)이고, 내가 만든 색(이름 붙은 색)을 고른다. 내 색을 고르면 그 id도 같이 간다(2026-11-26, 11-27에 흰색 기본을 뺐다). */}
       <ColorSwatches
         name="color"
         legend={te("color")}
-        defaultValue={initial?.color ?? PALETTE[0].value}
+        defaultValue={initial?.color ?? NO_CATEGORY_COLOR}
         categoryField="categoryId"
         defaultCategoryId={initial?.categoryId ?? null}
       />

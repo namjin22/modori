@@ -53,7 +53,8 @@ test("이름을 비운 채 색을 바꾸면 저장하지 않고 이유를 알려
   await page.goto("/categories");
   await openCategory(page, FIRST_CATEGORY);
   await page.getByLabel("카테고리 이름", { exact: true }).fill("");
-  await page.getByRole("dialog").getByLabel("흰색").check();
+  // 색을 고르는 순간 저장한다. 처음부터 있는 색이 없어 +로 새 색을 만들어 고른다.
+  await createMyColor(page, "연두", "#84cc16", page.getByRole("dialog", { name: "카테고리" }));
 
   // "저장했어요"라고 하면서 실제로는 아무것도 바뀌지 않던 것을 막는다.
   await expect(page.getByText("이름을 적어주세요")).toBeVisible();
@@ -63,7 +64,7 @@ test("이름을 비운 채 색을 바꾸면 저장하지 않고 이유를 알려
     where: { userId: user.id },
   });
   expect(category.name).toBe(FIRST_CATEGORY);
-  expect(category.color).not.toBe("#ffffff");
+  expect(category.color).not.toBe("#84cc16");
 });
 
 test("카테고리를 지우면 할 일은 남고 루틴은 멈추며, 되돌리면 다시 이어진다", async ({

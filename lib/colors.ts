@@ -1,21 +1,11 @@
-/**
- * 색 고르기에 처음부터 있는 색. 2026-11-26 운영자 요청으로 흰색 하나만 남겼다(예전에는 빨강·주황·노랑·초록·파랑·보라·흰색·검정 여덟 색이었다).
- * 나머지 색은 사람이 팔레트 오른쪽 끝의 +로 "내 색"(이름 붙은 색, EventCategory)을 만들어 쓴다(components/color-swatches.tsx).
- * 예전 여덟 색의 이름은 lib/i18n/messages/categories.ts의 colorNames에 남아 있다(그 색을 쓰던 카테고리·일정은 값을 그대로 가진다).
- *
- * 흰색은 화면 배경과 같아질 수 있다. 색을 그리는 곳에는 얇은 테두리를 둘러서 배경에 묻히지 않게 한다.
- */
-export const PALETTE = [{ value: "#ffffff", name: "흰색" }] as const;
-
 /** 일정의 기본 색. 일정도 할 일처럼 팔레트에서 색을 고를 수 있고(2026-10-13), 고르지 않으면 파랑이다. */
 export const DEFAULT_EVENT_COLOR = "#2563eb";
 
-/** 카테고리도 따로 고른 색도 없는 할 일을 달력에 채울 때 쓰는 회색. */
+/**
+ * 카테고리도 따로 고른 색도 없는 할 일을 달력에 채울 때 쓰는 회색. 2026-11-27부터 일정·카테고리·반복 일정에서 색을 고르지 않은
+ * "색 없음"도 이 회색으로 저장한다(색 고르기에는 처음부터 있는 색이 없다, components/color-swatches.tsx).
+ */
 export const NO_CATEGORY_COLOR = "#8b95a1";
-
-export function isPaletteColor(value: string): boolean {
-  return PALETTE.some((color) => color.value === value);
-}
 
 /**
  * 저장할 수 있는 색인가. 기본 팔레트 밖의 색도 고를 수 있게 되면서(2026-10-19 요청: 100색, 색상 코드, 직접 찍기) "#rrggbb" 꼴이면 받는다.
