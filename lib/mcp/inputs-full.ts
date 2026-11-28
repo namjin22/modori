@@ -110,7 +110,7 @@ export const createRoutineInput = {
   endDate: dayInput.optional().describe("Last day. Omit to repeat forever."),
   startTime: timeInput.optional().describe("Events only. Omit for all day."),
   endTime: timeInput.optional().describe("Events only. Requires startTime."),
-  color: hexColorInput.optional().describe("Events only. Omit for the default color. Give either color or category, not both."),
+  color: hexColorInput.optional().describe("Events only. Omit for no color (neutral gray). Give either color or category, not both."),
   isPublic: z.boolean().optional().describe("Events only. Whether followers can see it. Default FALSE here (private)."),
 };
 

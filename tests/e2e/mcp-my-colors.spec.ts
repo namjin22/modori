@@ -160,6 +160,16 @@ test("모든 권한: kind=event 카테고리 도구로 내 색을 만들고, 고
   expect((await prisma.eventRoutine.findUniqueOrThrow({ where: { id: repeat.id } })).categoryId).toBe(id);
 });
 
+test("색을 안 주고 만든 일정과 반복 일정은 색 없음(중립 회색)이다", async ({ request, account }) => {
+  const token = await renew(account.id);
+  const made = await call(request, token, "create_events", { events: [{ title: "색 없는 일정", startDate: TODAY }] });
+  expect(made.failed).toBe(false);
+  expect((await prisma.event.findFirstOrThrow({ where: { userId: account.id, title: "색 없는 일정" } })).color).toBe("#8b95a1");
+  const routine = await call(request, token, "create_routine", { kind: "event", title: "색 없는 반복", frequency: "DAILY", startDate: TODAY });
+  expect(routine.failed).toBe(false);
+  expect((await prisma.eventRoutine.findFirstOrThrow({ where: { userId: account.id, title: "색 없는 반복" } })).color).toBe("#8b95a1");
+});
+
 test("모든 권한: 내 색은 한 사람 20개까지다", async ({ request, account }) => {
   const token = await renew(account.id);
   await prisma.eventCategory.createMany({

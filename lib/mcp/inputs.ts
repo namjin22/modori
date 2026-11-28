@@ -99,7 +99,7 @@ export const createEventsInput = {
           .string()
           .regex(/^#[0-9a-fA-F]{6}$/, "Use #rrggbb")
           .optional()
-          .describe("#rrggbb. Omit for the default color. Give either color or category, not both."),
+          .describe("#rrggbb. Omit for no color (neutral gray). Give either color or category, not both."),
         category: z
           .string()
           .trim()

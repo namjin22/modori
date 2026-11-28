@@ -2303,3 +2303,7 @@ VM에 시험 DB(사용자 1000, 할 일 108만, 반응 24만, 280MB)를 만들�
 - `components/color-swatches.tsx`: 처음부터 있는 색을 없앴다(`PALETTE`·`isPaletteColor` 삭제). 아무것도 안 고른 것이 "색 없음"이고 숨은 칸으로 회색(`NO_CATEGORY_COLOR`)을 보낸다. 고른 색을 한 번 더 누르면 해제. 일정·카테고리·반복 일정 폼의 기본값도 회색. 결정 `docs/decisions.md` "색 고르기의 흰색 기본도 없애고…".
 - **알아 둘 것**: 서버 대체값(`DEFAULT_EVENT_COLOR` 파랑)과 AI 연결의 기본색은 그대로다(화면은 늘 색을 보낸다). `colorNames` 사전(예전 여덟 색 이름)은 이제 안 쓰이지만 `i18n.test.ts`가 가져와 두었다.
 - 시험(운영자 승인): `events.spec.ts`·`category-edit.spec.ts` 한 곳씩, 내 `event-categories.spec.ts` 두 곳. 새 시험(색 없음 저장). 관련 E2E 39개 로컬 통과.
+
+## 2026-11-27(이어서) — AI 연결 기본색 회색
+
+- `lib/colors.ts`의 `DEFAULT_EVENT_COLOR`를 파랑에서 `NO_CATEGORY_COLOR`(회색)로. 색을 안 주는 `create_events`·`create_routine`(kind=event)과, 서버 액션의 대체값(색 칸이 없던 예전 요청)이 같이 바뀐다. 화면의 "색 없음"과 AI 연결이 같아졌다(11-27 결정의 대가 하나를 닫음). 이미 만든 일정의 색은 그대로. 시험: `mcp-my-colors.spec.ts`에 색 안 주기 시험 추가.
